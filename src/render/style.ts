@@ -1,0 +1,18 @@
+/** Drawing style in one place. Sizes are SVG px at the base scale (see PX_PER_MM). */
+export const PX_PER_MM = 0.1; // 1 px = 10 mm, i.e. 1:100 at roughly 254 dpi when exported at 2×
+export const PNG_ZOOM = 2;
+export const FONT = "DejaVu Sans";
+
+export const C = {
+  paper: "#ffffff",
+  ink: "#1a1a1a",
+  wall: "#2b2b2b",
+  room: "#f3efe6",
+  slab: "#9a9a9a",
+  opening: "#1a1a1a",
+  glass: "#3a7bd5",
+  dim: "#5a5a5a",
+  id: "#c0392b",
+};
+
+export const MARGIN = { top: 70, right: 110, bottom: 120, left: 60 };

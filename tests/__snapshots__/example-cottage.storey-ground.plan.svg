@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="970" height="790" viewBox="0 0 970 790" font-family="DejaVu Sans">
+<rect x="0" y="0" width="970" height="790" fill="#ffffff"/>
+<polygon points="60,670 860,670 860,70 60,70" class="slab" data-id="slab-ground" fill="none" stroke="#9a9a9a" stroke-width="0.8" stroke-dasharray="6 3"/>
+<polygon points="80,650 435,650 435,335 80,335" class="room" data-id="room-living" fill="#f3efe6" stroke="none"/>
+<polygon points="445,650 555,650 555,90 445,90" class="room" data-id="room-hall" fill="#f3efe6" stroke="none"/>
+<polygon points="80,325 435,325 435,90 80,90" class="room" data-id="room-kitchen" fill="#f3efe6" stroke="none"/>
+<polygon points="565,650 840,650 840,295 565,295" class="room" data-id="room-bedroom" fill="#f3efe6" stroke="none"/>
+<polygon points="565,285 840,285 840,90 565,90" class="room" data-id="room-bathroom" fill="#f3efe6" stroke="none"/>
+<polygon points="60,670 197.5,670 197.5,650 60,650" class="wall" data-id="wall-south" fill="#2b2b2b" stroke="none"/>
+<polygon points="317.5,670 455,670 455,650 317.5,650" class="wall" data-id="wall-south" fill="#2b2b2b" stroke="none"/>
+<polygon points="545,670 642.5,670 642.5,650 545,650" class="wall" data-id="wall-south" fill="#2b2b2b" stroke="none"/>
+<polygon points="762.5,670 860,670 860,650 762.5,650" class="wall" data-id="wall-south" fill="#2b2b2b" stroke="none"/>
+<polygon points="860,650 860,247.5 840,247.5 840,650" class="wall" data-id="wall-east" fill="#2b2b2b" stroke="none"/>
+<polygon points="860,127.5 860,90 840,90 840,127.5" class="wall" data-id="wall-east" fill="#2b2b2b" stroke="none"/>
+<polygon points="860,70 545,70 545,90 860,90" class="wall" data-id="wall-north" fill="#2b2b2b" stroke="none"/>
+<polygon points="455,70 317.5,70 317.5,90 455,90" class="wall" data-id="wall-north" fill="#2b2b2b" stroke="none"/>
+<polygon points="197.5,70 60,70 60,90 197.5,90" class="wall" data-id="wall-north" fill="#2b2b2b" stroke="none"/>
+<polygon points="60,90 60,650 80,650 80,90" class="wall" data-id="wall-west" fill="#2b2b2b" stroke="none"/>
+<polygon points="445,650 445,532.5 435,532.5 435,650" class="wall" data-id="wall-hall-west" fill="#2b2b2b" stroke="none"/>
+<polygon points="445,452.5 445,247.5 435,247.5 435,452.5" class="wall" data-id="wall-hall-west" fill="#2b2b2b" stroke="none"/>
+<polygon points="445,167.5 445,90 435,90 435,167.5" class="wall" data-id="wall-hall-west" fill="#2b2b2b" stroke="none"/>
+<polygon points="565,650 565,512.5 555,512.5 555,650" class="wall" data-id="wall-hall-east" fill="#2b2b2b" stroke="none"/>
+<polygon points="565,432.5 565,227.5 555,227.5 555,432.5" class="wall" data-id="wall-hall-east" fill="#2b2b2b" stroke="none"/>
+<polygon points="565,147.5 565,90 555,90 555,147.5" class="wall" data-id="wall-hall-east" fill="#2b2b2b" stroke="none"/>
+<polygon points="80,335 435,335 435,325 80,325" class="wall" data-id="wall-living-kitchen" fill="#2b2b2b" stroke="none"/>
+<polygon points="565,295 840,295 840,285 565,285" class="wall" data-id="wall-bedroom-bathroom" fill="#2b2b2b" stroke="none"/>
+<g class="door" data-id="door-front">
+<line x1="455" y1="650" x2="455" y2="560" stroke="#1a1a1a" stroke-width="1.6"/>
+<polyline points="455,560 460.9,560.2 466.7,560.8 472.6,561.7 478.3,563.1 483.9,564.8 489.4,566.9 494.8,569.3 500,572.1 505,575.2 509.8,578.6 514.3,582.3 518.6,586.4 522.7,590.7 526.4,595.2 529.8,600 532.9,605 535.7,610.2 538.1,615.6 540.2,621.1 541.9,626.7 543.3,632.4 544.2,638.3 544.8,644.1 545,650" fill="none" stroke="#1a1a1a" stroke-width="0.7" stroke-dasharray="3 2"/>
+</g>
+<g class="door" data-id="door-back">
+<line x1="455" y1="90" x2="455" y2="180" stroke="#1a1a1a" stroke-width="1.6"/>
+<polyline points="455,180 460.9,179.8 466.7,179.2 472.6,178.3 478.3,176.9 483.9,175.2 489.4,173.1 494.8,170.7 500,167.9 505,164.8 509.8,161.4 514.3,157.7 518.6,153.6 522.7,149.3 526.4,144.8 529.8,140 532.9,135 535.7,129.8 538.1,124.4 540.2,118.9 541.9,113.3 543.3,107.6 544.2,101.7 544.8,95.9 545,90" fill="none" stroke="#1a1a1a" stroke-width="0.7" stroke-dasharray="3 2"/>
+</g>
+<g class="door" data-id="door-living">
+<line x1="435" y1="532.5" x2="355" y2="532.5" stroke="#1a1a1a" stroke-width="1.6"/>
+<polyline points="355,532.5 355.2,527.3 355.7,522.1 356.5,516.9 357.7,511.8 359.2,506.8 361.1,501.9 363.3,497.1 365.7,492.5 368.5,488.1 371.5,483.8 374.9,479.8 378.4,475.9 382.3,472.4 386.3,469 390.6,466 395,463.2 399.6,460.8 404.4,458.6 409.3,456.7 414.3,455.2 419.4,454 424.6,453.2 429.8,452.7 435,452.5" fill="none" stroke="#1a1a1a" stroke-width="0.7" stroke-dasharray="3 2"/>
+</g>
+<g class="door" data-id="door-kitchen">
+<line x1="435" y1="167.5" x2="355" y2="167.5" stroke="#1a1a1a" stroke-width="1.6"/>
+<polyline points="355,167.5 355.2,172.7 355.7,177.9 356.5,183.1 357.7,188.2 359.2,193.2 361.1,198.1 363.3,202.9 365.7,207.5 368.5,211.9 371.5,216.2 374.9,220.2 378.4,224.1 382.3,227.6 386.3,231 390.6,234 395,236.8 399.6,239.2 404.4,241.4 409.3,243.3 414.3,244.8 419.4,246 424.6,246.8 429.8,247.3 435,247.5" fill="none" stroke="#1a1a1a" stroke-width="0.7" stroke-dasharray="3 2"/>
+</g>
+<g class="door" data-id="door-bedroom">
+<line x1="565" y1="512.5" x2="645" y2="512.5" stroke="#1a1a1a" stroke-width="1.6"/>
+<polyline points="645,512.5 644.8,507.3 644.3,502.1 643.5,496.9 642.3,491.8 640.8,486.8 638.9,481.9 636.7,477.1 634.3,472.5 631.5,468.1 628.5,463.8 625.1,459.8 621.6,455.9 617.7,452.4 613.7,449 609.4,446 605,443.2 600.4,440.8 595.6,438.6 590.7,436.7 585.7,435.2 580.6,434 575.4,433.2 570.2,432.7 565,432.5" fill="none" stroke="#1a1a1a" stroke-width="0.7" stroke-dasharray="3 2"/>
+</g>
+<g class="door" data-id="door-bathroom">
+<line x1="565" y1="147.5" x2="645" y2="147.5" stroke="#1a1a1a" stroke-width="1.6"/>
+<polyline points="645,147.5 644.8,152.7 644.3,157.9 643.5,163.1 642.3,168.2 640.8,173.2 638.9,178.1 636.7,182.9 634.3,187.5 631.5,191.9 628.5,196.2 625.1,200.2 621.6,204.1 617.7,207.6 613.7,211 609.4,214 605,216.8 600.4,219.2 595.6,221.4 590.7,223.3 585.7,224.8 580.6,226 575.4,226.8 570.2,227.3 565,227.5" fill="none" stroke="#1a1a1a" stroke-width="0.7" stroke-dasharray="3 2"/>
+</g>
+<g class="window" data-id="window-living">
+<polygon points="197.5,670 317.5,670 317.5,650 197.5,650" fill="#ffffff" stroke="#1a1a1a" stroke-width="0.8"/>
+<line x1="197.5" y1="657.5" x2="317.5" y2="657.5" stroke="#3a7bd5" stroke-width="1"/>
+<line x1="197.5" y1="662.5" x2="317.5" y2="662.5" stroke="#3a7bd5" stroke-width="1"/>
+</g>
+<g class="window" data-id="window-bedroom">
+<polygon points="642.5,670 762.5,670 762.5,650 642.5,650" fill="#ffffff" stroke="#1a1a1a" stroke-width="0.8"/>
+<line x1="642.5" y1="657.5" x2="762.5" y2="657.5" stroke="#3a7bd5" stroke-width="1"/>
+<line x1="642.5" y1="662.5" x2="762.5" y2="662.5" stroke="#3a7bd5" stroke-width="1"/>
+</g>
+<g class="window" data-id="window-kitchen">
+<polygon points="317.5,70 197.5,70 197.5,90 317.5,90" fill="#ffffff" stroke="#1a1a1a" stroke-width="0.8"/>
+<line x1="317.5" y1="82.5" x2="197.5" y2="82.5" stroke="#3a7bd5" stroke-width="1"/>
+<line x1="317.5" y1="77.5" x2="197.5" y2="77.5" stroke="#3a7bd5" stroke-width="1"/>
+</g>
+<g class="window" data-id="window-bathroom">
+<polygon points="860,247.5 860,127.5 840,127.5 840,247.5" fill="#ffffff" stroke="#1a1a1a" stroke-width="0.8"/>
+<line x1="847.5" y1="247.5" x2="847.5" y2="127.5" stroke="#3a7bd5" stroke-width="1"/>
+<line x1="852.5" y1="247.5" x2="852.5" y2="127.5" stroke="#3a7bd5" stroke-width="1"/>
+</g>
+<text x="257.5" y="488.5" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Living room</text>
+<text x="257.5" y="504.5" font-size="11" text-anchor="middle" fill="#1a1a1a">11.2 m²</text>
+<text x="257.5" y="518.5" font-size="9" text-anchor="middle" fill="#5a5a5a">3.55 × 3.15</text>
+<text x="500" y="366" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Hall</text>
+<text x="500" y="382" font-size="11" text-anchor="middle" fill="#1a1a1a">6.2 m²</text>
+<text x="500" y="396" font-size="9" text-anchor="middle" fill="#5a5a5a">1.10 × 5.60</text>
+<text x="257.5" y="203.5" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Kitchen</text>
+<text x="257.5" y="219.5" font-size="11" text-anchor="middle" fill="#1a1a1a">8.3 m²</text>
+<text x="257.5" y="233.5" font-size="9" text-anchor="middle" fill="#5a5a5a">3.55 × 2.35</text>
+<text x="702.5" y="468.5" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Bedroom</text>
+<text x="702.5" y="484.5" font-size="11" text-anchor="middle" fill="#1a1a1a">9.8 m²</text>
+<text x="702.5" y="498.5" font-size="9" text-anchor="middle" fill="#5a5a5a">2.75 × 3.55</text>
+<text x="702.5" y="183.5" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Bathroom</text>
+<text x="702.5" y="199.5" font-size="11" text-anchor="middle" fill="#1a1a1a">5.4 m²</text>
+<text x="702.5" y="213.5" font-size="9" text-anchor="middle" fill="#5a5a5a">2.75 × 1.95</text>
+<line x1="60" y1="666" x2="60" y2="706" stroke="#5a5a5a" stroke-width="0.5"/>
+<line x1="860" y1="666" x2="860" y2="706" stroke="#5a5a5a" stroke-width="0.5"/>
+<line x1="60" y1="710" x2="860" y2="710" stroke="#5a5a5a" stroke-width="0.8"/>
+<line x1="56" y1="714" x2="64" y2="706" stroke="#5a5a5a" stroke-width="1"/>
+<line x1="856" y1="714" x2="864" y2="706" stroke="#5a5a5a" stroke-width="1"/>
+<text x="460" y="704" font-size="11" fill="#5a5a5a" text-anchor="middle" transform="rotate(0 460 704)">8000</text>
+<line x1="856" y1="670" x2="896" y2="670" stroke="#5a5a5a" stroke-width="0.5"/>
+<line x1="856" y1="70" x2="896" y2="70" stroke="#5a5a5a" stroke-width="0.5"/>
+<line x1="900" y1="670" x2="900" y2="70" stroke="#5a5a5a" stroke-width="0.8"/>
+<line x1="904" y1="674" x2="896" y2="666" stroke="#5a5a5a" stroke-width="1"/>
+<line x1="904" y1="74" x2="896" y2="66" stroke="#5a5a5a" stroke-width="1"/>
+<text x="894" y="370" font-size="11" fill="#5a5a5a" text-anchor="middle" transform="rotate(-90 894 370)">6000</text>
+<text x="60" y="28" font-size="18" font-weight="bold" fill="#1a1a1a">Example cottage — Ground floor plan</text>
+<text x="60" y="46" font-size="11" fill="#5a5a5a">Elevation 0 mm · dimensions in mm · 1 px = 10 mm</text>
+<g transform="translate(925 60) rotate(0)">
+<circle cx="0" cy="0" r="22" fill="none" stroke="#1a1a1a" stroke-width="1"/>
+<polygon points="0,-20 8,10 0,4 -8,10" fill="#1a1a1a"/>
+<text x="0" y="-28" font-size="14" font-weight="bold" text-anchor="middle" fill="#1a1a1a">N</text>
+</g>
+<g>
+<rect x="60" y="750" width="100" height="6" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="0.8"/>
+<text x="60" y="770" font-size="10" text-anchor="middle" fill="#1a1a1a">0</text>
+<rect x="160" y="750" width="100" height="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="0.8"/>
+<text x="160" y="770" font-size="10" text-anchor="middle" fill="#1a1a1a">1</text>
+<rect x="260" y="750" width="100" height="6" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="0.8"/>
+<text x="260" y="770" font-size="10" text-anchor="middle" fill="#1a1a1a">2</text>
+<rect x="360" y="750" width="100" height="6" fill="#ffffff" stroke="#1a1a1a" stroke-width="0.8"/>
+<text x="360" y="770" font-size="10" text-anchor="middle" fill="#1a1a1a">3</text>
+<rect x="460" y="750" width="100" height="6" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="0.8"/>
+<text x="460" y="770" font-size="10" text-anchor="middle" fill="#1a1a1a">4</text>
+<text x="560" y="770" font-size="10" text-anchor="middle" fill="#1a1a1a">5 m</text>
+</g>
+</svg>

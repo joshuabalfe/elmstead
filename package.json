@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@resvg/resvg-js": "2.6.2",
+    "dejavu-fonts-ttf": "2.37.3",
     "web-ifc": "0.0.80",
     "zod": "4.6.7"
   },

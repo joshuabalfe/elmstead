@@ -3,10 +3,11 @@ import { join } from "node:path";
 import { formatIssue, hasErrors, type Issue } from "../checks/issue.js";
 import { formatJson } from "./json-format.js";
 import { loadModel, type LoadedModel } from "./load.js";
+import { renderAll } from "../render/index.js";
 
 const OUT = "out";
 
-const USAGE = `usage: elmstead <build|render|check|all> <models/name.ts>`;
+const USAGE = `usage: elmstead <build|render|check|all> <models/name.ts> [--ids]`;
 
 function print(issues: readonly Issue[]) {
   for (const i of issues) console.log(formatIssue(i));
@@ -30,7 +31,8 @@ function writeJson({ name, model }: LoadedModel): string {
 }
 
 async function main(argv: string[]): Promise<number> {
-  const [command, modelPath] = argv;
+  const flags = new Set(argv.filter((a) => a.startsWith("--")));
+  const [command, modelPath] = argv.filter((a) => !a.startsWith("--"));
   if (!command || !modelPath) {
     console.error(USAGE);
     return 2;
@@ -40,6 +42,9 @@ async function main(argv: string[]): Promise<number> {
   switch (command) {
     case "build":
       console.log(`json    ${writeJson(loaded)}`);
+      break;
+    case "render":
+      for (const p of renderAll(loaded.name, loaded.model, OUT, { ids: flags.has("--ids") })) console.log(`render  ${p}`);
       break;
     default:
       console.error(`unknown command "${command}"\n${USAGE}`);
