@@ -20,7 +20,7 @@
  * values. Left out for now: the stairs, front steps, hearths,
  * radiators and rainwater pipes.
  */
-import { defineBuilding, door, face, m, mm, pt, sub, wall, window, type Opening, type Room } from "../src/model/index.js";
+import { centredOn, defineBuilding, door, face, m, mm, pt, sub, wall, window, type Opening, type Room } from "../src/model/index.js";
 
 // ── Overall ──────────────────────────────────────────────────────────────────
 const coreW = m(8);
@@ -54,6 +54,8 @@ const extDoor = { width: mm(900), height: m(2.1) };
 const intDoor = { width: mm(700), height: m(2.1) };
 const sill = mm(900);
 const windowH = m(1.2);
+// Large front window: dimensions from the owner. Its centre is where the drawing shows it.
+const frontWindow = { width: m(2.5), sillHeight: mm(500), headHeight: m(2.6), centreY: mm(3025) };
 
 // ── External walls (counter-clockwise, body on the left = inside) ────────────
 const north = wall("wall-north", pt(extEastX, coreD), pt(mm(0), coreD), { thickness: northT, height: wallH, justification: "left" });
@@ -93,7 +95,11 @@ const win = (width: number) => ({ width: mm(width), height: windowH, sillHeight:
 const openings: Opening[] = [
   // West wall runs north→south, so "start" is the north end and "left" is inside.
   door("door-front", west, mm(50), extDoor, { hinge: "start", side: "left" }),
-  window("window-living", west, mm(2750), win(2550)),
+  window("window-living", west, centredOn(west, frontWindow.centreY, frontWindow.width), {
+    width: frontWindow.width,
+    height: sub(frontWindow.headHeight, frontWindow.sillHeight),
+    sillHeight: frontWindow.sillHeight,
+  }),
 
   // Partition runs south→north; "left" is the living room.
   door("door-living", livingBedroom, sub(mm(3955), southIn), intDoor, { hinge: "start", side: "left" }),
