@@ -22,6 +22,18 @@ const FIXED_TIMESTAMP = "1970-01-01T00:00:00";
 /** FILE_NAME.authorization must be a STRING; web-ifc writes an empty one as $ (null). */
 const AUTHORIZATION = "none";
 
+/**
+ * Presentation colours (sRGB 0–1, transparency 0–1). Pure presentation: they make walls, slabs,
+ * doors and glazing distinguishable in any IFC viewer and carry no building meaning.
+ */
+const STYLES = {
+  wall: { rgb: [0.91, 0.89, 0.85], transparency: 0 },
+  slab: { rgb: [0.55, 0.55, 0.55], transparency: 0 },
+  door: { rgb: [0.61, 0.42, 0.26], transparency: 0 },
+  glazing: { rgb: [0.5, 0.7, 0.9], transparency: 0.5 },
+} as const;
+type StyleName = keyof typeof STYLES;
+
 export interface WriteOptions {
   /** Used for FILE_NAME in the header. */
   fileName: string;
@@ -111,9 +123,24 @@ class Writer {
     return new IFC4.IfcPolyline([...pts, pts[0]!]);
   }
 
-  /** Extrusion of a profile straight up by `depth`, as a Body/SweptSolid shape. */
-  private body(profile: InstanceType<typeof IFC4.IfcProfileDef>, depth: number) {
+  private readonly styles = new Map<StyleName, InstanceType<typeof IFC4.IfcSurfaceStyle>>();
+
+  private surfaceStyle(name: StyleName) {
+    let style = this.styles.get(name);
+    if (!style) {
+      const { rgb, transparency } = STYLES[name];
+      const ratio = (n: number) => new IFC4.IfcNormalisedRatioMeasure(n);
+      const colour = new IFC4.IfcColourRgb(null, ratio(rgb[0]), ratio(rgb[1]), ratio(rgb[2]));
+      style = new IFC4.IfcSurfaceStyle(label(name), IFC4.IfcSurfaceSide.BOTH, [new IFC4.IfcSurfaceStyleShading(colour, ratio(transparency))]);
+      this.styles.set(name, style);
+    }
+    return style;
+  }
+
+  /** Extrusion of a profile straight up by `depth`, as a Body/SweptSolid shape, optionally coloured. */
+  private body(profile: InstanceType<typeof IFC4.IfcProfileDef>, depth: number, style?: StyleName) {
     const solid = new IFC4.IfcExtrudedAreaSolid(profile, null, this.zAxis, posLen(depth));
+    if (style) this.write(new IFC4.IfcStyledItem(solid, [this.surfaceStyle(style)], null));
     return new IFC4.IfcShapeRepresentation(this.bodyCtx, label("Body"), label("SweptSolid"), [solid]);
   }
 
@@ -209,7 +236,7 @@ class Writer {
     const placement = this.placement(parent, w.start.x, w.start.y, 0, round9(d.x), round9(d.y));
     const { left, right } = faceOffsets(w);
     const axis = new IFC4.IfcShapeRepresentation(this.axisCtx, label("Axis"), label("Curve2D"), [new IFC4.IfcPolyline([this.pt2(0, 0), this.pt2(L, 0)])]);
-    const body = this.body(this.rectangle(L / 2, (left + right) / 2, L, w.thickness), w.height);
+    const body = this.body(this.rectangle(L / 2, (left + right) / 2, L, w.thickness), w.height, "wall");
     const wall = this.write(
       new IFC4.IfcWall(guid(w.id), null, label(w.name ?? w.id), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [axis, body]), ident(w.id), IFC4.IfcWallTypeEnum.NOTDEFINED),
     );
@@ -243,7 +270,7 @@ class Writer {
     const opensLeft = swing.side === "left"; // wall-local +Y is the wall's left
     const placement = this.placement(openingPlacement, d.width / 2, mid, 0, opensLeft ? 1 : -1, 0);
     const hingeOnDoorLeft = (swing.hinge === "start") === opensLeft;
-    const body = this.body(this.rectangle(0, 0, d.width, PANEL_THICKNESS), d.height);
+    const body = this.body(this.rectangle(0, 0, d.width, PANEL_THICKNESS), d.height, "door");
     return this.write(
       new IFC4.IfcDoor(
         guid(d.id),
@@ -265,7 +292,7 @@ class Writer {
 
   private window(win: Window, mid: number, openingPlacement: InstanceType<typeof IFC4.IfcLocalPlacement>) {
     const placement = this.placement(openingPlacement, win.width / 2, mid, 0);
-    const body = this.body(this.rectangle(0, 0, win.width, PANEL_THICKNESS), win.height);
+    const body = this.body(this.rectangle(0, 0, win.width, PANEL_THICKNESS), win.height, "glazing");
     return this.write(
       new IFC4.IfcWindow(
         guid(win.id),
@@ -290,7 +317,7 @@ class Writer {
     const placement = this.placement(parent, 0, 0, s.elevationOffset - s.thickness);
     const profile = new IFC4.IfcArbitraryClosedProfileDef(IFC4.IfcProfileTypeEnum.AREA, null, this.closedPolyline(s.outline));
     return this.write(
-      new IFC4.IfcSlab(guid(s.id), null, label(s.name ?? s.id), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [this.body(profile, s.thickness)]), ident(s.id), IFC4.IfcSlabTypeEnum.FLOOR),
+      new IFC4.IfcSlab(guid(s.id), null, label(s.name ?? s.id), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [this.body(profile, s.thickness, "slab")]), ident(s.id), IFC4.IfcSlabTypeEnum.FLOOR),
     );
   }
 

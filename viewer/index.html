@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Elmstead viewer</title>
+    <style>
+      html, body { margin: 0; height: 100%; font: 13px/1.4 system-ui, sans-serif; background: #f4f4f2; color: #1a1a1a; }
+      #container { position: absolute; inset: 0; }
+      #bar { position: absolute; top: 12px; left: 12px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+             background: rgba(255,255,255,.92); padding: 8px 10px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+      #bar button, #bar select { font: inherit; padding: 3px 8px; }
+      #status { color: #666; margin-left: 4px; }
+      body.snapshot #bar { display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="container"></div>
+    <div id="bar">
+      <select id="model" title="Model in out/"></select>
+      <span>View:</span>
+      <button data-view="sw">SW</button><button data-view="se">SE</button>
+      <button data-view="ne">NE</button><button data-view="nw">NW</button>
+      <button data-view="top">Top</button>
+      <span id="status"></span>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

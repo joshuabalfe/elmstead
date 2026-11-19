@@ -3,7 +3,8 @@ import { join } from "node:path";
 import { formatIssue, hasErrors, type Issue } from "../checks/issue.js";
 import { formatJson } from "./json-format.js";
 import { loadModel, type LoadedModel } from "./load.js";
-import { renderAll } from "../render/index.js";
+import { render3d, renderAll } from "../render/index.js";
+import { existsSync } from "node:fs";
 import { writeIfc } from "../ifc/writer.js";
 import { validateIfc } from "../ifc/validate.js";
 import { roundTripChecks } from "../ifc/roundtrip.js";
@@ -11,7 +12,7 @@ import { BuildingModelSchema } from "../schema/schema.js";
 
 const OUT = "out";
 
-const USAGE = `usage: elmstead <build|render|check|all> <models/name.ts> [--ids]`;
+const USAGE = `usage: elmstead <build|render|check|all> <models/name.ts> [--ids] [--no-3d]`;
 
 function print(issues: readonly Issue[]) {
   for (const i of issues) console.log(formatIssue(i));
@@ -65,9 +66,18 @@ async function main(argv: string[]): Promise<number> {
       await buildIfc(loaded.name, jsonPath, issues);
       break;
     }
-    case "render":
+    case "render": {
       for (const p of renderAll(loaded.name, loaded.model, OUT, { ids: flags.has("--ids") })) console.log(`render  ${p}`);
+      if (flags.has("--no-3d")) break;
+      if (!existsSync(join(OUT, `${loaded.name}.ifc`))) {
+        issues.push({ level: "WARNING", id: loaded.name, message: "3D snapshots skipped: no IFC yet — run build first" });
+        break;
+      }
+      const r = await render3d(loaded.name, OUT);
+      for (const p of r.written) console.log(`render  ${p}`);
+      issues.push(...r.issues);
       break;
+    }
     default:
       console.error(`unknown command "${command}"\n${USAGE}`);
       return 2;
