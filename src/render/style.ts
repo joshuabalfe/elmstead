@@ -2,6 +2,8 @@
 export const PX_PER_MM = 0.1; // 1 px = 10 mm, i.e. 1:100 at roughly 254 dpi when exported at 2×
 export const PNG_ZOOM = 2;
 export const FONT = "DejaVu Sans";
+/** Height above the storey floor (mm) at which the plan is cut. Openings wholly above or below it are not cut. */
+export const CUT_HEIGHT = 1200;
 
 export const C = {
   paper: "#ffffff",

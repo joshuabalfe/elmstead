@@ -2,7 +2,7 @@ import { faceOffsets, wallDirection, wallLength, wallPoint, wallSegmentFootprint
 import { area, bounds, centroid, type Bounds } from "../geometry/polygon.js";
 import { perpLeft, toVec, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";
 import type { BuildingModel, Door, Opening, Storey, Wall, Window } from "../schema/schema.js";
-import { C, FONT, MARGIN, PX_PER_MM } from "./style.js";
+import { C, CUT_HEIGHT, FONT, MARGIN, PX_PER_MM } from "./style.js";
 import { el, group, line, num, polygon, polyline, text } from "./svg.js";
 
 export interface PlanOptions {
@@ -38,11 +38,14 @@ function makeView(storey: Storey): View {
 const m2 = (a: number) => `${(a / 1e6).toFixed(1)} m²`;
 const metres = (mm: number) => `${(mm / 1000).toFixed(2)}`;
 
+/** Whether the plan's cut plane passes through the opening. */
+const isCut = (o: Opening) => o.sillHeight < CUT_HEIGHT && o.sillHeight + o.height > CUT_HEIGHT;
+
 /** Wall body minus the gaps cut by its openings, as plan polygons. */
 function wallPieces(w: Wall, openings: readonly Opening[]): Vec[][] {
   const L = wallLength(w);
   const cuts = openings
-    .filter((o) => o.wallId === w.id)
+    .filter((o) => o.wallId === w.id && isCut(o))
     .map((o) => [Math.max(0, o.offsetAlongWall), Math.min(L, o.offsetAlongWall + o.width)] as const)
     .sort((a, b) => a[0] - b[0]);
   const pieces: Vec[][] = [];
@@ -97,6 +100,14 @@ function drawWindow(w: Wall, win: Window, view: View): string {
     polygon(frame, { fill: C.paper, stroke: C.opening, "stroke-width": 0.8 }),
     line(view.toPx(wallPoint(w, a, mid + glassGap)), view.toPx(wallPoint(w, b, mid + glassGap)), { stroke: C.glass, "stroke-width": 1 }),
     line(view.toPx(wallPoint(w, a, mid - glassGap)), view.toPx(wallPoint(w, b, mid - glassGap)), { stroke: C.glass, "stroke-width": 1 }),
+  ]);
+}
+
+/** Opening the cut plane misses (e.g. a fanlight): dashed outline over the uncut wall. */
+function drawUncut(w: Wall, o: Opening, view: View): string {
+  const outline = wallSegmentFootprint(w, o.offsetAlongWall, o.offsetAlongWall + o.width).map(view.toPx);
+  return group({ class: o.kind, "data-id": o.id, "data-cut": "false" }, [
+    polygon(outline, { fill: "none", stroke: o.kind === "window" ? C.glass : C.dim, "stroke-width": 1, "stroke-dasharray": "4 2" }),
   ]);
 }
 
@@ -180,7 +191,7 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
   for (const o of storey.openings) {
     const w = wallById.get(o.wallId);
     if (!w) continue; // reported by checks
-    out.push(o.kind === "door" ? drawDoor(w, o, view) : drawWindow(w, o, view));
+    out.push(!isCut(o) ? drawUncut(w, o, view) : o.kind === "door" ? drawDoor(w, o, view) : drawWindow(w, o, view));
   }
 
   for (const r of storey.rooms) {

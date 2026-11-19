@@ -50,6 +50,17 @@ describe("plan renderer", () => {
     expect(renderPlan(model, storey, { ids: true })).toContain(">wall-south<");
   });
 
+  it("leaves a wall uncut by an opening above the cut plane, and draws it dashed", () => {
+    const withFanlight = structuredClone(model);
+    const s = withFanlight.storeys[0]!;
+    const front = s.openings.find((o) => o.id === "door-front")!;
+    s.openings.push({ kind: "window", id: "window-fanlight", wallId: front.wallId, offsetAlongWall: front.offsetAlongWall, width: front.width, height: mm(300), sillHeight: mm(2200) });
+    const out = renderPlan(withFanlight, s, { ids: false });
+    const pieces = [...out.matchAll(/class="wall" data-id="wall-south"/g)].length;
+    expect(pieces).toBe(4); // unchanged: the fanlight does not split the wall again
+    expect(out).toContain('class="window" data-id="window-fanlight" data-cut="false"');
+  });
+
   it("writes a PNG at 2× the SVG size", () => {
     const png = svgToPng(svg);
     const [w, h] = [png.readUInt32BE(16), png.readUInt32BE(20)];
