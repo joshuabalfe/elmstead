@@ -15,8 +15,9 @@
  * Plan origin is the outside south-west corner of the core; x east, y north, mm. "North" is
  * the top of the source drawing, which has no north arrow.
  *
- * Measured from the image at 8 m = 1689 px (about 4.74 mm per px), rounded to 25 mm. Heights are
- * not in the drawing and use typical values. Left out for now: the stairs, front steps, hearths,
+ * Measured from the image at 8 m = 1689 px (about 4.74 mm per px), rounded to 25 mm. Ceiling height
+ * (2.9 m) is from the owner; door and window heights are not in the drawing and use typical
+ * values. Left out for now: the stairs, front steps, hearths,
  * radiators and rainwater pipes.
  */
 import { defineBuilding, door, face, m, mm, pt, sub, wall, window, type Opening, type Room } from "../src/model/index.js";
@@ -26,7 +27,7 @@ const coreW = m(8);
 const coreD = m(7.4);
 const extEastX = m(9.4); //  outside face of the extension's east wall
 const extSouthY = m(5); //   outside face of the extension's south wall
-const wallH = m(2.4);
+const wallH = m(2.9); //      floor to ceiling; walls stop at the ceiling until there is an upper floor
 
 // ── Wall thicknesses ─────────────────────────────────────────────────────────
 const westT = mm(450); //  front wall, stone
