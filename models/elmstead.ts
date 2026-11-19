@@ -1,5 +1,6 @@
 /**
- * Stone house: single storey, traced from a supplied plan image (first pass).
+ * Elmstead. Ground floor traced from the owner's ground-floor plan image (first pass); upper
+ * floors to follow.
  * 8 m × 7.4 m stone core with a brick extension at the rear, north-east corner.
  *
  *   +----------------------------+--------+   north
@@ -202,9 +203,9 @@ const rooms: Room[] = [
 ];
 
 export default defineBuilding({
-  project: { id: "project-stone-house", name: "Stone house" },
+  project: { id: "project-elmstead", name: "Elmstead" },
   site: { id: "site-default", name: "Default site" },
-  building: { id: "building-stone-house", name: "Stone house" },
+  building: { id: "building-elmstead", name: "Elmstead" },
   storeys: [
     {
       id: "storey-ground",
