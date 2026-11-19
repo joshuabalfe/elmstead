@@ -20,7 +20,7 @@
  * values. Left out for now: the stairs, front steps, hearths,
  * radiators and rainwater pipes.
  */
-import { centredOn, defineBuilding, door, face, m, mm, pt, sub, wall, window, type Opening, type Room } from "../src/model/index.js";
+import { add, centredOn, defineBuilding, door, face, m, mm, pt, sub, wall, window, type Opening, type Room } from "../src/model/index.js";
 
 // ── Overall ──────────────────────────────────────────────────────────────────
 const coreW = m(8);
@@ -56,6 +56,10 @@ const sill = mm(900);
 const windowH = m(1.2);
 // Large front window: dimensions from the owner. Its centre is where the drawing shows it.
 const frontWindow = { width: m(2.5), sillHeight: mm(500), headHeight: m(2.6), centreY: mm(3025) };
+// Glazed fanlight over the front door: same width as the door, above a 100 mm transom, head level with the front window.
+const frontDoorOffset = mm(50);
+const transom = mm(100);
+const fanlightSill = add(extDoor.height, transom);
 
 // ── External walls (counter-clockwise, body on the left = inside) ────────────
 const north = wall("wall-north", pt(extEastX, coreD), pt(mm(0), coreD), { thickness: northT, height: wallH, justification: "left" });
@@ -94,7 +98,12 @@ const win = (width: number) => ({ width: mm(width), height: windowH, sillHeight:
 
 const openings: Opening[] = [
   // West wall runs north→south, so "start" is the north end and "left" is inside.
-  door("door-front", west, mm(50), extDoor, { hinge: "start", side: "left" }),
+  door("door-front", west, frontDoorOffset, extDoor, { hinge: "start", side: "left" }),
+  window("window-front-fanlight", west, frontDoorOffset, {
+    width: extDoor.width,
+    height: sub(frontWindow.headHeight, fanlightSill),
+    sillHeight: fanlightSill,
+  }),
   window("window-living", west, centredOn(west, frontWindow.centreY, frontWindow.width), {
     width: frontWindow.width,
     height: sub(frontWindow.headHeight, frontWindow.sillHeight),
