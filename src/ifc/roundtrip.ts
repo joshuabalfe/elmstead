@@ -1,0 +1,118 @@
+/**
+ * Re-opens a written IFC with web-ifc and checks the geometry it produces, independently of the
+ * writer: every element we wrote has a body, and every wall has lost exactly its openings' volume
+ * (i.e. the IfcRelVoidsElement cuts really happen in a viewer).
+ */
+import * as WebIFC from "web-ifc";
+import type { Issue } from "../checks/issue.js";
+import { wallLength } from "../geometry/wall.js";
+import type { BuildingModel } from "../schema/schema.js";
+import { PANEL_THICKNESS } from "./writer.js";
+
+/** Relative tolerance on volumes; triangulation of boxes is exact, so this only absorbs float noise. */
+const VOLUME_TOLERANCE = 1e-3;
+
+export interface ElementGeometry {
+  tag: string;
+  ifcType: string;
+  /** mm³ */
+  volume: number;
+  triangles: number;
+}
+
+/** Signed volume of a closed triangle mesh (divergence theorem), in the units of `positions`. */
+function meshVolume(positions: Float64Array | number[], indices: Uint32Array): number {
+  let v = 0;
+  for (let i = 0; i < indices.length; i += 3) {
+    const a = indices[i]! * 3;
+    const b = indices[i + 1]! * 3;
+    const c = indices[i + 2]! * 3;
+    const [ax, ay, az, bx, by, bz, cx, cy, cz] = [
+      positions[a]!, positions[a + 1]!, positions[a + 2]!,
+      positions[b]!, positions[b + 1]!, positions[b + 2]!,
+      positions[c]!, positions[c + 1]!, positions[c + 2]!,
+    ];
+    v += ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx);
+  }
+  return v / 6;
+}
+
+export async function ifcGeometry(ifc: Uint8Array): Promise<Map<string, ElementGeometry>> {
+  const api = new WebIFC.IfcAPI();
+  await api.Init();
+  api.SetLogLevel(WebIFC.LogLevel.LOG_LEVEL_ERROR);
+  const modelID = api.OpenModel(ifc);
+  const out = new Map<string, ElementGeometry>();
+  try {
+    // applyLinearScalingFactor=false keeps the file's unit (mm).
+    api.StreamAllMeshes(
+      modelID,
+      (mesh) => {
+        const line = api.GetLine(modelID, mesh.expressID);
+        const tag: string | undefined = line?.Tag?.value;
+        if (!tag) return;
+        let volume = 0;
+        let triangles = 0;
+        for (let i = 0; i < mesh.geometries.size(); i++) {
+          const pg = mesh.geometries.get(i);
+          const geom = api.GetGeometry(modelID, pg.geometryExpressID);
+          const verts = api.GetVertexArray(geom.GetVertexData(), geom.GetVertexDataSize());
+          const idx = api.GetIndexArray(geom.GetIndexData(), geom.GetIndexDataSize());
+          const m = pg.flatTransformation;
+          // Vertex layout is [x, y, z, nx, ny, nz]; apply the placement (column-major 4×4).
+          const pos = new Float64Array((verts.length / 6) * 3);
+          for (let j = 0, k = 0; j < verts.length; j += 6, k += 3) {
+            const [x, y, z] = [verts[j]!, verts[j + 1]!, verts[j + 2]!];
+            pos[k] = m[0]! * x + m[4]! * y + m[8]! * z + m[12]!;
+            pos[k + 1] = m[1]! * x + m[5]! * y + m[9]! * z + m[13]!;
+            pos[k + 2] = m[2]! * x + m[6]! * y + m[10]! * z + m[14]!;
+          }
+          volume += meshVolume(pos, idx);
+          triangles += idx.length / 3;
+          geom.delete();
+        }
+        out.set(tag, { tag, ifcType: api.GetNameFromTypeCode(line.type), volume: Math.abs(volume), triangles });
+      },
+      false,
+    );
+  } finally {
+    api.CloseModel(modelID);
+  }
+  return out;
+}
+
+/** Expected volumes from the model vs what web-ifc actually builds from the IFC. */
+export async function roundTripChecks(model: BuildingModel, ifc: Uint8Array): Promise<Issue[]> {
+  const geom = await ifcGeometry(ifc);
+  const issues: Issue[] = [];
+  const expect = (id: string, expected: number, what: string) => {
+    const g = geom.get(id);
+    if (!g) {
+      issues.push({ level: "ERROR", id, message: `round-trip: web-ifc produced no geometry for this ${what}` });
+      return;
+    }
+    const rel = Math.abs(g.volume - expected) / expected;
+    if (rel > VOLUME_TOLERANCE) {
+      issues.push({
+        level: "ERROR",
+        id,
+        message: `round-trip: ${what} volume is ${(g.volume / 1e9).toFixed(4)} m³ in IFC, expected ${(expected / 1e9).toFixed(4)} m³ from the model`,
+      });
+    }
+  };
+  for (const s of model.storeys) {
+    for (const w of s.walls) {
+      const cut = s.openings.filter((o) => o.wallId === w.id).reduce((sum, o) => sum + o.width * o.height * w.thickness, 0);
+      expect(w.id, wallLength(w) * w.thickness * w.height - cut, "wall (after opening cuts)");
+    }
+    for (const sl of s.slabs) {
+      const a = Math.abs(sl.outline.reduce((acc, p, i) => {
+        const q = sl.outline[(i + 1) % sl.outline.length]!;
+        return acc + p.x * q.y - q.x * p.y;
+      }, 0)) / 2;
+      expect(sl.id, a * sl.thickness, "slab");
+    }
+    for (const o of s.openings) expect(o.id, o.width * o.height * PANEL_THICKNESS, `${o.kind} panel`);
+  }
+  return issues;
+}

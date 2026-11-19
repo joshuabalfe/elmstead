@@ -1,0 +1,314 @@
+/**
+ * Building JSON → IFC4, via web-ifc. Translation only: every number here comes from the model; the
+ * only things decided here are how our concepts map onto IFC entities (documented inline).
+ *
+ * Coordinates: IFC length unit is the millimetre, so model values are written as-is. Plan x/y map to
+ * IFC X/Y, Z is up. Every IfcRoot gets a GlobalId from ifcGuid(key); see guid.ts for the key scheme.
+ */
+import * as WebIFC from "web-ifc";
+import { faceOffsets, wallDirection, wallLength } from "../geometry/wall.js";
+import type { BuildingModel, Door, Opening, Point, Room, Slab, Storey, Wall, Window } from "../schema/schema.js";
+import { ifcGuid } from "./guid.js";
+
+const { IFC4 } = WebIFC;
+type Line = WebIFC.IfcLineObject;
+
+/** Opening solids extend this far past each wall face so the boolean cut is clean. */
+const OPENING_CLEARANCE = 10;
+/** Thickness of the simple door leaf / glazing panel bodies. */
+export const PANEL_THICKNESS = 50;
+/** web-ifc stamps the current time into FILE_NAME; we fix it so rebuilding is byte-identical. */
+const FIXED_TIMESTAMP = "1970-01-01T00:00:00";
+/** FILE_NAME.authorization must be a STRING; web-ifc writes an empty one as $ (null). */
+const AUTHORIZATION = "none";
+
+export interface WriteOptions {
+  /** Used for FILE_NAME in the header. */
+  fileName: string;
+}
+
+let apiPromise: Promise<WebIFC.IfcAPI> | undefined;
+async function ifcApi(): Promise<WebIFC.IfcAPI> {
+  apiPromise ??= (async () => {
+    const api = new WebIFC.IfcAPI();
+    await api.Init();
+    api.SetLogLevel(WebIFC.LogLevel.LOG_LEVEL_ERROR);
+    return api;
+  })();
+  return apiPromise;
+}
+
+export async function writeIfc(model: BuildingModel, opts: WriteOptions): Promise<Uint8Array> {
+  const api = await ifcApi();
+  const id = api.CreateModel({
+    schema: WebIFC.Schemas.IFC4,
+    name: opts.fileName,
+    description: ["ViewDefinition [DesignTransferView]"],
+    authors: [""],
+    organizations: [""],
+  });
+  try {
+    new Writer(api, id).building(model);
+    return fixHeader(api.SaveModel(id));
+  } finally {
+    api.CloseModel(id);
+  }
+}
+
+/** Rewrites the two FILE_NAME fields web-ifc gives us no control over; fails loudly if the format changes. */
+function fixHeader(bytes: Uint8Array): Uint8Array {
+  const text = new TextDecoder().decode(bytes);
+  const re = /FILE_NAME\(('[^']*'),'[^']*',(.*),\$\);/;
+  if (!re.test(text)) throw new Error("unexpected FILE_NAME header from web-ifc; update fixHeader()");
+  return new TextEncoder().encode(text.replace(re, `FILE_NAME($1,'${FIXED_TIMESTAMP}',$2,'${AUTHORIZATION}');`));
+}
+
+// ── Value helpers ─────────────────────────────────────────────────────────────
+
+const label = (s: string) => new IFC4.IfcLabel(s);
+const ident = (s: string) => new IFC4.IfcIdentifier(s);
+const guid = (key: string) => new IFC4.IfcGloballyUniqueId(ifcGuid(key));
+const len = (n: number) => new IFC4.IfcLengthMeasure(n);
+const posLen = (n: number) => new IFC4.IfcPositiveLengthMeasure(n);
+const real = (n: number) => new IFC4.IfcReal(n);
+
+class Writer {
+  // Shared geometry, written once and referenced by every placement.
+  private readonly origin3 = new IFC4.IfcCartesianPoint([len(0), len(0), len(0)]);
+  private readonly zAxis = new IFC4.IfcDirection([real(0), real(0), real(1)]);
+  private bodyCtx!: InstanceType<typeof IFC4.IfcGeometricRepresentationSubContext>;
+  private axisCtx!: InstanceType<typeof IFC4.IfcGeometricRepresentationSubContext>;
+  private footprintCtx!: InstanceType<typeof IFC4.IfcGeometricRepresentationSubContext>;
+
+  constructor(
+    private readonly api: WebIFC.IfcAPI,
+    private readonly modelID: number,
+  ) {}
+
+  private write<T extends Line>(line: T): T {
+    this.api.WriteLine(this.modelID, line);
+    return line;
+  }
+
+  private pt3(x: number, y: number, z: number) {
+    return new IFC4.IfcCartesianPoint([len(x), len(y), len(z)]);
+  }
+
+  private pt2(x: number, y: number) {
+    return new IFC4.IfcCartesianPoint([len(x), len(y)]);
+  }
+
+  /** Local placement at (x, y, z) with its X axis along (dx, dy) in the parent's XY plane. */
+  private placement(parent: InstanceType<typeof IFC4.IfcLocalPlacement> | null, x: number, y: number, z: number, dx = 1, dy = 0) {
+    const location = x === 0 && y === 0 && z === 0 ? this.origin3 : this.pt3(x, y, z);
+    const refDirection = dx === 1 && dy === 0 ? null : new IFC4.IfcDirection([real(dx), real(dy), real(0)]);
+    const axis = new IFC4.IfcAxis2Placement3D(location, refDirection ? this.zAxis : null, refDirection);
+    return new IFC4.IfcLocalPlacement(parent, axis);
+  }
+
+  private closedPolyline(points: readonly Point[]) {
+    const pts = points.map((p) => this.pt2(p.x, p.y));
+    return new IFC4.IfcPolyline([...pts, pts[0]!]);
+  }
+
+  /** Extrusion of a profile straight up by `depth`, as a Body/SweptSolid shape. */
+  private body(profile: InstanceType<typeof IFC4.IfcProfileDef>, depth: number) {
+    const solid = new IFC4.IfcExtrudedAreaSolid(profile, null, this.zAxis, posLen(depth));
+    return new IFC4.IfcShapeRepresentation(this.bodyCtx, label("Body"), label("SweptSolid"), [solid]);
+  }
+
+  private rectangle(cx: number, cy: number, xDim: number, yDim: number) {
+    return new IFC4.IfcRectangleProfileDef(IFC4.IfcProfileTypeEnum.AREA, null, new IFC4.IfcAxis2Placement2D(this.pt2(cx, cy), null), posLen(xDim), posLen(yDim));
+  }
+
+  // ── Spatial structure ─────────────────────────────────────────────────────
+
+  building(model: BuildingModel): void {
+    const units = new IFC4.IfcUnitAssignment([
+      new IFC4.IfcSIUnit(IFC4.IfcUnitEnum.LENGTHUNIT, IFC4.IfcSIPrefix.MILLI, IFC4.IfcSIUnitName.METRE),
+      new IFC4.IfcSIUnit(IFC4.IfcUnitEnum.AREAUNIT, null, IFC4.IfcSIUnitName.SQUARE_METRE),
+      new IFC4.IfcSIUnit(IFC4.IfcUnitEnum.VOLUMEUNIT, null, IFC4.IfcSIUnitName.CUBIC_METRE),
+      new IFC4.IfcSIUnit(IFC4.IfcUnitEnum.PLANEANGLEUNIT, null, IFC4.IfcSIUnitName.RADIAN),
+    ]);
+
+    // northAngle is degrees counter-clockwise from plan +y; TrueNorth is that direction as a vector.
+    const north = ((model.site.northAngle ?? 0) * Math.PI) / 180;
+    const trueNorth = north === 0 ? null : new IFC4.IfcDirection([real(round9(-Math.sin(north))), real(round9(Math.cos(north)))]);
+    const context = new IFC4.IfcGeometricRepresentationContext(
+      null,
+      label("Model"),
+      new IFC4.IfcDimensionCount(3),
+      real(1e-5),
+      new IFC4.IfcAxis2Placement3D(this.origin3, null, null),
+      trueNorth,
+    );
+    const sub = (name: string, view: InstanceType<typeof IFC4.IfcGeometricProjectionEnum>) => new IFC4.IfcGeometricRepresentationSubContext(label(name), label("Model"), context, null, view, null);
+    this.bodyCtx = sub("Body", IFC4.IfcGeometricProjectionEnum.MODEL_VIEW);
+    this.axisCtx = sub("Axis", IFC4.IfcGeometricProjectionEnum.GRAPH_VIEW);
+    this.footprintCtx = sub("FootPrint", IFC4.IfcGeometricProjectionEnum.PLAN_VIEW);
+
+    const project = this.write(
+      new IFC4.IfcProject(guid(model.project.id), null, label(model.project.name), null, null, null, null, [context], units),
+    );
+    // Sub-contexts are only reachable by inverse, so write them explicitly.
+    for (const c of [this.bodyCtx, this.axisCtx, this.footprintCtx]) this.write(c);
+
+    const sitePlacement = this.placement(null, 0, 0, 0);
+    const site = this.write(
+      new IFC4.IfcSite(guid(model.site.id), null, label(model.site.name), null, null, sitePlacement, null, null, IFC4.IfcElementCompositionEnum.ELEMENT, null, null, null, null, null),
+    );
+    const buildingPlacement = this.placement(sitePlacement, 0, 0, 0);
+    const building = this.write(
+      new IFC4.IfcBuilding(guid(model.building.id), null, label(model.building.name), null, null, buildingPlacement, null, null, IFC4.IfcElementCompositionEnum.ELEMENT, null, null, null),
+    );
+
+    this.write(new IFC4.IfcRelAggregates(guid(`${model.project.id}#aggregates`), null, null, null, project, [site]));
+    this.write(new IFC4.IfcRelAggregates(guid(`${model.site.id}#aggregates`), null, null, null, site, [building]));
+
+    const storeys = model.storeys.map((s) => this.storey(s, buildingPlacement));
+    this.write(new IFC4.IfcRelAggregates(guid(`${model.building.id}#aggregates`), null, null, null, building, storeys));
+  }
+
+  private storey(s: Storey, parent: InstanceType<typeof IFC4.IfcLocalPlacement>) {
+    const placement = this.placement(parent, 0, 0, s.elevation);
+    const storey = this.write(
+      new IFC4.IfcBuildingStorey(guid(s.id), null, label(s.name), null, null, placement, null, null, IFC4.IfcElementCompositionEnum.ELEMENT, len(s.elevation)),
+    );
+
+    const contained: InstanceType<typeof IFC4.IfcProduct>[] = [];
+    const written = new Map<string, { wall: Wall; entity: InstanceType<typeof IFC4.IfcWall>; placement: InstanceType<typeof IFC4.IfcLocalPlacement> }>();
+    for (const w of s.walls) {
+      const { wall, placement: wp } = this.wall(w, placement);
+      written.set(w.id, { wall: w, entity: wall, placement: wp });
+      contained.push(wall);
+    }
+    for (const o of s.openings) {
+      const host = written.get(o.wallId);
+      if (!host) throw new Error(`${o.id}: wallId "${o.wallId}" is not a wall on ${s.id}`);
+      contained.push(this.opening(o, host.wall, host.placement, host.entity));
+    }
+    for (const slab of s.slabs) contained.push(this.slab(slab, placement));
+
+    if (contained.length) {
+      this.write(new IFC4.IfcRelContainedInSpatialStructure(guid(`${s.id}#contains`), null, null, null, contained, storey));
+    }
+    if (s.rooms.length) {
+      const spaces = s.rooms.map((r) => this.space(r, placement));
+      this.write(new IFC4.IfcRelAggregates(guid(`${s.id}#spaces`), null, null, null, storey, spaces));
+    }
+    return storey;
+  }
+
+  // ── Elements ──────────────────────────────────────────────────────────────
+
+  /** Wall placed at its start point with local X along the wall; body is a rectangle swept up. */
+  private wall(w: Wall, parent: InstanceType<typeof IFC4.IfcLocalPlacement>) {
+    const L = wallLength(w);
+    if (L === 0) throw new Error(`${w.id}: zero-length wall cannot be written to IFC`);
+    const d = wallDirection(w);
+    const placement = this.placement(parent, w.start.x, w.start.y, 0, round9(d.x), round9(d.y));
+    const { left, right } = faceOffsets(w);
+    const axis = new IFC4.IfcShapeRepresentation(this.axisCtx, label("Axis"), label("Curve2D"), [new IFC4.IfcPolyline([this.pt2(0, 0), this.pt2(L, 0)])]);
+    const body = this.body(this.rectangle(L / 2, (left + right) / 2, L, w.thickness), w.height);
+    const wall = this.write(
+      new IFC4.IfcWall(guid(w.id), null, label(w.name ?? w.id), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [axis, body]), ident(w.id), IFC4.IfcWallTypeEnum.NOTDEFINED),
+    );
+    return { wall, placement };
+  }
+
+  /**
+   * An opening becomes IfcOpeningElement (voids the wall) + IfcDoor/IfcWindow (fills the opening).
+   * The opening is placed in wall coordinates at (offsetAlongWall, 0, sillHeight).
+   */
+  private opening(o: Opening, w: Wall, wallPlacement: InstanceType<typeof IFC4.IfcLocalPlacement>, wallEntity: InstanceType<typeof IFC4.IfcElement>) {
+    const { left, right } = faceOffsets(w);
+    const mid = (left + right) / 2;
+    const placement = this.placement(wallPlacement, o.offsetAlongWall, 0, o.sillHeight);
+    const body = this.body(this.rectangle(o.width / 2, mid, o.width, w.thickness + 2 * OPENING_CLEARANCE), o.height);
+    const opening = this.write(
+      new IFC4.IfcOpeningElement(guid(`${o.id}#opening`), null, label(`${o.id} opening`), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [body]), null, IFC4.IfcOpeningElementTypeEnum.OPENING),
+    );
+    this.write(new IFC4.IfcRelVoidsElement(guid(`${o.id}#voids`), null, null, null, wallEntity, opening));
+    const filling = o.kind === "door" ? this.door(o, mid, placement) : this.window(o, mid, placement);
+    this.write(new IFC4.IfcRelFillsElement(guid(`${o.id}#fills`), null, null, null, opening, filling));
+    return filling;
+  }
+
+  /**
+   * IFC4 defines door handing looking along the door's local +Y (the opening direction): hinges on
+   * the left are SINGLE_SWING_LEFT. We place the door with +Y pointing to the side it swings to.
+   */
+  private door(d: Door, mid: number, openingPlacement: InstanceType<typeof IFC4.IfcLocalPlacement>) {
+    const swing = d.swing ?? { hinge: "start", side: "left" };
+    const opensLeft = swing.side === "left"; // wall-local +Y is the wall's left
+    const placement = this.placement(openingPlacement, d.width / 2, mid, 0, opensLeft ? 1 : -1, 0);
+    const hingeOnDoorLeft = (swing.hinge === "start") === opensLeft;
+    const body = this.body(this.rectangle(0, 0, d.width, PANEL_THICKNESS), d.height);
+    return this.write(
+      new IFC4.IfcDoor(
+        guid(d.id),
+        null,
+        label(d.name ?? d.id),
+        null,
+        null,
+        placement,
+        new IFC4.IfcProductDefinitionShape(null, null, [body]),
+        ident(d.id),
+        posLen(d.height),
+        posLen(d.width),
+        IFC4.IfcDoorTypeEnum.DOOR,
+        hingeOnDoorLeft ? IFC4.IfcDoorTypeOperationEnum.SINGLE_SWING_LEFT : IFC4.IfcDoorTypeOperationEnum.SINGLE_SWING_RIGHT,
+        null,
+      ),
+    );
+  }
+
+  private window(win: Window, mid: number, openingPlacement: InstanceType<typeof IFC4.IfcLocalPlacement>) {
+    const placement = this.placement(openingPlacement, win.width / 2, mid, 0);
+    const body = this.body(this.rectangle(0, 0, win.width, PANEL_THICKNESS), win.height);
+    return this.write(
+      new IFC4.IfcWindow(
+        guid(win.id),
+        null,
+        label(win.name ?? win.id),
+        null,
+        null,
+        placement,
+        new IFC4.IfcProductDefinitionShape(null, null, [body]),
+        ident(win.id),
+        posLen(win.height),
+        posLen(win.width),
+        IFC4.IfcWindowTypeEnum.WINDOW,
+        IFC4.IfcWindowTypePartitioningEnum.SINGLE_PANEL,
+        null,
+      ),
+    );
+  }
+
+  /** Slab top is at storey + elevationOffset; it is swept upwards from (top − thickness). */
+  private slab(s: Slab, parent: InstanceType<typeof IFC4.IfcLocalPlacement>) {
+    const placement = this.placement(parent, 0, 0, s.elevationOffset - s.thickness);
+    const profile = new IFC4.IfcArbitraryClosedProfileDef(IFC4.IfcProfileTypeEnum.AREA, null, this.closedPolyline(s.outline));
+    return this.write(
+      new IFC4.IfcSlab(guid(s.id), null, label(s.name ?? s.id), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [this.body(profile, s.thickness)]), ident(s.id), IFC4.IfcSlabTypeEnum.FLOOR),
+    );
+  }
+
+  /**
+   * Rooms have no height in the schema yet, so spaces carry only a 2D FootPrint. Name holds our id
+   * (IFC convention: Name is the space number), LongName the room name.
+   */
+  private space(r: Room, parent: InstanceType<typeof IFC4.IfcLocalPlacement>) {
+    const placement = this.placement(parent, 0, 0, 0);
+    const footprint = new IFC4.IfcShapeRepresentation(this.footprintCtx, label("FootPrint"), label("Curve2D"), [this.closedPolyline(r.outline)]);
+    return this.write(
+      new IFC4.IfcSpace(guid(r.id), null, label(r.id), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [footprint]), label(r.name), IFC4.IfcElementCompositionEnum.ELEMENT, IFC4.IfcSpaceTypeEnum.INTERNAL, null),
+    );
+  }
+}
+
+/** Trim float noise from unit vectors (cos 90° etc.) so output is stable and readable. */
+const round9 = (n: number): number => {
+  const r = Math.round(n * 1e9) / 1e9;
+  return r === 0 ? 0 : r;
+};

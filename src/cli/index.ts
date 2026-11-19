@@ -1,9 +1,13 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { formatIssue, hasErrors, type Issue } from "../checks/issue.js";
 import { formatJson } from "./json-format.js";
 import { loadModel, type LoadedModel } from "./load.js";
 import { renderAll } from "../render/index.js";
+import { writeIfc } from "../ifc/writer.js";
+import { validateIfc } from "../ifc/validate.js";
+import { roundTripChecks } from "../ifc/roundtrip.js";
+import { BuildingModelSchema } from "../schema/schema.js";
 
 const OUT = "out";
 
@@ -30,6 +34,21 @@ function writeJson({ name, model }: LoadedModel): string {
   return path;
 }
 
+/** JSON → IFC → IfcOpenShell validation. The IFC is written from the JSON file, the contract between the two halves. */
+async function buildIfc(name: string, jsonPath: string, issues: Issue[]): Promise<void> {
+  const model = BuildingModelSchema.parse(JSON.parse(readFileSync(jsonPath, "utf8")));
+  const ifcPath = join(OUT, `${name}.ifc`);
+  const ifc = await writeIfc(model, { fileName: `${name}.ifc` });
+  writeFileSync(ifcPath, ifc);
+  console.log(`ifc     ${ifcPath}`);
+  const rt = await roundTripChecks(model, ifc);
+  issues.push(...rt);
+  console.log(`geom    ${ifcPath}: ${rt.length ? `${rt.length} problems` : "every element meshes in web-ifc; opening cuts verified by volume"}`);
+  const v = validateIfc(ifcPath);
+  issues.push(...v.issues);
+  console.log(`valid   ${ifcPath}: ${v.errors} errors, ${v.warnings} warnings (ifcopenshell.validate)`);
+}
+
 async function main(argv: string[]): Promise<number> {
   const flags = new Set(argv.filter((a) => a.startsWith("--")));
   const [command, modelPath] = argv.filter((a) => !a.startsWith("--"));
@@ -40,9 +59,12 @@ async function main(argv: string[]): Promise<number> {
   const loaded = await load(modelPath);
   const issues: Issue[] = [];
   switch (command) {
-    case "build":
-      console.log(`json    ${writeJson(loaded)}`);
+    case "build": {
+      const jsonPath = writeJson(loaded);
+      console.log(`json    ${jsonPath}`);
+      await buildIfc(loaded.name, jsonPath, issues);
       break;
+    }
     case "render":
       for (const p of renderAll(loaded.name, loaded.model, OUT, { ids: flags.has("--ids") })) console.log(`render  ${p}`);
       break;
