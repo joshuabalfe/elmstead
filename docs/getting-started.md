@@ -18,11 +18,12 @@ npm install
 
 ## Running the pipeline
 
-Every command takes the path to a model file:
+Every command takes the path to a model: a single file, or a folder for a multi-file model:
 
 ```sh
 npm run build  models/example-cottage.ts    # model → JSON → IFC, then validate the IFC
 npm run render models/example-cottage.ts    # plan SVG/PNG per storey, then 3D PNGs from the IFC
+npm run build  models/elmstead              # same as models/elmstead/index.ts
 ```
 
 `render` uses the IFC from the last `build` for its 3D snapshots, so run `build` first.
@@ -48,7 +49,8 @@ every run.
 | `out/<name>.<storey-id>.plan.svg` / `.png` | `render`: one plan per storey |
 | `out/<name>.3d-{sw,se,ne,nw,top}.png` | `render`: 3D snapshots of the IFC |
 
-`<name>` is the model's file name, e.g. `example-cottage`.
+`<name>` is the model's file name, e.g. `example-cottage`, or its folder name for a multi-file
+model, e.g. `elmstead`.
 
 ### Reading the output
 

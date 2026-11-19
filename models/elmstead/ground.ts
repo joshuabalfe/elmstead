@@ -1,7 +1,5 @@
 /**
- * Elmstead. Ground floor traced from the owner's ground-floor plan image (first pass); upper
- * floors to follow.
- * 8 m × 7.4 m stone core with a brick extension at the rear, north-east corner.
+ * Elmstead ground floor, traced from the owner's ground-floor plan image (first pass).
  *
  *   +----------------------------+--------+   north
  *   |  Hallway        | stairs   | rear   |
@@ -13,31 +11,14 @@
  *   +--------------+--+-------------+   south
  *   front door on the west wall
  *
- * Plan origin is the outside south-west corner of the core; x east, y north, mm. "North" is
- * the top of the source drawing, which has no north arrow.
- *
- * Measured from the image at 8 m = 1689 px (about 4.74 mm per px), rounded to 25 mm. Ceiling height
- * (2.9 m) is from the owner; door and window heights are not in the drawing and use typical
- * values. Left out for now: the stairs, front steps, hearths,
- * radiators and rainwater pipes.
+ * Measured from the image at 8 m = 1689 px (about 4.74 mm per px), rounded to 25 mm. Door and
+ * window heights are not in the drawing and use typical values except where the owner gave
+ * them. Left out for now: the stairs, front steps, hearths, radiators and rainwater pipes.
  */
-import { add, centredOn, defineBuilding, door, face, m, mm, pt, sub, wall, window, type Opening, type Room } from "../src/model/index.js";
+import { add, centredOn, door, face, m, mm, pt, sub, wall, window, type Opening, type Room, type Storey } from "../../src/model/index.js";
+import { brickT, coreD, coreW, eastT, extEastX, extSouthY, footprint, groundFloor, northT, partT, southT, studT, westT } from "./shared.js";
 
-// ── Overall ──────────────────────────────────────────────────────────────────
-const coreW = m(8);
-const coreD = m(7.4);
-const extEastX = m(9.4); //  outside face of the extension's east wall
-const extSouthY = m(5); //   outside face of the extension's south wall
-const wallH = m(2.9); //      floor to ceiling; walls stop at the ceiling until there is an upper floor
-
-// ── Wall thicknesses ─────────────────────────────────────────────────────────
-const westT = mm(450); //  front wall, stone
-const northT = mm(350); // stone, continues across the extension
-const eastT = mm(350); //  stone
-const southT = mm(250); // stone
-const brickT = mm(175); // extension walls
-const partT = mm(175); //  internal partitions
-const studT = mm(100); //  bathroom's north wall and the lobby screen
+const wallH = groundFloor.ceilingHeight; // walls stop at the ceiling until there is an upper floor
 const breastT = mm(350); // chimney breast / thickened wall projecting from the south wall
 
 // ── Internal layout (plan faces) ─────────────────────────────────────────────
@@ -202,27 +183,12 @@ const rooms: Room[] = [
   },
 ];
 
-export default defineBuilding({
-  project: { id: "project-elmstead", name: "Elmstead" },
-  site: { id: "site-default", name: "Default site" },
-  building: { id: "building-elmstead", name: "Elmstead" },
-  storeys: [
-    {
-      id: "storey-ground",
-      name: "Ground floor",
-      elevation: mm(0),
-      walls: [north, south, west, east, extEast, extSouth, breastLiving, breastBedroom, hallLiving, livingBedroom, bedroomBathroom, lobbyBathroom, bathNorth, spine, lobbyScreen],
-      openings,
-      slabs: [
-        {
-          id: "slab-ground",
-          name: "Ground floor slab",
-          outline: [pt(mm(0), mm(0)), pt(coreW, mm(0)), pt(coreW, extSouthY), pt(extEastX, extSouthY), pt(extEastX, coreD), pt(mm(0), coreD)],
-          thickness: mm(150),
-          elevationOffset: mm(0),
-        },
-      ],
-      rooms,
-    },
-  ],
-});
+export const ground: Storey = {
+  id: "storey-ground",
+  name: "Ground floor",
+  elevation: groundFloor.elevation,
+  walls: [north, south, west, east, extEast, extSouth, breastLiving, breastBedroom, hallLiving, livingBedroom, bedroomBathroom, lobbyBathroom, bathNorth, spine, lobbyScreen],
+  openings,
+  slabs: [{ id: "slab-ground", name: "Ground floor slab", outline: footprint, thickness: mm(150), elevationOffset: mm(0) }],
+  rooms,
+};

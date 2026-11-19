@@ -1,24 +1,35 @@
-import { basename, resolve } from "node:path";
+import { existsSync, statSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { z } from "zod";
 import type { Issue } from "../checks/issue.js";
 import { BuildingModelSchema, type BuildingModel } from "../schema/schema.js";
 
 export interface LoadedModel {
-  /** File name without extension, e.g. "example-cottage". Used for out/<name>.* */
+  /** Model name, e.g. "example-cottage", or the folder name for a multi-file model. Used for out/<name>.* */
   name: string;
   model: BuildingModel;
 }
 
 export type LoadResult = { ok: true; value: LoadedModel } | { ok: false; issues: Issue[] };
 
-export const modelName = (path: string): string => basename(path).replace(/\.[cm]?[jt]s$/, "");
+/**
+ * Output name for a model: the file name without extension, or the folder name for a
+ * multi-file model (`models/elmstead/index.ts` or just `models/elmstead`).
+ */
+export function modelName(path: string): string {
+  const name = basename(path).replace(/\.[cm]?[jt]s$/, "");
+  return name === "index" ? basename(dirname(resolve(path))) : name;
+}
+
+/** A folder is a multi-file model; its entry point is index.ts. */
+const entryPoint = (path: string): string => (existsSync(path) && statSync(path).isDirectory() ? join(path, "index.ts") : path);
 
 /** Evaluate a model file, round-trip it through JSON, and validate it against the schema. */
 export async function loadModel(path: string): Promise<LoadResult> {
   let exported: unknown;
   try {
-    const mod = (await import(pathToFileURL(resolve(path)).href)) as { default?: unknown };
+    const mod = (await import(pathToFileURL(resolve(entryPoint(path))).href)) as { default?: unknown };
     exported = mod.default;
   } catch (e) {
     return { ok: false, issues: [{ level: "ERROR", id: path, message: `model threw while evaluating: ${(e as Error).stack ?? e}` }] };

@@ -12,7 +12,7 @@ import { BuildingModelSchema } from "../schema/schema.js";
 
 const OUT = "out";
 
-const USAGE = `usage: elmstead <build|render|check|all> <models/name.ts> [--ids] [--no-3d]`;
+const USAGE = `usage: elmstead <build|render|check|all> <models/name.ts | models/name/> [--ids] [--no-3d]`;
 
 function print(issues: readonly Issue[]) {
   for (const i of issues) console.log(formatIssue(i));
