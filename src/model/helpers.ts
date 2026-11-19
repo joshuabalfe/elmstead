@@ -1,0 +1,113 @@
+/**
+ * Authoring helpers for model files. These only build plain schema values; they hold no state.
+ * Everything here is optional sugar: a model can always write the JSON shape out by hand.
+ */
+import { SCHEMA_VERSION, type BuildingModel, type Door, type Point, type Room, type Swing, type Wall, type Window } from "../schema/schema.js";
+import { faceOffsets, wallDirection, wallLength } from "../geometry/wall.js";
+import { add, divRound, mm, sub, type Mm } from "../schema/units.js";
+
+export const pt = (x: Mm, y: Mm): Point => ({ x, y });
+
+/** Identity function that fills in schemaVersion and gives model files full type checking. */
+export const defineBuilding = (b: Omit<BuildingModel, "schemaVersion">): BuildingModel => ({
+  schemaVersion: SCHEMA_VERSION,
+  ...b,
+});
+
+type WallOpts = Pick<Wall, "thickness" | "height"> & Partial<Pick<Wall, "justification" | "name">>;
+
+export function wall(id: string, start: Point, end: Point, opts: WallOpts): Wall {
+  return { id, ...(opts.name === undefined ? {} : { name: opts.name }), start, end, thickness: opts.thickness, height: opts.height, justification: opts.justification ?? "centre" };
+}
+
+export interface RectWalls {
+  south: Wall;
+  east: Wall;
+  north: Wall;
+  west: Wall;
+}
+
+/**
+ * Four external walls whose OUTER faces form the rectangle [x0, x0+width] × [y0, y0+depth].
+ * Walls run counter-clockwise with the body to the left (inside). South and north walls run the
+ * full width; east and west walls butt between them, so corners neither overlap nor leave gaps.
+ */
+export function rectWalls(
+  idPrefix: string,
+  origin: Point,
+  width: Mm,
+  depth: Mm,
+  opts: Pick<Wall, "thickness" | "height">,
+): RectWalls {
+  const { x: x0, y: y0 } = origin;
+  const x1 = add(x0, width);
+  const y1 = add(y0, depth);
+  const t = opts.thickness;
+  const o = { ...opts, justification: "left" as const };
+  return {
+    south: wall(`${idPrefix}-south`, pt(x0, y0), pt(x1, y0), o),
+    east: wall(`${idPrefix}-east`, pt(x1, add(y0, t)), pt(x1, sub(y1, t)), o),
+    north: wall(`${idPrefix}-north`, pt(x1, y1), pt(x0, y1), o),
+    west: wall(`${idPrefix}-west`, pt(x0, sub(y1, t)), pt(x0, add(y0, t)), o),
+  };
+}
+
+type Compass = "north" | "south" | "east" | "west";
+
+/**
+ * Coordinate of one face of an axis-aligned wall: the y of its north/south face for an east–west
+ * wall, the x of its east/west face for a north–south wall. Throws for diagonal walls or a side
+ * the wall does not have (e.g. the east face of an east–west wall).
+ */
+export function face(w: Wall, side: Compass): Mm {
+  const d = wallDirection(w);
+  const { left, right } = faceOffsets(w);
+  const horizontal = d.y === 0 && d.x !== 0;
+  const vertical = d.x === 0 && d.y !== 0;
+  if (horizontal && (side === "north" || side === "south")) {
+    // left normal of an eastward wall points north
+    const ys = [w.start.y + d.x * left, w.start.y + d.x * right];
+    return mm(side === "north" ? Math.max(...ys) : Math.min(...ys));
+  }
+  if (vertical && (side === "east" || side === "west")) {
+    // left normal of a northward wall points west
+    const xs = [w.start.x - d.y * left, w.start.x - d.y * right];
+    return mm(side === "east" ? Math.max(...xs) : Math.min(...xs));
+  }
+  throw new Error(`face(${w.id}, ${side}): wall is not axis-aligned in a way that has a ${side} face`);
+}
+
+/** Rectangular room between four plan coordinates (typically wall faces from `face()`). */
+export function rectRoom(id: string, name: string, b: { west: Mm; east: Mm; south: Mm; north: Mm }): Room {
+  return {
+    id,
+    name,
+    outline: [pt(b.west, b.south), pt(b.east, b.south), pt(b.east, b.north), pt(b.west, b.north)],
+  };
+}
+
+/**
+ * offsetAlongWall for an opening of `width` centred on plan coordinate `at` — an x for east–west
+ * walls, a y for north–south walls. Handles walls drawn in either direction.
+ */
+export function centredOn(w: Wall, at: Mm, width: Mm): Mm {
+  const d = wallDirection(w);
+  const startCoord = d.y === 0 ? w.start.x : d.x === 0 ? w.start.y : undefined;
+  if (startCoord === undefined) throw new Error(`centredOn(${w.id}): wall is not axis-aligned`);
+  const sign = d.y === 0 ? Math.sign(d.x) : Math.sign(d.y);
+  const centreAlong = (at - startCoord) * sign;
+  if (centreAlong < 0 || centreAlong > wallLength(w)) {
+    throw new Error(`centredOn(${w.id}, ${at}): point is beyond the wall`);
+  }
+  return sub(mm(centreAlong), divRound(width, 2));
+}
+
+type OpeningSize = Pick<Door, "width" | "height">;
+
+export function door(id: string, w: Wall, offsetAlongWall: Mm, size: OpeningSize, swing?: Swing): Door {
+  return { kind: "door", id, wallId: w.id, offsetAlongWall, ...size, sillHeight: mm(0), ...(swing ? { swing } : {}) };
+}
+
+export function window(id: string, w: Wall, offsetAlongWall: Mm, size: OpeningSize & Pick<Window, "sillHeight">): Window {
+  return { kind: "window", id, wallId: w.id, offsetAlongWall, ...size };
+}

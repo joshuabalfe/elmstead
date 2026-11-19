@@ -9,7 +9,11 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "schema": "tsx scripts/export-json-schema.ts"
+    "schema": "tsx scripts/export-json-schema.ts",
+    "build": "tsx src/cli/index.ts build",
+    "render": "tsx src/cli/index.ts render",
+    "check": "tsx src/cli/index.ts check",
+    "all": "tsx src/cli/index.ts all"
   },
   "dependencies": {
     "@resvg/resvg-js": "2.6.2",
