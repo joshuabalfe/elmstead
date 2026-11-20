@@ -21,6 +21,8 @@ flowchart LR
    This file sits between authoring and everything downstream, so it can be diffed, and a model
    could be written in another language as long as it produces the same JSON.
    `schema/building.schema.json` is the same schema exported as JSON Schema (draft 2020-12).
+   Before anything is written, the model checks and the model's constraints (real measurements in
+   a file beside the model; see [Modelling](modelling.md#constraints)) must pass.
 3. **IFC.** `build` reads the JSON file back, re-parses it and writes IFC4 with
    [web-ifc](https://github.com/ThatOpen/engine_web-ifc). IFC is only ever produced by this
    writer, never by hand.
@@ -65,6 +67,7 @@ src/
   model/             authoring helpers: wall, rectWalls, face, rectRoom, door, window, centredOn
   geometry/          2D vector, wall and polygon maths shared by renderers, writer and checks
   checks/            Issue type and formatting; model-level checks (components.ts so far)
+  constraints/       constraints beside a model: schema, helpers, loader, point resolution, check
   cli/               command entry point, model loading, deterministic JSON formatting
   ifc/               IFC writer, GUIDs, round-trip geometry checks, validator bridge
   render/            plan SVG, PNG rasterising, 3D snapshot driver
@@ -78,7 +81,8 @@ tests/               vitest suites, fixtures and the plan SVG snapshot
 
 ```mermaid
 flowchart TD
-  cli --> schema & checks & ifc & render
+  cli --> schema & checks & constraints & ifc & render
+  constraints --> schema & geometry & checks
   model --> schema & geometry
   ifc --> schema & geometry & checks
   render --> schema & geometry & checks

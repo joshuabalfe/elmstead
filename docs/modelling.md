@@ -9,6 +9,7 @@ A larger model can be a folder whose `index.ts` default-exports the building, as
 ```
 models/elmstead/
   index.ts          defineBuilding(...): components, storeys: [ground, ...]
+  constraints.ts    real measurements the model must keep (see Constraints)
   shared.ts         dimensions every floor uses: outline, external wall thicknesses, floor levels
   components/       door and window designs, shared by every floor
     doors.ts        front door, internal door
@@ -214,6 +215,88 @@ The example cottage derives its geometry rather than hard-coding coordinates:
 
 For example, changing `extWallT` from 200 to 300 thickens every external wall, shrinks every room
 and keeps every window centred. The JSON diff is about 40 lines.
+
+## Constraints
+
+A constraint records a real measurement, such as "the living-room window starts 1175 mm from the
+inside corner", so that no later edit can quietly break it. Every `check`, `build`, `render` and
+`all` measures the model's constraints. If one is broken, the command writes nothing and exits 1:
+
+```
+constr  models/example-cottage.constraints.ts: 5 of 6 met
+ERROR   living-corner-to-window: is 1200 mm, should be 1175 ±10 mm (room-living)
+```
+
+**When a constraint fails, fix the model, not the constraint.** Change or add a constraint only
+for a new measurement, and say where it came from in its `note`. Don't record positions traced
+from a drawing as constraints.
+
+### Where they live
+
+Constraints sit beside the model, not in it, and never reach `building.json` or the IFC:
+
+- a folder model: `constraints.ts` in its folder, e.g. `models/elmstead/constraints.ts`;
+- a single-file model: `<name>.constraints.ts`, e.g. `models/example-cottage.constraints.ts`.
+
+The file default-exports groups of constraints, each for one storey or one room. A model without
+a constraints file has no constraints, and the commands print no `constr` line.
+
+```ts
+import { corner, defineConstraints, inRoom, jamb, mm, roomCorner } from "../src/constraints/index.js";
+
+export default defineConstraints([
+  inRoom("room-living", [
+    {
+      id: "living-corner-to-window",
+      note: "Inside south-west corner to the window's west jamb, along the front wall",
+      from: corner({ wall: "wall-west", face: "east" }, { wall: "wall-south", face: "north" }),
+      to: jamb("window-living", "start", "left"),
+      measure: { along: "wall-south" },
+      distance: mm(1175),
+    },
+    { id: "living-width", from: roomCorner("south-west"), to: roomCorner("north-east"), measure: "x", distance: mm(3550) },
+  ]),
+]);
+```
+
+[`models/example-cottage.constraints.ts`](../models/example-cottage.constraints.ts) uses every
+kind of point and measure.
+
+### Points
+
+Points are named from model ids, never coordinates, so they move with the model. A point that
+names an id the model no longer has is an ERROR, so renaming an element shows up straight away.
+
+| Helper | The point |
+|---|---|
+| `corner({ wall, face }, { wall, face })` | where the lines of two wall faces cross: an inside or outside corner |
+| `wallEnd(wall, "start" \| "end", face?)` | one end of a wall, on its start→end line or on `face` |
+| `jamb(opening, "start" \| "end" \| "centre", face?)` | an opening's jamb nearest the wall start, its far jamb, or half way between, on the wall line or on `face` |
+| `roomCorner(room?, "south-west" \| … \| n)` | the room outline vertex furthest in that direction, or vertex `n` from 0. Inside `inRoom` the room can be left out |
+
+Each helper takes an id or the model object (e.g. a `Wall` imported from the model's modules).
+
+A **face** is `left` or `right`, looking from the wall's start to its end, or a compass side
+(`north`, `south`, `east`, `west`) of a wall running along plan x or y. Diagonal walls only have
+`left` and `right`.
+
+Prefer wall-face corners to room corners for anything structural: room outlines are themselves
+drawn from wall faces, and a vertex number changes when an outline gains a point.
+
+### Measures and tolerance
+
+| `measure` | The distance |
+|---|---|
+| `"straight"` | straight-line distance |
+| `"x"`, `"y"` | difference in plan x or y |
+| `{ along: wallId }` | the distance projected onto that wall's direction, as a tape along the wall reads it |
+
+Distances are unsigned and measured in plan only; heights can't be constrained yet. The measured
+distance is rounded to the nearest mm, and the constraint is met when that is within `tolerance`
+of `distance`. The tolerance defaults to 10 mm.
+
+Every point, and the wall measured along, must be on the group's storey (for a room group, the
+room's storey).
 
 ## Things the schema does not have yet
 

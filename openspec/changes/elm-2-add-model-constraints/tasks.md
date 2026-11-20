@@ -21,13 +21,13 @@
 
 ## 4. Elmstead and docs
 
-- [ ] 4.1 Add `models/elmstead/constraints.ts` with only measurements the owner has given (the front window's 2.5 m width and the fanlight's width), each with a `note` naming its source, in a `room-living` group, using ids for the openings. Leave corner-to-opening constraints out until the owner gives a measured position. Verify `npm run check models/elmstead` prints `constr … 2 of 2 met`, and that changing the front window's width by 25 mm breaks one constraint.
-- [ ] 4.2 Document constraints in `docs/modelling.md` (file location, points, faces, measures, tolerance, groups, an example, and preferring wall-face corners over room corners) and add a `constraints` entry to `docs/architecture.md` if it lists modules. Verify the documented example matches `models/example-cottage.constraints.ts` and passes `npm run check`.
-- [ ] 4.3 Add the AGENTS.md rule: when a constraint fails, change the model, not the constraint; change or add a constraint only when the user gives a measurement. Verify the rule reads in the Rules list.
+- [x] 4.1 Add `models/elmstead/constraints.ts` with only measurements the owner has given (the front window's 2.5 m width and the fanlight's width), each with a `note` naming its source, grouped by the room each opening serves (the front window in `room-living`, the fanlight over the front door in `room-hallway`), using ids for the openings. Leave corner-to-opening constraints out until the owner gives a measured position. Verify `npm run check models/elmstead` prints `constr … 2 of 2 met`, and that changing the front window's width by 25 mm breaks one constraint.
+- [x] 4.2 Document constraints in `docs/modelling.md` (file location, points, faces, measures, tolerance, groups, an example, and preferring wall-face corners over room corners) and add a `constraints` entry to `docs/architecture.md` if it lists modules. Verify the documented example matches `models/example-cottage.constraints.ts` and passes `npm run check`.
+- [x] 4.3 Add the AGENTS.md rule: when a constraint fails, change the model, not the constraint; change or add a constraint only when the user gives a measurement. Verify the rule reads in the Rules list.
 
 ## 5. Integration
 
-- [ ] 5.1 Run `npm test`, `npm run typecheck`, `npx openspec validate --all --strict` and `npm run all models/elmstead`, and confirm `out/elmstead.building.json` and `out/elmstead.ifc` are unchanged from before this change.
+- [x] 5.1 Run `npm test`, `npm run typecheck`, `npx openspec validate --all --strict` and `npm run all models/elmstead`, and confirm `out/elmstead.building.json` and `out/elmstead.ifc` are unchanged from before this change.
 
 ## Workflow follow-up
 

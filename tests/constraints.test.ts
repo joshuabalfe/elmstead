@@ -3,6 +3,7 @@ import cottage from "../models/example-cottage.js";
 import { corner, defineConstraints, inRoom, inStorey, jamb, m, mm, roomCorner, wallEnd } from "../src/constraints/index.js";
 import { constraintsPath, loadConstraints } from "../src/constraints/load.js";
 import { ConstraintError, indexModel, measureConstraint, resolvePoint, type Scope } from "../src/constraints/resolve.js";
+import { loadModel } from "../src/cli/load.js";
 import { checkConstraints } from "../src/constraints/check.js";
 import { ConstraintsFileSchema, type Constraint, type Measure, type Point } from "../src/constraints/schema.js";
 import { pt } from "../src/model/index.js";
@@ -320,4 +321,16 @@ describe("checkConstraints", () => {
       total: 1,
     });
   });
+});
+
+describe("the models' constraints", () => {
+  for (const [path, count] of [["models/example-cottage.ts", 6], ["models/elmstead", 2]] as const) {
+    it(`${path} meets all ${count} of its constraints`, async () => {
+      const loaded = await loadModel(path);
+      const constraints = await loadConstraints(path);
+      expect(loaded.ok && constraints.ok && constraints.value).toBeTruthy();
+      if (!loaded.ok || !constraints.ok || !constraints.value) return;
+      expect(checkConstraints(loaded.value.model, constraints.value.groups)).toEqual({ issues: [], met: count, total: count });
+    });
+  }
 });
