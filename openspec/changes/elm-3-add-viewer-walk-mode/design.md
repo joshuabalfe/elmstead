@@ -95,9 +95,10 @@ the building JSON that the label loader already fetches, converted from millimet
 metres; when that JSON is absent, use the IFC box's minimum Y.
 
 On exit, unlock, clear pressed keys, cancel the animation frame, re-enable the camera component,
-restore the saved projection, write the saved orthographic framing back when that projection is
-Orthographic, `setLookAt(position, target, false)`, re-enable camera-controls input, then refresh
-fragments and the compass. Escape is the browser's pointer-lock release, so the unlock handler performs the same
+restore the saved projection and, when it is Orthographic, the saved framing — the frustum on
+`threeOrtho` and the zoom through `controls.zoomTo`, since camera-controls keeps its own zoom
+state and writes it back to the camera on the next update — then `setLookAt(position, target,
+false)`, re-enable camera-controls input, and refresh fragments and the compass. Escape is the browser's pointer-lock release, so the unlock handler performs the same
 exit. View buttons and the model picker exit walk mode before changing the view; the initial
 `?walk=1` is consumed once and does not re-enter after a model change.
 

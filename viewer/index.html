@@ -11,8 +11,14 @@
              background: rgba(255,255,255,.92); padding: 8px 10px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
       #bar button, #bar select { font: inherit; padding: 3px 8px; }
       #labels[aria-pressed="true"] { font-weight: 600; }
+      #walk[aria-pressed="true"] { font-weight: 600; }
       #status { color: #666; margin-left: 4px; }
       body.snapshot #bar { display: none; }
+      #walk-hint { position: absolute; left: 50%; bottom: 48px; transform: translateX(-50%);
+                   background: rgba(255,255,255,.92); padding: 8px 14px; border-radius: 8px;
+                   box-shadow: 0 1px 4px rgba(0,0,0,.15); pointer-events: none; white-space: nowrap; }
+      #walk-hint[hidden] { display: none; }
+      body.snapshot #walk-hint { display: none; }
       #compass { position: absolute; right: 16px; bottom: 16px; width: 90px; height: 90px; pointer-events: none; }
       #compass svg { display: block; width: 100%; height: 100%; }
       #compass[hidden] { display: none; }
@@ -27,6 +33,7 @@
       <button data-view="ne">NE</button><button data-view="nw">NW</button>
       <button data-view="top">Top</button>
       <button id="labels" title="Room labels and dimensions">Labels</button>
+      <button id="walk" title="First-person walk mode">Walk</button>
       <span id="status"></span>
     </div>
     <div id="compass" hidden><svg viewBox="-45 -45 90 90" role="img" aria-label="True north">
@@ -35,6 +42,7 @@
       <text id="compass-n" x="0" y="-28" font-size="14" font-weight="bold" text-anchor="middle" fill="#1a1a1a"
             stroke="#f4f4f2" stroke-width="3" paint-order="stroke">N</text>
     </svg></div>
+    <div id="walk-hint" hidden>Click to look around · WASD or arrow keys to move · Esc to leave</div>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>
