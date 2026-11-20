@@ -43,11 +43,16 @@ describe("model helpers", () => {
     expect(() => faceCrossing(w.south, "left", "y", mm(100))).toThrow(/runs along/);
   });
 
-  it("door() and window() take a component, and link to it", () => {
-    const internal = doorComponent("door-type-internal", "Internal door", { width: mm(800), height: m(2.1) });
-    const sash = windowComponent("window-type-sash", "Sash", { width: m(1.2), height: m(1.2) });
-    expect(door("door-a", w.south, mm(100), internal)).toMatchObject({ componentId: "door-type-internal", width: 800, height: 2100, sillHeight: 0 });
-    expect(window("window-a", w.south, mm(100), sash, { sillHeight: mm(900) })).toMatchObject({ componentId: "window-type-sash", width: 1200, height: 1200, sillHeight: 900 });
+  it("door() and window() take a component and a size, and link to the component", () => {
+    const internal = doorComponent("door-type-internal", "Internal door");
+    const sash = windowComponent("window-type-sash", "Sash");
+    const swing = { hinge: "end", side: "right" } as const;
+    expect(door("door-a", w.south, mm(100), internal, { width: mm(800), height: m(2.1) }, swing)).toEqual({
+      kind: "door", id: "door-a", wallId: "wall-south", offsetAlongWall: 100, componentId: "door-type-internal", width: 800, height: 2100, sillHeight: 0, swing,
+    });
+    // One design, two sizes.
+    expect(window("window-a", w.south, mm(100), sash, { width: mm(1050), height: m(1.2), sillHeight: mm(900) })).toMatchObject({ componentId: "window-type-sash", width: 1050 });
+    expect(window("window-b", w.south, mm(100), sash, { width: mm(950), height: m(1.2), sillHeight: mm(900) })).toMatchObject({ componentId: "window-type-sash", width: 950 });
     // A bare size still works, with no component.
     expect(window("window-b", w.south, mm(100), { width: m(1), height: m(1), sillHeight: mm(900) })).not.toHaveProperty("componentId");
     expect(door("door-b", w.south, mm(100), { width: mm(800), height: m(2.1) })).not.toHaveProperty("componentId");

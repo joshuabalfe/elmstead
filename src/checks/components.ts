@@ -1,10 +1,7 @@
 import type { BuildingModel } from "../schema/schema.js";
 import type { Issue } from "./issue.js";
 
-/**
- * Door and window components: each opening's componentId names a component of its own kind, and
- * the opening is the component's size. Component ids are unique.
- */
+/** Door and window components: each opening's componentId names a component of its own kind. Component ids are unique. */
 export function checkComponents(model: BuildingModel): Issue[] {
   const issues: Issue[] = [];
   const doorList = model.components?.doors ?? [];
@@ -14,21 +11,16 @@ export function checkComponents(model: BuildingModel): Issue[] {
     if (seen.has(c.id)) issues.push({ level: "ERROR", id: c.id, message: "component id is used twice" });
     seen.add(c.id);
   }
-  const doors = new Map(doorList.map((c) => [c.id, c]));
-  const windows = new Map(windowList.map((c) => [c.id, c]));
+  const doors = new Set(doorList.map((c) => c.id));
+  const windows = new Set(windowList.map((c) => c.id));
   for (const storey of model.storeys) {
     for (const o of storey.openings) {
       if (o.componentId === undefined) continue;
       const own = o.kind === "door" ? doors : windows;
       const other = o.kind === "door" ? windows : doors;
-      const c = own.get(o.componentId);
-      if (!c) {
+      if (!own.has(o.componentId)) {
         const why = other.has(o.componentId) ? `is a ${o.kind === "door" ? "window" : "door"} component` : "is not in components";
         issues.push({ level: "ERROR", id: o.id, message: `componentId ${o.componentId} ${why}` });
-        continue;
-      }
-      if (o.width !== c.width || o.height !== c.height) {
-        issues.push({ level: "ERROR", id: o.id, message: `${o.width} × ${o.height} mm, but its component ${c.id} is ${c.width} × ${c.height} mm` });
       }
     }
   }

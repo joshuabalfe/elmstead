@@ -11,12 +11,12 @@ models/elmstead/
   index.ts          defineBuilding(...): components, storeys: [ground, ...]
   shared.ts         dimensions every floor uses: outline, external wall thicknesses, floor levels
   components/       door and window designs, shared by every floor
-    doors.ts        front door, internal door, ...
-    windows.ts      front window, fanlight, ...
+    doors.ts        front door, internal door
+    windows.ts      front window, fanlight, standard window
     index.ts        the building's `components`
   ground/           one folder per storey
     walls.ts        walls, and the plan positions everything else derives from
-    openings.ts     doors and windows: which component, which wall, where, which way it swings
+    openings.ts     doors and windows: which component, which wall, where, what size, which way it swings
     rooms.ts        room outlines along the wall faces
     index.ts        exports the ground-floor Storey
 ```
@@ -90,7 +90,7 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
 | **Window** | `wallId`, `offsetAlongWall`, `width`, `height`, `sillHeight` | `kind: "window"` |
 | **Slab** | `outline`, `thickness`, `elevationOffset` | top of slab is at storey elevation + `elevationOffset`; the slab extends downwards from there |
 | **Room** | `name`, `outline` | 2D outline only, for now |
-| **Door / window component** | `id`, `name`, `width`, `height` | a design shared by openings, in the building's `components: { doors, windows }`; written to IFC as `IfcDoorType` / `IfcWindowType` |
+| **Door / window component** | `id`, `name` | a design (not a size) shared by openings, in the building's `components: { doors, windows }`; written to IFC as `IfcDoorType` / `IfcWindowType` |
 
 - Outlines are open polygons: at least three points, and the first point is not repeated.
 - The schema does not allow unknown fields, so a typo in a field name is a validation error rather
@@ -128,21 +128,25 @@ A component is a door or window design: "internal door", "sash window". Each ope
 one it is with `componentId`, so a design is described once and shared, and IFC tools see the
 doors and windows as instances of one type.
 
-- The component holds what is the same for every instance: for now its name, width and height.
-  The opening holds where it is: wall, offset, sill height, swing.
-- The opening keeps its own `width` and `height` too, so nothing has to look the component up. The
-  helpers copy them from the component. `build` checks that they match, that the component exists
-  and that it is the right kind (`src/checks/components.ts`), and stops before writing anything if
-  not.
+- The component is the design: how it is built. For now that is only its name; frame, glazing,
+  panels and the like go here as they are added.
+- The opening holds its size and where it is: width, height, wall, offset, sill height, swing. One
+  design comes in many sizes, as windows in an old house do. IFC does the same (`IfcWindow` carries
+  its own overall width and height).
+- So a component is worth having whenever two openings are built the same way, whatever their
+  sizes; a one-off design is a component used once.
+- `build` checks that each `componentId` exists and is the right kind (`src/checks/components.ts`),
+  and stops before writing anything if not.
 - Ids: `door-type-…` and `window-type-…`.
 - Openings without a `componentId` are still allowed.
 
 ```ts
-const internalDoor = doorComponent("door-type-internal", "Internal door", { width: mm(800), height: m(2.1) });
-const sash = windowComponent("window-type-sash", "Sash window", { width: m(1.2), height: m(1.2) });
+const internalDoor = doorComponent("door-type-internal", "Internal door");
+const sash = windowComponent("window-type-sash", "Sash window");
 
-door("door-living", hallWest, offset, internalDoor, { hinge: "start", side: "left" });
-window("window-kitchen", ext.north, offset, sash, { sillHeight: mm(900) });
+door("door-living", hallWest, offset, internalDoor, { width: mm(800), height: m(2.1) }, { hinge: "start", side: "left" });
+window("window-kitchen", ext.north, offset, sash, { width: m(1.2), height: m(1.2), sillHeight: mm(900) });
+window("window-landing", ext.north, offset, sash, { width: mm(900), height: m(1.2), sillHeight: mm(900) }); // same design, own size
 
 defineBuilding({ ..., components: { doors: [internalDoor], windows: [sash] }, storeys: [...] });
 ```
@@ -161,9 +165,9 @@ build plain values, so a model can always write the JSON shape out directly inst
 | `face(wall, "north" \| "south" \| "east" \| "west")` | the coordinate of one face of an axis-aligned wall |
 | `rectRoom(id, name, { west, east, south, north })` | a rectangular room outline |
 | `centredOn(wall, at, width)` | the `offsetAlongWall` that centres an opening of `width` on plan coordinate `at` |
-| `doorComponent(id, name, { width, height })`, `windowComponent(...)` | a door or window design for `components` |
-| `door(id, wall, offset, component \| { width, height }, swing?)` | a door, with `sillHeight` 0, linked to the component if given one |
-| `window(id, wall, offset, component, { sillHeight })` or `window(id, wall, offset, { width, height, sillHeight })` | a window, linked to the component if given one |
+| `doorComponent(id, name)`, `windowComponent(id, name)` | a door or window design for `components` |
+| `door(id, wall, offset, component?, { width, height }, swing?)` | a door, with `sillHeight` 0, linked to the component if given one |
+| `window(id, wall, offset, component?, { width, height, sillHeight })` | a window, linked to the component if given one |
 | `faceCrossing(wall, "left" \| "right", "x" \| "y", at)` | where a face of a wall at any angle crosses the line x = `at` or y = `at`: room corners against diagonal walls |
 
 ### Make dimensions follow each other

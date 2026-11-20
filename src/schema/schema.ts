@@ -39,10 +39,7 @@ const openingBase = {
   id: IdSchema,
   name: z.string().optional(),
   wallId: IdSchema,
-  /**
-   * The door or window component (in `components`) this opening is one of. Its width and height
-   * must match the component's (src/checks/components.ts).
-   */
+  /** The door or window component (in `components`) this opening is one of: its design, not its size. */
   componentId: IdSchema.optional(),
   /** Distance along the wall from its start to the opening's near edge. */
   offsetAlongWall: NonNegativeMmSchema,
@@ -89,15 +86,14 @@ export const StoreySchema = z.strictObject({
 }).meta({ id: "Storey" });
 
 /**
- * A door or window design shared by every opening that uses it, written to IFC as an IfcDoorType
- * or IfcWindowType. Openings keep their own width and height (so nothing downstream has to look the
- * component up); the checks make sure they match.
+ * A door or window design (construction, not size) shared by every opening that uses it, written
+ * to IFC as an IfcDoorType or IfcWindowType. Size belongs to each opening, as on IfcDoor and
+ * IfcWindow: one design comes in many sizes. Detail of the design (frame, glazing, panels, ...)
+ * goes here as it is added.
  */
 const componentBase = {
   id: IdSchema,
   name: z.string().min(1),
-  width: PositiveMmSchema,
-  height: PositiveMmSchema,
 };
 export const DoorComponentSchema = z.strictObject(componentBase).meta({ id: "DoorComponent" });
 export const WindowComponentSchema = z.strictObject(componentBase).meta({ id: "WindowComponent" });

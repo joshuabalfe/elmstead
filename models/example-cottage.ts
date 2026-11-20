@@ -39,12 +39,16 @@ const livingDepth = m(3.4); // centreline of the living/kitchen wall, from the o
 const bedroomDepth = m(3.8); // centreline of the bedroom/bathroom wall
 
 // ── Openings ─────────────────────────────────────────────────────────────────
-// Door and window designs (the building's `components`): each opening says which one it is.
-const sash = windowComponent("window-type-sash", "Sash window", { width: m(1.2), height: m(1.2) }); // every window
-const windowW = sash.width;
+const windowW = m(1.2); // every window shares this width
+const windowH = m(1.2);
 const windowSill = mm(900);
-const extDoor = doorComponent("door-type-external", "External door", { width: mm(900), height: m(2.1) });
-const intDoor = doorComponent("door-type-internal", "Internal door", { width: mm(800), height: m(2.1) });
+const extDoor = { width: mm(900), height: m(2.1) };
+const intDoor = { width: mm(800), height: m(2.1) };
+
+// Door and window designs (the building's `components`): each opening says which one it is.
+const externalDoor = doorComponent("door-type-external", "External door");
+const internalDoor = doorComponent("door-type-internal", "Internal door");
+const sash = windowComponent("window-type-sash", "Sash window");
 
 // ── Walls ────────────────────────────────────────────────────────────────────
 const ext = rectWalls("wall", pt(mm(0), mm(0)), houseWidth, houseDepth, { thickness: extWallT, height: wallH });
@@ -72,18 +76,18 @@ const mid = (a: number, b: number) => mm(Math.round((a + b) / 2));
 const xMid = (r: typeof hall) => mid(r.outline[0]!.x, r.outline[1]!.x);
 const yMid = (r: typeof hall) => mid(r.outline[1]!.y, r.outline[2]!.y);
 
-const win = { sillHeight: windowSill };
+const win = { width: windowW, height: windowH, sillHeight: windowSill };
 
 const openings: Opening[] = [
   // External doors open inwards (the inside is to the left of every external wall).
-  door("door-front", ext.south, centredOn(ext.south, xMid(hall), extDoor.width), extDoor, { hinge: "start", side: "left" }),
-  door("door-back", ext.north, centredOn(ext.north, xMid(hall), extDoor.width), extDoor, { hinge: "end", side: "left" }),
+  door("door-front", ext.south, centredOn(ext.south, xMid(hall), extDoor.width), externalDoor, extDoor, { hinge: "start", side: "left" }),
+  door("door-back", ext.north, centredOn(ext.north, xMid(hall), extDoor.width), externalDoor, extDoor, { hinge: "end", side: "left" }),
 
   // Hall walls run south→north, so "left" is west and "right" is east.
-  door("door-living", hallWest, centredOn(hallWest, yMid(living), intDoor.width), intDoor, { hinge: "start", side: "left" }),
-  door("door-kitchen", hallWest, centredOn(hallWest, yMid(kitchen), intDoor.width), intDoor, { hinge: "end", side: "left" }),
-  door("door-bedroom", hallEast, centredOn(hallEast, yMid(bedroom), intDoor.width), intDoor, { hinge: "start", side: "right" }),
-  door("door-bathroom", hallEast, centredOn(hallEast, yMid(bathroom), intDoor.width), intDoor, { hinge: "end", side: "right" }),
+  door("door-living", hallWest, centredOn(hallWest, yMid(living), intDoor.width), internalDoor, intDoor, { hinge: "start", side: "left" }),
+  door("door-kitchen", hallWest, centredOn(hallWest, yMid(kitchen), intDoor.width), internalDoor, intDoor, { hinge: "end", side: "left" }),
+  door("door-bedroom", hallEast, centredOn(hallEast, yMid(bedroom), intDoor.width), internalDoor, intDoor, { hinge: "start", side: "right" }),
+  door("door-bathroom", hallEast, centredOn(hallEast, yMid(bathroom), intDoor.width), internalDoor, intDoor, { hinge: "end", side: "right" }),
 
   window("window-living", ext.south, centredOn(ext.south, xMid(living), windowW), sash, win),
   window("window-bedroom", ext.south, centredOn(ext.south, xMid(bedroom), windowW), sash, win),
@@ -95,7 +99,7 @@ export default defineBuilding({
   project: { id: "project-elmstead", name: "Elmstead" },
   site: { id: "site-default", name: "Default site" },
   building: { id: "building-cottage", name: "Example cottage" },
-  components: { doors: [extDoor, intDoor], windows: [sash] },
+  components: { doors: [externalDoor, internalDoor], windows: [sash] },
   storeys: [
     {
       id: "storey-ground",

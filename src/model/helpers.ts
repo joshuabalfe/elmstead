@@ -120,28 +120,48 @@ export function centredOn(w: Wall, at: Mm, width: Mm): Mm {
 
 type OpeningSize = Pick<Door, "width" | "height">;
 
-/** A door design (see `components` in the schema); pass it to `door()` in place of a size. */
-export const doorComponent = (id: string, name: string, size: OpeningSize): DoorComponent => ({ id, name, ...size });
-/** A window design (see `components` in the schema); pass it to `window()` in place of a size. */
-export const windowComponent = (id: string, name: string, size: OpeningSize): WindowComponent => ({ id, name, ...size });
+/** A door design (see `components` in the schema), for `door()`. */
+export const doorComponent = (id: string, name: string): DoorComponent => ({ id, name });
+/** A window design (see `components` in the schema), for `window()`. */
+export const windowComponent = (id: string, name: string): WindowComponent => ({ id, name });
 
-/** The opening's size, and its componentId when it is given a component rather than a bare size. */
-const sized = (s: OpeningSize | DoorComponent | WindowComponent) =>
-  "id" in s ? { componentId: s.id, width: s.width, height: s.height } : { width: s.width, height: s.height };
-
-/** A door of a component's size (and linked to it), or of a bare size. */
-export function door(id: string, w: Wall, offsetAlongWall: Mm, size: OpeningSize | DoorComponent, swing?: Swing): Door {
-  return { kind: "door", id, wallId: w.id, offsetAlongWall, ...sized(size), sillHeight: mm(0), ...(swing ? { swing } : {}) };
+/**
+ * A door, with `sillHeight` 0: `door(id, wall, offset, component, size, swing?)`, linked to the
+ * component, or `door(id, wall, offset, size, swing?)` without one.
+ */
+export function door(id: string, w: Wall, offsetAlongWall: Mm, component: DoorComponent, size: OpeningSize, swing?: Swing): Door;
+export function door(id: string, w: Wall, offsetAlongWall: Mm, size: OpeningSize, swing?: Swing): Door;
+export function door(id: string, w: Wall, offsetAlongWall: Mm, a: DoorComponent | OpeningSize, b?: OpeningSize | Swing, c?: Swing): Door {
+  const [component, size, swing] = "id" in a ? [a, b as OpeningSize, c] : [undefined, a, b as Swing | undefined];
+  return {
+    kind: "door",
+    id,
+    wallId: w.id,
+    offsetAlongWall,
+    ...(component ? { componentId: component.id } : {}),
+    width: size.width,
+    height: size.height,
+    sillHeight: mm(0),
+    ...(swing ? { swing } : {}),
+  };
 }
 
 /**
- * A window: either `window(id, wall, offset, component, { sillHeight })`, sized by and linked to
- * the component, or `window(id, wall, offset, { width, height, sillHeight })`.
+ * A window: `window(id, wall, offset, component, { width, height, sillHeight })`, linked to the
+ * component, or `window(id, wall, offset, { width, height, sillHeight })` without one.
  */
-export function window(id: string, w: Wall, offsetAlongWall: Mm, component: WindowComponent, at: Pick<Window, "sillHeight">): Window;
+export function window(id: string, w: Wall, offsetAlongWall: Mm, component: WindowComponent, size: OpeningSize & Pick<Window, "sillHeight">): Window;
 export function window(id: string, w: Wall, offsetAlongWall: Mm, size: OpeningSize & Pick<Window, "sillHeight">): Window;
-export function window(id: string, w: Wall, offsetAlongWall: Mm, size: (OpeningSize & Partial<Pick<Window, "sillHeight">>) | WindowComponent, at?: Pick<Window, "sillHeight">): Window {
-  const sillHeight = at?.sillHeight ?? ("sillHeight" in size ? size.sillHeight : undefined);
-  if (sillHeight === undefined) throw new Error(`window(${id}): no sillHeight`);
-  return { kind: "window", id, wallId: w.id, offsetAlongWall, ...sized(size), sillHeight };
+export function window(id: string, w: Wall, offsetAlongWall: Mm, a: WindowComponent | (OpeningSize & Pick<Window, "sillHeight">), b?: OpeningSize & Pick<Window, "sillHeight">): Window {
+  const [component, size] = "id" in a ? [a, b!] : [undefined, a];
+  return {
+    kind: "window",
+    id,
+    wallId: w.id,
+    offsetAlongWall,
+    ...(component ? { componentId: component.id } : {}),
+    width: size.width,
+    height: size.height,
+    sillHeight: size.sillHeight,
+  };
 }

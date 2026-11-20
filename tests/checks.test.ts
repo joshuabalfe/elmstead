@@ -7,7 +7,7 @@ const model = (): BuildingModel => BuildingModelSchema.parse(JSON.parse(JSON.str
 const opening = (m: BuildingModel, id: string) => m.storeys[0]!.openings.find((o) => o.id === id)!;
 
 describe("checkComponents", () => {
-  it("accepts the cottage, whose openings all name a component of their size", () => {
+  it("accepts the cottage, whose openings all name a component of their kind", () => {
     expect(checkComponents(model())).toEqual([]);
   });
 
@@ -21,12 +21,6 @@ describe("checkComponents", () => {
     const m = model();
     opening(m, "door-living").componentId = "window-type-sash";
     expect(checkComponents(m)).toEqual([{ level: "ERROR", id: "door-living", message: "componentId window-type-sash is a window component" }]);
-  });
-
-  it("reports an opening that is not its component's size", () => {
-    const m = model();
-    opening(m, "window-kitchen").width = 1000 as never;
-    expect(checkComponents(m)).toEqual([{ level: "ERROR", id: "window-kitchen", message: "1000 × 1200 mm, but its component window-type-sash is 1200 × 1200 mm" }]);
   });
 
   it("reports a component id used twice", () => {
