@@ -4,7 +4,7 @@
  *
  * When one fails, fix the model, not the constraint. Change a constraint only for a new measurement.
  */
-import { corner, defineConstraints, inRoom, jamb, m, mm, roomCorner } from "../../src/constraints/index.js";
+import { corner, defineConstraints, inRoom, inStorey, jamb, m, mm, roomCorner, wallEnd } from "../../src/constraints/index.js";
 
 export default defineConstraints([
   inRoom("room-living", [
@@ -77,6 +77,26 @@ export default defineConstraints([
       to: corner({ wall: "wall-lobby-bathroom", face: "west" }, { wall: "wall-bedroom-bathroom", face: "north" }),
       measure: "x",
       distance: mm(865),
+    },
+  ]),
+  inRoom("room-rear-hall", [
+    {
+      id: "rear-hall-depth",
+      note: "Rear hall depth from the owner: 2 m, extension south wall to north wall",
+      from: corner({ wall: "wall-extension-south", face: "north" }, { wall: "wall-extension-east", face: "west" }),
+      to: corner({ wall: "wall-north", face: "south" }, { wall: "wall-extension-east", face: "west" }),
+      measure: "y",
+      distance: m(2),
+    },
+  ]),
+  inStorey("storey-ground", [
+    {
+      id: "stair-flight-width",
+      note: "Stair flight width from the owner (both flights 0.91 m); the north flight, spine to north wall",
+      from: wallEnd("wall-stair-spine", "end", "north"),
+      to: wallEnd("wall-north", "start", "south"),
+      measure: "y",
+      distance: mm(910),
     },
   ]),
   inRoom("room-hallway", [

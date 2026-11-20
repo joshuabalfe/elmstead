@@ -17,7 +17,7 @@ export const hallWallY = mm(6400); //   south face of the hall/living wall; livi
 export const bedroomWallY = mm(3900); // south face of the bedroom/bathroom wall; bedroom 3.3 m deep from the breast (owner)
 export const bathWestX = mm(5690); //   west face of the lobby/bathroom wall; lobby 0.865 m wide (owner)
 export const bathNorthY = mm(5675); //  south face of the bathroom's north wall; bathroom 1.6 m deep (owner)
-export const spineY = mm(6900); //      south face of the wall between the stair flights; keeps its traced offset from the hall wall
+export const spineY = mm(6990); //      south face of the wall between the stair flights; both flights 0.91 m wide (owner), the south one starting at the unmodelled stair start
 export const spineEastX = mm(8945); // keeps its traced overlap into the east wall
 export const livingBreast = { west: mm(1050), east: mm(3425) };
 
@@ -29,9 +29,9 @@ export const northIn = face(north, "south");
 export const west = wall("wall-west", pt(mm(0), northIn), pt(mm(0), southIn), { thickness: westT, height: wallH, justification: "left" });
 export const westIn = face(west, "east");
 
-// Bathroom north wall first: the core's east wall stops at its north face, where the extension opens off.
+// Bathroom north wall first: the core's east wall stops at the extension's south wall, where the extension opens off.
 export const bathNorth = wall("wall-bathroom-north", pt(sub(coreW, eastT), bathNorthY), pt(bathWestX, bathNorthY), { thickness: studT, height: wallH, justification: "right" });
-export const east = wall("wall-east", pt(coreW, southIn), pt(coreW, face(bathNorth, "north")), { thickness: eastT, height: wallH, justification: "left" });
+export const east = wall("wall-east", pt(coreW, southIn), pt(coreW, extSouthY), { thickness: eastT, height: wallH, justification: "left" });
 export const eastIn = face(east, "west");
 
 export const extEast = wall("wall-extension-east", pt(extEastX, extSouthY), pt(extEastX, northIn), { thickness: brickT, height: wallH, justification: "left" });
