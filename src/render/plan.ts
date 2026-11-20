@@ -91,6 +91,13 @@ function drawDoor(w: Wall, d: Door, view: View): string {
   ]);
 }
 
+/** A door's opening through the wall, in the paper colour: for the 3D wall tops, which aren't cut. */
+function drawDoorGap(w: Wall, d: Door, view: View): string {
+  return group({ class: "door-gap", "data-id": d.id }, [
+    polygon(wallSegmentFootprint(w, d.offsetAlongWall, d.offsetAlongWall + d.width).map(view.toPx), { fill: C.paper, stroke: "none" }),
+  ]);
+}
+
 function drawWindow(w: Wall, win: Window, view: View): string {
   const { left, right } = faceOffsets(w);
   const a = win.offsetAlongWall;
@@ -221,6 +228,15 @@ function scaleBar(at: Vec): string {
   return group({}, parts);
 }
 
+/** Overall dimensions: below and to the right of the drawing extent. */
+function overallDimensions(view: View): string[] {
+  const { extent } = view;
+  const sw = v(extent.minX, extent.minY);
+  const se = v(extent.maxX, extent.minY);
+  const ne = v(extent.maxX, extent.maxY);
+  return [...dimension(sw, se, `${extent.maxX - extent.minX}`, -40, view), ...dimension(se, ne, `${extent.maxY - extent.minY}`, -40, view)];
+}
+
 /** Where each room's label goes (its centroid, mm) and what it says. */
 export function roomTags(storey: Storey): { id: string; name: string; area: string; at: Vec }[] {
   return storey.rooms.map((r) => {
@@ -249,25 +265,85 @@ function roomLabels(storey: Storey, view: View, opts: PlanOptions, names = true)
   return out;
 }
 
-/**
- * The plan's room dimensions and (unless `names` is false) room labels alone, on a transparent
- * background, for laying in the 3D viewer, with haloed text so it reads over the model. `bounds`
- * is the plan area (mm) the SVG covers, edge to edge.
- */
-export function renderRoomLabels(storey: Storey, { names = true }: { names?: boolean } = {}): { svg: string; bounds: Bounds } {
+/** A transparent SVG the size of the storey's plan, and the plan area (mm) it covers edge to edge. */
+function overlay(storey: Storey, body: (view: View) => string[]): { svg: string; bounds: Bounds } {
   const view = makeView(storey);
   const minX = view.extent.minX - MARGIN.left / PX_PER_MM;
   const maxY = view.extent.maxY + MARGIN.top / PX_PER_MM;
   const bounds = { minX, maxY, maxX: minX + view.width / PX_PER_MM, minY: maxY - view.height / PX_PER_MM };
   const svg = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${view.width}" height="${view.height}" viewBox="0 0 ${view.width} ${view.height}" font-family="${FONT}, sans-serif">`,
-    // Without the paper underneath, the text needs a halo and the lines more weight to read on a floor.
-    `<style>text { stroke: ${C.paper}; stroke-width: 3px; stroke-linejoin: round; paint-order: stroke; } line { stroke: ${C.ink}; stroke-width: 1px; }</style>`,
-    ...roomLabels(storey, view, { ids: false }, names),
+    ...body(view),
     "</svg>",
     "",
   ].join("\n");
   return { svg, bounds };
+}
+
+/**
+ * The plan's dimensions (room and overall) and, unless `names` is false, its room labels alone,
+ * on a transparent background, for laying in the 3D viewer, with haloed text so it reads over the
+ * model.
+ */
+export function renderPlanAnnotations(storey: Storey, { names = true }: { names?: boolean } = {}): { svg: string; bounds: Bounds } {
+  return overlay(storey, (view) => [
+    // Without the paper underneath, the text needs a halo and the lines more weight to read on a floor.
+    `<style>text { stroke: ${C.paper}; stroke-width: 3px; stroke-linejoin: round; paint-order: stroke; } line { stroke: ${C.ink}; stroke-width: 1px; }</style>`,
+    ...roomLabels(storey, view, { ids: false }, names),
+    ...overallDimensions(view),
+  ]);
+}
+
+/**
+ * Walls, split around the openings they cut, then door and window symbols, as the plan draws them.
+ * `doors` picks what a cut door draws: its swing (the plan), its gap in the paper colour (the 3D
+ * wall tops, which aren't cut), or nothing.
+ */
+function wallsAndOpenings(storey: Storey, view: View, doors: "swing" | "gap" = "swing"): string[] {
+  const walls = storey.walls.filter((w) => wallLength(w) > 0);
+  const wallById = new Map(walls.map((w) => [w.id, w]));
+  const out: string[] = [];
+  // Walls: filled pieces with no outline, so butt joints look continuous.
+  for (const w of walls) {
+    for (const piece of wallPieces(w, storey.openings)) {
+      out.push(polygon(piece.map(view.toPx), { class: "wall", "data-id": w.id, fill: C.wall, stroke: "none" }));
+    }
+  }
+  // Uncut openings last, so a fanlight's dashed outline lies over the gap of the door below it.
+  for (const o of [...storey.openings].sort((a, b) => Number(!isCut(a)) - Number(!isCut(b)))) {
+    const w = wallById.get(o.wallId);
+    if (!w) continue; // reported by checks
+    if (!isCut(o)) out.push(drawUncut(w, o, view));
+    else if (o.kind === "window") out.push(drawWindow(w, o, view));
+    else out.push(doors === "swing" ? drawDoor(w, o, view) : drawDoorGap(w, o, view));
+  }
+  return out;
+}
+
+/** Each cut door's leaf and swing, as on the plan. */
+function doorSwings(storey: Storey, view: View): string[] {
+  const wallById = new Map(storey.walls.map((w) => [w.id, w]));
+  return storey.openings.flatMap((o) => {
+    const w = wallById.get(o.wallId);
+    return w && o.kind === "door" && isCut(o) && wallLength(w) > 0 ? [drawDoor(w, o, view)] : [];
+  });
+}
+
+/**
+ * The plan's walls, door gaps and windows alone, on a transparent background, for the 3D viewer to
+ * lay over the wall tops, so looking down shows what is in the walls below as the plan does. Door
+ * swings go on the floor instead (renderFloor).
+ */
+export function renderWallTops(storey: Storey): { svg: string; bounds: Bounds } {
+  return overlay(storey, (view) => wallsAndOpenings(storey, view, "gap"));
+}
+
+/** The plan's room fills and door swings alone, on a transparent background, for the 3D viewer's floor. */
+export function renderFloor(storey: Storey): { svg: string; bounds: Bounds } {
+  return overlay(storey, (view) => [
+    ...storey.rooms.map((r) => polygon(r.outline.map((p) => view.toPx(toVec(p))), { fill: C.room, stroke: "none" })),
+    ...doorSwings(storey, view),
+  ]);
 }
 
 export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptions): string {
@@ -287,18 +363,7 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
     out.push(polygon(r.outline.map((p) => view.toPx(toVec(p))), { class: "room", "data-id": r.id, fill: C.room, stroke: "none" }));
   }
 
-  // Walls: filled pieces with no outline, so butt joints look continuous.
-  for (const w of walls) {
-    for (const piece of wallPieces(w, storey.openings)) {
-      out.push(polygon(piece.map(view.toPx), { class: "wall", "data-id": w.id, fill: C.wall, stroke: "none" }));
-    }
-  }
-
-  for (const o of storey.openings) {
-    const w = wallById.get(o.wallId);
-    if (!w) continue; // reported by checks
-    out.push(!isCut(o) ? drawUncut(w, o, view) : o.kind === "door" ? drawDoor(w, o, view) : drawWindow(w, o, view));
-  }
+  out.push(...wallsAndOpenings(storey, view));
 
   out.push(...roomLabels(storey, view, opts));
 
@@ -316,12 +381,7 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
     }
   }
 
-  // Overall dimensions: below and to the right of the drawing extent.
-  const sw = v(extent.minX, extent.minY);
-  const se = v(extent.maxX, extent.minY);
-  const ne = v(extent.maxX, extent.maxY);
-  out.push(...dimension(sw, se, `${extent.maxX - extent.minX}`, -40, view));
-  out.push(...dimension(se, ne, `${extent.maxY - extent.minY}`, -40, view));
+  out.push(...overallDimensions(view));
 
   const title = `${model.building.name} — ${storey.name} plan`;
   const sub = `Elevation ${storey.elevation} mm · dimensions in mm · 1 px = ${num(1 / PX_PER_MM)} mm`;

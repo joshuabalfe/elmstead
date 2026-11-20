@@ -2,14 +2,17 @@
  * Local IFC viewer on That Open Engine: loads out/<model>.ifc, converts it to Fragments in the
  * browser and shows it, with the plan's room dimensions at each storey's ceiling and room names on
  * billboards that face the camera, and a compass pointing to true north (all from
- * out/<model>.building.json). Query params: ?model=<name>&view=<sw|se|ne|nw|top>&snapshot=1&labels=0|1
- * (snapshot hides the UI and sets window.__elmsteadReady once the first frame is drawn; labels are
- * on by default, except in snapshots, which show the IFC alone).
+ * out/<model>.building.json). Every view uses the plan's colours, with the plan's walls, doors and
+ * windows laid on the wall tops, so the Top view reads like the plan. Query params: ?model=<name>&view=<sw|se|ne|nw|top>&snapshot=1
+ * &labels=0|1&style=plan|ifc (snapshot hides the UI and sets window.__elmsteadReady once the first
+ * frame is drawn; labels and the plan style are on by default, except in snapshots, which show the
+ * IFC alone).
  */
 import * as OBC from "@thatopen/components";
 import workerUrl from "@thatopen/fragments/worker?url";
 import * as THREE from "three";
-import { renderRoomLabels, roomTags } from "../src/render/plan.js";
+import { STYLES } from "../src/ifc/styles.js";
+import { renderFloor, renderPlanAnnotations, renderWallTops, roomTags } from "../src/render/plan.js";
 import { C, FONT, PX_PER_MM, ROOM_LABEL } from "../src/render/style.js";
 import type { BuildingModel } from "../src/schema/schema.js";
 
@@ -125,11 +128,39 @@ function roomBillboard(name: string, area: string): THREE.Sprite {
   map.colorSpace = THREE.SRGBColorSpace;
   // Always drawn over the model: it stands up from the ceiling, so wall tops would cut its lower half.
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map, depthTest: false, depthWrite: false }));
-  sprite.renderOrder = 1;
+  sprite.renderOrder = 2; // over the dimensions
   const mPerPx = 1 / PX_PER_MM / 1000;
   sprite.scale.set(width * mPerPx, 2 * half * mPerPx, 1);
   return sprite;
 }
+
+/** A plan-sized SVG overlay as a flat plane at height `y` (m), the drawing's north along −Z (IFC +Y). */
+async function planPlane(svg: string, bounds: { minX: number; minY: number; maxX: number; maxY: number }, y: number, material: THREE.MeshBasicMaterialParameters) {
+  const img = new Image();
+  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  await img.decode();
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth * LABEL_RESOLUTION;
+  canvas.height = img.naturalHeight * LABEL_RESOLUTION;
+  canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const map = new THREE.CanvasTexture(canvas);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.anisotropy = world.renderer!.three.capabilities.getMaxAnisotropy();
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry((bounds.maxX - bounds.minX) / 1000, (bounds.maxY - bounds.minY) / 1000), new THREE.MeshBasicMaterial({ map, ...material }));
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.set((bounds.minX + bounds.maxX) / 2000, y, -(bounds.minY + bounds.maxY) / 2000);
+  return mesh;
+}
+
+/**
+ * Plan colouring's layers (see applyStyle): the plan's room fills and door swings standing in for
+ * the slab's top face, and the plan's walls, door gaps and windows laid over the wall tops.
+ */
+const planLayers = new THREE.Group();
+planLayers.visible = false;
+world.scene.three.add(planLayers);
+/** Height (mm) above the wall tops of the plan's walls, door gaps and windows; below the labels. */
+const WALL_TOP_LIFT = 5;
 
 /**
  * The plan's room dimensions for each storey, as a transparent texture on a plane at the ceiling,
@@ -137,37 +168,38 @@ function roomBillboard(name: string, area: string): THREE.Sprite {
  * so the ceiling is the top of the storey's tallest wall.
  */
 async function loadLabels(name: string) {
-  for (const obj of labels.children as (THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> | THREE.Sprite)[]) {
+  for (const obj of [...labels.children, ...planLayers.children] as (THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> | THREE.Sprite)[]) {
     if (obj instanceof THREE.Mesh) obj.geometry.dispose(); // sprites share one geometry
     obj.material.map?.dispose();
     obj.material.dispose();
   }
   labels.clear();
+  planLayers.clear();
   northAngle = null;
   const res = await fetch(`/out/${name}.building.json`);
   if (!res.ok) return; // no JSON next to the IFC: show the IFC without labels
   const model = (await res.json()) as BuildingModel;
   northAngle = model.site.northAngle ?? 0;
+  const lowest = model.storeys.reduce((a, b) => (b.elevation < a.elevation ? b : a));
   for (const storey of model.storeys) {
-    const { svg, bounds } = renderRoomLabels(storey, { names: false });
-    const img = new Image();
-    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-    await img.decode();
-    const canvas = document.createElement("canvas");
-    canvas.width = img.naturalWidth * LABEL_RESOLUTION;
-    canvas.height = img.naturalHeight * LABEL_RESOLUTION;
-    canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
-    const map = new THREE.CanvasTexture(canvas);
-    map.colorSpace = THREE.SRGBColorSpace;
-    map.anisotropy = world.renderer!.three.capabilities.getMaxAnisotropy();
-    const material = new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false });
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry((bounds.maxX - bounds.minX) / 1000, (bounds.maxY - bounds.minY) / 1000), material);
-    // Lay the plane flat with the drawing's north (its +Y) along −Z, which is IFC +Y.
-    mesh.rotation.x = -Math.PI / 2;
+    const { svg, bounds } = renderPlanAnnotations(storey, { names: false });
     const ceiling = Math.max(0, ...storey.walls.map((w) => w.height));
     const y = (storey.elevation + ceiling + LABEL_LIFT) / 1000;
-    mesh.position.set((bounds.minX + bounds.maxX) / 2000, y, -(bounds.minY + bounds.maxY) / 2000);
-    labels.add(mesh);
+    const annotations = await planPlane(svg, bounds, y, { transparent: true, depthWrite: false });
+    annotations.renderOrder = 1; // over the wall tops' layer
+    labels.add(annotations);
+    const tops = renderWallTops(storey);
+    planLayers.add(await planPlane(tops.svg, tops.bounds, (storey.elevation + ceiling + WALL_TOP_LIFT) / 1000, { transparent: true, depthWrite: false }));
+    // Only the lowest storey's floor: drawn without depth, an upper floor's would show through
+    // the storeys below it.
+    if (storey === lowest) {
+      // Drawn first and without depth, so the model always covers it; cut-out (alphaTest), not
+      // blended, so it stays in the opaque pass that runs before the walls.
+      const fills = renderFloor(storey);
+      const fill = await planPlane(fills.svg, fills.bounds, storey.elevation / 1000, { alphaTest: 0.5, depthTest: false, depthWrite: false });
+      fill.renderOrder = -1;
+      planLayers.add(fill);
+    }
     for (const tag of roomTags(storey)) {
       const sprite = roomBillboard(tag.name, tag.area);
       sprite.position.set(tag.at.x / 1000, y, -tag.at.y / 1000);
@@ -177,6 +209,77 @@ async function loadLabels(name: string) {
 }
 
 let box = new THREE.Box3();
+
+/**
+ * Plan colouring, in every view except snapshots (which show the IFC's own colours):
+ *
+ * - Floors: the slab's top face is not drawn; the plan's own room fills and door swings are drawn
+ *   first, without depth, so the model always covers them. (A wall's underside lies exactly on the slab's top
+ *   face, and on real GPUs the two fight for depth.) The slab's edges still show.
+ * - Walls keep their IFC colour and lighting, except faces that look upwards (wall tops, window
+ *   sills), which are the plan's charcoal, unlit. A small shader patch picks those out by their
+ *   world-space normal, so the material itself is unchanged.
+ * - The plan's walls, door gaps and windows are laid just above the wall tops, so looking down
+ *   shows what is in the walls below (open door gaps, window symbols) as the plan does.
+ * - White background, no grid.
+ */
+type Style = "ifc" | "plan";
+const styleParam = params.get("style"); // ?style=ifc|plan overrides the default
+const style: Style = styleParam === "ifc" || styleParam === "plan" ? styleParam : snapshot ? "ifc" : "plan";
+
+/** Which of the IFC's presentation colours (src/ifc/styles.ts) a material carries, if any. */
+function styleOf(material: THREE.MeshLambertMaterial): keyof typeof STYLES | undefined {
+  const c = material.color;
+  let best: keyof typeof STYLES | undefined;
+  let bestDist = 0.02; // the IFC colours survive the round trip to within about 1/255
+  for (const [name, { rgb }] of Object.entries(STYLES) as [keyof typeof STYLES, (typeof STYLES)[keyof typeof STYLES]][]) {
+    const ifc = new THREE.Color().setRGB(rgb[0], rgb[1], rgb[2], THREE.SRGBColorSpace);
+    const d = Math.hypot(ifc.r - c.r, ifc.g - c.g, ifc.b - c.b);
+    if (d < bestDist) [best, bestDist] = [name, d];
+  }
+  return best;
+}
+
+const wallTop = new THREE.Color(C.wall); // linear, as the shader works in linear
+
+/**
+ * Patch a material so its upward faces are drawn in the plan's wall colour (`mode` 1) or not at
+ * all (`mode` 2).
+ */
+function patchTops(m: THREE.MeshLambertMaterial, mode: 1 | 2) {
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.planTopColour = { value: wallTop };
+    shader.fragmentShader = shader.fragmentShader
+      .replace("void main() {", "uniform vec3 planTopColour;\nvoid main() {")
+      // `normal` is view-space; `normal * mat3(viewMatrix)` is the world-space normal (the view
+      // matrix is orthonormal).
+      .replace(
+        "#include <opaque_fragment>",
+        `if ((normal * mat3(viewMatrix)).y > 0.7) {
+          ${mode === 2 ? "discard;" : "outgoingLight = planTopColour;"}
+        }
+        #include <opaque_fragment>`,
+      );
+  };
+  m.customProgramCacheKey = () => `elmstead-plan-top-${mode}`;
+  m.needsUpdate = true;
+}
+
+/** Apply plan colouring to the model's materials once it has loaded (see `style`). */
+function applyStyle() {
+  const plan = style === "plan";
+  if (plan) {
+    for (const m of fragments.core.models.materials.list.values()) {
+      if (!(m instanceof THREE.MeshLambertMaterial)) continue;
+      const name = styleOf(m);
+      if (name === "wall") patchTops(m, 1);
+      if (name === "slab") patchTops(m, 2);
+    }
+  }
+  world.scene.three.background = new THREE.Color(plan ? C.paper : 0xf4f4f2);
+  grid.three.visible = !plan;
+  planLayers.visible = plan;
+}
 
 /** Three.js is Y-up with plan north along −Z (IFC +Y). */
 async function setView(view: View) {
@@ -210,6 +313,7 @@ async function load(name: string) {
   world.scene.three.add(model.object);
   await fragments.core.update(true);
   await loadLabels(name);
+  applyStyle();
   box = model.box.clone();
   grid.three.position.y = box.min.y - 0.01; // under the lowest slab, so it doesn't show through floors
   await setView((params.get("view") as View) ?? "sw");
