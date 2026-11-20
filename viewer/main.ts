@@ -152,7 +152,7 @@ async function planPlane(svg: string, bounds: { minX: number; minY: number; maxX
   return mesh;
 }
 
-/** Room fills for the plan-style Top view, shown only while it is on (see setPlanStyle). */
+/** The plan's room fills, standing in for the slab's top face in plan colouring (see setStyle). */
 const roomFills = new THREE.Group();
 roomFills.visible = false;
 world.scene.three.add(roomFills);
@@ -201,80 +201,113 @@ async function loadLabels(name: string) {
 let box = new THREE.Box3();
 
 /**
- * Plan style for the Top view: the IFC's presentation colours (src/ifc/styles.ts) swapped for the
- * plan's, drawn unlit (emissive) and from both sides, with everything above the plan's cut height
- * clipped away. Looking down into a clipped wall then shows its inside in the wall colour, which
- * reads as the plan's solid cut wall; doors and windows show through the cut as on the plan.
+ * Plan colouring, in every view except snapshots (which show the IFC's own colours):
  *
- * The slab is hidden and the plan's room fills drawn under everything instead: a clipped wall's
- * underside lies exactly on the slab's top face, and on real GPUs the two fight for depth.
+ * - Floors: the slab's top face is not drawn; the plan's own room fills (`roomFills`) are drawn
+ *   first, without depth, so the model always covers them. (A wall's underside lies exactly on the
+ *   slab's top face, and on real GPUs the two fight for depth.) The slab's edges still show.
+ * - Walls keep their IFC colour and lighting, except faces that look upwards (wall tops, window
+ *   sills), which are the plan's charcoal, unlit. A small shader patch picks those out by their
+ *   world-space normal, so the material itself is unchanged.
+ * - White background, no grid.
+ *
+ * The Top view also cuts the model at the plan's cut height, as the plan does, so doors and windows
+ * show through the walls. Walls are then drawn from both sides: looking down into a cut wall shows
+ * the inside of its underside, which faces up once flipped, so it reads as the plan's solid cut
+ * wall. Door leaves turn white (a closed leaf reads as the plan's gap) and glazing the plan's blue.
  */
-const PLAN_COLOURS: [readonly number[], string | null][] = [
-  [STYLES.wall.rgb, C.wall],
-  [STYLES.slab.rgb, null], // hidden
-  [STYLES.door.rgb, C.paper], // a closed leaf in its opening reads as the plan's gap
-  [STYLES.glazing.rgb, C.glass],
-];
-const planStyleParam = params.get("style");
-// ?style=plan forces it in every view (useful for looking at the cut from an angle).
-const usePlanStyle = (view: View) => planStyleParam === "plan" || (view === "top" && !snapshot && planStyleParam !== "ifc");
-type Saved = Pick<THREE.MeshLambertMaterial, "side" | "opacity" | "transparent" | "visible"> & { color: THREE.Color; emissive: THREE.Color };
-const ifcState = new Map<THREE.MeshLambertMaterial, Saved>();
-const cut = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
-world.renderer.three.localClippingEnabled = true;
+type Style = "ifc" | "plan" | "plan-cut";
+const styleParam = params.get("style"); // ?style=ifc|plan|plan-cut overrides the choice below
+const styleFor = (view: View): Style =>
+  styleParam === "ifc" || styleParam === "plan" || styleParam === "plan-cut" ? styleParam : snapshot ? "ifc" : view === "top" ? "plan-cut" : "plan";
 
-/** The plan colour for one of the IFC's materials, null to hide it, undefined if it isn't one of ours. */
-function planColourFor(material: THREE.MeshLambertMaterial): string | null | undefined {
+/** Which of the IFC's presentation colours (src/ifc/styles.ts) a material carries, if any. */
+function styleOf(material: THREE.MeshLambertMaterial): keyof typeof STYLES | undefined {
   const c = material.color;
-  let best: string | null | undefined;
+  let best: keyof typeof STYLES | undefined;
   let bestDist = 0.02; // the IFC colours survive the round trip to within about 1/255
-  for (const [rgb, colour] of PLAN_COLOURS) {
-    const ifc = new THREE.Color().setRGB(rgb[0]!, rgb[1]!, rgb[2]!, THREE.SRGBColorSpace);
+  for (const [name, { rgb }] of Object.entries(STYLES) as [keyof typeof STYLES, (typeof STYLES)[keyof typeof STYLES]][]) {
+    const ifc = new THREE.Color().setRGB(rgb[0], rgb[1], rgb[2], THREE.SRGBColorSpace);
     const d = Math.hypot(ifc.r - c.r, ifc.g - c.g, ifc.b - c.b);
-    if (d < bestDist) [best, bestDist] = [colour, d];
+    if (d < bestDist) [best, bestDist] = [name, d];
   }
   return best;
 }
 
-function setPlanStyle(on: boolean, cutHeight: number) {
+/** 0 = off, 1 = upward faces in the plan's wall colour, 2 = upward faces not drawn. */
+type TopMode = 0 | 1 | 2;
+interface Patched {
+  style: keyof typeof STYLES;
+  top: { value: TopMode };
+  saved: Pick<THREE.MeshLambertMaterial, "side" | "opacity" | "transparent"> & { color: THREE.Color; emissive: THREE.Color };
+}
+const patched = new Map<THREE.MeshLambertMaterial, Patched>();
+const wallTop = new THREE.Color(C.wall); // linear, as the shader works in linear
+const cut = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
+world.renderer.three.localClippingEnabled = true;
+
+/** Patch a material once so its upward faces can be recoloured or dropped by a uniform. */
+function patch(m: THREE.MeshLambertMaterial, style: keyof typeof STYLES): Patched {
+  let p = patched.get(m);
+  if (p) return p;
+  const { side, opacity, transparent } = m;
+  p = { style, top: { value: 0 }, saved: { color: m.color.clone(), emissive: m.emissive.clone(), side, opacity, transparent } };
+  const top = p.top;
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.planTop = top;
+    shader.uniforms.planTopColour = { value: wallTop };
+    shader.fragmentShader = shader.fragmentShader
+      .replace("void main() {", "uniform int planTop;\nuniform vec3 planTopColour;\nvoid main() {")
+      // `normal` is view-space and already flipped for back faces; `normal * mat3(viewMatrix)` is
+      // the world-space normal (the view matrix is orthonormal).
+      .replace(
+        "#include <opaque_fragment>",
+        `bool planUp = planTop != 0 && (normal * mat3(viewMatrix)).y > 0.7;
+        if (planUp && planTop == 2) discard;
+        if (planUp) outgoingLight = planTopColour;
+        #include <opaque_fragment>`,
+      );
+  };
+  m.customProgramCacheKey = () => "elmstead-plan-top";
+  m.needsUpdate = true;
+  patched.set(m, p);
+  return p;
+}
+
+function setStyle(style: Style, cutHeight: number) {
+  const plan = style !== "ifc";
+  const cutting = style === "plan-cut";
+  cut.constant = cutHeight;
   for (const m of fragments.core.models.materials.list.values()) {
     // Simplified stand-ins ThatOpen draws for items that are tiny on screen (the fanlight, edge-on
-    // from above). They ignore the cut, so hide them: the plan shows nothing above it anyway.
+    // from above). They ignore the cut, so hide them while cutting: the plan shows nothing above it.
     if ("isLodMaterial" in m && m.isLodMaterial) {
-      m.visible = !on;
+      m.visible = !cutting;
       continue;
     }
     if (!(m instanceof THREE.MeshLambertMaterial)) continue;
-    if (on) {
-      const saved = ifcState.get(m);
-      if (saved) continue; // already in plan style
-      const colour = planColourFor(m);
-      if (colour === undefined) continue;
-      const { side, opacity, transparent, visible } = m;
-      ifcState.set(m, { color: m.color.clone(), emissive: m.emissive.clone(), side, opacity, transparent, visible });
-      if (colour === null) m.visible = false;
-      else m.emissive.set(colour);
+    const name = patched.get(m)?.style ?? styleOf(m);
+    if (!name) continue;
+    const p = patch(m, name);
+    const { saved } = p;
+    p.top.value = !plan ? 0 : name === "wall" ? 1 : name === "slab" ? 2 : 0;
+    m.side = cutting && name !== "slab" ? THREE.DoubleSide : saved.side;
+    m.clippingPlanes = cutting ? [cut] : [];
+    m.color.copy(saved.color);
+    m.emissive.copy(saved.emissive);
+    m.opacity = saved.opacity;
+    m.transparent = saved.transparent;
+    if (cutting && (name === "door" || name === "glazing")) {
       m.color.set(0x000000);
-      m.side = THREE.DoubleSide;
+      m.emissive.set(name === "door" ? C.paper : C.glass);
       m.opacity = 1;
       m.transparent = false;
-      cut.constant = cutHeight;
-      m.clippingPlanes = [cut];
-    } else {
-      const saved = ifcState.get(m);
-      if (!saved) continue;
-      const { side, opacity, transparent, visible } = saved;
-      Object.assign(m, { side, opacity, transparent, visible });
-      m.color.copy(saved.color);
-      m.emissive.copy(saved.emissive);
-      m.clippingPlanes = [];
-      ifcState.delete(m);
     }
     m.needsUpdate = true;
   }
-  world.scene.three.background = new THREE.Color(on ? C.paper : 0xf4f4f2);
-  grid.three.visible = !on;
-  roomFills.visible = on;
+  world.scene.three.background = new THREE.Color(plan ? C.paper : 0xf4f4f2);
+  grid.three.visible = !plan;
+  roomFills.visible = plan;
 }
 
 /** Plan cut height (m) for the lowest storey, which is the one the Top view shows. */
@@ -282,7 +315,7 @@ let planCut = CUT_HEIGHT / 1000;
 
 /** Three.js is Y-up with plan north along −Z (IFC +Y). */
 async function setView(view: View) {
-  setPlanStyle(usePlanStyle(view), planCut);
+  setStyle(styleFor(view), planCut);
   const centre = box.getCenter(new THREE.Vector3());
   const dir: Record<View, [number, number, number]> = {
     sw: [-1, 0.7, 1],
@@ -307,7 +340,7 @@ async function setView(view: View) {
 async function load(name: string) {
   status.textContent = `loading ${name}.ifc…`;
   for (const [id] of fragments.list) await fragments.core.disposeModel(id);
-  ifcState.clear(); // its materials went with the model
+  patched.clear(); // its materials went with the model
   const buffer = new Uint8Array(await (await fetch(`/out/${name}.ifc`)).arrayBuffer());
   const model = await ifcLoader.load(buffer, true, name);
   model.useCamera(world.camera.three);
