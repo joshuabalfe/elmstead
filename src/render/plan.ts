@@ -258,26 +258,38 @@ function roomLabels(storey: Storey, view: View, opts: PlanOptions, names = true)
   return out;
 }
 
-/**
- * The plan's dimensions (room and overall) and, unless `names` is false, its room labels alone,
- * on a transparent background, for laying in the 3D viewer, with haloed text so it reads over the
- * model. `bounds` is the plan area (mm) the SVG covers, edge to edge.
- */
-export function renderPlanAnnotations(storey: Storey, { names = true }: { names?: boolean } = {}): { svg: string; bounds: Bounds } {
+/** A transparent SVG the size of the storey's plan, and the plan area (mm) it covers edge to edge. */
+function overlay(storey: Storey, body: (view: View) => string[]): { svg: string; bounds: Bounds } {
   const view = makeView(storey);
   const minX = view.extent.minX - MARGIN.left / PX_PER_MM;
   const maxY = view.extent.maxY + MARGIN.top / PX_PER_MM;
   const bounds = { minX, maxY, maxX: minX + view.width / PX_PER_MM, minY: maxY - view.height / PX_PER_MM };
   const svg = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${view.width}" height="${view.height}" viewBox="0 0 ${view.width} ${view.height}" font-family="${FONT}, sans-serif">`,
-    // Without the paper underneath, the text needs a halo and the lines more weight to read on a floor.
-    `<style>text { stroke: ${C.paper}; stroke-width: 3px; stroke-linejoin: round; paint-order: stroke; } line { stroke: ${C.ink}; stroke-width: 1px; }</style>`,
-    ...roomLabels(storey, view, { ids: false }, names),
-    ...overallDimensions(view),
+    ...body(view),
     "</svg>",
     "",
   ].join("\n");
   return { svg, bounds };
+}
+
+/**
+ * The plan's dimensions (room and overall) and, unless `names` is false, its room labels alone,
+ * on a transparent background, for laying in the 3D viewer, with haloed text so it reads over the
+ * model.
+ */
+export function renderPlanAnnotations(storey: Storey, { names = true }: { names?: boolean } = {}): { svg: string; bounds: Bounds } {
+  return overlay(storey, (view) => [
+    // Without the paper underneath, the text needs a halo and the lines more weight to read on a floor.
+    `<style>text { stroke: ${C.paper}; stroke-width: 3px; stroke-linejoin: round; paint-order: stroke; } line { stroke: ${C.ink}; stroke-width: 1px; }</style>`,
+    ...roomLabels(storey, view, { ids: false }, names),
+    ...overallDimensions(view),
+  ]);
+}
+
+/** The plan's room fills alone, on a transparent background, for the 3D viewer's plan-style floor. */
+export function renderRoomFills(storey: Storey): { svg: string; bounds: Bounds } {
+  return overlay(storey, (view) => storey.rooms.map((r) => polygon(r.outline.map((p) => view.toPx(toVec(p))), { fill: C.room, stroke: "none" })));
 }
 
 export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptions): string {

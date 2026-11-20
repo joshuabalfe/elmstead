@@ -90,15 +90,20 @@ openings cut, doors and glazing in place, colours applied.
   - Everything above the plan's cut height (`CUT_HEIGHT`, 1.2 m above the lowest storey) is
     clipped away, so doors and windows show through the walls.
   - The IFC's presentation colours (`src/ifc/styles.ts`) are swapped for the plan's: walls
-    charcoal, slabs the room colour, door leaves white (a closed leaf reads as the plan's gap),
-    glazing the plan's blue, on a white background with no grid.
+    charcoal, door leaves white (a closed leaf reads as the plan's gap), glazing the plan's blue,
+    on a white background with no grid.
   - It is unlit and drawn from both sides, so looking down into a clipped wall shows its inside in
     the wall colour, which reads as the plan's solid cut wall.
-  - The corner views put the IFC's colours and lighting back.
-  - It is off in snapshots, so the Top PNG still shows the IFC's own colours. `?style=plan` or
-    `?style=ifc` in the URL overrides it.
-  - Still different from the plan: no door swings, windows show as a glazing line in a solid wall
-    rather than the plan's window symbol, and floor outside any room (the stairs, the alcoves) is
-    in the room colour because the slab is.
+  - The slab is hidden. Instead the plan's own room fills (`renderRoomFills` in
+    `src/render/plan.ts`) are drawn first, without depth, so the model always covers them. A
+    clipped wall's underside lies exactly on the slab's top face, and on real GPUs the two fight
+    for depth (stripes, missing walls).
+  - ThatOpen's simplified stand-ins for items that are tiny on screen (the fanlight, edge-on from
+    above) ignore the cut, so plan style hides them.
+  - The corner views put the IFC's colours, lighting and slab back.
+  - It is off in snapshots, so the Top PNG still shows the IFC's own colours. `?style=ifc` turns
+    it off; `?style=plan` turns it on, in every view.
+  - Still different from the plan: no door swings, and windows show as a glazing line in a solid
+    wall rather than the plan's window symbol.
 - `npm run view` runs the same app for interactive use. It reloads the page whenever an IFC in
   `out/` changes.

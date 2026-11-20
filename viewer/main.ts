@@ -12,7 +12,7 @@ import * as OBC from "@thatopen/components";
 import workerUrl from "@thatopen/fragments/worker?url";
 import * as THREE from "three";
 import { STYLES } from "../src/ifc/styles.js";
-import { renderPlanAnnotations, roomTags } from "../src/render/plan.js";
+import { renderPlanAnnotations, renderRoomFills, roomTags } from "../src/render/plan.js";
 import { C, CUT_HEIGHT, FONT, PX_PER_MM, ROOM_LABEL } from "../src/render/style.js";
 import type { BuildingModel } from "../src/schema/schema.js";
 
@@ -134,44 +134,62 @@ function roomBillboard(name: string, area: string): THREE.Sprite {
   return sprite;
 }
 
+/** A plan-sized SVG overlay as a flat plane at height `y` (m), the drawing's north along −Z (IFC +Y). */
+async function planPlane(svg: string, bounds: { minX: number; minY: number; maxX: number; maxY: number }, y: number, material: THREE.MeshBasicMaterialParameters) {
+  const img = new Image();
+  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  await img.decode();
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth * LABEL_RESOLUTION;
+  canvas.height = img.naturalHeight * LABEL_RESOLUTION;
+  canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const map = new THREE.CanvasTexture(canvas);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.anisotropy = world.renderer!.three.capabilities.getMaxAnisotropy();
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry((bounds.maxX - bounds.minX) / 1000, (bounds.maxY - bounds.minY) / 1000), new THREE.MeshBasicMaterial({ map, ...material }));
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.set((bounds.minX + bounds.maxX) / 2000, y, -(bounds.minY + bounds.maxY) / 2000);
+  return mesh;
+}
+
+/** Room fills for the plan-style Top view, shown only while it is on (see setPlanStyle). */
+const roomFills = new THREE.Group();
+roomFills.visible = false;
+world.scene.three.add(roomFills);
+
 /**
  * The plan's room dimensions for each storey, as a transparent texture on a plane at the ceiling,
  * and each room's name and area on a billboard above its centre. The schema has no ceiling height,
  * so the ceiling is the top of the storey's tallest wall.
  */
 async function loadLabels(name: string) {
-  for (const obj of labels.children as (THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> | THREE.Sprite)[]) {
+  for (const obj of [...labels.children, ...roomFills.children] as (THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial> | THREE.Sprite)[]) {
     if (obj instanceof THREE.Mesh) obj.geometry.dispose(); // sprites share one geometry
     obj.material.map?.dispose();
     obj.material.dispose();
   }
   labels.clear();
+  roomFills.clear();
   northAngle = null;
   const res = await fetch(`/out/${name}.building.json`);
   if (!res.ok) return; // no JSON next to the IFC: show the IFC without labels
   const model = (await res.json()) as BuildingModel;
   northAngle = model.site.northAngle ?? 0;
   planCut = (Math.min(...model.storeys.map((s) => s.elevation)) + CUT_HEIGHT) / 1000;
+  const lowest = model.storeys.reduce((a, b) => (b.elevation < a.elevation ? b : a));
   for (const storey of model.storeys) {
     const { svg, bounds } = renderPlanAnnotations(storey, { names: false });
-    const img = new Image();
-    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-    await img.decode();
-    const canvas = document.createElement("canvas");
-    canvas.width = img.naturalWidth * LABEL_RESOLUTION;
-    canvas.height = img.naturalHeight * LABEL_RESOLUTION;
-    canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
-    const map = new THREE.CanvasTexture(canvas);
-    map.colorSpace = THREE.SRGBColorSpace;
-    map.anisotropy = world.renderer!.three.capabilities.getMaxAnisotropy();
-    const material = new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false });
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry((bounds.maxX - bounds.minX) / 1000, (bounds.maxY - bounds.minY) / 1000), material);
-    // Lay the plane flat with the drawing's north (its +Y) along −Z, which is IFC +Y.
-    mesh.rotation.x = -Math.PI / 2;
     const ceiling = Math.max(0, ...storey.walls.map((w) => w.height));
     const y = (storey.elevation + ceiling + LABEL_LIFT) / 1000;
-    mesh.position.set((bounds.minX + bounds.maxX) / 2000, y, -(bounds.minY + bounds.maxY) / 2000);
-    labels.add(mesh);
+    labels.add(await planPlane(svg, bounds, y, { transparent: true, depthWrite: false }));
+    if (storey === lowest) {
+      // Drawn first and without depth, so the model always covers it; cut-out (alphaTest), not
+      // blended, so it stays in the opaque pass that runs before the walls.
+      const fills = renderRoomFills(storey);
+      const fill = await planPlane(fills.svg, fills.bounds, storey.elevation / 1000, { alphaTest: 0.5, depthTest: false, depthWrite: false });
+      fill.renderOrder = -1;
+      roomFills.add(fill);
+    }
     for (const tag of roomTags(storey)) {
       const sprite = roomBillboard(tag.name, tag.area);
       sprite.position.set(tag.at.x / 1000, y, -tag.at.y / 1000);
@@ -187,23 +205,28 @@ let box = new THREE.Box3();
  * plan's, drawn unlit (emissive) and from both sides, with everything above the plan's cut height
  * clipped away. Looking down into a clipped wall then shows its inside in the wall colour, which
  * reads as the plan's solid cut wall; doors and windows show through the cut as on the plan.
+ *
+ * The slab is hidden and the plan's room fills drawn under everything instead: a clipped wall's
+ * underside lies exactly on the slab's top face, and on real GPUs the two fight for depth.
  */
-const PLAN_COLOURS: [readonly number[], string][] = [
+const PLAN_COLOURS: [readonly number[], string | null][] = [
   [STYLES.wall.rgb, C.wall],
-  [STYLES.slab.rgb, C.room],
+  [STYLES.slab.rgb, null], // hidden
   [STYLES.door.rgb, C.paper], // a closed leaf in its opening reads as the plan's gap
   [STYLES.glazing.rgb, C.glass],
 ];
 const planStyleParam = params.get("style");
-const usePlanStyle = (view: View) => view === "top" && (planStyleParam === "plan" || (!snapshot && planStyleParam !== "ifc"));
-type Saved = Pick<THREE.MeshLambertMaterial, "side" | "opacity" | "transparent" | "polygonOffsetFactor" | "polygonOffsetUnits"> & { color: THREE.Color; emissive: THREE.Color };
+// ?style=plan forces it in every view (useful for looking at the cut from an angle).
+const usePlanStyle = (view: View) => planStyleParam === "plan" || (view === "top" && !snapshot && planStyleParam !== "ifc");
+type Saved = Pick<THREE.MeshLambertMaterial, "side" | "opacity" | "transparent" | "visible"> & { color: THREE.Color; emissive: THREE.Color };
 const ifcState = new Map<THREE.MeshLambertMaterial, Saved>();
 const cut = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
 world.renderer.three.localClippingEnabled = true;
 
-function planColourFor(material: THREE.MeshLambertMaterial): string | undefined {
+/** The plan colour for one of the IFC's materials, null to hide it, undefined if it isn't one of ours. */
+function planColourFor(material: THREE.MeshLambertMaterial): string | null | undefined {
   const c = material.color;
-  let best: string | undefined;
+  let best: string | null | undefined;
   let bestDist = 0.02; // the IFC colours survive the round trip to within about 1/255
   for (const [rgb, colour] of PLAN_COLOURS) {
     const ifc = new THREE.Color().setRGB(rgb[0]!, rgb[1]!, rgb[2]!, THREE.SRGBColorSpace);
@@ -215,21 +238,22 @@ function planColourFor(material: THREE.MeshLambertMaterial): string | undefined 
 
 function setPlanStyle(on: boolean, cutHeight: number) {
   for (const m of fragments.core.models.materials.list.values()) {
+    // Simplified stand-ins ThatOpen draws for items that are tiny on screen (the fanlight, edge-on
+    // from above). They ignore the cut, so hide them: the plan shows nothing above it anyway.
+    if ("isLodMaterial" in m && m.isLodMaterial) {
+      m.visible = !on;
+      continue;
+    }
     if (!(m instanceof THREE.MeshLambertMaterial)) continue;
     if (on) {
       const saved = ifcState.get(m);
-      const colour = saved ? undefined : planColourFor(m);
-      if (!saved && !colour) continue;
-      if (!saved) {
-        const { side, opacity, transparent, polygonOffsetFactor, polygonOffsetUnits } = m;
-        ifcState.set(m, { color: m.color.clone(), emissive: m.emissive.clone(), side, opacity, transparent, polygonOffsetFactor, polygonOffsetUnits });
-      }
-      if (colour) m.emissive.set(colour);
-      // Seen from above, a clipped wall shows the inside of its underside, which lies exactly on the
-      // slab's top face: pull everything but the slab towards the camera so the wall wins.
-      const slab = colour === C.room;
-      m.polygonOffsetFactor = slab ? 1 : -1;
-      m.polygonOffsetUnits = slab ? 1 : -4;
+      if (saved) continue; // already in plan style
+      const colour = planColourFor(m);
+      if (colour === undefined) continue;
+      const { side, opacity, transparent, visible } = m;
+      ifcState.set(m, { color: m.color.clone(), emissive: m.emissive.clone(), side, opacity, transparent, visible });
+      if (colour === null) m.visible = false;
+      else m.emissive.set(colour);
       m.color.set(0x000000);
       m.side = THREE.DoubleSide;
       m.opacity = 1;
@@ -239,8 +263,8 @@ function setPlanStyle(on: boolean, cutHeight: number) {
     } else {
       const saved = ifcState.get(m);
       if (!saved) continue;
-      const { side, opacity, transparent, polygonOffsetFactor, polygonOffsetUnits } = saved;
-      Object.assign(m, { side, opacity, transparent, polygonOffsetFactor, polygonOffsetUnits });
+      const { side, opacity, transparent, visible } = saved;
+      Object.assign(m, { side, opacity, transparent, visible });
       m.color.copy(saved.color);
       m.emissive.copy(saved.emissive);
       m.clippingPlanes = [];
@@ -250,6 +274,7 @@ function setPlanStyle(on: boolean, cutHeight: number) {
   }
   world.scene.three.background = new THREE.Color(on ? C.paper : 0xf4f4f2);
   grid.three.visible = !on;
+  roomFills.visible = on;
 }
 
 /** Plan cut height (m) for the lowest storey, which is the one the Top view shows. */
