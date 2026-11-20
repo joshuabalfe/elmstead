@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import cottage from "../models/example-cottage.js";
+import cottage from "../models/example-cottage/index.js";
 import { door, m, mm, pt, wall } from "../src/model/index.js";
 import { doorGeometry, renderPlan } from "../src/render/plan.js";
 import { svgToPng } from "../src/render/png.js";

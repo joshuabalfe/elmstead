@@ -1,4 +1,4 @@
-import cottage from "../../models/example-cottage.js";
+import cottage from "../../models/example-cottage/index.js";
 
 // Same as the cottage, with one wall made invalid as plain JSON would be.
 const broken = structuredClone(cottage) as any;

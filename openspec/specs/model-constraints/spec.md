@@ -17,8 +17,8 @@ groups. A model with no constraints file SHALL have no constraints and SHALL NOT
 - **THEN** it reads constraints from `models/elmstead/constraints.ts`
 
 #### Scenario: Single-file model
-- **WHEN** a command is given `models/example-cottage.ts`
-- **THEN** it reads constraints from `models/example-cottage.constraints.ts`
+- **WHEN** a command is given `models/<name>.ts`
+- **THEN** it reads constraints from `models/<name>.constraints.ts`
 
 #### Scenario: No constraints file
 - **WHEN** a model has no constraints file
