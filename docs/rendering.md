@@ -71,6 +71,11 @@ openings cut, doors and glazing in place, colours applied.
   - In the scene Y is up and plan north is −Z.
   - The loader keeps IFC coordinates as they are (`COORDINATE_TO_ORIGIN: false`), so anything
     drawn from the model lines up with the IFC.
+  - Every model is drawn as full geometry (`setLodMode(LodMode.ALL_VISIBLE)`). By default
+    Fragments draws items it judges small on screen as lines, and thin parts such as glazing bars
+    and window frames qualify even close up.
+  - `?camera=px,py,pz,tx,ty,tz` places a perspective camera at p looking at t, in the scene's
+    metres (Y up, IFC +Y along −Z), for close-ups such as one window.
   - With `?snapshot=1` in the URL it hides the toolbar and sets `window.__elmsteadReady` once the
     frame is drawn, which is what the snapshot driver waits for.
 - Room labels: `main.ts` also reads `out/<name>.building.json` and draws each storey's room
