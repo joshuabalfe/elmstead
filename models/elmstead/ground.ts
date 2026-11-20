@@ -13,9 +13,10 @@
  *
  * Measured from the image at 8 m = 1689 px (about 4.74 mm per px), rounded to 25 mm. Door and
  * window heights are not in the drawing and use typical values except where the owner gave
- * them. Left out for now: the stairs, front steps, hearths, radiators and rainwater pipes.
+ * them. Left out for now: the stairs, front steps, hearths, radiators and rainwater pipes. The
+ * alcoves beside the living-room chimney breast are built-ins, so they are not part of the room.
  */
-import { add, centredOn, door, face, m, mm, pt, sub, wall, window, type Opening, type Room, type Storey } from "../../src/model/index.js";
+import { add, centredOn, door, face, m, mm, pt, rectRoom, sub, wall, window, type Opening, type Room, type Storey } from "../../src/model/index.js";
 import { brickT, coreD, coreW, eastT, extEastX, extSouthY, footprint, groundFloor, northT, partT, southT, studT, westT } from "./shared.js";
 
 const wallH = groundFloor.ceilingHeight; // walls stop at the ceiling until there is an upper floor
@@ -111,20 +112,8 @@ const spineNorth = face(spine, "north");
 const stairWestX = mm(5050); // where the stair footprint starts north of the spine
 
 const rooms: Room[] = [
-  {
-    id: "room-living",
-    name: "Living room",
-    outline: [
-      pt(westIn, southIn),
-      pt(livingBreast.west, southIn),
-      pt(livingBreast.west, face(breastLiving, "north")),
-      pt(livingBreast.east, face(breastLiving, "north")),
-      pt(livingBreast.east, southIn),
-      pt(partitionX, southIn),
-      pt(partitionX, hallWallY),
-      pt(westIn, hallWallY),
-    ],
-  },
+  // Starts at the front of the chimney breast: the alcoves either side of it are built-ins, not floor space.
+  rectRoom("room-living", "Living room", { west: westIn, east: partitionX, south: face(breastLiving, "north"), north: hallWallY }),
   {
     id: "room-hallway",
     name: "Hallway",

@@ -19,12 +19,14 @@ this order:
 2. room fills
 3. walls at their true thickness, split around the openings
 4. door leaves with swing arcs, and window symbols (frame and two glazing lines)
-5. room labels: name, area in m², and inside width × depth
+5. room labels (name and area in m²) and room dimensions: the longest clear wall-to-wall span
+   east–west and north–south, in mm, drawn as dimension lines inside the room and kept clear of
+   the label where the room is wide enough
 6. element ids in red, only with `--ids`
 7. overall dimensions
 8. title, north arrow and a 5 m scale bar
 
-Every element is an SVG group with `class` (`wall`, `door`, `window`, `room`, `slab`) and
+Every element is an SVG group with `class` (`wall`, `door`, `window`, `room`, `room-dimensions`, `slab`) and
 `data-id` set to its model id, so the SVG can be inspected or queried.
 
 Drawing style is all in one place: `src/render/style.ts` holds the scale, colours, font and
@@ -64,6 +66,16 @@ openings cut, doors and glazing in place, colours applied.
   from `node_modules`, so nothing comes from a CDN.
 - `main.ts` loads the IFC through ThatOpen's IFC loader and sets up the camera views.
   - In the scene Y is up and plan north is −Z.
+  - The loader keeps IFC coordinates as they are (`COORDINATE_TO_ORIGIN: false`), so anything
+    drawn from the model lines up with the IFC.
+- Room labels: `main.ts` also reads `out/<name>.building.json` and lays each storey's room
+  labels and dimensions on its floor, 10 mm up. They are the plan's own labels
+  (`renderRoomLabels` in `src/render/plan.ts`), drawn to a texture at 2.5 mm per pixel, with a
+  white halo so they read on the grey floor.
+  - They come from the model JSON, not the IFC, because the IFC has no room dimensions.
+  - The **Labels** button toggles them. `?labels=0` or `?labels=1` in the URL sets them.
+  - They are on by default, but off in snapshots (`?snapshot=1`), so the 3D PNGs show only the IFC.
+  - Walls hide them as they would hide the floor, so they are easiest to read in the Top view.
   - With `?snapshot=1` in the URL it hides the toolbar and sets `window.__elmsteadReady` once the
     frame is drawn, which is what the snapshot driver waits for.
 - `npm run view` runs the same app for interactive use. It reloads the page whenever an IFC in

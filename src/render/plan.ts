@@ -1,6 +1,6 @@
 import { faceOffsets, wallDirection, wallLength, wallPoint, wallSegmentFootprint } from "../geometry/wall.js";
-import { area, bounds, centroid, type Bounds } from "../geometry/polygon.js";
-import { perpLeft, toVec, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";
+import { area, bounds, centroid, spans, type Bounds } from "../geometry/polygon.js";
+import { dot, perpLeft, toVec, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";
 import type { BuildingModel, Door, Opening, Storey, Wall, Window } from "../schema/schema.js";
 import { C, CUT_HEIGHT, FONT, MARGIN, PX_PER_MM } from "./style.js";
 import { el, group, line, num, polygon, polyline, text } from "./svg.js";
@@ -13,6 +13,7 @@ export interface PlanOptions {
 /** Plan (mm, y north) → SVG (px, y down). */
 interface View {
   toPx(p: Vec): Vec;
+  toMm(p: Vec): Vec;
   /** mm extent of the drawing, before margins */
   extent: Bounds;
   width: number;
@@ -27,8 +28,10 @@ function makeView(storey: Storey): View {
   ];
   const extent = pts.length ? bounds(pts) : { minX: 0, minY: 0, maxX: 1000, maxY: 1000 };
   const toPx = (p: Vec) => v(MARGIN.left + (p.x - extent.minX) * PX_PER_MM, MARGIN.top + (extent.maxY - p.y) * PX_PER_MM);
+  const toMm = (p: Vec) => v(extent.minX + (p.x - MARGIN.left) / PX_PER_MM, extent.maxY - (p.y - MARGIN.top) / PX_PER_MM);
   return {
     toPx,
+    toMm,
     extent,
     width: Math.ceil(MARGIN.left + MARGIN.right + (extent.maxX - extent.minX) * PX_PER_MM),
     height: Math.ceil(MARGIN.top + MARGIN.bottom + (extent.maxY - extent.minY) * PX_PER_MM),
@@ -36,7 +39,6 @@ function makeView(storey: Storey): View {
 }
 
 const m2 = (a: number) => `${(a / 1e6).toFixed(1)} m²`;
-const metres = (mm: number) => `${(mm / 1000).toFixed(2)}`;
 
 /** Whether the plan's cut plane passes through the opening. */
 const isCut = (o: Opening) => o.sillHeight < CUT_HEIGHT && o.sillHeight + o.height > CUT_HEIGHT;
@@ -127,9 +129,12 @@ function dimension(p: Vec, q: Vec, label: string, offsetPx: number, view: View):
   const midPt = vadd(vscale(vadd(P2, Q2), 0.5), vscale(n, 6));
   const angle = (Math.atan2(u.y, u.x) * 180) / Math.PI;
   const upright = angle >= 90 || angle < -90 ? angle + 180 : angle;
-  return [
+  const extensions = offsetPx === 0 ? [] : [
     line(vadd(P, vscale(n, 4)), vadd(P2, vscale(n, 4)), { stroke: C.dim, "stroke-width": 0.5 }),
     line(vadd(Q, vscale(n, 4)), vadd(Q2, vscale(n, 4)), { stroke: C.dim, "stroke-width": 0.5 }),
+  ];
+  return [
+    ...extensions,
     line(P2, Q2, { stroke: C.dim, "stroke-width": 0.8 }),
     tick(P2),
     tick(Q2),
@@ -140,6 +145,53 @@ function dimension(p: Vec, q: Vec, label: string, offsetPx: number, view: View):
       transform: `rotate(${num(upright)} ${num(midPt.x)} ${num(midPt.y)})`,
     }),
   ];
+}
+
+/** Distance (mm) from a room's edge to its internal dimension lines. */
+const ROOM_DIM_INSET = 150;
+const ROOM_DIM_STEP = 25;
+/** Clearance (px) between a room's label and its dimension lines, room for the dimension figure. */
+const ROOM_DIM_CLEAR = 20;
+
+/**
+ * A room's clear size: its longest wall-to-wall span east–west and north–south, drawn as dimension
+ * lines inside the room. Of the equally long spans, the one nearest the label that stays clear of it
+ * is drawn; in a room too narrow for that, the one farthest from the label.
+ */
+function roomDimensions(id: string, pts: readonly Vec[], label: Bounds, view: View): string[] {
+  const b = bounds(pts);
+  // Label box in plan mm, widened by the clearance.
+  const pad = ROOM_DIM_CLEAR / PX_PER_MM;
+  const lo = vsub(view.toMm(v(label.minX, label.maxY)), v(pad, pad));
+  const hi = vadd(view.toMm(v(label.maxX, label.minY)), v(pad, pad));
+  const c = vscale(vadd(lo, hi), 0.5);
+
+  const longest = (axis: "x" | "y") => {
+    const found: { at: number; span: [number, number]; len: number }[] = [];
+    for (let at = b[`min${axis.toUpperCase() as "X" | "Y"}`] + ROOM_DIM_INSET; at <= b[`max${axis.toUpperCase() as "X" | "Y"}`] - ROOM_DIM_INSET; at += ROOM_DIM_STEP) {
+      for (const span of spans(pts, axis, at)) found.push({ at, span, len: Math.round(span[1] - span[0]) });
+    }
+    if (!found.length) return undefined;
+    const max = Math.max(...found.map((f) => f.len));
+    const best = found.filter((f) => f.len === max);
+    const clear = best.filter((f) => f.at < lo[axis] || f.at > hi[axis]);
+    const near = (f: { at: number }) => Math.abs(f.at - c[axis]);
+    if (clear.length) return { ...clear.sort((a, b) => near(a) - near(b))[0]!, clear: true };
+    return { ...best.sort((a, b) => near(b) - near(a))[0]!, clear: false };
+  };
+  const draw = (p: Vec, q: Vec, len: number, towardLabel: boolean) => {
+    // The helper writes the figure to the left of p→q on screen: on the label's side when the line is
+    // clear of the label, otherwise on the wall side so it doesn't overwrite the label.
+    const [P, Q] = [view.toPx(p), view.toPx(q)];
+    const left = v(Q.y - P.y, P.x - Q.x);
+    return dot(vsub(view.toPx(c), P), left) >= 0 === towardLabel ? dimension(p, q, `${len}`, 0, view) : dimension(q, p, `${len}`, 0, view);
+  };
+  const out: string[] = [];
+  const ew = longest("y");
+  if (ew) out.push(...draw(v(ew.span[0], ew.at), v(ew.span[1], ew.at), ew.len, ew.clear));
+  const ns = longest("x");
+  if (ns) out.push(...draw(v(ns.at, ns.span[0]), v(ns.at, ns.span[1]), ns.len, ns.clear));
+  return out.length ? [group({ class: "room-dimensions", "data-id": id }, out)] : [];
 }
 
 function northArrow(at: Vec, northAngleDeg: number): string {
@@ -162,6 +214,42 @@ function scaleBar(at: Vec): string {
   }
   parts.push(text(v(at.x + n * segPx, at.y + 20), `${n} m`, { "font-size": 10, "text-anchor": "middle", fill: C.ink }));
   return group({}, parts);
+}
+
+/** Each room's name, area and dimensions. */
+function roomLabels(storey: Storey, view: View, opts: PlanOptions): string[] {
+  const out: string[] = [];
+  for (const r of storey.rooms) {
+    const pts = r.outline.map(toVec);
+    const c = view.toPx(centroid(pts));
+    out.push(text(v(c.x, c.y - 4), r.name, { "font-size": 13, "font-weight": "bold", "text-anchor": "middle", fill: C.ink }));
+    out.push(text(v(c.x, c.y + 12), m2(area(pts)), { "font-size": 11, "text-anchor": "middle", fill: C.ink }));
+    // Rough label extent (px) from character counts; DejaVu Sans averages about 0.6 em per character.
+    const halfW = Math.max(r.name.length * 13 * 0.62, 7 * 11 * 0.6) / 2;
+    out.push(...roomDimensions(r.id, pts, { minX: c.x - halfW, maxX: c.x + halfW, minY: c.y - 17, maxY: c.y + (opts.ids ? 29 : 16) }, view));
+    if (opts.ids) out.push(text(v(c.x, c.y + 26), r.id, { "font-size": 8, "text-anchor": "middle", fill: C.id }));
+  }
+  return out;
+}
+
+/**
+ * The plan's room labels and dimensions alone, on a transparent background, for laying on the floor
+ * in the 3D viewer, with haloed text so it reads on any floor colour. `bounds` is the plan area (mm) the SVG covers, edge to edge.
+ */
+export function renderRoomLabels(storey: Storey): { svg: string; bounds: Bounds } {
+  const view = makeView(storey);
+  const minX = view.extent.minX - MARGIN.left / PX_PER_MM;
+  const maxY = view.extent.maxY + MARGIN.top / PX_PER_MM;
+  const bounds = { minX, maxY, maxX: minX + view.width / PX_PER_MM, minY: maxY - view.height / PX_PER_MM };
+  const svg = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${view.width}" height="${view.height}" viewBox="0 0 ${view.width} ${view.height}" font-family="${FONT}, sans-serif">`,
+    // Without the paper underneath, the text needs a halo and the lines more weight to read on a floor.
+    `<style>text { stroke: ${C.paper}; stroke-width: 3px; stroke-linejoin: round; paint-order: stroke; } line { stroke: ${C.ink}; stroke-width: 1px; }</style>`,
+    ...roomLabels(storey, view, { ids: false }),
+    "</svg>",
+    "",
+  ].join("\n");
+  return { svg, bounds };
 }
 
 export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptions): string {
@@ -194,15 +282,7 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
     out.push(!isCut(o) ? drawUncut(w, o, view) : o.kind === "door" ? drawDoor(w, o, view) : drawWindow(w, o, view));
   }
 
-  for (const r of storey.rooms) {
-    const pts = r.outline.map(toVec);
-    const c = view.toPx(centroid(pts));
-    const b = bounds(pts);
-    out.push(text(v(c.x, c.y - 4), r.name, { "font-size": 13, "font-weight": "bold", "text-anchor": "middle", fill: C.ink }));
-    out.push(text(v(c.x, c.y + 12), m2(area(pts)), { "font-size": 11, "text-anchor": "middle", fill: C.ink }));
-    out.push(text(v(c.x, c.y + 26), `${metres(b.maxX - b.minX)} × ${metres(b.maxY - b.minY)}`, { "font-size": 9, "text-anchor": "middle", fill: C.dim }));
-    if (opts.ids) out.push(text(v(c.x, c.y + 39), r.id, { "font-size": 8, "text-anchor": "middle", fill: C.id }));
-  }
+  out.push(...roomLabels(storey, view, opts));
 
   if (opts.ids) {
     for (const w of walls) {

@@ -70,19 +70,64 @@
 </g>
 <text x="257.5" y="488.5" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Living room</text>
 <text x="257.5" y="504.5" font-size="11" text-anchor="middle" fill="#1a1a1a">11.2 m²</text>
-<text x="257.5" y="518.5" font-size="9" text-anchor="middle" fill="#5a5a5a">3.55 × 3.15</text>
+<g class="room-dimensions" data-id="room-living">
+<line x1="435" y1="455" x2="80" y2="455" stroke="#5a5a5a" stroke-width="0.8"/>
+<line x1="439" y1="451" x2="431" y2="459" stroke="#5a5a5a" stroke-width="1"/>
+<line x1="84" y1="451" x2="76" y2="459" stroke="#5a5a5a" stroke-width="1"/>
+<text x="257.5" y="461" font-size="11" fill="#5a5a5a" text-anchor="middle" transform="rotate(360 257.5 461)">3550</text>
+<line x1="192.5" y1="335" x2="192.5" y2="650" stroke="#5a5a5a" stroke-width="0.8"/>
+<line x1="188.5" y1="331" x2="196.5" y2="339" stroke="#5a5a5a" stroke-width="1"/>
+<line x1="188.5" y1="646" x2="196.5" y2="654" stroke="#5a5a5a" stroke-width="1"/>
+<text x="198.5" y="492.5" font-size="11" fill="#5a5a5a" text-anchor="middle" transform="rotate(270 198.5 492.5)">3150</text>
+</g>
 <text x="500" y="366" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Hall</text>
 <text x="500" y="382" font-size="11" text-anchor="middle" fill="#1a1a1a">6.2 m²</text>
-<text x="500" y="396" font-size="9" text-anchor="middle" fill="#5a5a5a">1.10 × 5.60</text>
+<g class="room-dimensions" data-id="room-hall">
+<line x1="555" y1="332.5" x2="445" y2="332.5" stroke="#5a5a5a" stroke-width="0.8"/>
+<line x1="559" y1="328.5" x2="551" y2="336.5" stroke="#5a5a5a" stroke-width="1"/>
+<line x1="449" y1="328.5" x2="441" y2="336.5" stroke="#5a5a5a" stroke-width="1"/>
+<text x="500" y="338.5" font-size="11" fill="#5a5a5a" text-anchor="middle" transform="rotate(360 500 338.5)">1100</text>
+<line x1="460" y1="650" x2="460" y2="90" stroke="#5a5a5a" stroke-width="0.8"/>
+<line x1="464" y1="654" x2="456" y2="646" stroke="#5a5a5a" stroke-width="1"/>
+<line x1="464" y1="94" x2="456" y2="86" stroke="#5a5a5a" stroke-width="1"/>
+<text x="454" y="370" font-size="11" fill="#5a5a5a" text-anchor="middle" transform="rotate(-90 454 370)">5600</text>
+</g>
 <text x="257.5" y="203.5" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Kitchen</text>
 <text x="257.5" y="219.5" font-size="11" text-anchor="middle" fill="#1a1a1a">8.3 m²</text>
-<text x="257.5" y="233.5" font-size="9" text-anchor="middle" fill="#5a5a5a">3.55 × 2.35</text>
+<g class="room-dimensions" data-id="room-kitchen">
+<line x1="435" y1="170" x2="80" y2="170" stroke="#5a5a5a" stroke-width="0.8"/>
+<line x1="439" y1="166" x2="431" y2="174" stroke="#5a5a5a" stroke-width="1"/>
+<line x1="84" y1="166" x2="76" y2="174" stroke="#5a5a5a" stroke-width="1"/>
+<text x="257.5" y="176" font-size="11" fill="#5a5a5a" text-anchor="middle" transform="rotate(360 257.5 176)">3550</text>
+<line x1="207.5" y1="90" x2="207.5" y2="325" stroke="#5a5a5a" stroke-width="0.8"/>
+<line x1="203.5" y1="86" x2="211.5" y2="94" stroke="#5a5a5a" stroke-width="1"/>
+<line x1="203.5" y1="321" x2="211.5" y2="329" stroke="#5a5a5a" stroke-width="1"/>
+<text x="213.5" y="207.5" font-size="11" fill="#5a5a5a" text-anchor="middle" transform="rotate(270 213.5 207.5)">2350</text>
+</g>
 <text x="702.5" y="468.5" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Bedroom</text>
 <text x="702.5" y="484.5" font-size="11" text-anchor="middle" fill="#1a1a1a">9.8 m²</text>
-<text x="702.5" y="498.5" font-size="9" text-anchor="middle" fill="#5a5a5a">2.75 × 3.55</text>
+<g class="room-dimensions" data-id="room-bedroom">
+<line x1="840" y1="435" x2="565" y2="435" stroke="#5a5a5a" stroke-width="0.8"/>
+<line x1="844" y1="431" x2="836" y2="439" stroke="#5a5a5a" stroke-width="1"/>
+<line x1="569" y1="431" x2="561" y2="439" stroke="#5a5a5a" stroke-width="1"/>
+<text x="702.5" y="441" font-size="11" fill="#5a5a5a" text-anchor="middle" transform="rotate(360 702.5 441)">2750</text>
+<line x1="652.5" y1="295" x2="652.5" y2="650" stroke="#5a5a5a" stroke-width="0.8"/>
+<line x1="648.5" y1="291" x2="656.5" y2="299" stroke="#5a5a5a" stroke-width="1"/>
+<line x1="648.5" y1="646" x2="656.5" y2="654" stroke="#5a5a5a" stroke-width="1"/>
+<text x="658.5" y="472.5" font-size="11" fill="#5a5a5a" text-anchor="middle" transform="rotate(270 658.5 472.5)">3550</text>
+</g>
 <text x="702.5" y="183.5" font-size="13" font-weight="bold" text-anchor="middle" fill="#1a1a1a">Bathroom</text>
 <text x="702.5" y="199.5" font-size="11" text-anchor="middle" fill="#1a1a1a">5.4 m²</text>
-<text x="702.5" y="213.5" font-size="9" text-anchor="middle" fill="#5a5a5a">2.75 × 1.95</text>
+<g class="room-dimensions" data-id="room-bathroom">
+<line x1="840" y1="150" x2="565" y2="150" stroke="#5a5a5a" stroke-width="0.8"/>
+<line x1="844" y1="146" x2="836" y2="154" stroke="#5a5a5a" stroke-width="1"/>
+<line x1="569" y1="146" x2="561" y2="154" stroke="#5a5a5a" stroke-width="1"/>
+<text x="702.5" y="156" font-size="11" fill="#5a5a5a" text-anchor="middle" transform="rotate(360 702.5 156)">2750</text>
+<line x1="650" y1="90" x2="650" y2="285" stroke="#5a5a5a" stroke-width="0.8"/>
+<line x1="646" y1="86" x2="654" y2="94" stroke="#5a5a5a" stroke-width="1"/>
+<line x1="646" y1="281" x2="654" y2="289" stroke="#5a5a5a" stroke-width="1"/>
+<text x="656" y="187.5" font-size="11" fill="#5a5a5a" text-anchor="middle" transform="rotate(270 656 187.5)">1950</text>
+</g>
 <line x1="60" y1="666" x2="60" y2="706" stroke="#5a5a5a" stroke-width="0.5"/>
 <line x1="860" y1="666" x2="860" y2="706" stroke="#5a5a5a" stroke-width="0.5"/>
 <line x1="60" y1="710" x2="860" y2="710" stroke="#5a5a5a" stroke-width="0.8"/>
