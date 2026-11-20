@@ -59,6 +59,10 @@ same number, the file conflicts when they merge: the branch merged second takes 
 and renames its change. `npm test` fails on an unnumbered change, a reused number or a stale
 counter.
 
+Name a branch that works on a change after the change, `elm-<N>-<name>`, so the remote branch
+says which spec it is for. Add a suffix when one change needs several branches, for example
+`elm-2-add-model-constraints-archive`.
+
 Start the title of a pull request that proposes or implements a change with its number in upper
 case, `ELM-<N>: `, for example `ELM-2: Add model constraints`. Start the title of a pull request
 with no OpenSpec change with `ELM-X: `, for example `ELM-X: Fix a typo in the docs`.
