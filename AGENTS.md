@@ -51,6 +51,10 @@ same number, the file conflicts when they merge: the branch merged second takes 
 and renames its change. `npm test` fails on an unnumbered change, a reused number or a stale
 counter.
 
+Start the title of a pull request that proposes or implements a change with its number in upper
+case, `ELM-<N>: `, for example `ELM-2: Add model constraints`. A pull request with no OpenSpec
+change has no prefix.
+
 For anything beyond a small fix or a model tweak, use the skills in `.agents/skills/`:
 
 | Skill | Use it to |
