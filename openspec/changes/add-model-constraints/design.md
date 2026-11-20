@@ -63,8 +63,9 @@ type Group = ({ storey: Id } | { room: Id }) & { constraints: Constraint[] };
 ```
 Points are a union told apart by their keys (`corner` as a pair of faces or as a compass corner,
 `wall`, `opening`). Small helpers in `src/constraints/index.ts` (`corner`, `wallEnd`, `jamb`,
-`roomCorner`, `inStorey`, `inRoom`) build these values and take ids or model objects, so a
-constraints file can import walls from the model's own modules and get type checking on them.
+`roomCorner`, `inStorey`, `inRoom`) build these values and take ids or model objects. Passing a
+model object only helps where the model exports it by name: Elmstead exports each wall from
+`ground/walls.ts`, but its openings and rooms only as lists, so points on those use ids.
 
 ### Resolution
 - **Faces.** `left` and `right` map straight to `faceOffsets`. A compass face is translated to
@@ -80,19 +81,34 @@ constraints file can import walls from the model's own modules and get type chec
   tie within 1 mm is ambiguous. A number indexes the outline directly and is an error if out of
   range.
 
-Points are not rounded: measured distances can be fractional on diagonal walls. Only the message
-rounds.
+Points are not rounded, so straight-line and diagonal distances are usually fractional. The
+measured distance is rounded to the nearest mm once, before it is compared, and that rounded value
+is what the message prints. Comparing the raw value would let `1785.4` fail against `1775 ±10`
+while the message said `is 1785 mm`.
 
 ### Checked beside `checkModel`, not inside it
-`checkConstraints(model, groups)` returns `Issue[]`. The CLI calls it straight after `checkModel`
-in each command and gates on both. `checkModel` keeps its single-argument signature, so the model
+`checkConstraints(model, groups)` returns its issues and the met and total counts. The CLI calls it
+once per command, straight after `checkModel`, and gates on both. `all` runs the model checks in
+both its build and render steps today; constraints are checked in the build step only, so the
+summary line prints once. `checkModel` keeps its single-argument signature, so the model
 checks remain testable without constraints. A point that names something missing is reported and
 that constraint is skipped, so other constraints are still checked.
 
-Issue ids are constraint ids, and the message carries the scope:
-`ERROR   living-corner-to-front-window (room-living): is 1800 mm, should be 1775 ±10 mm`. Using
-the constraint id keeps one grep target per measurement. Constraint ids may repeat a model id: they
+Issue ids are constraint ids, and the message ends with the scope, so `formatIssue` is unchanged:
+`ERROR   living-corner-to-front-window: is 1800 mm, should be 1775 ±10 mm (room-living)`. Using
+the bare constraint id keeps one grep target per measurement. Constraint ids may repeat a model id: they
 live in another file and never reach IFC.
+
+### Loading failures name the constraints file
+A constraints file that throws or fails its schema stops the command like a bad model, but prints
+`FAILED  <constraints path>: constraints did not validate`. Reusing the model's `FAILED … model did
+not validate` line would send the reader to the wrong file.
+
+### One storey per constraint
+Points, and the wall a constraint is measured along, must be on one storey: a storey group's storey,
+or the storey holding a room group's room. Ids are unique model-wide, so each id resolves to exactly
+one storey and the check is a comparison. An unknown or non-wall `along` id is an error, like an
+unknown point id.
 
 ### Absolute distances
 Measures are unsigned. A sign would catch an opening that moves to the mirror position, but tape
@@ -116,6 +132,9 @@ The pipeline cannot tell who edited a file, so the protection is a rule plus vis
 - [Vertex numbers break when an outline gains a point] → the check fails loudly rather than
   measuring the wrong corner, and docs recommend compass corners or wall-face corners.
 - [Unsigned distances miss mirror-image moves] → see "Absolute distances". Accepted for now.
+- [Elmstead has no measured position yet] → its constraints are the owner's sizes only, so the
+  corner-to-opening case is covered by the example cottage until the owner gives a position. Add it
+  to Elmstead then, rather than recording a traced position as a measurement.
 - [A misplaced constraints file is silently ignored] → the summary line is printed only when a
   file is found, so a model that should have constraints visibly lacks the line. The Elmstead
   tests assert the line.

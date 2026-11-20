@@ -22,14 +22,17 @@ no longer meets them.
   - a wall's start or end, on its centre line or on one face;
   - an opening's start jamb, end jamb or centre, on the wall line or on one face;
   - a room outline's corner, by compass direction or by vertex number.
-- Constraints are grouped by **storey or room**. A group only labels its constraints in messages,
-  and inside a room group a room corner can leave out the room id.
+- Constraints are grouped by **storey or room**. A group labels its constraints in messages and
+  keeps their points on its storey, and inside a room group a room corner can leave out the room id.
 - Constraints are checked with the model checks. A constraint that is not met, or that names an id
   or face the model no longer has, is an ERROR, so `check`, `build`, `render` and `all` fail and
-  write nothing. Commands print a one-line summary of how many constraints were met.
+  write nothing. Each command checks constraints once and prints a one-line summary of how many
+  were met. A constraints file that fails to load is reported as such, not as a model failure.
 - AGENTS.md and `docs/modelling.md` gain a rule: when a constraint fails, change the model, not
   the constraint. Constraints change only when the user gives a new measurement.
-- Elmstead gets a constraints file holding only measurements the owner has actually given.
+- Elmstead gets a constraints file holding only measurements the owner has actually given. So far
+  those are sizes, not positions, so corner-to-opening constraints wait for a measured position;
+  the example cottage's constraints exercise every point kind meanwhile.
 - Out of scope: heights (sill heights, wall heights), constraints on components applied to every
   instance, solving or adjusting the model to meet constraints, and drawing constraints on plans.
 
@@ -48,7 +51,7 @@ No change to the building schema, `building.json`, the exported JSON Schema or t
 ## Impact
 
 - New module `src/constraints/` (schema, helpers, loader, resolver, check); `src/cli/index.ts`
-  loads and checks constraints wherever it runs the model checks.
+  loads constraints after the model and checks them once per command, after the model checks.
 - New `models/elmstead/constraints.ts`, and constraints for `models/example-cottage.ts` used as a
   test fixture.
 - Docs: `docs/modelling.md`, `AGENTS.md`.

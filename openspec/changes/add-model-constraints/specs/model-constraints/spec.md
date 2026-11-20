@@ -34,12 +34,16 @@ changing or removing constraints SHALL NOT change any of those files.
 ### Requirement: Constraints files are validated
 The constraints file SHALL be loaded like a model: evaluated, round-tripped through JSON and
 validated strictly. Constraint ids SHALL be kebab-case and unique within the file. Any failure SHALL
-be an ERROR against the constraint id, or the file path, and the command SHALL stop as if the model
-had failed to load.
+be an ERROR against the constraint id, or the file path. The command SHALL then print
+`FAILED  <constraints path>: constraints did not validate`, write nothing and exit with status 1.
 
 #### Scenario: Misspelt field
 - **WHEN** a constraint has `tolerence` instead of `tolerance`
 - **THEN** loading reports an ERROR against that constraint and the command writes nothing
+
+#### Scenario: Failure names the constraints file
+- **WHEN** `models/elmstead/constraints.ts` throws while being evaluated
+- **THEN** the command prints `FAILED  models/elmstead/constraints.ts: constraints did not validate`, not a model failure, and exits 1
 
 #### Scenario: Duplicate constraint id
 - **WHEN** two constraints share an id
@@ -47,11 +51,12 @@ had failed to load.
 
 ### Requirement: Groups by storey or room
 Each group SHALL name exactly one storey or one room as its scope. A scope id the model does not
-have SHALL be an ERROR against the group. The scope SHALL label each of its constraints' issues.
+have SHALL be an ERROR against the group. Each constraint issue SHALL be against the constraint id
+and SHALL end with the scope in brackets.
 
 #### Scenario: Room group
 - **WHEN** a constraint in a group scoped to `room-living` fails
-- **THEN** its ERROR reads `<constraint-id> (room-living): …`
+- **THEN** its ERROR reads `ERROR   <constraint-id>: … (room-living)`
 
 #### Scenario: Unknown scope
 - **WHEN** a group is scoped to a room that has been renamed
@@ -108,9 +113,9 @@ An opening point SHALL name an opening and `start`, `end` or `centre`: the jamb 
 start, the far jamb, or half way between. Without a face it SHALL lie on the host wall's start–end
 line; with a face, on that face of the host wall.
 
-#### Scenario: Window jamb on the inside face
-- **WHEN** a point names the `start` of a window on the inside face of its wall
-- **THEN** it resolves to that face at `offsetAlongWall` from the wall's start
+#### Scenario: Window jamb on a face
+- **WHEN** a point names the `start` of a window on the `left` face of its wall
+- **THEN** it resolves to the wall's left face at `offsetAlongWall` from the wall's start
 
 #### Scenario: Window width
 - **WHEN** a constraint runs from a window's `start` to its `end`, measured along its wall
@@ -139,17 +144,23 @@ room MAY be left out, meaning the group's room.
 - **THEN** the constraint reports an ERROR that the room corner needs a room
 
 ### Requirement: Points on one storey
-Both points of a constraint SHALL resolve on the same storey, and in a storey group on that storey.
-A constraint whose points are on different storeys SHALL be an ERROR against it.
+Both points of a constraint, and any wall it is measured along, SHALL be on one storey: the group's
+storey, or for a room group the storey holding that room. Anything on another storey SHALL be an
+ERROR against the constraint.
 
 #### Scenario: Points on two storeys
 - **WHEN** a constraint runs from a ground-floor wall to a first-floor window
 - **THEN** the constraint reports an ERROR that its points are on different storeys
 
+#### Scenario: Room group on another storey
+- **WHEN** a constraint in a group scoped to a ground-floor room names a first-floor window
+- **THEN** the constraint reports an ERROR that the window is not on the room's storey
+
 ### Requirement: How a distance is measured
 Each constraint SHALL say how it is measured: `straight` (the straight-line distance), `x` or `y`
 (the difference in that plan coordinate, unsigned), or along a named wall (the distance between the
-two points projected onto that wall's direction, unsigned).
+two points projected onto that wall's direction, unsigned). A measure along an id the model does not
+have, or one that is not a wall, SHALL be an ERROR against the constraint.
 
 #### Scenario: Along an angled wall
 - **WHEN** two points on different faces of a diagonal wall are measured along that wall
@@ -159,10 +170,14 @@ two points projected onto that wall's direction, unsigned).
 - **WHEN** a constraint between points at x = 450 and x = 4025 is measured in `x`
 - **THEN** the measured distance is 3575 mm whatever their y
 
+#### Scenario: Along a missing wall
+- **WHEN** a constraint is measured along `wall-x` and the model has no `wall-x`
+- **THEN** the constraint reports an ERROR that `wall-x` is not in the model
+
 ### Requirement: Met within a tolerance
 A constraint SHALL give its distance in whole mm and MAY give a tolerance in whole mm, defaulting to
-10 mm. It SHALL be met when the measured distance differs from its distance by no more than the
-tolerance.
+10 mm. The measured distance SHALL be rounded to the nearest mm, and the constraint SHALL be met when
+that differs from its distance by no more than the tolerance.
 
 #### Scenario: Within the default tolerance
 - **WHEN** a constraint of 1775 mm with no tolerance measures 1783 mm
@@ -172,19 +187,23 @@ tolerance.
 - **WHEN** a constraint of 1775 mm with a tolerance of 5 mm measures 1783 mm
 - **THEN** it is not met
 
+#### Scenario: Fractional measurement at the limit
+- **WHEN** a constraint of 1775 mm with no tolerance measures 1785.4 mm in a straight line
+- **THEN** it is met, because the measurement rounds to 1785 mm
+
 ### Requirement: Failures name the measurement
-A constraint that is not met SHALL be an ERROR against the constraint id giving the measured
-distance and the required distance and tolerance, rounded to the mm, in the form
-`is <measured> mm, should be <distance> ±<tolerance> mm`.
+A constraint that is not met SHALL be an ERROR against the constraint id giving the rounded measured
+distance and the required distance and tolerance, in the form
+`is <measured> mm, should be <distance> ±<tolerance> mm (<scope>)`.
 
 #### Scenario: Window moved
 - **WHEN** a window is moved 25 mm further along its wall, breaking a 1775 mm constraint
-- **THEN** the command prints `ERROR   <constraint-id> (<scope>): is 1800 mm, should be 1775 ±10 mm`
+- **THEN** the command prints `ERROR   <constraint-id>: is 1800 mm, should be 1775 ±10 mm (<scope>)`
 
 ### Requirement: Constraints gate the commands
-`check`, `build`, `render` and `all` SHALL check constraints wherever they run the model checks. A
-constraint ERROR SHALL stop the command as a model check ERROR does: nothing is written or changed
-in `out/` and the exit status is 1.
+`check`, `build`, `render` and `all` SHALL check constraints once, alongside the model checks and
+before writing anything; `all` checks them in its build step only. A constraint ERROR SHALL stop
+the command as a model check ERROR does: nothing in `out/` changes and the exit status is 1.
 
 #### Scenario: Build with a broken constraint
 - **WHEN** `build` runs on a model that breaks one of its constraints
@@ -194,9 +213,13 @@ in `out/` and the exit status is 1.
 - **WHEN** a model breaks a model check and two constraints
 - **THEN** `check` prints all three ERRORs and exits 1
 
+#### Scenario: All checks once
+- **WHEN** `all` runs on a model whose constraints are met
+- **THEN** the constraints are checked once and the summary line is printed once
+
 ### Requirement: Constraint summary
-When a model has a constraints file, `check`, `build`, `render` and `all` SHALL print one line
-giving the constraints file and how many constraints were met out of how many there are.
+When a model has a constraints file, `check`, `build`, `render` and `all` SHALL print exactly one
+line giving the constraints file and how many constraints were met out of how many there are.
 
 #### Scenario: All met
 - **WHEN** a model has a constraints file with 12 constraints that are all met
