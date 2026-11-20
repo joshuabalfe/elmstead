@@ -2,8 +2,8 @@
 
 ## 1. Movement helpers
 
-- [ ] 1.1 Add `viewer/walk.ts` with the 1.6 m eye height, 3 m/s walking speed, `KeyW`/`KeyA`/`KeyS`/`KeyD` and arrow-key mapping, heading basis, normalised movement offset, entry position and the snapshot guard, with the helpers working in scene metres (the caller converts the building JSON's millimetre elevations); verify `npm run typecheck` passes.
-- [ ] 1.2 Add `tests/viewer-walk.test.ts` covering forward, back and strafe directions, diagonal normalisation, unchanged Y, the JSON/IFC floor fallback and snapshot suppression; verify `npx vitest run tests/viewer-walk.test.ts` passes.
+- [x] 1.1 Add `viewer/walk.ts` with the 1.6 m eye height, 3 m/s walking speed, `KeyW`/`KeyA`/`KeyS`/`KeyD` and arrow-key mapping, heading basis, normalised movement offset, entry position and the snapshot guard, with the helpers working in scene metres (the caller converts the building JSON's millimetre elevations); verify `npm run typecheck` passes.
+- [x] 1.2 Add `tests/viewer-walk.test.ts` covering forward, back and strafe directions, diagonal normalisation, unchanged Y, the JSON/IFC floor fallback and snapshot suppression; verify `npx vitest run tests/viewer-walk.test.ts` passes.
 
 ## 2. Viewer integration
 
