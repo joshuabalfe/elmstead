@@ -53,8 +53,9 @@ The snapshots show the IFC file, not the model, so they confirm what other IFC v
 openings cut, doors and glazing in place, colours applied.
 
 - If there is no IFC yet, `render` warns and skips the snapshots. Run `build` first.
-- If Chromium isn't installed, `render` warns with the fix (`npx playwright install chromium`)
-  and still draws the plans.
+- Chromium comes with `npm install` (`@playwright/browser-chromium`). If it is missing anyway (install
+  scripts skipped), `render` warns with the fix (`npm rebuild @playwright/browser-chromium`) and
+  still draws the plans.
 - Pass `--no-3d` to skip the snapshots. They add about 5 seconds.
 
 ## The viewer
@@ -63,7 +64,8 @@ openings cut, doors and glazing in place, colours applied.
 [@thatopen/components](https://github.com/ThatOpen/engine_components) and three.js.
 
 - `vite.config.ts` serves `/models.json` (the IFCs in `out/`), `/out/*` and the web-ifc WASM
-  from `node_modules`, so nothing comes from a CDN.
+  from `node_modules`, so nothing comes from a CDN. `ELMSTEAD_OUT_DIR` serves another folder in
+  place of `out/` (the tests use it).
 - `main.ts` loads the IFC through ThatOpen's IFC loader and sets up the camera views.
   - In the scene Y is up and plan north is −Z.
   - The loader keeps IFC coordinates as they are (`COORDINATE_TO_ORIGIN: false`), so anything

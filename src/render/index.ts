@@ -29,7 +29,7 @@ export async function render3d(name: string, outDir: string): Promise<{ written:
     return { written: await snapshot3d(name, outDir), issues: [] };
   } catch (e) {
     const msg = String((e as Error).message ?? e);
-    const hint = /Executable doesn't exist|playwright install/i.test(msg) ? "Chromium not installed — run: npx playwright install chromium" : msg.split("\n")[0]!;
+    const hint = /Executable doesn't exist|playwright install/i.test(msg) ? "Chromium missing — it comes with npm install (@playwright/browser-chromium); if install scripts were skipped, run: npm rebuild @playwright/browser-chromium" : msg.split("\n")[0]!;
     return { written: [], issues: [{ level: "WARNING", id: `${name}.ifc`, message: `3D snapshots skipped: ${hint}` }] };
   }
 }

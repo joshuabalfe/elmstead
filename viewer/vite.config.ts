@@ -3,7 +3,8 @@ import { join, resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 
 const root = resolve(import.meta.dirname, "..");
-const outDir = join(root, "out");
+// ELMSTEAD_OUT_DIR lets tests serve models from a temporary folder instead of out/.
+const outDir = process.env.ELMSTEAD_OUT_DIR ? resolve(process.env.ELMSTEAD_OUT_DIR) : join(root, "out");
 const wasmDir = join(root, "node_modules", "web-ifc");
 
 /**

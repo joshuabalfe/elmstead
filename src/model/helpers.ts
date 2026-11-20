@@ -77,6 +77,22 @@ export function face(w: Wall, side: Compass): Mm {
   throw new Error(`face(${w.id}, ${side}): wall is not axis-aligned in a way that has a ${side} face`);
 }
 
+/**
+ * Where one face of a wall, in any direction, crosses the line x = `at` (axis "x") or y = `at`
+ * (axis "y"), rounded to the mm: the corner a room outline needs where it meets a diagonal wall.
+ * `side` is the face to the left or right of the wall, looking from its start to its end. Throws if
+ * the face runs along the line, so never crosses it.
+ */
+export function faceCrossing(w: Wall, side: "left" | "right", axis: "x" | "y", at: Mm): Point {
+  const d = wallDirection(w);
+  if (Math.abs(d[axis]) < 1e-9) throw new Error(`faceCrossing(${w.id}, ${side}, ${axis} = ${at}): the face runs along that line`);
+  const offset = faceOffsets(w)[side];
+  // A point on the face (offset along the left normal), then along the wall to the line.
+  const o = { x: w.start.x - d.y * offset, y: w.start.y + d.x * offset };
+  const t = (at - o[axis]) / d[axis];
+  return pt(mm(Math.round(o.x + d.x * t)), mm(Math.round(o.y + d.y * t)));
+}
+
 /** Rectangular room between four plan coordinates (typically wall faces from `face()`). */
 export function rectRoom(id: string, name: string, b: { west: Mm; east: Mm; south: Mm; north: Mm }): Room {
   return {

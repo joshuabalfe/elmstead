@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { centredOn, face, m, mm, pt, rectWalls, wall } from "../src/model/index.js";
+import { centredOn, face, faceCrossing, m, mm, pt, rectWalls, wall } from "../src/model/index.js";
 
 const opts = { thickness: mm(200), height: m(2.4) };
 
@@ -29,6 +29,18 @@ describe("model helpers", () => {
 
   it("face() rejects a side the wall does not have", () => {
     expect(() => face(w.south, "east")).toThrow(/no|not axis-aligned/);
+  });
+
+  it("faceCrossing() finds where a diagonal wall's faces cross a vertical or horizontal line", () => {
+    // 45° wall, 200 thick, centred on the line from (0, 0) to (1000, 1000): its faces are the lines
+    // y = x ± 141.4 (200 / 2 · √2), left being the upper one.
+    const d = wall("wall-d", pt(mm(0), mm(0)), pt(mm(1000), mm(1000)), opts);
+    expect(faceCrossing(d, "left", "x", mm(500))).toEqual(pt(mm(500), mm(641)));
+    expect(faceCrossing(d, "right", "x", mm(500))).toEqual(pt(mm(500), mm(359)));
+    expect(faceCrossing(d, "left", "y", mm(0))).toEqual(pt(mm(-141), mm(0)));
+    // An axis-aligned wall agrees with face().
+    expect(faceCrossing(w.south, "left", "x", mm(3000)).y).toBe(face(w.south, "north"));
+    expect(() => faceCrossing(w.south, "left", "y", mm(100))).toThrow(/runs along/);
   });
 
   it("centredOn() handles walls running in either direction", () => {
