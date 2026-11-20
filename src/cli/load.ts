@@ -50,7 +50,7 @@ export async function loadModel(path: string): Promise<LoadResult> {
 }
 
 /** "storeys.0.walls.3.thickness: must be > 0", attributed to the nearest enclosing element id. */
-function schemaIssue(root: unknown, issue: z.core.$ZodIssue): Issue {
+export function schemaIssue(root: unknown, issue: z.core.$ZodIssue): Issue {
   let node: unknown = root;
   let id: string | undefined;
   for (const key of issue.path) {
