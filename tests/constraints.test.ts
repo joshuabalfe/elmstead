@@ -3,7 +3,8 @@ import cottage from "../models/example-cottage.js";
 import { corner, defineConstraints, inRoom, inStorey, jamb, m, mm, roomCorner, wallEnd } from "../src/constraints/index.js";
 import { constraintsPath, loadConstraints } from "../src/constraints/load.js";
 import { ConstraintError, indexModel, measureConstraint, resolvePoint, type Scope } from "../src/constraints/resolve.js";
-import { ConstraintsFileSchema, type Measure, type Point } from "../src/constraints/schema.js";
+import { checkConstraints } from "../src/constraints/check.js";
+import { ConstraintsFileSchema, type Constraint, type Measure, type Point } from "../src/constraints/schema.js";
 import { pt } from "../src/model/index.js";
 import { BuildingModelSchema, type BuildingModel } from "../src/schema/schema.js";
 
@@ -274,5 +275,49 @@ describe("measures", () => {
     const first: Scope = { kind: "storey", id: "storey-first", storey: "storey-first" };
     expect(error(() => between(wallEnd("wall-first", "start"), jamb("window-first", "start"), "straight", living))).toBe("wall-first is not on the room's storey, storey-ground");
     expect(between(wallEnd("wall-first", "start"), jamb("window-first", "start"), "x", first)).toBe(1000);
+  });
+});
+
+describe("checkConstraints", () => {
+  const sw = corner({ wall: "wall-west", face: "east" }, { wall: "wall-south", face: "north" }); // (200, 200)
+  const window = jamb("window-living", "start"); // 1175 mm east of sw, along wall-south
+  const along = { along: "wall-south" } as const;
+  const check = (...constraints: Constraint[]) => checkConstraints(testModel(), [inRoom("room-living", constraints)]);
+
+  it("counts a constraint that is met", () => {
+    expect(check({ id: "c", from: sw, to: window, measure: along, distance: mm(1175) })).toEqual({ issues: [], met: 1, total: 1 });
+  });
+
+  it("allows 10 mm by default, or the constraint's own tolerance", () => {
+    expect(check({ id: "c", from: sw, to: window, measure: along, distance: mm(1167) }).met).toBe(1);
+    expect(check({ id: "c", from: sw, to: window, measure: along, distance: mm(1167), tolerance: mm(5) })).toEqual({
+      issues: [{ level: "ERROR", id: "c", message: "is 1175 mm, should be 1167 ±5 mm (room-living)" }],
+      met: 0,
+      total: 1,
+    });
+  });
+
+  it("rounds a fractional measurement before comparing", () => {
+    // sw to the living room's north-east corner is √(3550² + 3150²) ≈ 4746.05 mm: 10.05 mm over 4736.
+    const ne = roomCorner("north-east");
+    expect(check({ id: "c", from: sw, to: ne, measure: "straight", distance: mm(4736) }).met).toBe(1);
+    expect(check({ id: "c", from: sw, to: ne, measure: "straight", distance: mm(4735) }).issues).toEqual([{ level: "ERROR", id: "c", message: "is 4746 mm, should be 4735 ±10 mm (room-living)" }]);
+  });
+
+  it("reports a constraint that cannot be measured and still checks the rest", () => {
+    const r = check({ id: "gone", from: sw, to: jamb("window-gone", "start"), measure: along, distance: mm(0) }, { id: "ok", from: sw, to: window, measure: along, distance: mm(1175) });
+    expect(r).toEqual({ issues: [{ level: "ERROR", id: "gone", message: "window-gone is not in the model (room-living)" }], met: 1, total: 2 });
+  });
+
+  it("reports a group whose room or storey is not in the model", () => {
+    const groups = [inRoom("room-renamed", [{ id: "c", from: sw, to: window, measure: along, distance: mm(1175) }]), inStorey("wall-south", [])];
+    expect(checkConstraints(testModel(), groups)).toEqual({
+      issues: [
+        { level: "ERROR", id: "room-renamed", message: "constraint group's room: room-renamed is not in the model" },
+        { level: "ERROR", id: "wall-south", message: "constraint group's storey: wall-south is a wall, not a storey" },
+      ],
+      met: 0,
+      total: 1,
+    });
   });
 });
