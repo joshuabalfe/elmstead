@@ -3,7 +3,6 @@ out/
 .DS_Store
 __pycache__/
 
-# Local agent settings. .claude/skills is kept: it links Claude Code to .agents/skills.
-.claude/*
-!.claude/skills
+# Local agent settings
+.claude/
 .qwen/
