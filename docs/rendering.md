@@ -86,25 +86,20 @@ openings cut, doors and glazing in place, colours applied.
   - They come from the model JSON, not the IFC, because the IFC has no room dimensions.
   - The **Labels** button toggles them. `?labels=0` or `?labels=1` in the URL sets them.
   - They are on by default, but off in snapshots (`?snapshot=1`), so the 3D PNGs show only the IFC.
-- Plan colouring, in every view (`setStyle` in `main.ts`):
+- Plan colouring, the same in every view (`applyStyle` in `main.ts`):
   - Floors are the plan's own room fills (`renderRoomFills` in `src/render/plan.ts`), cream rooms
     on white, drawn first and without depth so the model always covers them. The slab's top face
     is not drawn; its edges still show. (A wall's underside lies exactly on the slab's top face,
-    and on real GPUs the two fight for depth.)
+    and on real GPUs the two fight for depth.) Only the lowest storey's floor, for now.
   - Walls keep their IFC colour and lighting, except faces that look upwards (wall tops, window
     sills), which are the plan's charcoal, unlit. A small shader patch picks those out by their
     world-space normal, so the material itself is unchanged.
+  - The plan's walls, doors and windows (`renderWallTops`: wall pieces, door gaps, leaves and
+    swings, window symbols, dashed uncut openings) lie 5 mm above the wall tops, so looking down
+    shows what is in the walls below, as the plan does. From above, the Top view reads like the
+    plan without cutting the model.
   - White background, no grid.
-- The **Top** view also cuts the model at the plan's cut height (`CUT_HEIGHT`, 1.2 m above the
-  lowest storey), as the plan does, so doors and windows show through the walls.
-  - Walls are drawn from both sides, so looking down into a cut wall shows the inside of its
-    underside; that faces up once flipped, so it reads as the plan's solid cut wall.
-  - Door leaves turn white (a closed leaf reads as the plan's gap) and glazing the plan's blue.
-  - ThatOpen's simplified stand-ins for items that are tiny on screen (the fanlight, edge-on from
-    above) ignore the cut, so the Top view hides them.
-  - Still different from the plan: no door swings, and windows show as a glazing line in a solid
-    wall rather than the plan's window symbol.
 - Snapshots (`?snapshot=1`) show the IFC's own colours, so the 3D PNGs still check what other
-  viewers will show. `?style=ifc`, `?style=plan` or `?style=plan-cut` in the URL forces a style.
+  viewers will show. `?style=ifc` or `?style=plan` in the URL forces a style.
 - `npm run view` runs the same app for interactive use. It reloads the page whenever an IFC in
   `out/` changes.

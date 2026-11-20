@@ -287,6 +287,33 @@ export function renderPlanAnnotations(storey: Storey, { names = true }: { names?
   ]);
 }
 
+/** Walls, split around the openings they cut, then door and window symbols, as the plan draws them. */
+function wallsAndOpenings(storey: Storey, view: View): string[] {
+  const walls = storey.walls.filter((w) => wallLength(w) > 0);
+  const wallById = new Map(walls.map((w) => [w.id, w]));
+  const out: string[] = [];
+  // Walls: filled pieces with no outline, so butt joints look continuous.
+  for (const w of walls) {
+    for (const piece of wallPieces(w, storey.openings)) {
+      out.push(polygon(piece.map(view.toPx), { class: "wall", "data-id": w.id, fill: C.wall, stroke: "none" }));
+    }
+  }
+  for (const o of storey.openings) {
+    const w = wallById.get(o.wallId);
+    if (!w) continue; // reported by checks
+    out.push(!isCut(o) ? drawUncut(w, o, view) : o.kind === "door" ? drawDoor(w, o, view) : drawWindow(w, o, view));
+  }
+  return out;
+}
+
+/**
+ * The plan's walls, doors and windows alone, on a transparent background, for the 3D viewer to lay
+ * over the wall tops, so looking down shows what is in the walls below as the plan does.
+ */
+export function renderWallTops(storey: Storey): { svg: string; bounds: Bounds } {
+  return overlay(storey, (view) => wallsAndOpenings(storey, view));
+}
+
 /** The plan's room fills alone, on a transparent background, for the 3D viewer's plan-style floor. */
 export function renderRoomFills(storey: Storey): { svg: string; bounds: Bounds } {
   return overlay(storey, (view) => storey.rooms.map((r) => polygon(r.outline.map((p) => view.toPx(toVec(p))), { fill: C.room, stroke: "none" })));
@@ -309,18 +336,7 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
     out.push(polygon(r.outline.map((p) => view.toPx(toVec(p))), { class: "room", "data-id": r.id, fill: C.room, stroke: "none" }));
   }
 
-  // Walls: filled pieces with no outline, so butt joints look continuous.
-  for (const w of walls) {
-    for (const piece of wallPieces(w, storey.openings)) {
-      out.push(polygon(piece.map(view.toPx), { class: "wall", "data-id": w.id, fill: C.wall, stroke: "none" }));
-    }
-  }
-
-  for (const o of storey.openings) {
-    const w = wallById.get(o.wallId);
-    if (!w) continue; // reported by checks
-    out.push(!isCut(o) ? drawUncut(w, o, view) : o.kind === "door" ? drawDoor(w, o, view) : drawWindow(w, o, view));
-  }
+  out.push(...wallsAndOpenings(storey, view));
 
   out.push(...roomLabels(storey, view, opts));
 
