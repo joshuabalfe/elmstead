@@ -66,6 +66,14 @@ export default defineConstraints([
       measure: "y",
       distance: m(3.48),
     },
+    {
+      id: "bedroom-window-width",
+      note: "Bedroom window width from the owner",
+      from: jamb("window-bedroom", "start"),
+      to: jamb("window-bedroom", "end"),
+      measure: { along: "wall-east" },
+      distance: m(1.2),
+    },
   ]),
   inRoom("room-bathroom", [
     {

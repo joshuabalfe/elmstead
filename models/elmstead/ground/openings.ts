@@ -9,7 +9,7 @@ import { wallLength } from "../../../src/geometry/wall.js";
 import { add, centredOn, deg, door, face, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
 import { fanlight, frontDoor, frontWindow, internalDoor, standardWindow } from "../components/index.js";
 import { living } from "./rooms.js";
-import { bathWestX, bedroomBathroom, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, partitionEast, southIn, west } from "./walls.js";
+import { bathWestX, bedroomBathroom, bedroomWallY, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, partitionEast, southIn, west } from "./walls.js";
 
 const doorH = m(2.1);
 const internal = { width: mm(700), height: doorH };
@@ -27,15 +27,19 @@ const bathroomDoorOffset = mm(135);
 const bathroomDoorY = add(face(bedroomBathroom, "north"), bathroomDoorOffset); // the living-room door sits opposite it
 const lobbyCentreX = mm(Math.round((partitionEast + bathWestX) / 2));
 const lobbyDoor = { width: mm(550), height: doorH }; // narrower than the others, to fit the screen
-// The front window's returns splay out at about 45° on the inside. The frame is taken as sitting in
-// the middle of the wall, where the splay starts.
-const frontWindowReveal = { face: "left", angle: deg(45) } as const;
+// Window returns splay out at about 45° on the inside. The frame is taken as sitting in the middle
+// of the wall, where the splay starts.
+const insideReveal = { face: "left", angle: deg(45) } as const;
+// Bedroom window hugs the bathroom end of the east wall: 200 mm of wall left to the partition (chosen, not measured).
+const bedroomWindowGap = mm(200);
+const bedroomWindowWidth = mm(1200);
+const bedroomWindowOffset = sub(sub(bedroomWallY, bedroomWindowGap), add(southIn, bedroomWindowWidth));
 
 export const openings: Opening[] = [
   // West wall runs north→south, so "start" is the north end and "left" is inside.
   door("door-front", west, frontDoorOffset, frontDoor, front, { hinge: "start", side: "left" }),
   window("window-front-fanlight", west, frontDoorOffset, fanlight, { width: front.width, height: sub(frontHead, fanlightSill), sillHeight: fanlightSill }),
-  window("window-living", west, centredOn(west, frontWindowCentreY, frontWindowSize.width), frontWindow, frontWindowSize, frontWindowReveal),
+  window("window-living", west, centredOn(west, frontWindowCentreY, frontWindowSize.width), frontWindow, frontWindowSize, insideReveal),
 
   // Partition runs south→north; "left" is the living room.
   door("door-living", livingBedroom, sub(bathroomDoorY, southIn), internalDoor, internal, { hinge: "start", side: "left" }),
@@ -46,6 +50,6 @@ export const openings: Opening[] = [
   // Screen runs from the hall corner (south-west) to the spine (north-east); "right" is the lobby.
   door("door-lobby", lobbyScreen, mm(Math.round((wallLength(lobbyScreen) - lobbyDoor.width) / 2)), internalDoor, lobbyDoor, { hinge: "start", side: "right" }),
 
-  window("window-bedroom", east, sub(mm(2285), southIn), standardWindow, { ...standard, width: mm(1050) }),
+  window("window-bedroom", east, bedroomWindowOffset, standardWindow, { ...standard, width: bedroomWindowWidth }, insideReveal),
   window("window-rear-hall", extEast, mm(700), standardWindow, { ...standard, width: mm(950) }),
 ];
