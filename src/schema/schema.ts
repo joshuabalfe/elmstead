@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DegSchema, MmSchema, NonNegativeMmSchema, PositiveMmSchema } from "./units.js";
+import { DegSchema, degBetween, MmSchema, NonNegativeMmSchema, PositiveMmSchema } from "./units.js";
 
 /**
  * The building JSON contract. Keep this deliberately small: add element types only when asked.
@@ -61,7 +61,7 @@ export const DoorSchema = z.strictObject({
  */
 export const RevealSchema = z.strictObject({
   face: z.enum(["left", "right"]),
-  angle: z.number().gt(0).lt(90).brand<"Deg">(),
+  angle: degBetween(0, 90),
 }).meta({ id: "Reveal" });
 
 export const WindowSchema = z.strictObject({

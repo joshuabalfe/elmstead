@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import cottage from "../models/example-cottage.js";
 import { corner, defineConstraints, inRoom, inStorey, jamb, m, mm, roomCorner, wallEnd } from "../src/constraints/index.js";
 import { constraintsPath, loadConstraints } from "../src/constraints/load.js";
-import { ConstraintError, indexModel, measureConstraint, resolvePoint, type Scope } from "../src/constraints/resolve.js";
+import { ConstraintError, faceSide, indexModel, measureConstraint, resolvePoint, type Scope } from "../src/constraints/resolve.js";
 import { loadModel } from "../src/cli/load.js";
 import { checkConstraints } from "../src/constraints/check.js";
 import { ConstraintsFileSchema, type Constraint, type Measure, type Point } from "../src/constraints/schema.js";
@@ -181,6 +181,14 @@ describe("wall faces", () => {
     expect(at(wallEnd("wall-north", "start", "south"))).toEqual({ x: 8000, y: 5800 }); // runs west
     expect(at(wallEnd("wall-east", "start", "west"))).toEqual({ x: 7800, y: 200 }); // runs north
     expect(at(wallEnd("wall-west", "start", "east"))).toEqual({ x: 200, y: 5800 }); // runs south
+  });
+
+  it("name the side a compass face is on, looking from wall start to end", () => {
+    const m = testModel();
+    const wall = (id: string) => m.storeys[0]!.walls.find((w) => w.id === id)!;
+    expect([faceSide(wall("wall-south"), "north"), faceSide(wall("wall-south"), "south")]).toEqual(["left", "right"]); // runs east
+    expect([faceSide(wall("wall-west"), "east"), faceSide(wall("wall-west"), "west")]).toEqual(["left", "right"]); // runs south
+    expect(faceSide(wall("wall-diagonal"), "right")).toBe("right");
   });
 
   it("resolve left and right on any wall", () => {

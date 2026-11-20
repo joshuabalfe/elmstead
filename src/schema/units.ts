@@ -9,6 +9,8 @@ export const NonNegativeMmSchema = z.int().nonnegative().brand<"Mm">();
 /** Degrees. Each field documents its zero direction and sense. */
 export const DegSchema = z.number().refine(Number.isFinite, "must be finite").brand<"Deg">();
 export type Deg = z.infer<typeof DegSchema>;
+/** Degrees strictly between `min` and `max`, a range JSON Schema can carry, unlike a refinement. */
+export const degBetween = (min: number, max: number) => z.number().gt(min).lt(max).brand<"Deg">();
 
 const EPS = 1e-6;
 

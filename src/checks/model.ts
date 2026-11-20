@@ -59,7 +59,7 @@ export function checkOpenings(model: BuildingModel): Issue[] {
   const tolerance = 1e-6; // mm; wall lengths are square roots of integer coordinates
   for (const storey of model.storeys) {
     const walls = new Map(storey.walls.map((w) => [w.id, w]));
-    const hosted = new Map<string, { opening: Opening; wall: Wall }>();
+    const hosted = new Map<string, { opening: Opening; wall: Wall; faces: [number, number][] }>();
     for (const opening of storey.openings) {
       const wall = walls.get(opening.wallId);
       if (!wall) {
@@ -68,9 +68,9 @@ export function checkOpenings(model: BuildingModel): Issue[] {
       }
       const length = wallLength(wall);
       if (length === 0) continue; // reported by checkWalls
-      hosted.set(opening.id, { opening, wall });
       // A splayed reveal is widest at its face, so that is where it must still fit.
       const faces = (["left", "right"] as const).map((face) => openingExtent(wall, opening, face));
+      hosted.set(opening.id, { opening, wall, faces });
       const pastStart = Math.max(...faces.map(([from]) => -from));
       if (pastStart > tolerance) issues.push({ level: "ERROR", id: opening.id, message: `opening is ${Math.round(pastStart)} mm past the wall start` });
       const pastEnd = Math.max(...faces.map(([, to]) => to - length));
@@ -85,9 +85,8 @@ export function checkOpenings(model: BuildingModel): Issue[] {
         const b = list[j]!;
         if (a.opening.wallId !== b.opening.wallId) continue;
         // Outlines only widen towards a face, so two that meet anywhere in one half of the wall meet at its face.
-        const along = (["left", "right"] as const).some((face) => {
-          const [a0, a1] = openingExtent(a.wall, a.opening, face);
-          const [b0, b1] = openingExtent(b.wall, b.opening, face);
+        const along = a.faces.some(([a0, a1], i) => {
+          const [b0, b1] = b.faces[i]!;
           return a0 < b1 - tolerance && b0 < a1 - tolerance;
         });
         const up = a.opening.sillHeight < b.opening.sillHeight + b.opening.height && b.opening.sillHeight < a.opening.sillHeight + a.opening.height;

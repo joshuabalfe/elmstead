@@ -6,7 +6,7 @@
  * IFC X/Y, Z is up. Every IfcRoot gets a GlobalId from ifcGuid(key); see guid.ts for the key scheme.
  */
 import * as WebIFC from "web-ifc";
-import { openingProfile } from "../geometry/opening.js";
+import { isSplayed, openingProfile } from "../geometry/opening.js";
 import type { Vec } from "../geometry/vec.js";
 import { faceOffsets, wallDirection, wallLength } from "../geometry/wall.js";
 import { GLAZING_BAR_DEPTH, windowDivision, type Rect } from "../geometry/window.js";
@@ -267,8 +267,7 @@ class Writer {
     const { left, right } = faceOffsets(w);
     const mid = (left + right) / 2;
     const placement = this.placement(wallPlacement, o.offsetAlongWall, 0, o.sillHeight);
-    const splayed = o.kind === "window" && o.reveal !== undefined;
-    const profile = splayed
+    const profile = isSplayed(o)
       ? new IFC4.IfcArbitraryClosedProfileDef(IFC4.IfcProfileTypeEnum.AREA, null, this.closedPolyline(openingProfile(w, o, OPENING_CLEARANCE).map((p) => ({ x: round9(p.x - o.offsetAlongWall), y: round9(p.y) }))))
       : this.rectangle(o.width / 2, mid, o.width, w.thickness + 2 * OPENING_CLEARANCE);
     const body = this.body(profile, o.height);

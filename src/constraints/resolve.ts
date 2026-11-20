@@ -57,17 +57,20 @@ const wallOf = (ix: ModelIndex, id: string) => {
 const NORMALS = { north: v(0, 1), south: v(0, -1), east: v(1, 0), west: v(-1, 0) } as const;
 
 /**
- * Offset of a wall face from the wall's start→end line, positive to the left. A compass face is
- * accepted only on a wall running along plan x or y, and only for the two sides it has.
+ * Which side of the wall a face is, looking from start to end. A compass face is accepted only on a
+ * wall running along plan x or y, and only for the two sides it has.
  */
-export function faceOffset(w: Wall, face: Face): number {
-  if (face === "left" || face === "right") return faceOffsets(w)[face];
+export function faceSide(w: Wall, face: Face): "left" | "right" {
+  if (face === "left" || face === "right") return face;
   const d = wallDirection(w);
   if (d.x !== 0 && d.y !== 0) fail(`${w.id} is not axis-aligned, so it has no ${face} face: name its face left or right`);
   const side = dot(perpLeft(d), NORMALS[face]);
   if (side === 0) fail(`${w.id} runs ${d.x === 0 ? "north–south" : "east–west"}, so it has no ${face} face`);
-  return faceOffsets(w)[side > 0 ? "left" : "right"];
+  return side > 0 ? "left" : "right";
 }
+
+/** Offset of a wall face from the wall's start→end line, positive to the left. */
+export const faceOffset = (w: Wall, face: Face): number => faceOffsets(w)[faceSide(w, face)];
 
 const COMPASS = { "north-east": v(1, 1), "north-west": v(-1, 1), "south-east": v(1, -1), "south-west": v(-1, -1) } as const;
 
@@ -124,9 +127,10 @@ export function resolvePoint(ix: ModelIndex, p: Point, scope: Scope): Resolved {
   }
   const { element: o, storey } = lookup<Opening>(ix, p.opening, ["door", "window"], "opening");
   const host = wallOf(ix, o.wallId).element;
-  const across = p.face ? faceOffset(host, p.face) : 0;
+  const side = p.face ? faceSide(host, p.face) : undefined;
+  const across = side ? faceOffsets(host)[side] : 0;
   // On a face the jambs are where the reveal meets it: further apart on a splayed face.
-  const [start, end] = p.face ? openingExtent(host, o, across === faceOffsets(host).left ? "left" : "right") : [o.offsetAlongWall, o.offsetAlongWall + o.width];
+  const [start, end] = side ? openingExtent(host, o, side) : [o.offsetAlongWall, o.offsetAlongWall + o.width];
   const along = p.at === "start" ? start : p.at === "end" ? end : o.offsetAlongWall + o.width / 2;
   return { at: wallPoint(host, along, across), refs: [{ id: p.opening, storey }] };
 }

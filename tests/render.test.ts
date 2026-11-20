@@ -114,6 +114,15 @@ describe("plan renderer", () => {
       expect(polygons(out, "wall", "wall-south").map((p) => p.length)).toEqual([5, 6, 5]);
     });
 
+    it("leaves out a stretch a splay runs into, rather than drawing it twisted", () => {
+      // The living window's inside splay reaches 2675; the bedroom window, moved to 2625, starts
+      // 50 mm after it on the outside face. The checks report the overlap; the plan stays sane.
+      const m = splayedCottage();
+      m.storeys[0]!.openings.find((o) => o.id === "window-bedroom")!.offsetAlongWall = mm(2625);
+      const out = renderPlan(m, m.storeys[0]!, { ids: false });
+      expect(polygons(out, "wall", "wall-south").map((p) => p.length)).toEqual([5, 4, 4]);
+    });
+
     it("dashes the splayed outline of a window the cut misses", () => {
       const m = splayedCottage();
       const living = m.storeys[0]!.openings.find((o) => o.id === "window-living")!;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { openingExtent, openingOutline, openingProfile, revealSplay } from "../src/geometry/opening.js";
+import { isSplayed, jambEdges, openingExtent, openingOutline, openingProfile, revealSplay } from "../src/geometry/opening.js";
 import { wallSegmentFootprint } from "../src/geometry/wall.js";
 import { deg, m, mm, pt, wall, window, type Reveal } from "../src/model/index.js";
 
@@ -61,6 +61,21 @@ describe("opening outline", () => {
       const o = window("window-a", w, mm(500), size);
       expect(openingOutline(w, o)).toEqual(wallSegmentFootprint(w, 500, 1700));
     }
+  });
+
+  it("splits the profile into its jambs, each from the right face to the left", () => {
+    const square = jambEdges(openingProfile(centre, window("window-a", centre, mm(1000), size)));
+    expect(square).toEqual({ near: [{ x: 1000, y: -200 }, { x: 1000, y: 200 }], far: [{ x: 2200, y: -200 }, { x: 2200, y: 200 }] });
+    const splayed = jambEdges(openingProfile(centre, window("window-a", centre, mm(1000), size, reveal("left"))));
+    expect({ near: round(splayed.near), far: round(splayed.far) }).toEqual({
+      near: [{ x: 1000, y: -200 }, { x: 1000, y: 0 }, { x: 800, y: 200 }],
+      far: [{ x: 2200, y: -200 }, { x: 2200, y: 0 }, { x: 2400, y: 200 }],
+    });
+  });
+
+  it("knows a splayed window from a square one", () => {
+    expect(isSplayed(window("window-a", centre, mm(1000), size, reveal("left")))).toBe(true);
+    expect(isSplayed(window("window-a", centre, mm(1000), size))).toBe(false);
   });
 
   it("has a shallower splay at a smaller angle", () => {

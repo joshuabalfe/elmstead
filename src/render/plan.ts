@@ -1,5 +1,5 @@
 import { faceOffsets, wallDirection, wallLength, wallPoint, wallSegmentFootprint } from "../geometry/wall.js";
-import { openingExtent, openingOutline, revealSplay } from "../geometry/opening.js";
+import { jambEdges, openingOutline, openingProfile } from "../geometry/opening.js";
 import { area, bounds, centroid, spans, type Bounds } from "../geometry/polygon.js";
 import { GLAZING_BAR_DEPTH, windowDivision } from "../geometry/window.js";
 import { dot, perpLeft, toVec, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";
@@ -47,14 +47,10 @@ const isCut = (o: Opening) => o.sillHeight < CUT_HEIGHT && o.sillHeight + o.heig
 
 /**
  * Where a stretch of wall ends against an opening's jamb, in wall (along, across) coordinates from
- * the right face to the left: straight across, or for a splayed reveal bent at the middle of the wall.
+ * the right face to the left: the jamb of the opening's own outline, kept within the wall's length.
  */
 function jambEdge(w: Wall, o: Opening, jamb: "near" | "far", L: number): Vec[] {
-  const { left, right } = faceOffsets(w);
-  const pick = ([from, to]: [number, number]) => Math.min(L, Math.max(0, jamb === "near" ? from : to));
-  const middle = jamb === "near" ? o.offsetAlongWall : o.offsetAlongWall + o.width;
-  const edge = [v(pick(openingExtent(w, o, "right")), right), v(pick(openingExtent(w, o, "left")), left)];
-  return revealSplay(w, o) ? [edge[0]!, v(Math.min(L, Math.max(0, middle)), (left + right) / 2), edge[1]!] : edge;
+  return jambEdges(openingProfile(w, o))[jamb].map((p) => v(Math.min(L, Math.max(0, p.x)), p.y));
 }
 
 /** Wall body minus the gaps cut by its openings, as plan polygons. */
@@ -64,9 +60,13 @@ function wallPieces(w: Wall, openings: readonly Opening[]): Vec[][] {
   const cuts = openings.filter((o) => o.wallId === w.id && isCut(o)).sort((a, b) => a.offsetAlongWall - b.offsetAlongWall);
   const pieces: Vec[][] = [];
   // A stretch runs from one edge to the next, each listed right face to left face, so its outline
-  // is the start edge's first point, the end edge, then the rest of the start edge backwards.
+  // is the start edge's first point, the end edge, then the rest of the start edge backwards. It is
+  // drawn only if neither face runs backwards (a splay into a neighbour, reported by the checks),
+  // which would twist the outline, and at least one has length.
   const piece = (start: Vec[], end: Vec[]) => {
-    if (end[0]!.x > start[0]!.x || end.at(-1)!.x > start.at(-1)!.x) {
+    const right = end[0]!.x - start[0]!.x;
+    const left = end.at(-1)!.x - start.at(-1)!.x;
+    if (right >= 0 && left >= 0 && right + left > 0) {
       pieces.push([start[0]!, ...end, ...start.slice(1).reverse()].map((p) => wallPoint(w, p.x, p.y)));
     }
   };
