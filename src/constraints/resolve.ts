@@ -1,3 +1,4 @@
+import { openingExtent } from "../geometry/opening.js";
 import { faceOffsets, wallDirection, wallLength, wallPoint } from "../geometry/wall.js";
 import { cross, dot, len, perpLeft, toVec, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";
 import type { BuildingModel, Opening, Room, Wall } from "../schema/schema.js";
@@ -123,8 +124,11 @@ export function resolvePoint(ix: ModelIndex, p: Point, scope: Scope): Resolved {
   }
   const { element: o, storey } = lookup<Opening>(ix, p.opening, ["door", "window"], "opening");
   const host = wallOf(ix, o.wallId).element;
-  const along = p.at === "start" ? o.offsetAlongWall : p.at === "end" ? o.offsetAlongWall + o.width : o.offsetAlongWall + o.width / 2;
-  return { at: wallPoint(host, along, p.face ? faceOffset(host, p.face) : 0), refs: [{ id: p.opening, storey }] };
+  const across = p.face ? faceOffset(host, p.face) : 0;
+  // On a face the jambs are where the reveal meets it: further apart on a splayed face.
+  const [start, end] = p.face ? openingExtent(host, o, across === faceOffsets(host).left ? "left" : "right") : [o.offsetAlongWall, o.offsetAlongWall + o.width];
+  const along = p.at === "start" ? start : p.at === "end" ? end : o.offsetAlongWall + o.width / 2;
+  return { at: wallPoint(host, along, across), refs: [{ id: p.opening, storey }] };
 }
 
 /** Unsigned distance between two points, as the constraint says it was measured. */

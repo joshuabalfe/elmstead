@@ -89,7 +89,7 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
 |---|---|---|
 | **Wall** | `start`, `end`, `thickness`, `height`, `justification` | straight; `justification` is `centre`, `left` or `right` |
 | **Door** | `wallId`, `offsetAlongWall`, `width`, `height`, `sillHeight`, `swing?` | `kind: "door"` |
-| **Window** | `wallId`, `offsetAlongWall`, `width`, `height`, `sillHeight` | `kind: "window"` |
+| **Window** | `wallId`, `offsetAlongWall`, `width`, `height`, `sillHeight`, `reveal?` | `kind: "window"` |
 | **Slab** | `outline`, `thickness`, `elevationOffset` | top of slab is at storey elevation + `elevationOffset`; the slab extends downwards from there |
 | **Room** | `name`, `outline` | 2D outline only, for now |
 | **Door / window component** | `id`, `name` | a design (not a size) shared by openings, in the building's `components: { doors, windows }`; written to IFC as `IfcDoorType` / `IfcWindowType` |
@@ -129,6 +129,24 @@ east and west walls fit between them, so the corners neither overlap nor leave g
 
   If it is left out, the default is `{ hinge: "start", side: "left" }`. For the walls `rectWalls`
   makes, `left` is the inside of the building.
+
+#### Splayed reveals
+
+A window's `reveal` angles both jambs out towards one face of the wall, as old houses often do on
+the inside to let in more light:
+
+```ts
+window("window-living", west, offset, frontWindow, size, { face: "left", angle: deg(45) });
+```
+
+- `face` is `left` or `right`, looking from wall start to end, as for door swings.
+- `angle` is how far each jamb turns off square, more than 0° and less than 90°.
+- The frame is taken to sit in the middle of the wall. From the other face to the middle the
+  reveal is square, and `width` is the width there. From the middle to `face` both jambs splay, so
+  at that face the opening is wider by `thickness × tan(angle)`: a 1200 mm window in a 400 mm wall
+  at 45° is 1600 mm wide on the splayed face.
+- The head and sill stay square. Doors have no reveals.
+- The splayed face must still fit within the wall and clear the other openings on it.
 
 ### Components
 
@@ -199,7 +217,7 @@ build plain values, so a model can always write the JSON shape out directly inst
 | `centredOn(wall, at, width)` | the `offsetAlongWall` that centres an opening of `width` on plan coordinate `at` |
 | `doorComponent(id, name)`, `windowComponent(id, name)` | a door or window design for `components` |
 | `door(id, wall, offset, component?, { width, height }, swing?)` | a door, with `sillHeight` 0, linked to the component if given one |
-| `window(id, wall, offset, component?, { width, height, sillHeight })` | a window, linked to the component if given one |
+| `window(id, wall, offset, component?, { width, height, sillHeight }, reveal?)` | a window, linked to the component if given one, with splayed jambs if given a reveal |
 | `faceCrossing(wall, "left" \| "right", "x" \| "y", at)` | where a face of a wall at any angle crosses the line x = `at` or y = `at`: room corners against diagonal walls |
 
 ### Make dimensions follow each other
@@ -279,6 +297,11 @@ Each helper takes an id or the model object (e.g. a `Wall` imported from the mod
 A **face** is `left` or `right`, looking from the wall's start to its end, or a compass side
 (`north`, `south`, `east`, `west`) of a wall running along plan x or y. Diagonal walls only have
 `left` and `right`.
+
+On the face a window's [reveal](#splayed-reveals) splays to, its `start` and `end` jambs are where
+the reveal meets that face, as a tape in the room finds them: a 1200 mm window splayed 45° in a
+400 mm wall measures 1600 mm jamb to jamb on its splayed face and 1200 mm on the other. Its
+`centre`, and jambs on the wall line, do not move.
 
 Prefer wall-face corners to room corners for anything structural: room outlines are themselves
 drawn from wall faces, and a vertex number changes when an outline gains a point.

@@ -6,7 +6,7 @@ import { ConstraintError, indexModel, measureConstraint, resolvePoint, type Scop
 import { loadModel } from "../src/cli/load.js";
 import { checkConstraints } from "../src/constraints/check.js";
 import { ConstraintsFileSchema, type Constraint, type Measure, type Point } from "../src/constraints/schema.js";
-import { pt } from "../src/model/index.js";
+import { deg, pt } from "../src/model/index.js";
 import { BuildingModelSchema, type BuildingModel } from "../src/schema/schema.js";
 
 /** Plain JSON, as the loader sees it after the round-trip. */
@@ -144,6 +144,9 @@ function testModel(): BuildingModel {
   const m = BuildingModelSchema.parse(JSON.parse(JSON.stringify(cottage)));
   const ground = m.storeys[0]!;
   ground.walls.push({ id: "wall-diagonal", start: pt(mm(1000), mm(1000)), end: pt(mm(3000), mm(3000)), thickness: mm(200), height: mm(2400), justification: "centre" });
+  // A 400 mm wall running east with a 45° reveal on its left (north) face: 1200 mm splays to 1600.
+  ground.walls.push({ id: "wall-thick", start: pt(mm(0), mm(-3000)), end: pt(mm(4000), mm(-3000)), thickness: mm(400), height: mm(2400), justification: "centre" });
+  ground.openings.push({ kind: "window", id: "window-splayed", wallId: "wall-thick", offsetAlongWall: mm(1000), width: mm(1200), height: mm(1200), sillHeight: mm(900), reveal: { face: "left", angle: deg(45) } });
   ground.rooms.push({ id: "room-angled", name: "Angled", outline: [pt(mm(0), mm(0)), pt(mm(2000), mm(0)), pt(mm(2000), mm(1000)), pt(mm(1000), mm(2000)), pt(mm(0), mm(2000))] });
   m.storeys.push({
     id: "storey-first",
@@ -214,6 +217,17 @@ describe("corner, wall end and opening points", () => {
   it("measure an opening's width from jamb to jamb along its wall", () => {
     const width = { id: "w", from: jamb("window-living", "start"), to: jamb("window-living", "end", "north"), measure: { along: "wall-south" }, distance: mm(0) };
     expect(measureConstraint(ix, width, ground)).toBe(1200);
+  });
+
+  it("put a splayed window's jambs where the reveal meets its splayed face", () => {
+    const width = (face?: "left" | "right" | "north" | "south") =>
+      measureConstraint(ix, { id: "w", from: jamb("window-splayed", "start", face), to: jamb("window-splayed", "end", face), measure: { along: "wall-thick" }, distance: mm(0) }, ground);
+    expect(width("left")).toBe(1600);
+    expect(width("north")).toBe(1600); // the same face by compass
+    expect(width("right")).toBe(1200);
+    expect(width()).toBe(1200);
+    expect(at(jamb("window-splayed", "start", "left"))).toEqual({ x: 800, y: -2800 });
+    expect(at(jamb("window-splayed", "centre", "left"))).toEqual({ x: 1600, y: -2800 });
   });
 
   it("report unknown ids, the wrong kind of element and parallel faces", () => {

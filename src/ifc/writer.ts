@@ -6,9 +6,11 @@
  * IFC X/Y, Z is up. Every IfcRoot gets a GlobalId from ifcGuid(key); see guid.ts for the key scheme.
  */
 import * as WebIFC from "web-ifc";
+import { openingProfile } from "../geometry/opening.js";
+import type { Vec } from "../geometry/vec.js";
 import { faceOffsets, wallDirection, wallLength } from "../geometry/wall.js";
 import { GLAZING_BAR_DEPTH, windowDivision, type Rect } from "../geometry/window.js";
-import type { BuildingModel, Door, Opening, Point, Room, Slab, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
+import type { BuildingModel, Door, Opening, Room, Slab, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
 import { ifcGuid } from "./guid.js";
 import { STYLES, type StyleName } from "./styles.js";
 
@@ -129,7 +131,7 @@ class Writer {
     return new IFC4.IfcLocalPlacement(parent, axis);
   }
 
-  private closedPolyline(points: readonly Point[]) {
+  private closedPolyline(points: readonly Vec[]) {
     const pts = points.map((p) => this.pt2(p.x, p.y));
     return new IFC4.IfcPolyline([...pts, pts[0]!]);
   }
@@ -258,13 +260,18 @@ class Writer {
 
   /**
    * An opening becomes IfcOpeningElement (voids the wall) + IfcDoor/IfcWindow (fills the opening).
-   * The opening is placed in wall coordinates at (offsetAlongWall, 0, sillHeight).
+   * The opening is placed in wall coordinates at (offsetAlongWall, 0, sillHeight). A box, or for a
+   * window with a reveal its splayed plan outline (src/geometry/opening.ts) extruded up its height.
    */
   private opening(o: Opening, w: Wall, wallPlacement: InstanceType<typeof IFC4.IfcLocalPlacement>, wallEntity: InstanceType<typeof IFC4.IfcElement>) {
     const { left, right } = faceOffsets(w);
     const mid = (left + right) / 2;
     const placement = this.placement(wallPlacement, o.offsetAlongWall, 0, o.sillHeight);
-    const body = this.body(this.rectangle(o.width / 2, mid, o.width, w.thickness + 2 * OPENING_CLEARANCE), o.height);
+    const splayed = o.kind === "window" && o.reveal !== undefined;
+    const profile = splayed
+      ? new IFC4.IfcArbitraryClosedProfileDef(IFC4.IfcProfileTypeEnum.AREA, null, this.closedPolyline(openingProfile(w, o, OPENING_CLEARANCE).map((p) => ({ x: round9(p.x - o.offsetAlongWall), y: round9(p.y) }))))
+      : this.rectangle(o.width / 2, mid, o.width, w.thickness + 2 * OPENING_CLEARANCE);
+    const body = this.body(profile, o.height);
     const opening = this.write(
       new IFC4.IfcOpeningElement(guid(`${o.id}#opening`), null, label(`${o.id} opening`), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [body]), null, IFC4.IfcOpeningElementTypeEnum.OPENING),
     );

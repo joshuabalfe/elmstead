@@ -1,3 +1,4 @@
+import { openingExtent } from "../geometry/opening.js";
 import { polygonProblems } from "../geometry/polygon.js";
 import { wallLength } from "../geometry/wall.js";
 import type { BuildingModel, Opening, Wall } from "../schema/schema.js";
@@ -68,7 +69,11 @@ export function checkOpenings(model: BuildingModel): Issue[] {
       const length = wallLength(wall);
       if (length === 0) continue; // reported by checkWalls
       hosted.set(opening.id, { opening, wall });
-      const pastEnd = opening.offsetAlongWall + opening.width - length;
+      // A splayed reveal is widest at its face, so that is where it must still fit.
+      const faces = (["left", "right"] as const).map((face) => openingExtent(wall, opening, face));
+      const pastStart = Math.max(...faces.map(([from]) => -from));
+      if (pastStart > tolerance) issues.push({ level: "ERROR", id: opening.id, message: `opening is ${Math.round(pastStart)} mm past the wall start` });
+      const pastEnd = Math.max(...faces.map(([, to]) => to - length));
       if (pastEnd > tolerance) issues.push({ level: "ERROR", id: opening.id, message: `opening is ${Math.round(pastEnd)} mm past the wall end` });
       const aboveTop = opening.sillHeight + opening.height - wall.height;
       if (aboveTop > tolerance) issues.push({ level: "ERROR", id: opening.id, message: `opening is ${Math.round(aboveTop)} mm above the wall top` });
@@ -79,7 +84,12 @@ export function checkOpenings(model: BuildingModel): Issue[] {
       for (let j = i + 1; j < list.length; j++) {
         const b = list[j]!;
         if (a.opening.wallId !== b.opening.wallId) continue;
-        const along = a.opening.offsetAlongWall < b.opening.offsetAlongWall + b.opening.width && b.opening.offsetAlongWall < a.opening.offsetAlongWall + a.opening.width;
+        // Outlines only widen towards a face, so two that meet anywhere in one half of the wall meet at its face.
+        const along = (["left", "right"] as const).some((face) => {
+          const [a0, a1] = openingExtent(a.wall, a.opening, face);
+          const [b0, b1] = openingExtent(b.wall, b.opening, face);
+          return a0 < b1 - tolerance && b0 < a1 - tolerance;
+        });
         const up = a.opening.sillHeight < b.opening.sillHeight + b.opening.height && b.opening.sillHeight < a.opening.sillHeight + a.opening.height;
         if (!along || !up) continue;
         issues.push({ level: "ERROR", id: a.opening.id, message: `opening overlaps ${b.opening.id}` });
