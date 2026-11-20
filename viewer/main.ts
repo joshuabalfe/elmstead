@@ -331,9 +331,12 @@ interface SavedView {
   target: THREE.Vector3;
   ortho: { left: number; right: number; top: number; bottom: number; zoom: number };
   near: number;
+  fov: number;
 }
 /** The perspective near plane while walking: OBC's default 1 m would clip every wall within arm's reach. */
 const WALK_NEAR = 0.05;
+/** The perspective vertical FOV (degrees) while walking: OBC's 60° reads zoomed-in at walking distance. */
+const WALK_FOV = 70;
 let savedView: SavedView | null = null;
 const walkKeys = new Set<string>();
 let walkRaf = 0;
@@ -361,14 +364,16 @@ async function enterWalk(lock: boolean) {
     target: controls.getTarget(new THREE.Vector3()),
     ortho: { left: ortho.left, right: ortho.right, top: ortho.top, bottom: ortho.bottom, zoom: ortho.zoom },
     near: world.camera.threePersp.near,
+    fov: world.camera.threePersp.fov,
   };
   const start = entryPosition(box, lowestElevation);
   walkEyeY = start.y;
   await world.camera.projection.set("Perspective");
   world.camera.enabled = false;
   controls.enabled = false;
-  const camera = world.camera.three;
+  const camera = world.camera.threePersp; // the active camera after the projection switch
   camera.near = WALK_NEAR;
+  camera.fov = WALK_FOV;
   camera.updateProjectionMatrix();
   camera.position.copy(start);
   camera.quaternion.identity(); // an identity quaternion faces scene −Z, which is plan north
@@ -408,6 +413,7 @@ async function exitWalk() {
   status.textContent = `${select.value}.ifc`;
   world.camera.enabled = true;
   world.camera.threePersp.near = restore.near;
+  world.camera.threePersp.fov = restore.fov;
   world.camera.threePersp.updateProjectionMatrix();
   await world.camera.projection.set(restore.projection);
   if (restore.projection === "Orthographic") {

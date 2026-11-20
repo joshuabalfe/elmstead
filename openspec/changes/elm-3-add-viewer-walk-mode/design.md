@@ -89,8 +89,9 @@ because the projection switch recomputes them, the orthographic camera's framing
 (`threeOrtho.left/right/top/bottom/zoom`): `ProjectionManager` derives the ortho frustum from the
 live perspective pose when switching, forces `controls.distance = 200`, and calls `zoomTo(1)` when
 switching to perspective, so position and target alone cannot recover a Top view's framing. Also
-save the perspective near plane and lower it while walking — OBC's default of 1 m clips every
-wall within arm's reach — restoring it on exit. Enter
+save the perspective near plane and field of view while walking: OBC's default 1 m near plane
+clips every wall within arm's reach, and its 60° vertical FOV reads zoomed-in at walking
+distance, so walk mode uses 5 cm and 70° and restores both on exit. Enter
 at the footprint centre (`box.getCenter()`) with Y at the lowest storey's elevation plus 1.6 m and
 an identity quaternion, which faces plan north (scene −Z). The lowest storey elevation comes from
 the building JSON that the label loader already fetches, converted from millimetres to scene
