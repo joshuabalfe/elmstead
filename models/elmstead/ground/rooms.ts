@@ -28,9 +28,11 @@ const bathWestFace = face(lobbyBathroom, "east");
 const bedBathNorth = face(bedroomBathroom, "north");
 const rearHallEastX = mm(9950); // east face of the rear hall, where it meets the extension
 
+// Starts at the front of the chimney breast: the alcoves either side of it are built-ins, not floor space.
+export const living = rectRoom("room-living", "Living room", { west: westIn, east: partitionX, south: face(breastLiving, "north"), north: hallWallY });
+
 export const rooms: Room[] = [
-  // Starts at the front of the chimney breast: the alcoves either side of it are built-ins, not floor space.
-  rectRoom("room-living", "Living room", { west: westIn, east: partitionX, south: face(breastLiving, "north"), north: hallWallY }),
+  living,
   {
     id: "room-hallway",
     name: "Hallway",

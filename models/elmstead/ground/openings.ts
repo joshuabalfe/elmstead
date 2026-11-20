@@ -7,6 +7,7 @@
  */
 import { add, centredOn, door, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
 import { fanlight, frontDoor, frontWindow, internalDoor, standardWindow } from "../components/index.js";
+import { living } from "./rooms.js";
 import { bedroomBathroom, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, southIn, west } from "./walls.js";
 
 const doorH = m(2.1);
@@ -20,7 +21,7 @@ const frontHead = m(2.6);
 const transom = mm(100); // between the top of the door and the fanlight
 const frontWindowSize = { width: m(2.5), height: sub(frontHead, mm(500)), sillHeight: mm(500) };
 const fanlightSill = add(front.height, transom);
-const frontWindowCentreY = mm(3025); // where the drawing shows it
+const frontWindowCentreY = mm(Math.round((living.outline[1]!.y + living.outline[2]!.y) / 2)); // centred on the living room
 const livingDoorY = mm(3955); // plan y of the living-room door's south jamb
 
 export const openings: Opening[] = [
