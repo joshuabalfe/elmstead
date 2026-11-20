@@ -1,7 +1,8 @@
 /**
  * Local IFC viewer on That Open Engine: loads out/<model>.ifc, converts it to Fragments in the
  * browser and shows it, with the plan's room dimensions at each storey's ceiling and room names on
- * billboards that face the camera (from out/<model>.building.json). Query params: ?model=<name>&view=<sw|se|ne|nw|top>&snapshot=1&labels=0|1
+ * billboards that face the camera, and a compass pointing to true north (all from
+ * out/<model>.building.json). Query params: ?model=<name>&view=<sw|se|ne|nw|top>&snapshot=1&labels=0|1
  * (snapshot hides the UI and sets window.__elmsteadReady once the first frame is drawn; labels are
  * on by default, except in snapshots, which show the IFC alone).
  */
@@ -61,6 +62,38 @@ const labels = new THREE.Group();
 labels.visible = params.get("labels") === "1" || (!snapshot && params.get("labels") !== "0");
 world.scene.three.add(labels);
 
+/** True north, degrees counter-clockwise from plan +y (site.northAngle); null when there is no model JSON. */
+let northAngle: number | null = null;
+const compass = document.getElementById("compass")!;
+const compassArrow = document.getElementById("compass-arrow")!;
+const compassN = document.getElementById("compass-n")!;
+
+/**
+ * Turn the compass so its arrow lies along true north as it appears on screen: project a line
+ * pointing north from the middle of the ground, so perspective views read the same as the ground.
+ */
+function updateCompass() {
+  compass.hidden = !labels.visible || northAngle === null;
+  if (compass.hidden) return;
+  const a = (northAngle! * Math.PI) / 180;
+  const centre = box.getCenter(new THREE.Vector3()).setY(box.min.y);
+  // Plan north (−sin a, cos a) in IFC x/y; the scene has IFC +y along −Z.
+  const tip = centre.clone().add(new THREE.Vector3(-Math.sin(a), 0, -Math.cos(a)));
+  const camera = world.camera.three;
+  const [p, q] = [centre.project(camera), tip.project(camera)];
+  const { clientWidth: w, clientHeight: h } = world.renderer!.three.domElement;
+  const dx = ((q.x - p.x) * w) / 2;
+  const dy = (-(q.y - p.y) * h) / 2;
+  if (Math.hypot(dx, dy) < 1e-6) return;
+  const turn = Math.atan2(dx, -dy); // clockwise from screen up
+  compassArrow.setAttribute("transform", `rotate(${(turn * 180) / Math.PI})`);
+  // The N stays upright beyond the arrow's tip, as on the plan.
+  compassN.setAttribute("x", String(33 * Math.sin(turn)));
+  compassN.setAttribute("y", String(-33 * Math.cos(turn) + 5));
+}
+world.camera.controls.addEventListener("update", updateCompass);
+window.addEventListener("resize", updateCompass);
+
 /** A room's name and area as a sprite, which always faces the camera, at the plan's text size. */
 function roomBillboard(name: string, area: string): THREE.Sprite {
   const lines = [
@@ -110,9 +143,11 @@ async function loadLabels(name: string) {
     obj.material.dispose();
   }
   labels.clear();
+  northAngle = null;
   const res = await fetch(`/out/${name}.building.json`);
   if (!res.ok) return; // no JSON next to the IFC: show the IFC without labels
   const model = (await res.json()) as BuildingModel;
+  northAngle = model.site.northAngle ?? 0;
   for (const storey of model.storeys) {
     const { svg, bounds } = renderRoomLabels(storey, { names: false });
     const img = new Image();
@@ -163,6 +198,7 @@ async function setView(view: View) {
   sphere.radius *= view === "top" ? 0.78 : 0.92; // the sphere is loose around a flat box; tighten the framing
   await world.camera.controls.fitToSphere(sphere, false);
   await fragments.core.update(true);
+  updateCompass();
 }
 
 async function load(name: string) {
@@ -185,6 +221,7 @@ labelsButton.setAttribute("aria-pressed", String(labels.visible));
 labelsButton.addEventListener("click", () => {
   labels.visible = !labels.visible;
   labelsButton.setAttribute("aria-pressed", String(labels.visible));
+  updateCompass();
 });
 
 document.querySelectorAll<HTMLButtonElement>("[data-view]").forEach((b) =>

@@ -80,6 +80,9 @@ openings cut, doors and glazing in place, colours applied.
     centroid and the plan's text size (`roomTags` and `ROOM_LABEL` in `src/render/style.ts`).
     They are drawn over the model so the wall tops don't cut them.
   - All of it has a white halo so it reads over the model.
+  - A compass in the bottom-right corner points to true north (`site.northAngle`) as it appears on
+    screen. It projects a north-pointing line on the ground, so it is right in perspective views
+    too, and it turns as the camera moves.
   - They come from the model JSON, not the IFC, because the IFC has no room dimensions.
   - The **Labels** button toggles them. `?labels=0` or `?labels=1` in the URL sets them.
   - They are on by default, but off in snapshots (`?snapshot=1`), so the 3D PNGs show only the IFC.
