@@ -63,7 +63,8 @@ openings cut, doors and glazing in place, colours applied.
 [@thatopen/components](https://github.com/ThatOpen/engine_components) and three.js.
 
 - `vite.config.ts` serves `/models.json` (the IFCs in `out/`), `/out/*` and the web-ifc WASM
-  from `node_modules`, so nothing comes from a CDN.
+  from `node_modules`, so nothing comes from a CDN. `ELMSTEAD_OUT_DIR` serves another folder in
+  place of `out/` (the tests use it).
 - `main.ts` loads the IFC through ThatOpen's IFC loader and sets up the camera views.
   - In the scene Y is up and plan north is −Z.
   - The loader keeps IFC coordinates as they are (`COORDINATE_TO_ORIGIN: false`), so anything
