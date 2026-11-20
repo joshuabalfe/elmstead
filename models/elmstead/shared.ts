@@ -8,9 +8,9 @@
 import { m, mm, pt } from "../../src/model/index.js";
 
 // ── Outline ──────────────────────────────────────────────────────────────────
-export const coreW = m(8);
-export const coreD = m(7.4);
-export const extEastX = m(9.4); // outside face of the extension's east wall
+export const coreW = m(8.975); // living 4.2 m + bedroom 3.8 m (owner) plus the walls between and outside them
+export const coreD = m(8.425); // living 5.8 m + hallway 1.5 m (owner) plus the walls between and outside them
+export const extEastX = m(10.375); // outside face of the extension's east wall; keeps its traced 1.4 m width
 export const extSouthY = m(5); //  outside face of the extension's south wall
 
 /** Outside of the core plus the rear extension (north-east corner). */

@@ -1,5 +1,5 @@
 /**
- * Elmstead. 8 m × 7.4 m stone core with a brick extension at the rear, north-east corner.
+ * Elmstead. 8.975 m × 8.425 m stone core with a brick extension at the rear, north-east corner.
  *
  *   shared.ts     outline, external wall thicknesses and floor levels used by every floor
  *   components/   door and window designs (doors.ts, windows.ts), shared by every floor

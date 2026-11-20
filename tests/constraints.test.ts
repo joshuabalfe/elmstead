@@ -324,7 +324,7 @@ describe("checkConstraints", () => {
 });
 
 describe("the models' constraints", () => {
-  for (const [path, count] of [["models/example-cottage.ts", 6], ["models/elmstead", 2]] as const) {
+  for (const [path, count] of [["models/example-cottage.ts", 6], ["models/elmstead", 9]] as const) {
     it(`${path} meets all ${count} of its constraints`, async () => {
       const loaded = await loadModel(path);
       const constraints = await loadConstraints(path);

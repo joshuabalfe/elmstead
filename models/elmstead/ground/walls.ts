@@ -3,6 +3,7 @@
  * these, so this is the file to edit to move a wall.
  *
  * Measured from the owner's plan image at 8 m = 1689 px (about 4.74 mm per px), rounded to 25 mm.
+ * The living room and hallway sizes are the owner's measurements, not traced.
  */
 import { face, mm, pt, sub, wall } from "../../../src/model/index.js";
 import { brickT, coreD, coreW, eastT, extEastX, extSouthY, groundFloor, northT, partT, southT, studT, westT } from "../shared.js";
@@ -11,13 +12,13 @@ export const wallH = groundFloor.ceilingHeight; // walls stop at the ceiling unt
 const breastT = mm(350); // chimney breast / thickened wall projecting from the south wall
 
 // ── Internal layout (plan faces) ─────────────────────────────────────────────
-export const partitionX = mm(4025); //  west face of the living/bedroom partition
-export const hallWallY = mm(5525); //   south face of the hall/living wall
-export const bedroomWallY = mm(3515); // south face of the bedroom/bathroom wall
-export const bathWestX = mm(5205); //   west face of the lobby/bathroom wall
-export const bathNorthY = mm(5100); //  south face of the bathroom's north wall
-export const spineY = mm(6025); //      south face of the wall between the stair flights
-export const spineEastX = mm(7920);
+export const partitionX = mm(4650); //  west face of the living/bedroom partition; living room 4.2 m wide (owner)
+export const hallWallY = mm(6400); //   south face of the hall/living wall; living room 5.8 m deep from the breast (owner)
+export const bedroomWallY = mm(3900); // south face of the bedroom/bathroom wall; bedroom 3.3 m deep from the breast (owner)
+export const bathWestX = mm(5550); //   west face of the lobby/bathroom wall; bathroom 2.9 m wide (owner)
+export const bathNorthY = mm(5675); //  south face of the bathroom's north wall; bathroom 1.6 m deep (owner)
+export const spineY = mm(6900); //      south face of the wall between the stair flights; keeps its traced offset from the hall wall
+export const spineEastX = mm(8895); // keeps its traced overlap into the east wall
 export const livingBreast = { west: mm(1050), east: mm(3425) };
 
 // ── External walls (counter-clockwise, body on the left = inside) ────────────
@@ -48,7 +49,7 @@ export const hallLiving = wall("wall-hall-living", pt(westIn, hallWallY), pt(par
 export const breastBedroom = wall("wall-breast-bedroom", pt(partitionEast, southIn), pt(eastIn, southIn), { thickness: breastT, height: wallH, justification: "left" });
 export const bedroomBathroom = wall("wall-bedroom-bathroom", pt(partitionEast, bedroomWallY), pt(eastIn, bedroomWallY), { ...inner, justification: "left" });
 export const lobbyBathroom = wall("wall-lobby-bathroom", pt(bathWestX, face(bedroomBathroom, "north")), pt(bathWestX, face(bathNorth, "north")), { ...inner, justification: "right" });
-export const spine = wall("wall-stair-spine", pt(mm(4650), spineY), pt(spineEastX, spineY), { ...inner, justification: "left" });
+export const spine = wall("wall-stair-spine", pt(mm(5275), spineY), pt(spineEastX, spineY), { ...inner, justification: "left" });
 // Diagonal screen from the hall wall's corner to the end of the stair spine, holding the lobby door.
 export const lobbyScreen = wall("wall-lobby-screen", pt(partitionEast, face(hallLiving, "north")), spine.start, { thickness: studT, height: wallH, justification: "centre" });
 
