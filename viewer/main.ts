@@ -330,7 +330,10 @@ interface SavedView {
   position: THREE.Vector3;
   target: THREE.Vector3;
   ortho: { left: number; right: number; top: number; bottom: number; zoom: number };
+  near: number;
 }
+/** The perspective near plane while walking: OBC's default 1 m would clip every wall within arm's reach. */
+const WALK_NEAR = 0.05;
 let savedView: SavedView | null = null;
 const walkKeys = new Set<string>();
 let walkRaf = 0;
@@ -357,6 +360,7 @@ async function enterWalk(lock: boolean) {
     position: controls.getPosition(new THREE.Vector3()),
     target: controls.getTarget(new THREE.Vector3()),
     ortho: { left: ortho.left, right: ortho.right, top: ortho.top, bottom: ortho.bottom, zoom: ortho.zoom },
+    near: world.camera.threePersp.near,
   };
   const start = entryPosition(box, lowestElevation);
   walkEyeY = start.y;
@@ -364,6 +368,8 @@ async function enterWalk(lock: boolean) {
   world.camera.enabled = false;
   controls.enabled = false;
   const camera = world.camera.three;
+  camera.near = WALK_NEAR;
+  camera.updateProjectionMatrix();
   camera.position.copy(start);
   camera.quaternion.identity(); // an identity quaternion faces scene −Z, which is plan north
   if (!pointerLockControls) {
@@ -401,6 +407,8 @@ async function exitWalk() {
   walkHint.hidden = true;
   status.textContent = `${select.value}.ifc`;
   world.camera.enabled = true;
+  world.camera.threePersp.near = restore.near;
+  world.camera.threePersp.updateProjectionMatrix();
   await world.camera.projection.set(restore.projection);
   if (restore.projection === "Orthographic") {
     // The projection switch recomputes the ortho frustum from the walk pose and resets the zoom;
