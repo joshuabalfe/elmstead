@@ -37,7 +37,7 @@ In walk mode, pointer-lock mouse movement SHALL look around. W/A/S/D and the arr
 - **THEN** walk mode stays active, the click-to-look prompt remains, and keyboard movement still works
 
 ### Requirement: Leaving walk mode
-Walk mode SHALL end on Escape, on pointer-lock release, when another view is chosen, or when the model changes. Ending it SHALL restore the camera projection and pose that were active before entry.
+Walk mode SHALL end on Escape, on pointer-lock release, when another view is chosen, or when the model changes. Ending it SHALL restore the camera projection, pose and framing that were active before entry.
 
 #### Scenario: Escape
 - **WHEN** the user presses Escape in walk mode
