@@ -86,6 +86,16 @@ describe("CLI", () => {
     expect(r.files).toEqual([]);
   });
 
+  it("warns and keeps the plans when Chromium is missing", () => {
+    const browsers = mkdtempSync(join(tmpdir(), "elmstead-no-chromium-"));
+    dirs.push(browsers);
+    const r = run(["all", "models/example-cottage.ts"], { PLAYWRIGHT_BROWSERS_PATH: browsers });
+    expect(r.status).toBe(0);
+    expect(output(r)).toContain("3D snapshots skipped: Chromium missing");
+    expect(r.files).toContain("example-cottage.storey-ground.plan.png");
+    expect(r.files.some((f) => f.includes(".3d-"))).toBe(false);
+  }, 120_000);
+
   it("runs build and render for all, skipping 3D when asked", () => {
     const r = run(["all", "models/example-cottage.ts", "--no-3d"]);
     expect(r.status).toBe(0);

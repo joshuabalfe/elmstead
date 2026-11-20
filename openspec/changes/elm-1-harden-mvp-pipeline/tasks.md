@@ -18,7 +18,7 @@
 
 - [x] 3.1 Remove the CLI `load()` wrapper's `process.exit`, wrap command dispatch in a `try/catch` that turns unexpected pipeline errors into an ERROR issue while keeping model-evaluation stacks inside their issue, and add CLI integration tests for missing-wall and zero-length-wall fixtures. Verify that `npm test` shows formatted issues, no pipeline stack trace and no partial output.
 - [x] 3.2 Implement `check` (run `checkModel`, write nothing) and `all` (build then render, stopping on build errors), update `USAGE`, `docs/README.md` and `docs/getting-started.md`. Verify `npm run check` and `npm run all` on the cottage and on an invalid fixture.
-- [ ] 3.3 Write JSON, IFC, plan SVG/PNG and snapshot PNG files through `writeFileAtomic` using a per-process temp name and cleaning it up on failure; add a test that an interrupted write preserves the previous file. Build JSON and IFC in memory before writing either, and reload the viewer on `add` as well as `change`. Verify `npm test` and that `out/` contents still match a normal build.
+- [x] 3.3 Write JSON, IFC, plan SVG/PNG and snapshot PNG files through `writeFileAtomic` using a per-process temp name and cleaning it up on failure; add a test that an interrupted write preserves the previous file. Build JSON and IFC in memory before writing either, and reload the viewer on `add` as well as `change`. Verify `npm test` and that `out/` contents still match a normal build.
 - [x] 3.4 Add `tests/cli.test.ts` covering: valid build, component-check failure writes nothing, missing-host error, render-before-build warning, and `check`/`all` exit statuses. Verify with `npx vitest run tests/cli.test.ts`.
 
 ## 4. IFC verification and export
@@ -28,14 +28,14 @@
 
 ## 5. Snapshot lifecycle
 
-- [ ] 5.1 Restructure `snapshot3d` so the browser and Vite server close on every success and failure path; write screenshots through `writeFileAtomic`. Verify with a test that points `PLAYWRIGHT_BROWSERS_PATH` at an empty directory and asserts the process exits 0 with a WARNING and the plans still exist.
-- [ ] 5.2 Classify missing Chromium as WARNING and every other viewer/snapshot failure as ERROR in `render3d`, and verify the CLI exit statuses. Update `docs/rendering.md` and `docs/getting-started.md` if the wording changes.
+- [x] 5.1 Restructure `snapshot3d` so the browser and Vite server close on every success and failure path; write screenshots through `writeFileAtomic`. Verify with a test that points `PLAYWRIGHT_BROWSERS_PATH` at an empty directory and asserts the process exits 0 with a WARNING and the plans still exist.
+- [x] 5.2 Classify missing Chromium as WARNING and every other viewer/snapshot failure as ERROR in `render3d`, and verify the CLI exit statuses. Update `docs/rendering.md` and `docs/getting-started.md` if the wording changes.
 
 ## 6. Viewer hardening
 
-- [ ] 6.1 Confine the Vite middleware to its output and WASM directories using a relative-path check, and reject malformed percent-encoding without throwing. Verify with a dev-server test or an extracted helper test covering a normal file, `../` escape and a sibling `out-*` directory.
-- [ ] 6.2 Validate `?view=` against the five known views and build model `<option>` elements with `textContent` instead of `innerHTML`. Verify with a viewer test or the plan-versus-3D suite plus a manual `?view=sideways` check, and update `docs/rendering.md`.
-- [ ] 6.3 Run the full viewer suite (`tests/plan-vs-3d.test.ts`) and confirm the Top view still matches the plan for both models.
+- [x] 6.1 Confine the Vite middleware to its output and WASM directories using a relative-path check, and reject malformed percent-encoding without throwing. Verify with a dev-server test or an extracted helper test covering a normal file, `../` escape and a sibling `out-*` directory.
+- [x] 6.2 Validate `?view=` against the five known views and build model `<option>` elements with `textContent` instead of `innerHTML`. Verify with a viewer test or the plan-versus-3D suite plus a manual `?view=sideways` check, and update `docs/rendering.md`.
+- [x] 6.3 Run the full viewer suite (`tests/plan-vs-3d.test.ts`) and confirm the Top view still matches the plan for both models.
 
 ## 7. Elmstead model cleanup
 

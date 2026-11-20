@@ -1,6 +1,7 @@
 import { createReadStream, existsSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
+import { confinedPath } from "./serve.js";
 
 const root = resolve(import.meta.dirname, "..");
 // ELMSTEAD_OUT_DIR lets tests serve models from a temporary folder instead of out/.
@@ -24,15 +25,21 @@ function elmstead(): Plugin {
           return;
         }
         const serve = (dir: string, prefix: string, type: string) => {
-          const file = join(dir, decodeURIComponent(url.pathname.slice(prefix.length)));
-          if (!file.startsWith(dir) || !existsSync(file) || !statSync(file).isFile()) return false;
+          const file = confinedPath(dir, url.pathname.slice(prefix.length));
+          if (!file || !existsSync(file) || !statSync(file).isFile()) return false;
           res.setHeader("content-type", type);
           res.setHeader("cache-control", "no-store");
           createReadStream(file).pipe(res);
           return true;
         };
-        if (url.pathname.startsWith("/out/") && serve(outDir, "/out/", "application/octet-stream")) return;
-        if (url.pathname.startsWith("/wasm/") && serve(wasmDir, "/wasm/", "application/wasm")) return;
+        const serveOr404 = (prefix: string, dir: string, type: string) => {
+          if (!serve(dir, prefix, type)) {
+            res.statusCode = 404;
+            res.end();
+          }
+        };
+        if (url.pathname.startsWith("/out/")) return serveOr404("/out/", outDir, "application/octet-stream");
+        if (url.pathname.startsWith("/wasm/")) return serveOr404("/wasm/", wasmDir, "application/wasm");
         next();
       });
       server.watcher.add(join(outDir, "*.ifc"));
