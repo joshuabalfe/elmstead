@@ -13,6 +13,7 @@ import {
   centredOn,
   defineBuilding,
   door,
+  doorComponent,
   face,
   m,
   mm,
@@ -21,6 +22,7 @@ import {
   rectWalls,
   wall,
   window,
+  windowComponent,
   type Opening,
 } from "../src/model/index.js";
 
@@ -37,11 +39,12 @@ const livingDepth = m(3.4); // centreline of the living/kitchen wall, from the o
 const bedroomDepth = m(3.8); // centreline of the bedroom/bathroom wall
 
 // ── Openings ─────────────────────────────────────────────────────────────────
-const windowW = m(1.2); // every window shares this width
-const windowH = m(1.2);
+// Door and window designs (the building's `components`): each opening says which one it is.
+const sash = windowComponent("window-type-sash", "Sash window", { width: m(1.2), height: m(1.2) }); // every window
+const windowW = sash.width;
 const windowSill = mm(900);
-const extDoor = { width: mm(900), height: m(2.1) };
-const intDoor = { width: mm(800), height: m(2.1) };
+const extDoor = doorComponent("door-type-external", "External door", { width: mm(900), height: m(2.1) });
+const intDoor = doorComponent("door-type-internal", "Internal door", { width: mm(800), height: m(2.1) });
 
 // ── Walls ────────────────────────────────────────────────────────────────────
 const ext = rectWalls("wall", pt(mm(0), mm(0)), houseWidth, houseDepth, { thickness: extWallT, height: wallH });
@@ -69,7 +72,7 @@ const mid = (a: number, b: number) => mm(Math.round((a + b) / 2));
 const xMid = (r: typeof hall) => mid(r.outline[0]!.x, r.outline[1]!.x);
 const yMid = (r: typeof hall) => mid(r.outline[1]!.y, r.outline[2]!.y);
 
-const win = { width: windowW, height: windowH, sillHeight: windowSill };
+const win = { sillHeight: windowSill };
 
 const openings: Opening[] = [
   // External doors open inwards (the inside is to the left of every external wall).
@@ -82,16 +85,17 @@ const openings: Opening[] = [
   door("door-bedroom", hallEast, centredOn(hallEast, yMid(bedroom), intDoor.width), intDoor, { hinge: "start", side: "right" }),
   door("door-bathroom", hallEast, centredOn(hallEast, yMid(bathroom), intDoor.width), intDoor, { hinge: "end", side: "right" }),
 
-  window("window-living", ext.south, centredOn(ext.south, xMid(living), windowW), win),
-  window("window-bedroom", ext.south, centredOn(ext.south, xMid(bedroom), windowW), win),
-  window("window-kitchen", ext.north, centredOn(ext.north, xMid(kitchen), windowW), win),
-  window("window-bathroom", ext.east, centredOn(ext.east, yMid(bathroom), windowW), win),
+  window("window-living", ext.south, centredOn(ext.south, xMid(living), windowW), sash, win),
+  window("window-bedroom", ext.south, centredOn(ext.south, xMid(bedroom), windowW), sash, win),
+  window("window-kitchen", ext.north, centredOn(ext.north, xMid(kitchen), windowW), sash, win),
+  window("window-bathroom", ext.east, centredOn(ext.east, yMid(bathroom), windowW), sash, win),
 ];
 
 export default defineBuilding({
   project: { id: "project-elmstead", name: "Elmstead" },
   site: { id: "site-default", name: "Default site" },
   building: { id: "building-cottage", name: "Example cottage" },
+  components: { doors: [extDoor, intDoor], windows: [sash] },
   storeys: [
     {
       id: "storey-ground",

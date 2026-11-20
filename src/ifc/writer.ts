@@ -79,6 +79,8 @@ class Writer {
   private readonly origin3 = new IFC4.IfcCartesianPoint([len(0), len(0), len(0)]);
   private readonly zAxis = new IFC4.IfcDirection([real(0), real(0), real(1)]);
   private bodyCtx!: InstanceType<typeof IFC4.IfcGeometricRepresentationSubContext>;
+  /** Doors and windows written so far, by the componentId they are an instance of. */
+  private readonly instances = new Map<string, InstanceType<typeof IFC4.IfcObject>[]>();
   private axisCtx!: InstanceType<typeof IFC4.IfcGeometricRepresentationSubContext>;
   private footprintCtx!: InstanceType<typeof IFC4.IfcGeometricRepresentationSubContext>;
 
@@ -184,6 +186,7 @@ class Writer {
 
     const storeys = model.storeys.map((s) => this.storey(s, buildingPlacement));
     this.write(new IFC4.IfcRelAggregates(guid(`${model.building.id}#aggregates`), null, null, null, building, storeys));
+    this.components(model, project);
   }
 
   private storey(s: Storey, parent: InstanceType<typeof IFC4.IfcLocalPlacement>) {
@@ -247,6 +250,7 @@ class Writer {
     );
     this.write(new IFC4.IfcRelVoidsElement(guid(`${o.id}#voids`), null, null, null, wallEntity, opening));
     const filling = o.kind === "door" ? this.door(o, mid, placement) : this.window(o, mid, placement);
+    if (o.componentId) this.instances.set(o.componentId, [...(this.instances.get(o.componentId) ?? []), filling]);
     this.write(new IFC4.IfcRelFillsElement(guid(`${o.id}#fills`), null, null, null, opening, filling));
     return filling;
   }
@@ -300,6 +304,27 @@ class Writer {
         null,
       ),
     );
+  }
+
+  /**
+   * Door and window components become IfcDoorType / IfcWindowType, declared in the project and
+   * linked to the doors and windows that use them. A door type's operation is NOTDEFINED: handing
+   * (left or right) varies door by door, and each IfcDoor keeps its own.
+   */
+  private components(model: BuildingModel, project: InstanceType<typeof IFC4.IfcProject>) {
+    const types: InstanceType<typeof IFC4.IfcTypeObject>[] = [];
+    const define = (id: string, type: InstanceType<typeof IFC4.IfcTypeObject>) => {
+      types.push(this.write(type));
+      const used = this.instances.get(id);
+      if (used?.length) this.write(new IFC4.IfcRelDefinesByType(guid(`${id}#instances`), null, null, null, used, type));
+    };
+    for (const c of model.components?.doors ?? []) {
+      define(c.id, new IFC4.IfcDoorType(guid(c.id), null, label(c.name), null, null, null, null, label(c.id), null, IFC4.IfcDoorTypeEnum.DOOR, IFC4.IfcDoorTypeOperationEnum.NOTDEFINED, null, null));
+    }
+    for (const c of model.components?.windows ?? []) {
+      define(c.id, new IFC4.IfcWindowType(guid(c.id), null, label(c.name), null, null, null, null, label(c.id), null, IFC4.IfcWindowTypeEnum.WINDOW, IFC4.IfcWindowTypePartitioningEnum.SINGLE_PANEL, null, null));
+    }
+    if (types.length) this.write(new IFC4.IfcRelDeclares(guid(`${model.project.id}#types`), null, null, null, project, types));
   }
 
   /** Slab top is at storey + elevationOffset; it is swept upwards from (top − thickness). */

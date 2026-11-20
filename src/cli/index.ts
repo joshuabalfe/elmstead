@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { checkComponents } from "../checks/components.js";
 import { formatIssue, hasErrors, type Issue } from "../checks/issue.js";
 import { formatJson } from "./json-format.js";
 import { loadModel, type LoadedModel } from "./load.js";
@@ -61,6 +62,9 @@ async function main(argv: string[]): Promise<number> {
   const issues: Issue[] = [];
   switch (command) {
     case "build": {
+      const checked = checkComponents(loaded.model);
+      issues.push(...checked);
+      if (hasErrors(checked)) break; // nothing written: fix the model first
       const jsonPath = writeJson(loaded);
       console.log(`json    ${jsonPath}`);
       await buildIfc(loaded.name, jsonPath, issues);

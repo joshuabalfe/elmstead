@@ -64,7 +64,7 @@ src/
   schema/            units (Mm, mm(), m(), deg()) and the zod schema
   model/             authoring helpers: wall, rectWalls, face, rectRoom, door, window, centredOn
   geometry/          2D vector, wall and polygon maths shared by renderers, writer and checks
-  checks/            Issue type and formatting (model-level checks will live here)
+  checks/            Issue type and formatting; model-level checks (components.ts so far)
   cli/               command entry point, model loading, deterministic JSON formatting
   ifc/               IFC writer, GUIDs, round-trip geometry checks, validator bridge
   render/            plan SVG, PNG rasterising, 3D snapshot driver

@@ -39,6 +39,11 @@ const openingBase = {
   id: IdSchema,
   name: z.string().optional(),
   wallId: IdSchema,
+  /**
+   * The door or window component (in `components`) this opening is one of. Its width and height
+   * must match the component's (src/checks/components.ts).
+   */
+  componentId: IdSchema.optional(),
   /** Distance along the wall from its start to the opening's near edge. */
   offsetAlongWall: NonNegativeMmSchema,
   width: PositiveMmSchema,
@@ -83,6 +88,25 @@ export const StoreySchema = z.strictObject({
   rooms: z.array(RoomSchema),
 }).meta({ id: "Storey" });
 
+/**
+ * A door or window design shared by every opening that uses it, written to IFC as an IfcDoorType
+ * or IfcWindowType. Openings keep their own width and height (so nothing downstream has to look the
+ * component up); the checks make sure they match.
+ */
+const componentBase = {
+  id: IdSchema,
+  name: z.string().min(1),
+  width: PositiveMmSchema,
+  height: PositiveMmSchema,
+};
+export const DoorComponentSchema = z.strictObject(componentBase).meta({ id: "DoorComponent" });
+export const WindowComponentSchema = z.strictObject(componentBase).meta({ id: "WindowComponent" });
+
+export const ComponentsSchema = z.strictObject({
+  doors: z.array(DoorComponentSchema),
+  windows: z.array(WindowComponentSchema),
+}).meta({ id: "Components" });
+
 const NamedSchema = z.strictObject({ id: IdSchema, name: z.string().min(1) });
 
 export const SiteSchema = z.strictObject({
@@ -97,6 +121,8 @@ export const BuildingModelSchema = z.strictObject({
   project: NamedSchema,
   site: SiteSchema,
   building: NamedSchema,
+  /** Door and window designs that openings refer to by componentId. */
+  components: ComponentsSchema.optional(),
   storeys: z.array(StoreySchema).min(1),
 });
 
@@ -107,6 +133,9 @@ export type Swing = z.infer<typeof SwingSchema>;
 export type Door = z.infer<typeof DoorSchema>;
 export type Window = z.infer<typeof WindowSchema>;
 export type Opening = z.infer<typeof OpeningSchema>;
+export type DoorComponent = z.infer<typeof DoorComponentSchema>;
+export type WindowComponent = z.infer<typeof WindowComponentSchema>;
+export type Components = z.infer<typeof ComponentsSchema>;
 export type Slab = z.infer<typeof SlabSchema>;
 export type Room = z.infer<typeof RoomSchema>;
 export type Storey = z.infer<typeof StoreySchema>;

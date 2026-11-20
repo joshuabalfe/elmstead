@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { centredOn, face, faceCrossing, m, mm, pt, rectWalls, wall } from "../src/model/index.js";
+import { centredOn, door, doorComponent, face, faceCrossing, m, mm, pt, rectWalls, wall, window, windowComponent } from "../src/model/index.js";
 
 const opts = { thickness: mm(200), height: m(2.4) };
 
@@ -41,6 +41,16 @@ describe("model helpers", () => {
     // An axis-aligned wall agrees with face().
     expect(faceCrossing(w.south, "left", "x", mm(3000)).y).toBe(face(w.south, "north"));
     expect(() => faceCrossing(w.south, "left", "y", mm(100))).toThrow(/runs along/);
+  });
+
+  it("door() and window() take a component, and link to it", () => {
+    const internal = doorComponent("door-type-internal", "Internal door", { width: mm(800), height: m(2.1) });
+    const sash = windowComponent("window-type-sash", "Sash", { width: m(1.2), height: m(1.2) });
+    expect(door("door-a", w.south, mm(100), internal)).toMatchObject({ componentId: "door-type-internal", width: 800, height: 2100, sillHeight: 0 });
+    expect(window("window-a", w.south, mm(100), sash, { sillHeight: mm(900) })).toMatchObject({ componentId: "window-type-sash", width: 1200, height: 1200, sillHeight: 900 });
+    // A bare size still works, with no component.
+    expect(window("window-b", w.south, mm(100), { width: m(1), height: m(1), sillHeight: mm(900) })).not.toHaveProperty("componentId");
+    expect(door("door-b", w.south, mm(100), { width: mm(800), height: m(2.1) })).not.toHaveProperty("componentId");
   });
 
   it("centredOn() handles walls running in either direction", () => {
