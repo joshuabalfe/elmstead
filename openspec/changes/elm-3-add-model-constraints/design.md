@@ -4,7 +4,7 @@
 
 - `loadModel` (`src/cli/load.ts`) imports a model module, round-trips its default export through
   JSON and parses it with the zod schema. The CLI then runs `checkModel` before `build`, `render`,
-  `check` and `all` write anything (as hardened by `harden-mvp-pipeline`).
+  `check` and `all` write anything (as hardened by `elm-1-harden-mvp-pipeline`).
 - Ids are unique across the whole model, so an id alone finds an element and its storey.
 - Wall geometry already has what points need: `wallDirection`, `faceOffsets` and `wallPoint` in
   `src/geometry/wall.ts`. `face()` in `src/model/helpers.ts` gives compass faces of axis-aligned
@@ -141,5 +141,5 @@ The pipeline cannot tell who edited a file, so the protection is a rule plus vis
 
 ## Migration Plan
 
-Additive. Models without a constraints file behave exactly as before. `harden-mvp-pipeline` should
+Additive. Models without a constraints file behave exactly as before. `elm-1-harden-mvp-pipeline` should
 be archived first, so `check`, `all` and the model-wide unique ids are part of the baseline specs.

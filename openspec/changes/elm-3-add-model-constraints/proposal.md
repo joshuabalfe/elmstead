@@ -46,7 +46,7 @@ No change to the building schema, `building.json`, the exported JSON Schema or t
 
 ### Modified Capabilities
 <!-- None: the gating is specified in model-constraints so this change does not touch the
-     model-checks and cli requirements that harden-mvp-pipeline is modifying. -->
+     model-checks and cli requirements that elm-1-harden-mvp-pipeline is modifying. -->
 
 ## Impact
 
@@ -55,6 +55,6 @@ No change to the building schema, `building.json`, the exported JSON Schema or t
 - New `models/elmstead/constraints.ts`, and constraints for `models/example-cottage.ts` used as a
   test fixture.
 - Docs: `docs/modelling.md`, `AGENTS.md`.
-- Builds on `harden-mvp-pipeline` (the `check` and `all` commands, `checkModel`, model-wide unique
+- Builds on `elm-1-harden-mvp-pipeline` (the `check` and `all` commands, `checkModel`, model-wide unique
   ids). That change should be archived before this one, so its specs are the baseline.
 - No new dependencies.

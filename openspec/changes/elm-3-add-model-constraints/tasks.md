@@ -31,5 +31,5 @@
 
 ## Workflow follow-up
 
-- Archive `harden-mvp-pipeline` before archiving this change, so its specs are the baseline.
+- Archive `elm-1-harden-mvp-pipeline` before archiving this change, so its specs are the baseline.
 - Archive this change once it has been reviewed and merged.
