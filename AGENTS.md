@@ -44,6 +44,13 @@ Changes are tracked with [OpenSpec](https://github.com/Fission-AI/OpenSpec), in 
 - `openspec/changes/<name>/` holds a change in progress: proposal, delta specs, design and tasks.
 - `openspec/changes/archive/` holds completed changes, so the history lives here.
 
+Every change is numbered like a ticket: `elm-<N>-<name>`, for example `elm-2-add-model-constraints`.
+To propose one, take N from `openspec/next-change-number`, name the change `elm-<N>-<name>`, and
+increment the file in the same commit. Never reuse or renumber a change. If two branches take the
+same number, the file conflicts when they merge: the branch merged second takes the next number
+and renames its change. `npm test` fails on an unnumbered change, a reused number or a stale
+counter.
+
 For anything beyond a small fix or a model tweak, use the skills in `.agents/skills/`:
 
 | Skill | Use it to |
