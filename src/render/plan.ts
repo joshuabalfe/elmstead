@@ -1,7 +1,8 @@
 import { faceOffsets, wallDirection, wallLength, wallPoint, wallSegmentFootprint } from "../geometry/wall.js";
 import { area, bounds, centroid, spans, type Bounds } from "../geometry/polygon.js";
+import { GLAZING_BAR_DEPTH, windowDivision } from "../geometry/window.js";
 import { dot, perpLeft, toVec, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";
-import type { BuildingModel, Door, Opening, Storey, Wall, Window } from "../schema/schema.js";
+import type { BuildingModel, Components, Door, Glazing, Opening, Storey, Wall, Window } from "../schema/schema.js";
 import { C, CUT_HEIGHT, FONT, MARGIN, PX_PER_MM, ROOM_LABEL } from "./style.js";
 import { el, group, line, num, polygon, polyline, text } from "./svg.js";
 
@@ -98,17 +99,27 @@ function drawDoorGap(w: Wall, d: Door, view: View): string {
   ]);
 }
 
-function drawWindow(w: Wall, win: Window, view: View): string {
+/** Frame, two glass lines, and any vertical glazing bars, which the cut passes through. */
+function drawWindow(w: Wall, win: Window, view: View, glazing?: Glazing): string {
   const { left, right } = faceOffsets(w);
   const a = win.offsetAlongWall;
   const b = a + win.width;
   const frame = wallSegmentFootprint(w, a, b).map(view.toPx);
   const mid = (left + right) / 2;
   const glassGap = Math.min(25, (left - right) / 6);
+  // Vertical bars run the window's full height, so the cut always passes through them.
+  const bars = windowDivision(win, glazing).bars.filter((r) => r.h === win.height);
+  const barHalf = Math.min(GLAZING_BAR_DEPTH, left - right) / 2;
   return group({ class: "window", "data-id": win.id }, [
     polygon(frame, { fill: C.paper, stroke: C.opening, "stroke-width": 0.8 }),
     line(view.toPx(wallPoint(w, a, mid + glassGap)), view.toPx(wallPoint(w, b, mid + glassGap)), { stroke: C.glass, "stroke-width": 1 }),
     line(view.toPx(wallPoint(w, a, mid - glassGap)), view.toPx(wallPoint(w, b, mid - glassGap)), { stroke: C.glass, "stroke-width": 1 }),
+    ...bars.map((r) =>
+      polygon(
+        [wallPoint(w, a + r.x, mid - barHalf), wallPoint(w, a + r.x + r.w, mid - barHalf), wallPoint(w, a + r.x + r.w, mid + barHalf), wallPoint(w, a + r.x, mid + barHalf)].map(view.toPx),
+        { class: "glazing-bar", fill: C.opening, stroke: "none" },
+      ),
+    ),
   ]);
 }
 
@@ -299,7 +310,8 @@ export function renderPlanAnnotations(storey: Storey, { names = true }: { names?
  * `doors` picks what a cut door draws: its swing (the plan), its gap in the paper colour (the 3D
  * wall tops, which aren't cut), or nothing.
  */
-function wallsAndOpenings(storey: Storey, view: View, doors: "swing" | "gap" = "swing"): string[] {
+function wallsAndOpenings(storey: Storey, view: View, components: Components | undefined, doors: "swing" | "gap" = "swing"): string[] {
+  const glazing = new Map((components?.windows ?? []).map((c) => [c.id, c.glazing]));
   const walls = storey.walls.filter((w) => wallLength(w) > 0);
   const wallById = new Map(walls.map((w) => [w.id, w]));
   const out: string[] = [];
@@ -314,7 +326,7 @@ function wallsAndOpenings(storey: Storey, view: View, doors: "swing" | "gap" = "
     const w = wallById.get(o.wallId);
     if (!w) continue; // reported by checks
     if (!isCut(o)) out.push(drawUncut(w, o, view));
-    else if (o.kind === "window") out.push(drawWindow(w, o, view));
+    else if (o.kind === "window") out.push(drawWindow(w, o, view, o.componentId ? glazing.get(o.componentId) : undefined));
     else out.push(doors === "swing" ? drawDoor(w, o, view) : drawDoorGap(w, o, view));
   }
   return out;
@@ -334,8 +346,8 @@ function doorSwings(storey: Storey, view: View): string[] {
  * lay over the wall tops, so looking down shows what is in the walls below as the plan does. Door
  * swings go on the floor instead (renderFloor).
  */
-export function renderWallTops(storey: Storey): { svg: string; bounds: Bounds } {
-  return overlay(storey, (view) => wallsAndOpenings(storey, view, "gap"));
+export function renderWallTops(storey: Storey, components?: Components): { svg: string; bounds: Bounds } {
+  return overlay(storey, (view) => wallsAndOpenings(storey, view, components, "gap"));
 }
 
 /** The plan's room fills and door swings alone, on a transparent background, for the 3D viewer's floor. */
@@ -363,7 +375,7 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
     out.push(polygon(r.outline.map((p) => view.toPx(toVec(p))), { class: "room", "data-id": r.id, fill: C.room, stroke: "none" }));
   }
 
-  out.push(...wallsAndOpenings(storey, view));
+  out.push(...wallsAndOpenings(storey, view, model.components));
 
   out.push(...roomLabels(storey, view, opts));
 

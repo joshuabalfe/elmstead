@@ -128,8 +128,8 @@ A component is a door or window design: "internal door", "sash window". Each ope
 one it is with `componentId`, so a design is described once and shared, and IFC tools see the
 doors and windows as instances of one type.
 
-- The component is the design: how it is built. For now that is only its name; frame, glazing,
-  panels and the like go here as they are added.
+- The component is the design: how it is built. So far that is its name and, for windows,
+  glazing bars (below). Frames, door panels and the like go here as they are added.
 - The opening holds its size and where it is: width, height, wall, offset, sill height, swing. One
   design comes in many sizes, as windows in an old house do. IFC does the same (`IfcWindow` carries
   its own overall width and height).
@@ -138,6 +138,25 @@ doors and windows as instances of one type.
 - `build` checks that each `componentId` exists and is the right kind (`src/checks/components.ts`),
   and stops before writing anything if not.
 - Ids: `door-type-…` and `window-type-…`.
+
+#### Glazing bars
+
+A window component's `glazing` divides every window of that design into panes:
+
+```ts
+// A bar half way up, and three panes across in the ratio 1:2:1: six panes.
+windowComponent("window-type-front", "Front window", {
+  glazing: { columns: [1, 2, 1], rows: [1, 1], barWidth: mm(60) },
+});
+```
+
+- `columns` are the pane widths left to right and `rows` the pane heights bottom to top, as
+  ratios, so the design fits any size of window. The ratios share out what is left of the opening
+  after the bars.
+- In IFC each pane is a glass panel and each bar a 70 mm deep white bar, standing proud of the
+  glass (`src/geometry/window.ts`). On the plan, the vertical bars show as small blocks across the
+  glazing lines, because the cut passes through them.
+- `build` checks that the bars leave room for glass in every window of the design.
 - Openings without a `componentId` are still allowed.
 
 ```ts

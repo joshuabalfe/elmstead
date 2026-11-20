@@ -25,6 +25,7 @@ which `npm install` downloads (see [Getting started](getting-started.md#prerequi
 | `tests/guid.test.ts` | UUIDv5 and IFC GUID compression against reference vectors; fixed GlobalIds for known ids |
 | `tests/ifc.test.ts` | byte-identical IFC, GlobalId stability, door and window types, round-trip volumes, validator pass and fail cases |
 | `tests/plan-vs-3d.test.ts` | the viewer's Top view shows the same walls, rooms and openings as the plan, for each model; and that the check catches a room outline run to a wall's centreline |
+| `tests/window.test.ts` | glazing bars: pane ratios, no overlaps, fit check, IFC panes and bars (volumes), plan symbol |
 | `tests/checks.test.ts` | component checks: unknown or wrong-kind `componentId`, duplicate component ids |
 | `tests/toolchain.test.ts` | web-ifc and uv/IfcOpenShell are available |
 

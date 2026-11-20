@@ -188,7 +188,7 @@ async function loadLabels(name: string) {
     const annotations = await planPlane(svg, bounds, y, { transparent: true, depthWrite: false });
     annotations.renderOrder = 1; // over the wall tops' layer
     labels.add(annotations);
-    const tops = renderWallTops(storey);
+    const tops = renderWallTops(storey, model.components);
     planLayers.add(await planPlane(tops.svg, tops.bounds, (storey.elevation + ceiling + WALL_TOP_LIFT) / 1000, { transparent: true, depthWrite: false }));
     // Only the lowest storey's floor: drawn without depth, an upper floor's would show through
     // the storeys below it.

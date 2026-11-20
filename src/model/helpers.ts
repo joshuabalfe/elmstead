@@ -122,8 +122,8 @@ type OpeningSize = Pick<Door, "width" | "height">;
 
 /** A door design (see `components` in the schema), for `door()`. */
 export const doorComponent = (id: string, name: string): DoorComponent => ({ id, name });
-/** A window design (see `components` in the schema), for `window()`. */
-export const windowComponent = (id: string, name: string): WindowComponent => ({ id, name });
+/** A window design (see `components` in the schema), for `window()`, optionally with glazing bars. */
+export const windowComponent = (id: string, name: string, detail: Omit<WindowComponent, "id" | "name"> = {}): WindowComponent => ({ id, name, ...detail });
 
 /**
  * A door, with `sillHeight` 0: `door(id, wall, offset, component, size, swing?)`, linked to the

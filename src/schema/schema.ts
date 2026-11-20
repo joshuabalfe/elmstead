@@ -96,7 +96,24 @@ const componentBase = {
   name: z.string().min(1),
 };
 export const DoorComponentSchema = z.strictObject(componentBase).meta({ id: "DoorComponent" });
-export const WindowComponentSchema = z.strictObject(componentBase).meta({ id: "WindowComponent" });
+
+const ratios = z.array(z.number().positive()).min(1);
+
+/** How glazing bars divide a window into panes. Ratios, so one design fits windows of any size. */
+export const GlazingSchema = z.strictObject({
+  /** Widths of the columns of panes, left to right, as ratios: [1, 2, 1] is a wide centre pane. */
+  columns: ratios,
+  /** Heights of the rows of panes, bottom to top, as ratios: [1, 1] puts a bar half way up. */
+  rows: ratios,
+  /** Width of the bars between panes. The ratios share out what is left of the opening. */
+  barWidth: PositiveMmSchema,
+}).meta({ id: "Glazing" });
+
+export const WindowComponentSchema = z.strictObject({
+  ...componentBase,
+  /** Glazing bars; without them the window is a single pane. */
+  glazing: GlazingSchema.optional(),
+}).meta({ id: "WindowComponent" });
 
 export const ComponentsSchema = z.strictObject({
   doors: z.array(DoorComponentSchema),
@@ -132,6 +149,7 @@ export type Opening = z.infer<typeof OpeningSchema>;
 export type DoorComponent = z.infer<typeof DoorComponentSchema>;
 export type WindowComponent = z.infer<typeof WindowComponentSchema>;
 export type Components = z.infer<typeof ComponentsSchema>;
+export type Glazing = z.infer<typeof GlazingSchema>;
 export type Slab = z.infer<typeof SlabSchema>;
 export type Room = z.infer<typeof RoomSchema>;
 export type Storey = z.infer<typeof StoreySchema>;

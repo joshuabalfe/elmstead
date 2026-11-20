@@ -18,7 +18,8 @@ this order:
 1. slab outline, dashed
 2. room fills
 3. walls at their true thickness, split around the openings
-4. door leaves with swing arcs, and window symbols (frame and two glazing lines)
+4. door leaves with swing arcs, and window symbols (frame, two glazing lines, and a small block
+   for each vertical glazing bar, which the cut passes through)
 5. room labels (name and area in m²) and room dimensions: the longest clear wall-to-wall span
    east–west and north–south, in mm, drawn as dimension lines inside the room and kept clear of
    the label where the room is wide enough
