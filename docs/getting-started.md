@@ -79,11 +79,12 @@ npm run view
 ```
 
 This opens a local [ThatOpen](https://github.com/ThatOpen) viewer (Vite dev server, normally
-http://localhost:5173) that loads the IFC files in `out/`. It has a model picker and SW/SE/NE/NW/Top
-camera buttons. It shows the plan's room labels and dimensions at ceiling height and a compass pointing to
-true north; the **Labels** button hides them. Every view uses the plan's colours (room fills for
-floors, charcoal wall tops), and the **Top** view is also cut at 1.2 m like the plan. When an IFC in `out/` changes it reloads itself, so leave it open while you
-edit and re-run `build`.
+http://localhost:5173) that loads the IFC files in `out/`. It has a model picker and
+SW/SE/NE/NW/Top camera buttons. It shows the plan's room labels and dimensions at ceiling height
+and a compass pointing to true north; the **Labels** button hides them. Every view uses the plan's
+colours (room fills for floors, charcoal wall tops), and the **Top** view is also cut at 1.2 m
+like the plan. When an IFC in `out/` changes it reloads itself, so leave it open while you edit
+and re-run `build`.
 
 Everything is served locally, so the viewer works offline. Stop it with Ctrl-C.
 
