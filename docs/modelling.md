@@ -1,9 +1,10 @@
 # Modelling
 
-A model is a TypeScript file in `models/` that default-exports a `BuildingModel`. Start from
-[`models/example-cottage.ts`](../models/example-cottage.ts), which is a full working example.
+A model is a TypeScript module in `models/` that default-exports a `BuildingModel`. Start from
+[`models/example-cottage/`](../models/example-cottage/), a full working example: an `index.ts` and
+its `constraints.ts`.
 
-A larger model can be a folder whose `index.ts` default-exports the building, as in
+A larger model splits across more files in its folder, as in
 [`models/elmstead/`](../models/elmstead/):
 
 ```
@@ -29,7 +30,7 @@ Only `index.ts`'s default export is the model; the other files are ordinary modu
 Pass the folder (`models/elmstead`) to the commands, and outputs are named after it.
 
 ```ts
-import { defineBuilding, m, mm, pt, rectWalls, door, window } from "../src/model/index.js";
+import { defineBuilding, m, mm, pt, rectWalls, door, window } from "../../src/model/index.js";
 
 const walls = rectWalls("wall", pt(mm(0), mm(0)), m(8), m(6), { thickness: mm(200), height: m(2.4) });
 
@@ -241,7 +242,7 @@ inside corner", so that no later edit can quietly break it. Every `check`, `buil
 `all` measures the model's constraints. If one is broken, the command writes nothing and exits 1:
 
 ```
-constr  models/example-cottage.constraints.ts: 5 of 6 met
+constr  models/example-cottage/constraints.ts: 5 of 6 met
 ERROR   living-corner-to-window: is 1200 mm, should be 1175 ±10 mm (room-living)
 ```
 
@@ -254,13 +255,13 @@ from a drawing as constraints.
 Constraints sit beside the model, not in it, and never reach `building.json` or the IFC:
 
 - a folder model: `constraints.ts` in its folder, e.g. `models/elmstead/constraints.ts`;
-- a single-file model: `<name>.constraints.ts`, e.g. `models/example-cottage.constraints.ts`.
+- a single-file model: `<name>.constraints.ts` beside it.
 
 The file default-exports groups of constraints, each for one storey or one room. A model without
 a constraints file has no constraints, and the commands print no `constr` line.
 
 ```ts
-import { corner, defineConstraints, inRoom, jamb, mm, roomCorner } from "../src/constraints/index.js";
+import { corner, defineConstraints, inRoom, jamb, mm, roomCorner } from "../../src/constraints/index.js";
 
 export default defineConstraints([
   inRoom("room-living", [
@@ -277,7 +278,7 @@ export default defineConstraints([
 ]);
 ```
 
-[`models/example-cottage.constraints.ts`](../models/example-cottage.constraints.ts) uses every
+[`models/example-cottage/constraints.ts`](../models/example-cottage/constraints.ts) uses every
 kind of point and measure.
 
 ### Points

@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as WebIFC from "web-ifc";
 import { describe, expect, it } from "vitest";
-import cottage from "../models/example-cottage.js";
+import cottage from "../models/example-cottage/index.js";
 import { mm } from "../src/model/index.js";
 import { ifcGuid } from "../src/ifc/guid.js";
 import { ifcGeometry, roundTripChecks } from "../src/ifc/roundtrip.js";

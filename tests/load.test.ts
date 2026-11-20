@@ -4,7 +4,7 @@ import { loadModel, modelName } from "../src/cli/load.js";
 
 describe("loadModel", () => {
   it("loads and validates the example cottage", async () => {
-    const r = await loadModel("models/example-cottage.ts");
+    const r = await loadModel("models/example-cottage");
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.value.name).toBe("example-cottage");
   });
@@ -18,7 +18,7 @@ describe("loadModel", () => {
   });
 
   it("names outputs after the file, or the folder for index files", () => {
-    expect(modelName("models/example-cottage.ts")).toBe("example-cottage");
+    expect(modelName("tests/fixtures/unconstrained.ts")).toBe("unconstrained");
     expect(modelName("models/elmstead")).toBe("elmstead");
     expect(modelName("models/elmstead/")).toBe("elmstead");
     expect(modelName("models/elmstead/index.ts")).toBe("elmstead");
