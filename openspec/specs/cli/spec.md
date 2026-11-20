@@ -16,11 +16,11 @@ exit with status 2. A missing command or model path SHALL print the usage and ex
 - **THEN** the usage line is printed and the exit status is 2
 
 #### Scenario: Unimplemented command
-- **WHEN** `npm run deploy models/example-cottage.ts` is run
+- **WHEN** `npm run deploy models/example-cottage` is run
 - **THEN** it prints `unknown command "deploy"` and exits with status 2
 
 #### Scenario: Check command is implemented
-- **WHEN** `npm run check models/example-cottage.ts` is run
+- **WHEN** `npm run check models/example-cottage` is run
 - **THEN** it runs the model checks instead of printing `unknown command`
 
 ### Requirement: Build
@@ -32,7 +32,7 @@ without writing anything. Otherwise it SHALL:
 4. run the geometry round-trip and IfcOpenShell validation.
 
 #### Scenario: Valid model
-- **WHEN** `npm run build models/example-cottage.ts` is run on a valid model
+- **WHEN** `npm run build models/example-cottage` is run on a valid model
 - **THEN** it writes `out/example-cottage.building.json` and `out/example-cottage.ifc`, prints a line each for json, ifc, geometry and validation, and exits 0
 
 #### Scenario: Component check fails
@@ -72,7 +72,7 @@ Undefined fields SHALL be omitted.
 no files. It SHALL exit with status 1 if any ERROR was reported and 0 otherwise.
 
 #### Scenario: Valid model
-- **WHEN** `npm run check models/example-cottage.ts` is run on a valid model
+- **WHEN** `npm run check models/example-cottage` is run on a valid model
 - **THEN** it prints no issues, writes nothing to `out/` and exits 0
 
 #### Scenario: Invalid model
@@ -84,7 +84,7 @@ no files. It SHALL exit with status 1 if any ERROR was reported and 0 otherwise.
 build reports an ERROR. `--ids` and `--no-3d` SHALL affect the render step as they do for `render`.
 
 #### Scenario: Build succeeds
-- **WHEN** `npm run all models/example-cottage.ts` is run on a valid model
+- **WHEN** `npm run all models/example-cottage` is run on a valid model
 - **THEN** it writes the JSON, IFC, plans and snapshots and exits 0
 
 #### Scenario: Build fails

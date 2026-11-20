@@ -1,4 +1,4 @@
-import cottage from "../../models/example-cottage.js";
+import cottage from "../../models/example-cottage/index.js";
 
 // Same as the cottage, with the south wall collapsed to a point.
 const broken = structuredClone(cottage) as any;
