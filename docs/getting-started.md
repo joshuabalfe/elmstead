@@ -25,10 +25,10 @@ npm install
 Every command takes the path to a model: a single file, or a folder for a multi-file model:
 
 ```sh
-npm run build  models/example-cottage.ts    # model → JSON → IFC, then validate the IFC
-npm run check  models/example-cottage.ts    # run the model checks only; writes nothing
-npm run render models/example-cottage.ts    # plan SVG/PNG per storey, then 3D PNGs from the IFC
-npm run all    models/example-cottage.ts    # build, then render if the build succeeded
+npm run build  models/example-cottage       # model → JSON → IFC, then validate the IFC
+npm run check  models/example-cottage       # run the model checks only; writes nothing
+npm run render models/example-cottage       # plan SVG/PNG per storey, then 3D PNGs from the IFC
+npm run all    models/example-cottage       # build, then render if the build succeeded
 npm run build  models/elmstead              # same as models/elmstead/index.ts
 ```
 
@@ -57,8 +57,8 @@ model files, validator and viewer when run from any directory.
 | `out/<name>.<storey-id>.plan.svg` / `.png` | `render`: one plan per storey |
 | `out/<name>.3d-{sw,se,ne,nw,top}.png` | `render`: 3D snapshots of the IFC |
 
-`<name>` is the model's file name, e.g. `example-cottage`, or its folder name for a multi-file
-model, e.g. `elmstead`.
+`<name>` is the model's file name, or its folder name for a multi-file model, e.g.
+`example-cottage` or `elmstead`.
 
 ### Reading the output
 

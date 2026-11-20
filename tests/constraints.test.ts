@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import cottage from "../models/example-cottage.js";
+import cottage from "../models/example-cottage/index.js";
 import { corner, defineConstraints, inRoom, inStorey, jamb, m, mm, roomCorner, wallEnd } from "../src/constraints/index.js";
 import { constraintsPath, loadConstraints } from "../src/constraints/load.js";
-import { ConstraintError, indexModel, measureConstraint, resolvePoint, type Scope } from "../src/constraints/resolve.js";
+import { ConstraintError, faceSide, indexModel, measureConstraint, resolvePoint, type Scope } from "../src/constraints/resolve.js";
 import { loadModel } from "../src/cli/load.js";
 import { checkConstraints } from "../src/constraints/check.js";
 import { ConstraintsFileSchema, type Constraint, type Measure, type Point } from "../src/constraints/schema.js";
-import { pt } from "../src/model/index.js";
+import { deg, pt } from "../src/model/index.js";
 import { BuildingModelSchema, type BuildingModel } from "../src/schema/schema.js";
 
 /** Plain JSON, as the loader sees it after the round-trip. */
@@ -106,7 +106,7 @@ describe("loadConstraints", () => {
   });
 
   it("finds <name>.constraints.ts beside a single-file model", () => {
-    expect(constraintsPath("models/example-cottage.ts")).toBe("models/example-cottage.constraints.ts");
+    expect(constraintsPath("tests/fixtures/broken-constraint.ts")).toBe("tests/fixtures/broken-constraint.constraints.ts");
   });
 
   it("loads a folder model's constraints", async () => {
@@ -144,6 +144,9 @@ function testModel(): BuildingModel {
   const m = BuildingModelSchema.parse(JSON.parse(JSON.stringify(cottage)));
   const ground = m.storeys[0]!;
   ground.walls.push({ id: "wall-diagonal", start: pt(mm(1000), mm(1000)), end: pt(mm(3000), mm(3000)), thickness: mm(200), height: mm(2400), justification: "centre" });
+  // A 400 mm wall running east with a 45° reveal on its left (north) face: 1200 mm splays to 1600.
+  ground.walls.push({ id: "wall-thick", start: pt(mm(0), mm(-3000)), end: pt(mm(4000), mm(-3000)), thickness: mm(400), height: mm(2400), justification: "centre" });
+  ground.openings.push({ kind: "window", id: "window-splayed", wallId: "wall-thick", offsetAlongWall: mm(1000), width: mm(1200), height: mm(1200), sillHeight: mm(900), reveal: { face: "left", angle: deg(45) } });
   ground.rooms.push({ id: "room-angled", name: "Angled", outline: [pt(mm(0), mm(0)), pt(mm(2000), mm(0)), pt(mm(2000), mm(1000)), pt(mm(1000), mm(2000)), pt(mm(0), mm(2000))] });
   m.storeys.push({
     id: "storey-first",
@@ -180,6 +183,14 @@ describe("wall faces", () => {
     expect(at(wallEnd("wall-west", "start", "east"))).toEqual({ x: 200, y: 5800 }); // runs south
   });
 
+  it("name the side a compass face is on, looking from wall start to end", () => {
+    const m = testModel();
+    const wall = (id: string) => m.storeys[0]!.walls.find((w) => w.id === id)!;
+    expect([faceSide(wall("wall-south"), "north"), faceSide(wall("wall-south"), "south")]).toEqual(["left", "right"]); // runs east
+    expect([faceSide(wall("wall-west"), "east"), faceSide(wall("wall-west"), "west")]).toEqual(["left", "right"]); // runs south
+    expect(faceSide(wall("wall-diagonal"), "right")).toBe("right");
+  });
+
   it("resolve left and right on any wall", () => {
     expect(at(wallEnd("wall-west", "start", "left"))).toEqual(at(wallEnd("wall-west", "start", "east")));
     expect(at(wallEnd("wall-diagonal", "start", "left"))).toEqual({ x: 1000 - 100 / Math.SQRT2, y: 1000 + 100 / Math.SQRT2 });
@@ -214,6 +225,17 @@ describe("corner, wall end and opening points", () => {
   it("measure an opening's width from jamb to jamb along its wall", () => {
     const width = { id: "w", from: jamb("window-living", "start"), to: jamb("window-living", "end", "north"), measure: { along: "wall-south" }, distance: mm(0) };
     expect(measureConstraint(ix, width, ground)).toBe(1200);
+  });
+
+  it("put a splayed window's jambs where the reveal meets its splayed face", () => {
+    const width = (face?: "left" | "right" | "north" | "south") =>
+      measureConstraint(ix, { id: "w", from: jamb("window-splayed", "start", face), to: jamb("window-splayed", "end", face), measure: { along: "wall-thick" }, distance: mm(0) }, ground);
+    expect(width("left")).toBe(1600);
+    expect(width("north")).toBe(1600); // the same face by compass
+    expect(width("right")).toBe(1200);
+    expect(width()).toBe(1200);
+    expect(at(jamb("window-splayed", "start", "left"))).toEqual({ x: 800, y: -2800 });
+    expect(at(jamb("window-splayed", "centre", "left"))).toEqual({ x: 1600, y: -2800 });
   });
 
   it("report unknown ids, the wrong kind of element and parallel faces", () => {
@@ -324,7 +346,7 @@ describe("checkConstraints", () => {
 });
 
 describe("the models' constraints", () => {
-  for (const [path, count] of [["models/example-cottage.ts", 6], ["models/elmstead", 2]] as const) {
+  for (const [path, count] of [["models/example-cottage", 6], ["models/elmstead", 2]] as const) {
     it(`${path} meets all ${count} of its constraints`, async () => {
       const loaded = await loadModel(path);
       const constraints = await loadConstraints(path);

@@ -22,7 +22,7 @@ Units: millimetres for length, m² for area, m³ for volume and radians for plan
 | Model | IFC | Geometry |
 |---|---|---|
 | Wall | `IfcWall` (`NOTDEFINED`) | `Axis` polyline and `Body` extruded rectangle. Local X runs along the wall and the origin is at the wall start, offset by its justification |
-| Opening | `IfcOpeningElement` + `IfcRelVoidsElement` | box the size of the opening, extended 10 mm past each face of the wall so the cut is clean |
+| Opening | `IfcOpeningElement` + `IfcRelVoidsElement` | box the size of the opening, extended 10 mm past each face of the wall so the cut is clean. A window with a `reveal` is an `IfcArbitraryClosedProfileDef` of its plan outline instead, square from one face to the middle of the wall and splayed to the other, its splayed jambs carried on 10 mm past the face |
 | Door | `IfcDoor` + `IfcRelFillsElement` | 50 mm panel in the opening; `OperationType` is `SINGLE_SWING_LEFT` or `SINGLE_SWING_RIGHT` from `swing` |
 | Window | `IfcWindow` + `IfcRelFillsElement` | 50 mm glazing panel at the sill height; with its component's frame and glazing bars, one panel per pane and a 70 mm deep `frame`-coloured box per frame piece and bar, none overlapping (`src/geometry/window.ts`) |
 | Slab | `IfcSlab` (`FLOOR`) | outline extruded up to `elevationOffset`, `thickness` deep |
@@ -79,7 +79,9 @@ UUIDv5 vector and IfcOpenShell's own GUID compression.
 the model:
 
 - **Wall:** length × thickness × height, minus every opening in it. This only matches if the
-  openings actually cut the wall.
+  openings actually cut the wall. An opening cuts width × thickness × height, plus splay ×
+  thickness / 2 × height for a splayed reveal (the two triangles at its jambs, splay being
+  thickness / 2 × tan(angle)). So a void that is square when the model says splayed fails here.
 - **Slab:** outline area × thickness.
 - **Door or window panel:** width × height × 50 mm.
 

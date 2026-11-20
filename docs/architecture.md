@@ -65,7 +65,7 @@ schema/              generated JSON Schema (committed; a test fails if it is sta
 src/
   schema/            units (Mm, mm(), m(), deg()) and the zod schema
   model/             authoring helpers: wall, rectWalls, face, rectRoom, door, window, centredOn
-  geometry/          2D vector, wall and polygon maths shared by renderers, writer and checks
+  geometry/          2D vector, wall, opening and polygon maths shared by renderers, writer and checks
   checks/            Issue type and formatting; model-level checks (components.ts so far)
   constraints/       constraints beside a model: schema, helpers, loader, point resolution, check
   cli/               command entry point, model loading, deterministic JSON formatting

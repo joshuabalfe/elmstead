@@ -16,8 +16,8 @@ the folder name for a folder model. The name is used for every output file.
 - **THEN** it loads `models/elmstead/index.ts` and names the outputs `elmstead`
 
 #### Scenario: Single-file model
-- **WHEN** a command is given `models/example-cottage.ts`
-- **THEN** outputs are named `example-cottage`
+- **WHEN** a command is given `models/<name>.ts`
+- **THEN** outputs are named `<name>`
 
 ### Requirement: Loading validates through JSON
 Loading SHALL import the model, round-trip its default export through JSON, and parse the result

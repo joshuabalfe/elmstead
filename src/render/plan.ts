@@ -1,4 +1,5 @@
 import { faceOffsets, wallDirection, wallLength, wallPoint, wallSegmentFootprint } from "../geometry/wall.js";
+import { jambEdges, openingOutline, openingProfile } from "../geometry/opening.js";
 import { area, bounds, centroid, spans, type Bounds } from "../geometry/polygon.js";
 import { GLAZING_BAR_DEPTH, windowDivision } from "../geometry/window.js";
 import { dot, perpLeft, toVec, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";
@@ -44,20 +45,41 @@ const m2 = (a: number) => `${(a / 1e6).toFixed(1)} m²`;
 /** Whether the plan's cut plane passes through the opening. */
 const isCut = (o: Opening) => o.sillHeight < CUT_HEIGHT && o.sillHeight + o.height > CUT_HEIGHT;
 
+/**
+ * Where a stretch of wall ends against an opening's jamb, in wall (along, across) coordinates from
+ * the right face to the left: the jamb of the opening's own outline, kept within the wall's length.
+ */
+function jambEdge(w: Wall, o: Opening, jamb: "near" | "far", L: number): Vec[] {
+  return jambEdges(openingProfile(w, o))[jamb].map((p) => v(Math.min(L, Math.max(0, p.x)), p.y));
+}
+
 /** Wall body minus the gaps cut by its openings, as plan polygons. */
 function wallPieces(w: Wall, openings: readonly Opening[]): Vec[][] {
   const L = wallLength(w);
-  const cuts = openings
-    .filter((o) => o.wallId === w.id && isCut(o))
-    .map((o) => [Math.max(0, o.offsetAlongWall), Math.min(L, o.offsetAlongWall + o.width)] as const)
-    .sort((a, b) => a[0] - b[0]);
+  const { left, right } = faceOffsets(w);
+  const cuts = openings.filter((o) => o.wallId === w.id && isCut(o)).sort((a, b) => a.offsetAlongWall - b.offsetAlongWall);
   const pieces: Vec[][] = [];
+  // A stretch runs from one edge to the next, each listed right face to left face, so its outline
+  // is the start edge's first point, the end edge, then the rest of the start edge backwards. It is
+  // drawn only if neither face runs backwards (a splay into a neighbour, reported by the checks),
+  // which would twist the outline, and at least one has length.
+  const piece = (start: Vec[], end: Vec[]) => {
+    const right = end[0]!.x - start[0]!.x;
+    const left = end.at(-1)!.x - start.at(-1)!.x;
+    if (right >= 0 && left >= 0 && right + left > 0) {
+      pieces.push([start[0]!, ...end, ...start.slice(1).reverse()].map((p) => wallPoint(w, p.x, p.y)));
+    }
+  };
+  let start = [v(0, right), v(0, left)];
   let at = 0;
-  for (const [from, to] of cuts) {
-    if (from > at) pieces.push(wallSegmentFootprint(w, at, from));
-    at = Math.max(at, to);
+  for (const o of cuts) {
+    if (o.offsetAlongWall >= at) piece(start, jambEdge(w, o, "near", L));
+    if (o.offsetAlongWall + o.width > at) {
+      start = jambEdge(w, o, "far", L);
+      at = o.offsetAlongWall + o.width;
+    }
   }
-  if (at < L) pieces.push(wallSegmentFootprint(w, at, L));
+  piece(start, [v(L, right), v(L, left)]);
   return pieces;
 }
 
@@ -104,7 +126,7 @@ function drawWindow(w: Wall, win: Window, view: View, design?: WindowComponent):
   const { left, right } = faceOffsets(w);
   const a = win.offsetAlongWall;
   const b = a + win.width;
-  const frame = wallSegmentFootprint(w, a, b).map(view.toPx);
+  const frame = openingOutline(w, win).map(view.toPx);
   const mid = (left + right) / 2;
   const glassGap = Math.min(25, (left - right) / 6);
   // In the window's own elevation the cut is a horizontal line: the jambs and vertical bars cross it.
@@ -127,7 +149,7 @@ function drawWindow(w: Wall, win: Window, view: View, design?: WindowComponent):
 
 /** Opening the cut plane misses (e.g. a fanlight): dashed outline over the uncut wall. */
 function drawUncut(w: Wall, o: Opening, view: View): string {
-  const outline = wallSegmentFootprint(w, o.offsetAlongWall, o.offsetAlongWall + o.width).map(view.toPx);
+  const outline = openingOutline(w, o).map(view.toPx);
   return group({ class: o.kind, "data-id": o.id, "data-cut": "false" }, [
     polygon(outline, { fill: "none", stroke: o.kind === "window" ? C.glass : C.dim, "stroke-width": 1, "stroke-dasharray": "4 2" }),
   ]);

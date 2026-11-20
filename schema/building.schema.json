@@ -442,6 +442,9 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 9007199254740991
+        },
+        "reveal": {
+          "$ref": "#/$defs/Reveal"
         }
       },
       "required": [
@@ -452,6 +455,28 @@
         "width",
         "height",
         "sillHeight"
+      ],
+      "additionalProperties": false
+    },
+    "Reveal": {
+      "type": "object",
+      "properties": {
+        "face": {
+          "type": "string",
+          "enum": [
+            "left",
+            "right"
+          ]
+        },
+        "angle": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "exclusiveMaximum": 90
+        }
+      },
+      "required": [
+        "face",
+        "angle"
       ],
       "additionalProperties": false
     },
