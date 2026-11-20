@@ -6,7 +6,11 @@
 |---|---|---|
 | Node.js ≥ 22 | runs the TypeScript pipeline (via `tsx`) | your usual Node install |
 | [uv](https://docs.astral.sh/uv/) | runs the Python IFC validator in an isolated, locked environment | `brew install uv` |
-| Chromium for Playwright | headless 3D snapshots (optional) | `npx playwright install chromium` |
+You don't need to install Chromium yourself either. It is a dev dependency
+(`@playwright/browser-chromium`, pinned to the same version as `playwright`), and `npm install`
+downloads the matching build into Playwright's cache (about 150 MB, once). The 3D snapshots and
+the 3D-versus-plan test run in it. If your npm skips install scripts (`ignore-scripts`), run
+`npm rebuild @playwright/browser-chromium`.
 
 You don't need to install Python packages yourself. `validator/validate.py` declares its
 dependencies inline (PEP 723), and `uv run` installs them from `validator/validate.py.lock` the

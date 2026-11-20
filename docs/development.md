@@ -9,8 +9,8 @@ npm run schema      # regenerate schema/building.schema.json from the zod schema
 ```
 
 The IFC tests call the real validator, so `uv` must be installed. The first run downloads
-IfcOpenShell into uv's cache. The 3D-versus-plan test needs Chromium
-(`npx playwright install chromium`) and is skipped without it.
+IfcOpenShell into uv's cache. The 3D-versus-plan test runs the viewer in Chromium,
+which `npm install` downloads (see [Getting started](getting-started.md#prerequisites)).
 
 ## Tests
 

@@ -3,7 +3,7 @@
  * plan. Builds each model into a temporary folder, serves it with the viewer, reads the WebGL
  * canvas back and compares it with the plan's own pixels (tests/support/plan-vs-3d.ts).
  *
- * Needs Chromium (npx playwright install chromium); skipped without it.
+ * Chromium comes with npm install (@playwright/browser-chromium, pinned to playwright's version).
  */
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -25,7 +25,6 @@ let outDir: string;
 let server: ViteDevServer | undefined;
 let browser: Browser | undefined;
 let page: Page;
-let skipReason: string | undefined;
 
 async function model(path: string): Promise<BuildingModel> {
   const r = await loadModel(path);
@@ -66,9 +65,8 @@ beforeAll(async () => {
   try {
     browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
   } catch (e) {
-    skipReason = /Executable doesn't exist|playwright install/i.test(String(e)) ? "Chromium not installed (npx playwright install chromium)" : undefined;
-    if (!skipReason) throw e;
-    return;
+    if (/Executable doesn't exist|playwright install/i.test(String(e))) throw new Error("Chromium missing — it comes with npm install (@playwright/browser-chromium); if install scripts were skipped, run: npm rebuild @playwright/browser-chromium");
+    throw e;
   }
   outDir = mkdtempSync(join(tmpdir(), "elmstead-plan-vs-3d-"));
   process.env.ELMSTEAD_OUT_DIR = outDir;
@@ -86,8 +84,7 @@ afterAll(async () => {
 
 describe("3D Top view against the plan", () => {
   for (const path of ["models/example-cottage.ts", "models/elmstead"]) {
-    it(`shows the same walls, rooms and openings as the plan: ${path}`, async (ctx) => {
-      if (skipReason) ctx.skip(skipReason);
+    it(`shows the same walls, rooms and openings as the plan: ${path}`, async () => {
       const m = await model(path);
       const name = `test-${path.replace(/\W+/g, "-")}`;
       await publish(name, m);
@@ -99,8 +96,7 @@ describe("3D Top view against the plan", () => {
     }, 120_000);
   }
 
-  it("catches a room outline that runs to a wall's centreline (the lobby door gap shows room fill on the plan only)", async (ctx) => {
-    if (skipReason) ctx.skip(skipReason);
+  it("catches a room outline that runs to a wall's centreline (the lobby door gap shows room fill on the plan only)", async () => {
     // Elmstead as first traced: the hallway and lobby both ran to the diagonal lobby screen's
     // centreline, so on the plan the lobby door's gap showed room fill, in 3D a white gap.
     const m = structuredClone(await model("models/elmstead"));

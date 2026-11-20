@@ -53,8 +53,9 @@ The snapshots show the IFC file, not the model, so they confirm what other IFC v
 openings cut, doors and glazing in place, colours applied.
 
 - If there is no IFC yet, `render` warns and skips the snapshots. Run `build` first.
-- If Chromium isn't installed, `render` warns with the fix (`npx playwright install chromium`)
-  and still draws the plans.
+- Chromium comes with `npm install` (`@playwright/browser-chromium`). If it is missing anyway (install
+  scripts skipped), `render` warns with the fix (`npm rebuild @playwright/browser-chromium`) and
+  still draws the plans.
 - Pass `--no-3d` to skip the snapshots. They add about 5 seconds.
 
 ## The viewer
