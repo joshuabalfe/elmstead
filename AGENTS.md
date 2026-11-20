@@ -16,14 +16,18 @@ and follow it. When the user names a skill (for example `/openspec-propose`), us
 
 ```sh
 npm test                           # vitest; needs uv (IfcOpenShell) and the bundled Chromium
+npm run test:fast                  # vitest without uv, Chromium or CLI subprocess tests
 npm run typecheck
 npm run build  models/<model>.ts   # model → JSON → IFC, with round-trip and IfcOpenShell checks
+npm run check  models/<model>.ts   # model checks only; writes nothing
 npm run render models/<model>.ts   # plan SVG/PNG and 3D PNGs
+npm run all    models/<model>.ts   # build, then render if the build passed
 npm run view                       # local viewer
 npm run schema                     # regenerate schema/building.schema.json after a schema change
 ```
 
-Run `npm test` and `npm run typecheck` before every commit.
+Run `npm test` and `npm run typecheck` before every commit. `npm run test:fast` is the quick
+feedback loop while iterating.
 
 ## Rules
 
@@ -31,6 +35,10 @@ Run `npm test` and `npm run typecheck` before every commit.
 - **Never edit generated files by hand.** That means `out/` (git-ignored),
   `schema/building.schema.json`, SVG snapshots and IFC. Regenerate them instead. See
   [docs/development.md](docs/development.md#generated-files).
+- **When a constraint fails, fix the model, not the constraint.** A model's constraints file
+  (`constraints.ts` or `<name>.constraints.ts`) holds real measurements. Change or add a
+  constraint only when the user gives a measurement, with a `note` saying where it came from. See
+  [docs/modelling.md](docs/modelling.md#constraints).
 - **Keep the schema small.** If a model needs something the schema can't express, propose a
   new element type and agree its shape before adding it. Don't invent one.
 - **Pin dependency versions exactly.** Check the current release before adding or upgrading one.
@@ -50,6 +58,10 @@ increment the file in the same commit. Never reuse or renumber a change. If two 
 same number, the file conflicts when they merge: the branch merged second takes the next number
 and renames its change. `npm test` fails on an unnumbered change, a reused number or a stale
 counter.
+
+Name a branch that works on a change after the change, `elm-<N>-<name>`, so the remote branch
+says which spec it is for. Add a suffix when one change needs several branches, for example
+`elm-2-add-model-constraints-archive`.
 
 Start the title of a pull request that proposes or implements a change with its number in upper
 case, `ELM-<N>: `, for example `ELM-2: Add model constraints`. Start the title of a pull request

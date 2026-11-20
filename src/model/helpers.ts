@@ -2,7 +2,7 @@
  * Authoring helpers for model files. These only build plain schema values; they hold no state.
  * Everything here is optional sugar: a model can always write the JSON shape out by hand.
  */
-import { SCHEMA_VERSION, type BuildingModel, type Door, type DoorComponent, type Point, type Room, type Swing, type Wall, type Window, type WindowComponent } from "../schema/schema.js";
+import { SCHEMA_VERSION, type BuildingModel, type Door, type DoorComponent, type Point, type Reveal, type Room, type Swing, type Wall, type Window, type WindowComponent } from "../schema/schema.js";
 import { faceOffsets, wallDirection, wallLength } from "../geometry/wall.js";
 import { add, divRound, mm, sub, type Mm } from "../schema/units.js";
 
@@ -148,12 +148,13 @@ export function door(id: string, w: Wall, offsetAlongWall: Mm, a: DoorComponent 
 
 /**
  * A window: `window(id, wall, offset, component, { width, height, sillHeight })`, linked to the
- * component, or `window(id, wall, offset, { width, height, sillHeight })` without one.
+ * component, or `window(id, wall, offset, { width, height, sillHeight })` without one. A last
+ * `reveal` splays its jambs.
  */
-export function window(id: string, w: Wall, offsetAlongWall: Mm, component: WindowComponent, size: OpeningSize & Pick<Window, "sillHeight">): Window;
-export function window(id: string, w: Wall, offsetAlongWall: Mm, size: OpeningSize & Pick<Window, "sillHeight">): Window;
-export function window(id: string, w: Wall, offsetAlongWall: Mm, a: WindowComponent | (OpeningSize & Pick<Window, "sillHeight">), b?: OpeningSize & Pick<Window, "sillHeight">): Window {
-  const [component, size] = "id" in a ? [a, b!] : [undefined, a];
+export function window(id: string, w: Wall, offsetAlongWall: Mm, component: WindowComponent, size: OpeningSize & Pick<Window, "sillHeight">, reveal?: Reveal): Window;
+export function window(id: string, w: Wall, offsetAlongWall: Mm, size: OpeningSize & Pick<Window, "sillHeight">, reveal?: Reveal): Window;
+export function window(id: string, w: Wall, offsetAlongWall: Mm, a: WindowComponent | (OpeningSize & Pick<Window, "sillHeight">), b?: (OpeningSize & Pick<Window, "sillHeight">) | Reveal, c?: Reveal): Window {
+  const [component, size, reveal] = "id" in a ? [a, b as OpeningSize & Pick<Window, "sillHeight">, c] : [undefined, a, b as Reveal | undefined];
   return {
     kind: "window",
     id,
@@ -163,5 +164,6 @@ export function window(id: string, w: Wall, offsetAlongWall: Mm, a: WindowCompon
     width: size.width,
     height: size.height,
     sillHeight: size.sillHeight,
+    ...(reveal ? { reveal } : {}),
   };
 }

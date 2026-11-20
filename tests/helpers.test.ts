@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { centredOn, door, doorComponent, face, faceCrossing, m, mm, pt, rectWalls, wall, window, windowComponent } from "../src/model/index.js";
+import { centredOn, deg, door, doorComponent, face, faceCrossing, m, mm, pt, rectWalls, wall, window, windowComponent } from "../src/model/index.js";
 
 const opts = { thickness: mm(200), height: m(2.4) };
 
@@ -56,6 +56,16 @@ describe("model helpers", () => {
     // A bare size still works, with no component.
     expect(window("window-b", w.south, mm(100), { width: m(1), height: m(1), sillHeight: mm(900) })).not.toHaveProperty("componentId");
     expect(door("door-b", w.south, mm(100), { width: mm(800), height: m(2.1) })).not.toHaveProperty("componentId");
+  });
+
+  it("window() takes an optional reveal last, with or without a component", () => {
+    const sash = windowComponent("window-type-sash", "Sash");
+    const size = { width: mm(1050), height: m(1.2), sillHeight: mm(900) };
+    const reveal = { face: "left", angle: deg(45) } as const;
+    expect(window("window-a", w.south, mm(100), sash, size, reveal)).toMatchObject({ componentId: "window-type-sash", reveal: { face: "left", angle: 45 } });
+    expect(window("window-b", w.south, mm(100), size, reveal)).toMatchObject({ width: 1050, reveal });
+    expect(window("window-c", w.south, mm(100), sash, size)).not.toHaveProperty("reveal");
+    expect(window("window-d", w.south, mm(100), size)).not.toHaveProperty("reveal");
   });
 
   it("centredOn() handles walls running in either direction", () => {

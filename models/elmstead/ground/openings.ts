@@ -5,7 +5,7 @@
  * The drawing gives widths only. Door heights are a typical 2.1 m; the bathroom door's drawn gap
  * (about 440 mm) is taken as 700. The front window and fanlight sizes are the owner's.
  */
-import { add, centredOn, door, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
+import { add, centredOn, deg, door, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
 import { fanlight, frontDoor, frontWindow, internalDoor, standardWindow } from "../components/index.js";
 import { bedroomBathroom, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, southIn, west } from "./walls.js";
 
@@ -21,15 +21,19 @@ const transom = mm(100); // between the top of the door and the fanlight
 const frontWindowSize = { width: m(2.5), height: sub(frontHead, mm(500)), sillHeight: mm(500) };
 const fanlightSill = add(front.height, transom);
 const frontWindowCentreY = mm(3025); // where the drawing shows it
+const livingDoorY = mm(3955); // plan y of the living-room door's south jamb
+// The front window's returns splay out at about 45° on the inside. The frame is taken as sitting in
+// the middle of the wall, where the splay starts.
+const frontWindowReveal = { face: "left", angle: deg(45) } as const;
 
 export const openings: Opening[] = [
   // West wall runs north→south, so "start" is the north end and "left" is inside.
   door("door-front", west, frontDoorOffset, frontDoor, front, { hinge: "start", side: "left" }),
   window("window-front-fanlight", west, frontDoorOffset, fanlight, { width: front.width, height: sub(frontHead, fanlightSill), sillHeight: fanlightSill }),
-  window("window-living", west, centredOn(west, frontWindowCentreY, frontWindowSize.width), frontWindow, frontWindowSize),
+  window("window-living", west, centredOn(west, frontWindowCentreY, frontWindowSize.width), frontWindow, frontWindowSize, frontWindowReveal),
 
   // Partition runs south→north; "left" is the living room.
-  door("door-living", livingBedroom, sub(mm(3955), southIn), internalDoor, internal, { hinge: "start", side: "left" }),
+  door("door-living", livingBedroom, sub(livingDoorY, southIn), internalDoor, internal, { hinge: "start", side: "left" }),
   // Bedroom/bathroom wall runs west→east; "right" is the bedroom.
   door("door-bedroom", bedroomBathroom, mm(190), internalDoor, internal, { hinge: "start", side: "right" }),
   // Lobby/bathroom wall runs south→north; "right" is the bathroom.

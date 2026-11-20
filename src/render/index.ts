@@ -1,5 +1,6 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { writeFileAtomic } from "../io.js";
 import type { BuildingModel } from "../schema/schema.js";
 import { renderPlan, type PlanOptions } from "./plan.js";
 import { svgToPng } from "./png.js";
@@ -13,23 +14,35 @@ export function renderAll(name: string, model: BuildingModel, outDir: string, op
   for (const storey of model.storeys) {
     const svg = renderPlan(model, storey, opts);
     const base = join(outDir, `${name}.${storey.id}.plan`);
-    writeFileSync(`${base}.svg`, svg);
-    writeFileSync(`${base}.png`, svgToPng(svg));
+    writeFileAtomic(`${base}.svg`, svg);
+    writeFileAtomic(`${base}.png`, svgToPng(svg));
     written.push(`${base}.svg`, `${base}.png`);
   }
   return written;
 }
 
 /**
- * 3D PNGs of out/<name>.ifc from the viewer. Needs Chromium for Playwright; if it is missing, that is
- * a warning (plans still render) with the one-line fix.
+ * 3D PNGs of out/<name>.ifc from the viewer. Needs Chromium for Playwright: missing Chromium is a
+ * warning (plans still render) with the one-line fix; any other viewer failure is an ERROR.
  */
 export async function render3d(name: string, outDir: string): Promise<{ written: string[]; issues: Issue[] }> {
   try {
     return { written: await snapshot3d(name, outDir), issues: [] };
   } catch (e) {
     const msg = String((e as Error).message ?? e);
-    const hint = /Executable doesn't exist|playwright install/i.test(msg) ? "Chromium missing — it comes with npm install (@playwright/browser-chromium); if install scripts were skipped, run: npm rebuild @playwright/browser-chromium" : msg.split("\n")[0]!;
-    return { written: [], issues: [{ level: "WARNING", id: `${name}.ifc`, message: `3D snapshots skipped: ${hint}` }] };
+    if (/Executable doesn't exist|playwright install/i.test(msg)) {
+      return {
+        written: [],
+        issues: [
+          {
+            level: "WARNING",
+            id: `${name}.ifc`,
+            message:
+              "3D snapshots skipped: Chromium missing — it comes with npm install (@playwright/browser-chromium); if install scripts were skipped, run: npm rebuild @playwright/browser-chromium",
+          },
+        ],
+      };
+    }
+    return { written: [], issues: [{ level: "ERROR", id: `${name}.ifc`, message: `3D snapshots failed: ${msg.split("\n")[0]}` }] };
   }
 }

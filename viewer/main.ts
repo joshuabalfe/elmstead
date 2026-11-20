@@ -17,9 +17,8 @@ import { STYLES } from "../src/ifc/styles.js";
 import { renderFloor, renderPlanAnnotations, renderWallTops, roomTags } from "../src/render/plan.js";
 import { C, FONT, PX_PER_MM, ROOM_LABEL } from "../src/render/style.js";
 import type { BuildingModel } from "../src/schema/schema.js";
+import { parseView, type View } from "./view.js";
 import { WALK_AXES, entryPosition, headingBasis, movementOffset, walkRequested, walkStep } from "./walk.js";
-
-type View = "sw" | "se" | "ne" | "nw" | "top";
 declare global {
   interface Window {
     __elmsteadReady?: boolean;
@@ -499,7 +498,7 @@ async function load(name: string) {
   applyStyle();
   box = model.box.clone();
   grid.three.position.y = box.min.y - 0.01; // under the lowest slab, so it doesn't show through floors
-  await setView((params.get("view") as View) ?? "top"); // the plan view, unless the URL asks for another
+  await setView(parseView(params.get("view"))); // the plan view, unless the URL asks for another
   if (params.get("camera")) await setCamera(params.get("camera")!);
   status.textContent = `${name}.ifc`;
 }
@@ -515,7 +514,7 @@ labelsButton.addEventListener("click", () => {
 document.querySelectorAll<HTMLButtonElement>("[data-view]").forEach((b) =>
   b.addEventListener("click", async () => {
     await exitWalk(); // choosing a view leaves walk mode before the view changes
-    await setView(b.dataset.view as View);
+    await setView(parseView(b.dataset.view ?? null));
   }),
 );
 select.addEventListener("change", async () => {
@@ -528,7 +527,14 @@ select.addEventListener("change", async () => {
 try {
   const models: string[] = await (await fetch("/models.json")).json();
   if (!models.length) throw new Error("no IFC files in out/ — run npm run build <model> first");
-  select.innerHTML = models.map((m) => `<option>${m}</option>`).join("");
+  select.replaceChildren(
+    ...models.map((m) => {
+      const option = document.createElement("option");
+      option.value = m;
+      option.textContent = m;
+      return option;
+    }),
+  );
   select.value = params.get("model") ?? models[0]!;
   await load(select.value);
   // `?walk=1` enters walk mode once, with the click-to-look prompt instead of an immediate lock;

@@ -6,9 +6,11 @@
  * IFC X/Y, Z is up. Every IfcRoot gets a GlobalId from ifcGuid(key); see guid.ts for the key scheme.
  */
 import * as WebIFC from "web-ifc";
+import { isSplayed, openingProfile } from "../geometry/opening.js";
+import type { Vec } from "../geometry/vec.js";
 import { faceOffsets, wallDirection, wallLength } from "../geometry/wall.js";
 import { GLAZING_BAR_DEPTH, windowDivision, type Rect } from "../geometry/window.js";
-import type { BuildingModel, Door, Opening, Point, Room, Slab, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
+import type { BuildingModel, Door, Opening, Room, Slab, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
 import { ifcGuid } from "./guid.js";
 import { STYLES, type StyleName } from "./styles.js";
 
@@ -23,6 +25,22 @@ export const PANEL_THICKNESS = 50;
 const FIXED_TIMESTAMP = "1970-01-01T00:00:00";
 /** FILE_NAME.authorization must be a STRING; web-ifc writes an empty one as $ (null). */
 const AUTHORIZATION = "none";
+
+/**
+ * IFC4 partitions its window types into one, two or three panels; larger grids are USERDEFINED.
+ * The enum names describe the arrangement of the panels: VERTICAL is side by side, HORIZONTAL is
+ * stacked (matching TRIPLE_PANEL_TOP's "two panels vertically and the third horizontally at the top").
+ */
+function windowPartitioning(design?: Pick<WindowComponent, "glazing">): { value: any; userDefined: string | null } {
+  const columns = design?.glazing?.columns.length ?? 1;
+  const rows = design?.glazing?.rows.length ?? 1;
+  if (columns === 1 && rows === 1) return { value: IFC4.IfcWindowTypePartitioningEnum.SINGLE_PANEL, userDefined: null };
+  if (rows === 1 && columns === 2) return { value: IFC4.IfcWindowTypePartitioningEnum.DOUBLE_PANEL_VERTICAL, userDefined: null };
+  if (columns === 1 && rows === 2) return { value: IFC4.IfcWindowTypePartitioningEnum.DOUBLE_PANEL_HORIZONTAL, userDefined: null };
+  if (rows === 1 && columns === 3) return { value: IFC4.IfcWindowTypePartitioningEnum.TRIPLE_PANEL_VERTICAL, userDefined: null };
+  if (columns === 1 && rows === 3) return { value: IFC4.IfcWindowTypePartitioningEnum.TRIPLE_PANEL_HORIZONTAL, userDefined: null };
+  return { value: IFC4.IfcWindowTypePartitioningEnum.USERDEFINED, userDefined: `${columns}x${rows} grid` };
+}
 
 
 export interface WriteOptions {
@@ -113,7 +131,7 @@ class Writer {
     return new IFC4.IfcLocalPlacement(parent, axis);
   }
 
-  private closedPolyline(points: readonly Point[]) {
+  private closedPolyline(points: readonly Vec[]) {
     const pts = points.map((p) => this.pt2(p.x, p.y));
     return new IFC4.IfcPolyline([...pts, pts[0]!]);
   }
@@ -242,13 +260,17 @@ class Writer {
 
   /**
    * An opening becomes IfcOpeningElement (voids the wall) + IfcDoor/IfcWindow (fills the opening).
-   * The opening is placed in wall coordinates at (offsetAlongWall, 0, sillHeight).
+   * The opening is placed in wall coordinates at (offsetAlongWall, 0, sillHeight). A box, or for a
+   * window with a reveal its splayed plan outline (src/geometry/opening.ts) extruded up its height.
    */
   private opening(o: Opening, w: Wall, wallPlacement: InstanceType<typeof IFC4.IfcLocalPlacement>, wallEntity: InstanceType<typeof IFC4.IfcElement>) {
     const { left, right } = faceOffsets(w);
     const mid = (left + right) / 2;
     const placement = this.placement(wallPlacement, o.offsetAlongWall, 0, o.sillHeight);
-    const body = this.body(this.rectangle(o.width / 2, mid, o.width, w.thickness + 2 * OPENING_CLEARANCE), o.height);
+    const profile = isSplayed(o)
+      ? new IFC4.IfcArbitraryClosedProfileDef(IFC4.IfcProfileTypeEnum.AREA, null, this.closedPolyline(openingProfile(w, o, OPENING_CLEARANCE).map((p) => ({ x: round9(p.x - o.offsetAlongWall), y: round9(p.y) }))))
+      : this.rectangle(o.width / 2, mid, o.width, w.thickness + 2 * OPENING_CLEARANCE);
+    const body = this.body(profile, o.height);
     const opening = this.write(
       new IFC4.IfcOpeningElement(guid(`${o.id}#opening`), null, label(`${o.id} opening`), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [body]), null, IFC4.IfcOpeningElementTypeEnum.OPENING),
     );
@@ -294,7 +316,9 @@ class Writer {
    */
   private window(win: Window, mid: number, openingPlacement: InstanceType<typeof IFC4.IfcLocalPlacement>) {
     const placement = this.placement(openingPlacement, win.width / 2, mid, 0);
-    const { panes, bars, frame } = windowDivision(win, win.componentId ? this.windowDesigns.get(win.componentId) : undefined);
+    const design = win.componentId ? this.windowDesigns.get(win.componentId) : undefined;
+    const { panes, bars, frame } = windowDivision(win, design);
+    const partitioning = windowPartitioning(design);
     // Window-local X runs along the wall from the opening's centre; the rects are from its left edge.
     const piece = (r: Rect, depth: number, style: StyleName) => {
       const profile = this.rectangle(r.x + r.w / 2 - win.width / 2, 0, r.w, depth);
@@ -318,8 +342,8 @@ class Writer {
         posLen(win.height),
         posLen(win.width),
         IFC4.IfcWindowTypeEnum.WINDOW,
-        IFC4.IfcWindowTypePartitioningEnum.SINGLE_PANEL,
-        null,
+        partitioning.value,
+        partitioning.userDefined === null ? null : label(partitioning.userDefined),
       ),
     );
   }
@@ -340,7 +364,8 @@ class Writer {
       define(c.id, new IFC4.IfcDoorType(guid(c.id), null, label(c.name), null, null, null, null, label(c.id), null, IFC4.IfcDoorTypeEnum.DOOR, IFC4.IfcDoorTypeOperationEnum.NOTDEFINED, null, null));
     }
     for (const c of model.components?.windows ?? []) {
-      define(c.id, new IFC4.IfcWindowType(guid(c.id), null, label(c.name), null, null, null, null, label(c.id), null, IFC4.IfcWindowTypeEnum.WINDOW, IFC4.IfcWindowTypePartitioningEnum.SINGLE_PANEL, null, null));
+      const partitioning = windowPartitioning(c);
+      define(c.id, new IFC4.IfcWindowType(guid(c.id), null, label(c.name), null, null, null, null, label(c.id), null, IFC4.IfcWindowTypeEnum.WINDOW, partitioning.value, null, partitioning.userDefined === null ? null : label(partitioning.userDefined)));
     }
     if (types.length) this.write(new IFC4.IfcRelDeclares(guid(`${model.project.id}#types`), null, null, null, project, types));
   }

@@ -20,8 +20,5 @@ person) through code, with every output regenerated and checked on each run.
 | `npm run build` | done — model → JSON → IFC, with geometry round-trip and IfcOpenShell validation |
 | `npm run render` | done — per-storey plan SVG/PNG, plus 3D PNGs from the IFC |
 | `npm run view` | done — local ThatOpen viewer in the browser |
-| `npm run check` | **not implemented yet** — model-level rules (opening fit, room polygons, …) |
-| `npm run all` | **not implemented yet** — build + check + render in one go |
-
-The two unimplemented scripts are already in `package.json` and currently print
-`unknown command`.
+| `npm run check` | done — model-level rules (ids, opening fit, outlines, components), writing nothing |
+| `npm run all` | done — build, then render if the build succeeded |

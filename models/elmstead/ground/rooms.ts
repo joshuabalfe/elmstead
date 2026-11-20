@@ -26,6 +26,7 @@ const spineNorth = face(spine, "north");
 const stairWestX = mm(5050); // where the stair footprint starts north of the spine
 const bathWestFace = face(lobbyBathroom, "east");
 const bedBathNorth = face(bedroomBathroom, "north");
+const rearHallEastX = mm(8975); // east face of the rear hall, where it meets the extension
 
 export const rooms: Room[] = [
   // Starts at the front of the chimney breast: the alcoves either side of it are built-ins, not floor space.
@@ -78,8 +79,8 @@ export const rooms: Room[] = [
       pt(spineEastX, face(extSouth, "north")),
       pt(face(extEast, "west"), face(extSouth, "north")),
       pt(face(extEast, "west"), northIn),
-      pt(mm(8975), northIn),
-      pt(mm(8975), spineNorth),
+      pt(rearHallEastX, northIn),
+      pt(rearHallEastX, spineNorth),
       pt(spineEastX, spineNorth),
     ],
   },

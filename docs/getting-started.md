@@ -25,26 +25,30 @@ npm install
 Every command takes the path to a model: a single file, or a folder for a multi-file model:
 
 ```sh
-npm run build  models/example-cottage.ts    # model → JSON → IFC, then validate the IFC
-npm run render models/example-cottage.ts    # plan SVG/PNG per storey, then 3D PNGs from the IFC
+npm run build  models/example-cottage       # model → JSON → IFC, then validate the IFC
+npm run check  models/example-cottage       # run the model checks only; writes nothing
+npm run render models/example-cottage       # plan SVG/PNG per storey, then 3D PNGs from the IFC
+npm run all    models/example-cottage       # build, then render if the build succeeded
 npm run build  models/elmstead              # same as models/elmstead/index.ts
 ```
 
+`build` and `render` run the model checks first and write nothing if any ERROR is reported.
 `render` uses the IFC from the last `build` for its 3D snapshots, so run `build` first.
 
 Flags:
 
 | Flag | Command | Effect |
 |---|---|---|
-| `--ids` | `render` | label every element with its id on the plan (useful when editing) |
-| `--no-3d` | `render` | skip the headless-browser 3D snapshots |
+| `--ids` | `render`, `all` | label every element with its id on the plan (useful when editing) |
+| `--no-3d` | `render`, `all` | skip the headless-browser 3D snapshots |
 
 A command exits non-zero if any ERROR was reported.
 
 ### Output
 
 Everything is written to `out/`, which is git-ignored. Never edit it by hand; it is regenerated on
-every run.
+every run. Set `ELMSTEAD_OUT_DIR` to write somewhere else; the commands still find the project's
+model files, validator and viewer when run from any directory.
 
 | File | From |
 |---|---|
@@ -53,8 +57,8 @@ every run.
 | `out/<name>.<storey-id>.plan.svg` / `.png` | `render`: one plan per storey |
 | `out/<name>.3d-{sw,se,ne,nw,top}.png` | `render`: 3D snapshots of the IFC |
 
-`<name>` is the model's file name, e.g. `example-cottage`, or its folder name for a multi-file
-model, e.g. `elmstead`.
+`<name>` is the model's file name, or its folder name for a multi-file model, e.g.
+`example-cottage` or `elmstead`.
 
 ### Reading the output
 
