@@ -8,7 +8,7 @@
 
 ## 2. Model integrity checks
 
-- [x] 2.1 Add `checkIds` and `checkWalls` in `src/checks/model.ts`: unique ids across every id-bearing node (including components) and zero-length walls. Verify with tests that duplicate element/component ids and zero-length walls are ERRORs against the id.
+- [x] 2.1 Add `checkIds` and `checkWalls` in `src/checks/model.ts`: unique ids across every id-bearing node, reporting both kinds, and zero-length walls; keep the existing component-id message by moving that rule out of `checkComponents`. Verify with tests that duplicate element/component ids and zero-length walls are ERRORs against the id.
 - [x] 2.2 Add `checkOpenings`: host wall on the same storey, offset+width within the wall length, sill+height within the wall height, and pairwise overlap on the same wall. Verify with fixtures for missing host, past the end, above the top and overlapping openings.
 - [x] 2.3 Add `checkOutlines` for rooms and slabs using `polygonProblems`. Verify with self-intersecting room and repeated-point slab fixtures.
 - [x] 2.4 Export `checkModel` (components + ids + walls + openings + outlines), run it in `build` before writing anything and in `render` before writing plans, and update `docs/development.md` and `docs/modelling.md` with the new rules. Verify that a failing model writes no files and that both commands exit 1.
@@ -16,15 +16,15 @@
 
 ## 3. CLI and error handling
 
-- [ ] 3.1 Refactor model loading to return a result instead of calling `process.exit`, wrap command dispatch in a `try/catch` that turns unexpected errors into an ERROR issue, and add CLI integration tests for missing-wall and zero-length-wall fixtures. Verify that `npm test` shows formatted issues, no stack trace and no partial output.
-- [ ] 3.2 Implement `check` (run `checkModel`, write nothing) and `all` (build then render, stopping on build errors), update `USAGE`, `docs/README.md` and `docs/getting-started.md`. Verify `npm run check` and `npm run all` on the cottage and on an invalid fixture.
-- [ ] 3.3 Write JSON, IFC, plan SVG/PNG and snapshot PNG files through `writeFileAtomic`, and add a test that an interrupted write preserves the previous file. Verify `npm test` and that `out/` contents still match a normal build.
-- [ ] 3.4 Add `tests/cli.test.ts` covering: valid build, component-check failure writes nothing, missing-host error, render-before-build warning, and `check`/`all` exit statuses. Verify with `npx vitest run tests/cli.test.ts`.
+- [x] 3.1 Remove the CLI `load()` wrapper's `process.exit`, wrap command dispatch in a `try/catch` that turns unexpected pipeline errors into an ERROR issue while keeping model-evaluation stacks inside their issue, and add CLI integration tests for missing-wall and zero-length-wall fixtures. Verify that `npm test` shows formatted issues, no pipeline stack trace and no partial output.
+- [x] 3.2 Implement `check` (run `checkModel`, write nothing) and `all` (build then render, stopping on build errors), update `USAGE`, `docs/README.md` and `docs/getting-started.md`. Verify `npm run check` and `npm run all` on the cottage and on an invalid fixture.
+- [ ] 3.3 Write JSON, IFC, plan SVG/PNG and snapshot PNG files through `writeFileAtomic` using a per-process temp name and cleaning it up on failure; add a test that an interrupted write preserves the previous file. Build JSON and IFC in memory before writing either, and reload the viewer on `add` as well as `change`. Verify `npm test` and that `out/` contents still match a normal build.
+- [x] 3.4 Add `tests/cli.test.ts` covering: valid build, component-check failure writes nothing, missing-host error, render-before-build warning, and `check`/`all` exit statuses. Verify with `npx vitest run tests/cli.test.ts`.
 
 ## 4. IFC verification and export
 
-- [ ] 4.1 Make `validateIfc` parse each stdout line defensively, resolve `validator/validate.py` from `PROJECT_ROOT`, honour the validator exit status, and report non-JSON lines and missing summaries as issues. Add a fake-`uv` test for non-JSON stdout and a test for a non-zero exit without a summary. Update `docs/ifc.md`.
-- [ ] 4.2 Compute the window partitioning value from the glazing grid and use it on both `IfcWindowType` and `IfcWindow`. Verify with an IFC test that the six-pane front window is `MULTIPLE_PANEL` and a plain window is `SINGLE_PANEL`; update `docs/ifc.md`.
+- [x] 4.1 Make `validateIfc` parse each stdout line defensively, resolve `validator/validate.py` from `PROJECT_ROOT`, honour the validator exit status, and report non-JSON lines and missing summaries as issues. Add a fake-`uv` test for non-JSON stdout and a test for a non-zero exit without a summary. Update `docs/ifc.md`.
+- [x] 4.2 Map the glazing grid to IFC4 partitioning values (`SINGLE_PANEL`, the two- and three-panel doubles/triples, else `USERDEFINED` with `UserDefinedPartitioningType`) and use the same value on both `IfcWindowType` and `IfcWindow`. Verify with IFC tests that a plain window is `SINGLE_PANEL`, a two-column window is `DOUBLE_PANEL_VERTICAL`, and a six-pane 3×2 window is `USERDEFINED` with `"3x2 grid"`; update `docs/ifc.md`.
 
 ## 5. Snapshot lifecycle
 

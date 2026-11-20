@@ -40,13 +40,13 @@ describe("checkIds", () => {
   it("reports a duplicate room id once, against that id", () => {
     const m = model();
     m.storeys[0]!.rooms[1]!.id = m.storeys[0]!.rooms[0]!.id;
-    expect(checkIds(m)).toEqual([{ level: "ERROR", id: "room-living", message: "id is already used by room" }]);
+    expect(checkIds(m)).toEqual([{ level: "ERROR", id: "room-living", message: "id is used by two rooms" }]);
   });
 
   it("reports an element and a component that share an id", () => {
     const m = model();
     m.components!.windows[0]!.id = "wall-south";
-    expect(checkIds(m)).toEqual([{ level: "ERROR", id: "wall-south", message: "id is already used by wall" }]);
+    expect(checkIds(m)).toEqual([{ level: "ERROR", id: "wall-south", message: "id is used by a wall and a window component" }]);
   });
 
   it("keeps the component-specific message for two components with one id", () => {
@@ -130,7 +130,7 @@ describe("checkModel", () => {
     wall(m, "wall-south").end = { ...wall(m, "wall-south").start };
     opening(m, "door-living").wallId = "wall-missing";
     const messages = checkModel(m).map((i) => i.message);
-    expect(messages).toContain("id is already used by room");
+    expect(messages).toContain("id is used by two rooms");
     expect(messages).toContain("zero-length wall cannot be written to IFC");
     expect(messages).toContain("wallId wall-missing is not a wall on this storey");
   });

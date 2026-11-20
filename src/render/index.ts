@@ -1,5 +1,6 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { writeFileAtomic } from "../io.js";
 import type { BuildingModel } from "../schema/schema.js";
 import { renderPlan, type PlanOptions } from "./plan.js";
 import { svgToPng } from "./png.js";
@@ -13,8 +14,8 @@ export function renderAll(name: string, model: BuildingModel, outDir: string, op
   for (const storey of model.storeys) {
     const svg = renderPlan(model, storey, opts);
     const base = join(outDir, `${name}.${storey.id}.plan`);
-    writeFileSync(`${base}.svg`, svg);
-    writeFileSync(`${base}.png`, svgToPng(svg));
+    writeFileAtomic(`${base}.svg`, svg);
+    writeFileAtomic(`${base}.png`, svgToPng(svg));
     written.push(`${base}.svg`, `${base}.png`);
   }
   return written;

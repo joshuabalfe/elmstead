@@ -30,7 +30,7 @@ describe("writeFileAtomic", () => {
     const dir = tempDir();
     const path = join(dir, "out.json");
     writeFileSync(path, "old");
-    mkdirSync(`${path}.tmp`); // the temporary path cannot be written as a file
+    mkdirSync(`${path}.${process.pid}.tmp`); // the temporary path cannot be written as a file
     expect(() => writeFileAtomic(path, "new")).toThrow();
     expect(readFileSync(path, "utf8")).toBe("old");
   });

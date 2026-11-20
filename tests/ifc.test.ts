@@ -4,6 +4,7 @@ import { join } from "node:path";
 import * as WebIFC from "web-ifc";
 import { describe, expect, it } from "vitest";
 import cottage from "../models/example-cottage.js";
+import { mm } from "../src/model/index.js";
 import { ifcGuid } from "../src/ifc/guid.js";
 import { ifcGeometry, roundTripChecks } from "../src/ifc/roundtrip.js";
 import { validateIfc } from "../src/ifc/validate.js";
@@ -67,6 +68,42 @@ describe("IFC writer", () => {
     } finally {
       api.CloseModel(id);
     }
+  });
+
+  it("maps the glazing grid to IFC4 partitioning values on the type and its instances", async () => {
+    const read = async (m: BuildingModel) => {
+      const api = new WebIFC.IfcAPI();
+      await api.Init();
+      const id = api.OpenModel(await writeIfc(m, { fileName: "t.ifc" }));
+      try {
+        const lines = (type: number) => ids(api, id, type).map((e) => api.GetLine(id, e));
+        const value = (v: { value?: string } | string | null) => (typeof v === "string" ? v : (v?.value ?? null));
+        return {
+          types: lines(WebIFC.IFCWINDOWTYPE).map((t) => [value(t.PartitioningType), value(t.UserDefinedPartitioningType)]),
+          instances: lines(WebIFC.IFCWINDOW).map((w) => [value(w.PartitioningType), value(w.UserDefinedPartitioningType)]),
+        };
+      } finally {
+        api.CloseModel(id);
+      }
+    };
+    const withGlazing = (columns: number[], rows: number[]) => {
+      const m = structuredClone(model);
+      m.components!.windows[0]!.glazing = { columns, rows, barWidth: mm(60) };
+      return m;
+    };
+
+    expect(await read(model)).toEqual({
+      types: [["SINGLE_PANEL", null]],
+      instances: Array(4).fill(["SINGLE_PANEL", null]),
+    });
+    expect(await read(withGlazing([1, 1], [1]))).toEqual({
+      types: [["DOUBLE_PANEL_VERTICAL", null]],
+      instances: Array(4).fill(["DOUBLE_PANEL_VERTICAL", null]),
+    });
+    expect(await read(withGlazing([1, 2, 1], [1, 1]))).toEqual({
+      types: [["USERDEFINED", "3x2 grid"]],
+      instances: Array(4).fill(["USERDEFINED", "3x2 grid"]),
+    });
   });
 
   it("keeps GlobalIds stable when geometry changes", async () => {

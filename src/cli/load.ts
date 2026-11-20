@@ -32,13 +32,18 @@ export async function loadModel(path: string): Promise<LoadResult> {
     const mod = (await import(pathToFileURL(resolve(entryPoint(path))).href)) as { default?: unknown };
     exported = mod.default;
   } catch (e) {
-    return { ok: false, issues: [{ level: "ERROR", id: path, message: `model threw while evaluating: ${(e as Error).stack ?? e}` }] };
+    return { ok: false, issues: [{ level: "ERROR", id: path, message: `model threw while evaluating: ${e instanceof Error ? e.stack ?? e.message : e}` }] };
   }
   if (exported === undefined) {
     return { ok: false, issues: [{ level: "ERROR", id: path, message: "model has no default export" }] };
   }
   // The JSON round-trip makes sure what we validate is exactly what gets written.
-  const json: unknown = JSON.parse(JSON.stringify(exported));
+  let json: unknown;
+  try {
+    json = JSON.parse(JSON.stringify(exported));
+  } catch (e) {
+    return { ok: false, issues: [{ level: "ERROR", id: path, message: `model cannot be written as JSON: ${e instanceof Error ? e.message : e}` }] };
+  }
   const parsed = BuildingModelSchema.safeParse(json);
   if (!parsed.success) return { ok: false, issues: parsed.error.issues.map((i) => schemaIssue(json, i)) };
   return { ok: true, value: { name: modelName(path), model: parsed.data } };

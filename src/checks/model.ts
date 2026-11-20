@@ -35,7 +35,8 @@ export function checkIds(model: BuildingModel): Issue[] {
       seen.set(id, kind);
       continue;
     }
-    const message = isComponent(first) && isComponent(kind) ? "component id is used twice" : `id is already used by ${first}`;
+    const message =
+      isComponent(first) && isComponent(kind) ? "component id is used twice" : first === kind ? `id is used by two ${kind}s` : `id is used by a ${first} and a ${kind}`;
     issues.push({ level: "ERROR", id, message });
   }
   return issues;

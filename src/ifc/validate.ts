@@ -9,6 +9,17 @@ export interface IfcValidation {
   warnings: number;
 }
 
+interface ValidatorLine {
+  level?: string;
+  id?: string | null;
+  entity?: string | null;
+  message?: string;
+  errors?: number;
+  warnings?: number;
+}
+
+const stderrTail = (stderr: string): string => stderr.trim().split("\n").slice(-5).join(" | ");
+
 /** Runs validator/validate.py (IfcOpenShell) through uv and maps its JSON lines to Issues. */
 export function validateIfc(ifcPath: string): IfcValidation {
   const r = spawnSync("uv", ["run", "--quiet", join(PROJECT_ROOT, "validator/validate.py"), ifcPath], { encoding: "utf8", cwd: PROJECT_ROOT });
@@ -18,19 +29,39 @@ export function validateIfc(ifcPath: string): IfcValidation {
   }
   const issues: Issue[] = [];
   let summary: { errors: number; warnings: number } | undefined;
+  let malformed = 0;
   for (const raw of r.stdout.split("\n")) {
     if (!raw.trim()) continue;
-    const line = JSON.parse(raw) as { level: string; id?: string | null; entity?: string | null; message?: string; errors?: number; warnings?: number };
+    let line: ValidatorLine;
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("not an object");
+      line = parsed as ValidatorLine;
+    } catch {
+      malformed++;
+      issues.push({ level: "ERROR", id: ifcPath, message: `validator output is not JSON: ${raw}` });
+      continue;
+    }
     if (line.level === "SUMMARY") {
-      summary = { errors: line.errors ?? 0, warnings: line.warnings ?? 0 };
+      summary = { errors: Number(line.errors) || 0, warnings: Number(line.warnings) || 0 };
       continue;
     }
     const where = line.entity ? `${line.entity}: ` : "";
     issues.push({ level: line.level === "ERROR" ? "ERROR" : "WARNING", ...(line.id ? { id: line.id } : {}), message: `ifc: ${where}${line.message ?? ""}` });
   }
+  const stderr = stderrTail(r.stderr);
   if (!summary) {
-    const stderr = r.stderr.trim().split("\n").slice(-5).join(" | ");
-    return { issues: [...issues, { level: "ERROR", id: ifcPath, message: `validator crashed (exit ${r.status}): ${stderr}` }], errors: issues.length + 1, warnings: 0 };
+    const issue: Issue = { level: "ERROR", id: ifcPath, message: `validator crashed (exit ${r.status}): ${stderr}` };
+    return {
+      issues: [...issues, issue],
+      errors: issues.filter((i) => i.level === "ERROR").length + 1,
+      warnings: issues.filter((i) => i.level === "WARNING").length,
+    };
   }
-  return { issues, ...summary };
+  if (r.status !== 0 && r.status !== 1) {
+    issues.push({ level: "ERROR", id: ifcPath, message: `validator exited with status ${r.status}: ${stderr}` });
+    return { issues, errors: summary.errors + malformed + 1, warnings: summary.warnings };
+  }
+  // Exit 1 with a summary is normal: the summary already counts the findings.
+  return { issues, errors: summary.errors + malformed, warnings: summary.warnings };
 }

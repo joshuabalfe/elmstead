@@ -46,4 +46,24 @@ describe("polygonProblems", () => {
   it("reports a bow-tie that crosses itself", () => {
     expect(polygonProblems([P(0, 0), P(1000, 1000), P(1000, 0), P(0, 1000)])).toContain("outline crosses itself");
   });
+
+  it("reports a point repeated at a non-adjacent position", () => {
+    expect(polygonProblems([P(0, 0), P(1000, 0), P(1000, 1000), P(0, 0), P(-1000, 1000)])).toContain("outline repeats a point");
+  });
+
+  it("reports a vertex that lies on a non-adjacent edge", () => {
+    expect(polygonProblems([P(0, 0), P(1000, 0), P(1000, 1000), P(500, 0), P(0, 1000)])).toContain("outline crosses itself");
+  });
+
+  it("reports collinear non-adjacent edges that overlap", () => {
+    expect(polygonProblems([P(0, 0), P(1000, 0), P(1000, 1000), P(800, 0), P(200, 0), P(0, 1000)])).toContain("outline crosses itself");
+  });
+
+  it("reports adjacent edges that double back", () => {
+    expect(polygonProblems([P(0, 0), P(1000, 0), P(500, 0), P(500, 1000)])).toContain("outline doubles back on itself");
+  });
+
+  it("allows a straight continuation at an intermediate vertex", () => {
+    expect(polygonProblems([P(0, 0), P(500, 0), P(1000, 0), P(1000, 1000), P(0, 1000)])).toEqual([]);
+  });
 });

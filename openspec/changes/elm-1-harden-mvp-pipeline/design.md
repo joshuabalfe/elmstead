@@ -34,9 +34,12 @@ they are cross-element and the schema is the JSON contract, not a plan checker) 
 
 ### Id uniqueness uses one table across every id-bearing node
 Walk the model once and collect `(id, kind)` for project, site, building, storeys, walls, openings,
-slabs, rooms and components. The first occurrence wins; a later duplicate is an ERROR naming both
-kinds. This catches collisions that also collide in the GlobalId keyspace (`ifcGuid(id)`), including
-element/component collisions that the current component-only check misses.
+slabs, rooms and components. The first occurrence wins; a later duplicate is an ERROR whose message
+names both kinds ("id is used by a wall and a window component", "id is used by two rooms"), or
+keeps "component id is used twice" when both are components. The component-only loop moves out of
+`checkComponents` so nothing is reported twice. This catches collisions that also collide in the
+GlobalId keyspace (`ifcGuid(id)`), including element/component collisions that the current
+component-only check misses.
 
 ### Opening fit and overlap use geometry helpers
 Use `wallLength` for the fit test with a small tolerance (`1e-6` mm) because wall lengths are
@@ -46,16 +49,19 @@ openings so either id in the message leads to a fix.
 
 ### Polygon validity helper in `src/geometry/polygon.ts`
 Add `polygonProblems(pts)` returning a list of short reasons. It checks distinct points, open
-outline, adjacent duplicates, non-zero area and self-intersection. Self-intersection reuses the
-existing `segmentsCross`, skipping adjacent edges and shared endpoints. Concave room and slab
-outlines remain valid.
+outline, any repeated point (not only adjacent), non-zero area and self-intersection. For
+self-intersection it combines `segmentsCross` with an inclusive on-segment test, so non-adjacent
+edges that touch at an endpoint or overlap collinearly are caught; adjacent edges are additionally
+rejected when they double back along the same ray. Straight collinear continuation is allowed.
+Concave room and slab outlines remain valid.
 
 ### CLI owns the error boundary
-`main` wraps command dispatch in `try/catch`; a caught error becomes
-`{ level: "ERROR", id: <current model name or path>, message }` and returns 1. `loadModel` returns
-`LoadResult` and never calls `process.exit`. `validateIfc` parses each stdout line defensively and
-turns an unparseable line or missing summary into issues. This keeps expected model errors and
-unexpected failures on the same reporting path.
+`loadModel` already returns `LoadResult` and never exits; the `process.exit(1)` is in the CLI's
+`load()` wrapper. Remove that wrapper and let `main` wrap dispatch in `try/catch`; a caught
+unexpected pipeline error becomes `{ level: "ERROR", id: <model path>, message }` and returns 1.
+Model-evaluation errors keep their stack inside the issue message. `validateIfc` parses each stdout
+line defensively and turns an unparseable line or missing summary into issues. This keeps expected
+model errors and unexpected failures on the same reporting path.
 
 ### Paths resolve from the module location; output dir is explicit
 Add `src/root.ts` exporting `PROJECT_ROOT = fileURLToPath(new URL("..", import.meta.url))` (from
@@ -64,9 +70,12 @@ The CLI, validator bridge and snapshot driver use these. The viewer config alrea
 its own location. This makes the CLI usable from any CWD and lets tests write to a temp directory.
 
 ### Atomic writes through one small helper
-Add `src/io.ts` with `writeFileAtomic(path, data)`: write `<path>.tmp` in the same directory, then
-`renameSync` over the destination. JSON, IFC, SVG, PNG and screenshot buffers all use it. A failed
-write leaves the previous file intact; deterministic file contents are unchanged.
+Add `src/io.ts` with `writeFileAtomic(path, data)`: write `<path>.<pid>.tmp` in the same directory,
+then `renameSync` over the destination, removing the temp file on failure. JSON, IFC, SVG, PNG and
+screenshot buffers all use it. A failed write leaves the previous file intact; deterministic file
+contents are unchanged. `build` generates the JSON and IFC in memory before writing either, so a
+writer throw cannot pair a new JSON with an old IFC. The viewer watcher listens for `add` as well
+as `change`, because a rename can surface as either.
 
 ### Snapshot lifecycle is nested and failure-aware
 `snapshot3d` starts the server, then enters `try/finally` that closes the browser (if launched) and
@@ -80,8 +89,11 @@ with `document.createElement("option")` and `textContent`, and validates `?view=
 five known views, falling back to `top`.
 
 ### Window partitioning follows the pane grid
-A shared helper computes `SINGLE_PANEL` when a window has no glazing or one pane, otherwise
-`MULTIPLE_PANEL`. Both `IfcWindowType` and `IfcWindow` use it, so the type and its instances agree.
+IFC4 has no `MULTIPLE_PANEL` value. A shared helper maps the grid to `SINGLE_PANEL` for one pane,
+`DOUBLE_PANEL_VERTICAL`/`DOUBLE_PANEL_HORIZONTAL` for two side by side/stacked,
+`TRIPLE_PANEL_VERTICAL`/`TRIPLE_PANEL_HORIZONTAL` for three side by side/stacked, and `USERDEFINED`
+with `UserDefinedPartitioningType` "<columns>x<rows> grid" for any other grid. Both `IfcWindowType`
+and `IfcWindow` use the same value, so the type and its instances agree.
 
 ### Verification
 Unit tests cover each check rule and polygon validity. The IFC test suite adds a multi-pane window

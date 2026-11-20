@@ -36,9 +36,12 @@ function elmstead(): Plugin {
         next();
       });
       server.watcher.add(join(outDir, "*.ifc"));
-      server.watcher.on("change", (f) => {
+      // Atomic writes rename a temp file over the IFC, which can surface as "add" rather than "change".
+      const reload = (f: string) => {
         if (f.startsWith(outDir) && f.endsWith(".ifc")) server.ws.send({ type: "full-reload" });
-      });
+      };
+      server.watcher.on("change", reload);
+      server.watcher.on("add", reload);
     },
   };
 }

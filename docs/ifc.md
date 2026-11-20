@@ -27,10 +27,15 @@ Units: millimetres for length, m² for area, m³ for volume and radians for plan
 | Window | `IfcWindow` + `IfcRelFillsElement` | 50 mm glazing panel at the sill height; with its component's frame and glazing bars, one panel per pane and a 70 mm deep `frame`-coloured box per frame piece and bar, none overlapping (`src/geometry/window.ts`) |
 | Slab | `IfcSlab` (`FLOOR`) | outline extruded up to `elevationOffset`, `thickness` deep |
 | Door component | `IfcDoorType` (`DOOR`), declared in the project (`IfcRelDeclares`), linked to its doors by `IfcRelDefinesByType` | none. `Name` is the component name, `Tag` its id. `OperationType` is `NOTDEFINED`, because handing differs door by door; each `IfcDoor` keeps its own |
-| Window component | `IfcWindowType` (`WINDOW`, `SINGLE_PANEL`), declared and linked the same way | none |
+| Window component | `IfcWindowType` (`WINDOW`), declared and linked the same way | none |
 | Room | `IfcSpace` (`INTERNAL`) | `FootPrint` 2D outline only, because rooms have no height yet. `Name` is the room id and `LongName` the room name |
 
 - Every element's `Tag` is its model id, and its `Name` is the model `name` (falling back to the id).
+- Window partitioning follows the glazing grid, on both the type and each instance: one pane is
+  `SINGLE_PANEL`; two side by side or stacked are `DOUBLE_PANEL_VERTICAL` or
+  `DOUBLE_PANEL_HORIZONTAL`; three side by side or stacked are `TRIPLE_PANEL_VERTICAL` or
+  `TRIPLE_PANEL_HORIZONTAL`. Any other grid, such as 3 × 2, is `USERDEFINED` with
+  `UserDefinedPartitioningType` `"3x2 grid"`. IFC4 has no `MULTIPLE_PANEL` value.
 - Walls, slabs, doors and glazing carry `IfcStyledItem` surface colours. These are only so they
   can be told apart in any viewer; they have no building meaning.
 - Door handing follows the IFC4 convention: look at the door from the side it opens towards. If
@@ -99,6 +104,12 @@ ERROR   wall-south: ifc: Depth: … IfcPositiveLengthMeasure.WR1
 The validator walks back from the offending geometry to the element that owns it, so findings
 name a model id rather than an IFC `#123` line. If `uv` is missing, `build` reports an ERROR
 with the hint `brew install uv`.
+
+The bridge runs `validator/validate.py` from the project root, so `build` works from any working
+directory. Exit status 1 with a summary is normal (the IFC has findings); a missing summary or any
+other exit status is reported as a crash with the last lines of stderr. A stdout line that is not
+JSON is reported as an ERROR quoting the line, and the `valid … N errors` count includes it rather
+than printing a misleading zero.
 
 To run the validator on its own:
 
