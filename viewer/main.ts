@@ -2,15 +2,18 @@
  * Local IFC viewer on That Open Engine: loads out/<model>.ifc, converts it to Fragments in the
  * browser and shows it, with the plan's room dimensions at each storey's ceiling and room names on
  * billboards that face the camera, and a compass pointing to true north (all from
- * out/<model>.building.json). Query params: ?model=<name>&view=<sw|se|ne|nw|top>&snapshot=1&labels=0|1
- * (snapshot hides the UI and sets window.__elmsteadReady once the first frame is drawn; labels are
- * on by default, except in snapshots, which show the IFC alone).
+ * out/<model>.building.json). The Top view is drawn like the plan: cut at the plan's cut height,
+ * unlit, in the plan's colours. Query params: ?model=<name>&view=<sw|se|ne|nw|top>&snapshot=1
+ * &labels=0|1&style=plan|ifc (snapshot hides the UI and sets window.__elmsteadReady once the first
+ * frame is drawn; labels and the plan style are on by default, except in snapshots, which show the
+ * IFC alone).
  */
 import * as OBC from "@thatopen/components";
 import workerUrl from "@thatopen/fragments/worker?url";
 import * as THREE from "three";
-import { renderRoomLabels, roomTags } from "../src/render/plan.js";
-import { C, FONT, PX_PER_MM, ROOM_LABEL } from "../src/render/style.js";
+import { STYLES } from "../src/ifc/styles.js";
+import { renderPlanAnnotations, roomTags } from "../src/render/plan.js";
+import { C, CUT_HEIGHT, FONT, PX_PER_MM, ROOM_LABEL } from "../src/render/style.js";
 import type { BuildingModel } from "../src/schema/schema.js";
 
 type View = "sw" | "se" | "ne" | "nw" | "top";
@@ -148,8 +151,9 @@ async function loadLabels(name: string) {
   if (!res.ok) return; // no JSON next to the IFC: show the IFC without labels
   const model = (await res.json()) as BuildingModel;
   northAngle = model.site.northAngle ?? 0;
+  planCut = (Math.min(...model.storeys.map((s) => s.elevation)) + CUT_HEIGHT) / 1000;
   for (const storey of model.storeys) {
-    const { svg, bounds } = renderRoomLabels(storey, { names: false });
+    const { svg, bounds } = renderPlanAnnotations(storey, { names: false });
     const img = new Image();
     img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
     await img.decode();
@@ -178,8 +182,82 @@ async function loadLabels(name: string) {
 
 let box = new THREE.Box3();
 
+/**
+ * Plan style for the Top view: the IFC's presentation colours (src/ifc/styles.ts) swapped for the
+ * plan's, drawn unlit (emissive) and from both sides, with everything above the plan's cut height
+ * clipped away. Looking down into a clipped wall then shows its inside in the wall colour, which
+ * reads as the plan's solid cut wall; doors and windows show through the cut as on the plan.
+ */
+const PLAN_COLOURS: [readonly number[], string][] = [
+  [STYLES.wall.rgb, C.wall],
+  [STYLES.slab.rgb, C.room],
+  [STYLES.door.rgb, C.paper], // a closed leaf in its opening reads as the plan's gap
+  [STYLES.glazing.rgb, C.glass],
+];
+const planStyleParam = params.get("style");
+const usePlanStyle = (view: View) => view === "top" && (planStyleParam === "plan" || (!snapshot && planStyleParam !== "ifc"));
+type Saved = Pick<THREE.MeshLambertMaterial, "side" | "opacity" | "transparent" | "polygonOffsetFactor" | "polygonOffsetUnits"> & { color: THREE.Color; emissive: THREE.Color };
+const ifcState = new Map<THREE.MeshLambertMaterial, Saved>();
+const cut = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);
+world.renderer.three.localClippingEnabled = true;
+
+function planColourFor(material: THREE.MeshLambertMaterial): string | undefined {
+  const c = material.color;
+  let best: string | undefined;
+  let bestDist = 0.02; // the IFC colours survive the round trip to within about 1/255
+  for (const [rgb, colour] of PLAN_COLOURS) {
+    const ifc = new THREE.Color().setRGB(rgb[0]!, rgb[1]!, rgb[2]!, THREE.SRGBColorSpace);
+    const d = Math.hypot(ifc.r - c.r, ifc.g - c.g, ifc.b - c.b);
+    if (d < bestDist) [best, bestDist] = [colour, d];
+  }
+  return best;
+}
+
+function setPlanStyle(on: boolean, cutHeight: number) {
+  for (const m of fragments.core.models.materials.list.values()) {
+    if (!(m instanceof THREE.MeshLambertMaterial)) continue;
+    if (on) {
+      const saved = ifcState.get(m);
+      const colour = saved ? undefined : planColourFor(m);
+      if (!saved && !colour) continue;
+      if (!saved) {
+        const { side, opacity, transparent, polygonOffsetFactor, polygonOffsetUnits } = m;
+        ifcState.set(m, { color: m.color.clone(), emissive: m.emissive.clone(), side, opacity, transparent, polygonOffsetFactor, polygonOffsetUnits });
+      }
+      if (colour) m.emissive.set(colour);
+      // Seen from above, a clipped wall shows the inside of its underside, which lies exactly on the
+      // slab's top face: pull everything but the slab towards the camera so the wall wins.
+      const slab = colour === C.room;
+      m.polygonOffsetFactor = slab ? 1 : -1;
+      m.polygonOffsetUnits = slab ? 1 : -4;
+      m.color.set(0x000000);
+      m.side = THREE.DoubleSide;
+      m.opacity = 1;
+      m.transparent = false;
+      cut.constant = cutHeight;
+      m.clippingPlanes = [cut];
+    } else {
+      const saved = ifcState.get(m);
+      if (!saved) continue;
+      const { side, opacity, transparent, polygonOffsetFactor, polygonOffsetUnits } = saved;
+      Object.assign(m, { side, opacity, transparent, polygonOffsetFactor, polygonOffsetUnits });
+      m.color.copy(saved.color);
+      m.emissive.copy(saved.emissive);
+      m.clippingPlanes = [];
+      ifcState.delete(m);
+    }
+    m.needsUpdate = true;
+  }
+  world.scene.three.background = new THREE.Color(on ? C.paper : 0xf4f4f2);
+  grid.three.visible = !on;
+}
+
+/** Plan cut height (m) for the lowest storey, which is the one the Top view shows. */
+let planCut = CUT_HEIGHT / 1000;
+
 /** Three.js is Y-up with plan north along −Z (IFC +Y). */
 async function setView(view: View) {
+  setPlanStyle(usePlanStyle(view), planCut);
   const centre = box.getCenter(new THREE.Vector3());
   const dir: Record<View, [number, number, number]> = {
     sw: [-1, 0.7, 1],
@@ -204,6 +282,7 @@ async function setView(view: View) {
 async function load(name: string) {
   status.textContent = `loading ${name}.ifc…`;
   for (const [id] of fragments.list) await fragments.core.disposeModel(id);
+  ifcState.clear(); // its materials went with the model
   const buffer = new Uint8Array(await (await fetch(`/out/${name}.ifc`)).arrayBuffer());
   const model = await ifcLoader.load(buffer, true, name);
   model.useCamera(world.camera.three);

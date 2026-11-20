@@ -73,9 +73,9 @@ openings cut, doors and glazing in place, colours applied.
 - Room labels: `main.ts` also reads `out/<name>.building.json` and draws each storey's room
   labels at its ceiling, 10 mm above the top of its tallest wall (the schema has no ceiling
   height). Being above the walls, they read from every camera.
-  - Dimension lines lie flat, as if drawn on a glass ceiling: the plan's own dimensions
-    (`renderRoomLabels(storey, { names: false })` in `src/render/plan.ts`) drawn to a texture
-    at 2.5 mm per pixel.
+  - Dimension lines lie flat, as if drawn on a glass ceiling: the plan's own room and overall
+    dimensions (`renderPlanAnnotations(storey, { names: false })` in `src/render/plan.ts`) drawn
+    to a texture at 2.5 mm per pixel.
   - Room names and areas are billboards (sprites) that turn to face the camera, at the room's
     centroid and the plan's text size (`roomTags` and `ROOM_LABEL` in `src/render/style.ts`).
     They are drawn over the model so the wall tops don't cut them.
@@ -86,5 +86,19 @@ openings cut, doors and glazing in place, colours applied.
   - They come from the model JSON, not the IFC, because the IFC has no room dimensions.
   - The **Labels** button toggles them. `?labels=0` or `?labels=1` in the URL sets them.
   - They are on by default, but off in snapshots (`?snapshot=1`), so the 3D PNGs show only the IFC.
+- Plan style: the **Top** view is drawn like the plan.
+  - Everything above the plan's cut height (`CUT_HEIGHT`, 1.2 m above the lowest storey) is
+    clipped away, so doors and windows show through the walls.
+  - The IFC's presentation colours (`src/ifc/styles.ts`) are swapped for the plan's: walls
+    charcoal, slabs the room colour, door leaves white (a closed leaf reads as the plan's gap),
+    glazing the plan's blue, on a white background with no grid.
+  - It is unlit and drawn from both sides, so looking down into a clipped wall shows its inside in
+    the wall colour, which reads as the plan's solid cut wall.
+  - The corner views put the IFC's colours and lighting back.
+  - It is off in snapshots, so the Top PNG still shows the IFC's own colours. `?style=plan` or
+    `?style=ifc` in the URL overrides it.
+  - Still different from the plan: no door swings, windows show as a glazing line in a solid wall
+    rather than the plan's window symbol, and floor outside any room (the stairs, the alcoves) is
+    in the room colour because the slab is.
 - `npm run view` runs the same app for interactive use. It reloads the page whenever an IFC in
   `out/` changes.

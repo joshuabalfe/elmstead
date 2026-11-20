@@ -221,6 +221,15 @@ function scaleBar(at: Vec): string {
   return group({}, parts);
 }
 
+/** Overall dimensions: below and to the right of the drawing extent. */
+function overallDimensions(view: View): string[] {
+  const { extent } = view;
+  const sw = v(extent.minX, extent.minY);
+  const se = v(extent.maxX, extent.minY);
+  const ne = v(extent.maxX, extent.maxY);
+  return [...dimension(sw, se, `${extent.maxX - extent.minX}`, -40, view), ...dimension(se, ne, `${extent.maxY - extent.minY}`, -40, view)];
+}
+
 /** Where each room's label goes (its centroid, mm) and what it says. */
 export function roomTags(storey: Storey): { id: string; name: string; area: string; at: Vec }[] {
   return storey.rooms.map((r) => {
@@ -250,11 +259,11 @@ function roomLabels(storey: Storey, view: View, opts: PlanOptions, names = true)
 }
 
 /**
- * The plan's room dimensions and (unless `names` is false) room labels alone, on a transparent
- * background, for laying in the 3D viewer, with haloed text so it reads over the model. `bounds`
- * is the plan area (mm) the SVG covers, edge to edge.
+ * The plan's dimensions (room and overall) and, unless `names` is false, its room labels alone,
+ * on a transparent background, for laying in the 3D viewer, with haloed text so it reads over the
+ * model. `bounds` is the plan area (mm) the SVG covers, edge to edge.
  */
-export function renderRoomLabels(storey: Storey, { names = true }: { names?: boolean } = {}): { svg: string; bounds: Bounds } {
+export function renderPlanAnnotations(storey: Storey, { names = true }: { names?: boolean } = {}): { svg: string; bounds: Bounds } {
   const view = makeView(storey);
   const minX = view.extent.minX - MARGIN.left / PX_PER_MM;
   const maxY = view.extent.maxY + MARGIN.top / PX_PER_MM;
@@ -264,6 +273,7 @@ export function renderRoomLabels(storey: Storey, { names = true }: { names?: boo
     // Without the paper underneath, the text needs a halo and the lines more weight to read on a floor.
     `<style>text { stroke: ${C.paper}; stroke-width: 3px; stroke-linejoin: round; paint-order: stroke; } line { stroke: ${C.ink}; stroke-width: 1px; }</style>`,
     ...roomLabels(storey, view, { ids: false }, names),
+    ...overallDimensions(view),
     "</svg>",
     "",
   ].join("\n");
@@ -316,12 +326,7 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
     }
   }
 
-  // Overall dimensions: below and to the right of the drawing extent.
-  const sw = v(extent.minX, extent.minY);
-  const se = v(extent.maxX, extent.minY);
-  const ne = v(extent.maxX, extent.maxY);
-  out.push(...dimension(sw, se, `${extent.maxX - extent.minX}`, -40, view));
-  out.push(...dimension(se, ne, `${extent.maxY - extent.minY}`, -40, view));
+  out.push(...overallDimensions(view));
 
   const title = `${model.building.name} — ${storey.name} plan`;
   const sub = `Elevation ${storey.elevation} mm · dimensions in mm · 1 px = ${num(1 / PX_PER_MM)} mm`;
