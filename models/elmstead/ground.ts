@@ -16,7 +16,7 @@
  * them. Left out for now: the stairs, front steps, hearths, radiators and rainwater pipes. The
  * alcoves beside the living-room chimney breast are built-ins, so they are not part of the room.
  */
-import { add, centredOn, door, face, m, mm, pt, rectRoom, sub, wall, window, type Opening, type Room, type Storey } from "../../src/model/index.js";
+import { add, centredOn, door, face, faceCrossing, m, mm, pt, rectRoom, sub, wall, window, type Opening, type Room, type Storey } from "../../src/model/index.js";
 import { brickT, coreD, coreW, eastT, extEastX, extSouthY, footprint, groundFloor, northT, partT, southT, studT, westT } from "./shared.js";
 
 const wallH = groundFloor.ceilingHeight; // walls stop at the ceiling until there is an upper floor
@@ -117,10 +117,11 @@ const rooms: Room[] = [
   {
     id: "room-hallway",
     name: "Hallway",
+    // Along the lobby screen's hall-side face (its left), from the hall wall to the spine's end.
     outline: [
       pt(westIn, hallNorthFace),
-      pt(partitionEast, hallNorthFace),
-      spine.start,
+      faceCrossing(lobbyScreen, "left", "y", hallNorthFace),
+      faceCrossing(lobbyScreen, "left", "x", spine.start.x),
       pt(spine.start.x, spineNorth),
       pt(stairWestX, spineNorth),
       pt(stairWestX, northIn),
@@ -134,8 +135,9 @@ const rooms: Room[] = [
       pt(partitionEast, face(bedroomBathroom, "north")),
       pt(bathWestX, face(bedroomBathroom, "north")),
       pt(bathWestX, spineY),
-      spine.start,
-      pt(partitionEast, hallNorthFace),
+      // Along the lobby screen's lobby-side face (its right), from the spine to the partition.
+      faceCrossing(lobbyScreen, "right", "y", spineY),
+      faceCrossing(lobbyScreen, "right", "x", partitionEast),
     ],
   },
   {
