@@ -110,9 +110,9 @@ describe("3D Top view against the plan", () => {
     await publish("test-elmstead-centreline", m);
     const r = comparePlanTo3d(planPixels(m), await topView("test-elmstead-centreline"));
     expect(r.badTiles.length).toBeGreaterThan(0);
-    // The worst tile covers the screen, which runs from (4.825, 6.575) to (5.275, 6.99) m.
+    // The worst tile covers the screen, which runs from (4.825, 6.575) to (5.45, 6.99) m.
     const [worst] = r.badTiles;
-    expect(worst!.x[0]).toBeLessThan(5.275);
+    expect(worst!.x[0]).toBeLessThan(5.45);
     expect(worst!.x[1]).toBeGreaterThan(4.825);
     expect(worst!.y[0]).toBeLessThan(6.99);
     expect(worst!.y[1]).toBeGreaterThan(6.575);

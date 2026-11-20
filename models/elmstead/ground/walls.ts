@@ -5,7 +5,7 @@
  * Measured from the owner's plan image at 8 m = 1689 px (about 4.74 mm per px), rounded to 25 mm.
  * The living room and hallway sizes are the owner's measurements, not traced.
  */
-import { face, mm, pt, sub, wall } from "../../../src/model/index.js";
+import { add, face, mm, pt, sub, wall } from "../../../src/model/index.js";
 import { brickT, coreD, coreW, eastT, extEastX, extSouthY, groundFloor, northT, partT, southT, studT, westT } from "../shared.js";
 
 export const wallH = groundFloor.ceilingHeight; // walls stop at the ceiling until there is an upper floor
@@ -20,7 +20,6 @@ export const bathWestX = mm(5690); //   west face of the lobby/bathroom wall; lo
 export const bathNorthY = mm(5855); //  south face of the bathroom's north wall; bathroom 1.6 m deep (owner)
 export const spineY = mm(6990); //      south face of the wall between the stair flights; both flights 0.91 m wide (owner)
 export const spineEastX = mm(8945); // keeps its traced overlap into the east wall
-export const livingBreast = { west: mm(1050), east: mm(3425) };
 
 // ── External walls (counter-clockwise, body on the left = inside) ────────────
 export const north = wall("wall-north", pt(extEastX, coreD), pt(mm(0), coreD), { thickness: northT, height: wallH, justification: "left" });
@@ -29,6 +28,9 @@ export const southIn = face(south, "north");
 export const northIn = face(north, "south");
 export const west = wall("wall-west", pt(mm(0), northIn), pt(mm(0), southIn), { thickness: westT, height: wallH, justification: "left" });
 export const westIn = face(west, "east");
+
+const alcove = mm(700); // each side of the living room's chimney breast (owner)
+export const livingBreast = { west: add(westIn, alcove), east: sub(partitionX, alcove) };
 
 // Bathroom north wall first: the core's east wall stops at its north face, level with the extension's south wall.
 export const bathNorth = wall("wall-bathroom-north", pt(sub(coreW, eastT), bathNorthY), pt(bathWestX, bathNorthY), { thickness: bathNorthT, height: wallH, justification: "right" });
@@ -51,7 +53,8 @@ export const hallLiving = wall("wall-hall-living", pt(westIn, hallWallY), pt(par
 export const breastBedroom = wall("wall-breast-bedroom", pt(partitionEast, southIn), pt(eastIn, southIn), { thickness: breastT, height: wallH, justification: "left" });
 export const bedroomBathroom = wall("wall-bedroom-bathroom", pt(partitionEast, bedroomWallY), pt(eastIn, bedroomWallY), { ...inner, justification: "left" });
 export const lobbyBathroom = wall("wall-lobby-bathroom", pt(bathWestX, face(bedroomBathroom, "north")), pt(bathWestX, face(bathNorth, "north")), { thickness: lobbyBathT, height: wallH, justification: "right" });
-export const spine = wall("wall-stair-spine", pt(mm(5275), spineY), pt(spineEastX, spineY), { ...inner, justification: "left" });
+// West end 175 mm short of its traced position, to leave room by the lobby door.
+export const spine = wall("wall-stair-spine", pt(mm(5450), spineY), pt(spineEastX, spineY), { ...inner, justification: "left" });
 // Diagonal screen from the hall wall's corner to the end of the stair spine, holding the lobby door.
 export const lobbyScreen = wall("wall-lobby-screen", pt(partitionEast, face(hallLiving, "north")), spine.start, { thickness: studT, height: wallH, justification: "centre" });
 

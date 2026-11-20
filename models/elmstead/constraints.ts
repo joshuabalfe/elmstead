@@ -25,6 +25,22 @@ export default defineConstraints([
       distance: m(5.8),
     },
     {
+      id: "alcove-west",
+      note: "Alcove width from the owner: 0.7 m each side of the chimney breast, which is centred in the room",
+      from: roomCorner("south-west"),
+      to: wallEnd("wall-breast-living", "start", "north"),
+      measure: "x",
+      distance: mm(700),
+    },
+    {
+      id: "alcove-east",
+      note: "Alcove width from the owner: 0.7 m each side of the chimney breast, which is centred in the room",
+      from: wallEnd("wall-breast-living", "end", "north"),
+      to: roomCorner("south-east"),
+      measure: "x",
+      distance: mm(700),
+    },
+    {
       id: "front-window-width",
       note: "Front window size from the owner",
       from: jamb("window-living", "start"),
