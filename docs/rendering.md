@@ -117,6 +117,20 @@ openings cut, doors and glazing in place, colours applied.
     shows what is in the walls below, as the plan does. From above, the Top view reads like the
     plan without cutting the model.
   - White background, no grid.
+- Walk mode: the **Walk** button, or `?walk=1`, enters a first-person walkthrough.
+  - The camera starts at the footprint centre of the model on its lowest storey, at a fixed
+    1.6 m eye height, facing plan north. With no building JSON it starts 1.6 m above the IFC's
+    lowest point.
+  - The mouse looks around through pointer lock; W/A/S/D and the arrow keys move at 3 m/s
+    relative to the heading you face. `?walk=1` shows a click-to-look prompt — browsers only
+    grant pointer lock after a user gesture — and the first click on the canvas locks.
+  - There is no collision, gravity or vertical movement: the camera passes through walls and
+    floors and stays at eye height, so upper storeys are out of reach.
+  - Escape, releasing pointer lock, choosing another view or changing the model ends walk mode
+    and returns the previous view exactly, including the Top view's framing. If the browser
+    refuses pointer lock, walk mode stays: the prompt remains and the keys still move.
+  - Snapshots ignore walk mode: with `?snapshot=1&walk=1` the requested snapshot camera renders
+    as usual, with no prompt and no walk input, so the 3D PNGs stay deterministic.
 - Snapshots (`?snapshot=1`) show the IFC's own colours, so the 3D PNGs still check what other
   viewers will show. `?style=ifc` or `?style=plan` in the URL forces a style.
 - `npm run view` runs the same app for interactive use. It reloads the page whenever an IFC in

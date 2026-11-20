@@ -4,19 +4,21 @@
  * billboards that face the camera, and a compass pointing to true north (all from
  * out/<model>.building.json). Every view uses the plan's colours, with the plan's walls, doors and
  * windows laid on the wall tops, so the Top view reads like the plan. Query params: ?model=<name>&view=<sw|se|ne|nw|top (default)>&snapshot=1
- * &labels=0|1&style=plan|ifc&camera=px,py,pz,tx,ty,tz (snapshot hides the UI and sets window.__elmsteadReady once the first
+ * &labels=0|1&style=plan|ifc&camera=px,py,pz,tx,ty,tz&walk=1 (snapshot hides the UI and sets window.__elmsteadReady once the first
  * frame is drawn; labels and the plan style are on by default, except in snapshots, which show the
- * IFC alone).
+ * IFC alone; walk=1 enters first-person walk mode, which snapshots ignore).
  */
 import * as OBC from "@thatopen/components";
 import { LodMode } from "@thatopen/fragments";
 import workerUrl from "@thatopen/fragments/worker?url";
 import * as THREE from "three";
+import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { STYLES } from "../src/ifc/styles.js";
 import { renderFloor, renderPlanAnnotations, renderWallTops, roomTags } from "../src/render/plan.js";
 import { C, FONT, PX_PER_MM, ROOM_LABEL } from "../src/render/style.js";
 import type { BuildingModel } from "../src/schema/schema.js";
 import { parseView, type View } from "./view.js";
+import { WALK_AXES, entryPosition, headingBasis, movementOffset, walkRequested, walkStep } from "./walk.js";
 declare global {
   interface Window {
     __elmsteadReady?: boolean;
@@ -67,6 +69,8 @@ world.scene.three.add(labels);
 
 /** True north, degrees counter-clockwise from plan +y (site.northAngle); null when there is no model JSON. */
 let northAngle: number | null = null;
+/** The lowest storey's elevation in scene metres, from the model JSON; null when there is none. */
+let lowestElevation: number | null = null;
 const compass = document.getElementById("compass")!;
 const compassArrow = document.getElementById("compass-arrow")!;
 const compassN = document.getElementById("compass-n")!;
@@ -176,11 +180,13 @@ async function loadLabels(name: string) {
   labels.clear();
   planLayers.clear();
   northAngle = null;
+  lowestElevation = null;
   const res = await fetch(`/out/${name}.building.json`);
   if (!res.ok) return; // no JSON next to the IFC: show the IFC without labels
   const model = (await res.json()) as BuildingModel;
   northAngle = model.site.northAngle ?? 0;
   const lowest = model.storeys.reduce((a, b) => (b.elevation < a.elevation ? b : a));
+  lowestElevation = lowest.elevation / 1000; // the JSON is millimetres, the scene metres
   for (const storey of model.storeys) {
     const { svg, bounds } = renderPlanAnnotations(storey, { names: false });
     const ceiling = Math.max(0, ...storey.walls.map((w) => w.height));
@@ -317,6 +323,165 @@ async function setCamera(spec: string) {
   updateCompass();
 }
 
+/** The camera state walk mode saves on entry and restores on exit; non-null while walking. */
+interface SavedView {
+  projection: "Orthographic" | "Perspective";
+  position: THREE.Vector3;
+  target: THREE.Vector3;
+  ortho: { left: number; right: number; top: number; bottom: number; zoom: number };
+  near: number;
+  fov: number;
+}
+/** The perspective near plane while walking: OBC's default 1 m would clip every wall within arm's reach. */
+const WALK_NEAR = 0.05;
+/** The perspective vertical FOV (degrees) while walking: OBC's 60° reads zoomed-in at walking distance. */
+const WALK_FOV = 70;
+let savedView: SavedView | null = null;
+const walkKeys = new Set<string>();
+let walkRaf = 0;
+let walkLast = 0;
+let walkEyeY = 0;
+let everLocked = false;
+let pointerLockControls: PointerLockControls | null = null;
+const walkButton = document.getElementById("walk") as HTMLButtonElement;
+const walkHint = document.getElementById("walk-hint")!;
+const walkDirection = new THREE.Vector3();
+
+/**
+ * Enter first-person walk mode: save the camera state, move the perspective camera to the entry
+ * pose facing plan north, and pause the camera component and camera-controls input so neither
+ * overwrites the walk pose. `lock` may only be true inside a user gesture; `?walk=1` instead shows
+ * the click-to-look prompt and locks on the first canvas click. Snapshots never walk.
+ */
+async function enterWalk(lock: boolean) {
+  if (snapshot || savedView) return;
+  const controls = world.camera.controls;
+  const ortho = world.camera.threeOrtho;
+  savedView = {
+    projection: world.camera.projection.current,
+    position: controls.getPosition(new THREE.Vector3()),
+    target: controls.getTarget(new THREE.Vector3()),
+    ortho: { left: ortho.left, right: ortho.right, top: ortho.top, bottom: ortho.bottom, zoom: ortho.zoom },
+    near: world.camera.threePersp.near,
+    fov: world.camera.threePersp.fov,
+  };
+  const start = entryPosition(box, lowestElevation);
+  walkEyeY = start.y;
+  await world.camera.projection.set("Perspective");
+  world.camera.enabled = false;
+  controls.enabled = false;
+  const camera = world.camera.threePersp; // the active camera after the projection switch
+  camera.near = WALK_NEAR;
+  camera.fov = WALK_FOV;
+  camera.updateProjectionMatrix();
+  camera.position.copy(start);
+  camera.quaternion.identity(); // an identity quaternion faces scene −Z, which is plan north
+  if (!pointerLockControls) {
+    // Created lazily, after the first projection switch, so it holds the perspective camera.
+    pointerLockControls = new PointerLockControls(camera, world.renderer!.three.domElement);
+    pointerLockControls.addEventListener("lock", () => {
+      everLocked = true;
+      walkHint.hidden = true;
+    });
+    pointerLockControls.addEventListener("unlock", () => {
+      // Escape is the browser's pointer-lock release, so unlocking performs the exit — but only
+      // an unlock after a successful lock, so a refused request keeps walk mode.
+      if (everLocked) void exitWalk();
+    });
+  }
+  everLocked = false;
+  walkButton.setAttribute("aria-pressed", "true");
+  walkHint.hidden = false;
+  walkLast = performance.now();
+  walkRaf = requestAnimationFrame(walkFrame);
+  if (lock) pointerLockControls.lock();
+  await fragments.core.update(true);
+  updateCompass();
+}
+
+/** Leave walk mode, restoring the saved projection, pose and orthographic framing exactly. */
+async function exitWalk() {
+  const restore = savedView;
+  if (!restore) return;
+  savedView = null;
+  cancelAnimationFrame(walkRaf);
+  walkKeys.clear();
+  if (pointerLockControls?.isLocked) pointerLockControls.unlock();
+  walkButton.setAttribute("aria-pressed", "false");
+  walkHint.hidden = true;
+  status.textContent = `${select.value}.ifc`;
+  world.camera.enabled = true;
+  world.camera.threePersp.near = restore.near;
+  world.camera.threePersp.fov = restore.fov;
+  world.camera.threePersp.updateProjectionMatrix();
+  await world.camera.projection.set(restore.projection);
+  if (restore.projection === "Orthographic") {
+    // The projection switch recomputes the ortho frustum from the walk pose and resets the zoom;
+    // put the saved framing back so a Top view returns exactly as it was. The zoom goes through
+    // zoomTo because camera-controls keeps its own zoom state and writes it back to the camera
+    // on the next update.
+    Object.assign(world.camera.threeOrtho, restore.ortho);
+    world.camera.threeOrtho.updateProjectionMatrix();
+    await world.camera.controls.zoomTo(restore.ortho.zoom, false);
+  }
+  const { position: p, target: t } = restore;
+  await world.camera.controls.setLookAt(p.x, p.y, p.z, t.x, t.y, t.z, false);
+  world.camera.controls.enabled = true;
+  await fragments.core.update(true);
+  updateCompass();
+}
+
+/** The walk frame loop: heading-relative movement at the fixed eye height, through all geometry. */
+function walkFrame(now: number) {
+  if (!savedView) return;
+  const camera = world.camera.three;
+  const next = walkStep(camera.position, headingBasis(camera.getWorldDirection(walkDirection)), movementOffset(walkKeys), (now - walkLast) / 1000, walkEyeY);
+  const moved = !next.equals(camera.position);
+  camera.position.copy(next);
+  if (moved) {
+    // The controls' "update" event no longer fires while walking, so refresh culling and the
+    // compass here.
+    void fragments.core.update();
+    updateCompass();
+  }
+  walkLast = now;
+  walkRaf = requestAnimationFrame(walkFrame);
+}
+
+walkButton.addEventListener("click", () => {
+  if (savedView) void exitWalk();
+  else void enterWalk(true);
+});
+// `?walk=1` (and a refused lock) leave walk mode without pointer lock: the first canvas click
+// requests it, which is the user gesture the browser requires.
+world.renderer!.three.domElement.addEventListener("click", () => {
+  if (savedView && pointerLockControls && !pointerLockControls.isLocked) pointerLockControls.lock();
+});
+window.addEventListener("keydown", (e) => {
+  if (!savedView) return;
+  if (e.code === "Escape") {
+    // Also covers the refused-lock path, where no unlock event will fire.
+    void exitWalk();
+    return;
+  }
+  if (e.code in WALK_AXES) {
+    walkKeys.add(e.code);
+    e.preventDefault(); // the arrows would scroll the page when pointer lock is refused
+  }
+});
+window.addEventListener("keyup", (e) => walkKeys.delete(e.code));
+// A focus loss that does not release pointer lock (the pointerlockerror path) must not leave keys
+// held down.
+window.addEventListener("blur", () => walkKeys.clear());
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) walkKeys.clear();
+});
+document.addEventListener("pointerlockerror", () => {
+  if (!savedView) return;
+  walkHint.hidden = false;
+  status.textContent = "pointer lock refused — click to retry; WASD still moves, Esc leaves";
+});
+
 async function load(name: string) {
   status.textContent = `loading ${name}.ifc…`;
   for (const [id] of fragments.list) await fragments.core.disposeModel(id);
@@ -347,9 +512,13 @@ labelsButton.addEventListener("click", () => {
 });
 
 document.querySelectorAll<HTMLButtonElement>("[data-view]").forEach((b) =>
-  b.addEventListener("click", () => setView(parseView(b.dataset.view ?? null))),
+  b.addEventListener("click", async () => {
+    await exitWalk(); // choosing a view leaves walk mode before the view changes
+    await setView(parseView(b.dataset.view ?? null));
+  }),
 );
-select.addEventListener("change", () => {
+select.addEventListener("change", async () => {
+  await exitWalk();
   params.set("model", select.value);
   history.replaceState(null, "", `?${params}`);
   void load(select.value);
@@ -368,6 +537,9 @@ try {
   );
   select.value = params.get("model") ?? models[0]!;
   await load(select.value);
+  // `?walk=1` enters walk mode once, with the click-to-look prompt instead of an immediate lock;
+  // a model change does not re-enter.
+  if (walkRequested(params, snapshot)) void enterWalk(false);
   // Two frames so the renderer has drawn the final camera position before a snapshot.
   requestAnimationFrame(() => requestAnimationFrame(() => (window.__elmsteadReady = true)));
 } catch (e) {
