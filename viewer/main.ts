@@ -1,11 +1,15 @@
 /**
  * Local IFC viewer on That Open Engine: loads out/<model>.ifc, converts it to Fragments in the
- * browser and shows it. Query params: ?model=<name>&view=<sw|se|ne|nw|top>&snapshot=1
- * (snapshot hides the UI and sets window.__elmsteadReady once the first frame is drawn).
+ * browser and shows it, with the plan's room labels and dimensions laid on each floor (from
+ * out/<model>.building.json). Query params: ?model=<name>&view=<sw|se|ne|nw|top>&snapshot=1&labels=0|1
+ * (snapshot hides the UI and sets window.__elmsteadReady once the first frame is drawn; labels are
+ * on by default, except in snapshots, which show the IFC alone).
  */
 import * as OBC from "@thatopen/components";
 import workerUrl from "@thatopen/fragments/worker?url";
 import * as THREE from "three";
+import { renderRoomLabels } from "../src/render/plan.js";
+import type { BuildingModel } from "../src/schema/schema.js";
 
 type View = "sw" | "se" | "ne" | "nw" | "top";
 declare global {
@@ -45,7 +49,48 @@ fragments.core.models.materials.list.onItemSet.add(({ value: material }) => {
 });
 
 const ifcLoader = components.get(OBC.IfcLoader);
-await ifcLoader.setup({ autoSetWasm: false, wasm: { path: "/wasm/", absolute: true } });
+// Keep IFC coordinates as they are (no shift to the origin) so the room labels line up with the model.
+await ifcLoader.setup({ autoSetWasm: false, wasm: { path: "/wasm/", absolute: true }, webIfc: { COORDINATE_TO_ORIGIN: false } });
+
+/** Texture px per plan-SVG px: the SVG is 1 px = 10 mm, so this is 2.5 mm per texel. */
+const LABEL_RESOLUTION = 4;
+/** Height (mm) above the storey floor at which the labels are laid. */
+const LABEL_LIFT = 10;
+const labels = new THREE.Group();
+labels.visible = params.get("labels") === "1" || (!snapshot && params.get("labels") !== "0");
+world.scene.three.add(labels);
+
+/** The plan's room labels for each storey, as a transparent texture on a plane at floor level. */
+async function loadLabels(name: string) {
+  for (const mesh of labels.children as THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[]) {
+    mesh.geometry.dispose();
+    mesh.material.map?.dispose();
+    mesh.material.dispose();
+  }
+  labels.clear();
+  const res = await fetch(`/out/${name}.building.json`);
+  if (!res.ok) return; // no JSON next to the IFC: show the IFC without labels
+  const model = (await res.json()) as BuildingModel;
+  for (const storey of model.storeys) {
+    const { svg, bounds } = renderRoomLabels(storey);
+    const img = new Image();
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    await img.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth * LABEL_RESOLUTION;
+    canvas.height = img.naturalHeight * LABEL_RESOLUTION;
+    canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const map = new THREE.CanvasTexture(canvas);
+    map.colorSpace = THREE.SRGBColorSpace;
+    map.anisotropy = world.renderer!.three.capabilities.getMaxAnisotropy();
+    const material = new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry((bounds.maxX - bounds.minX) / 1000, (bounds.maxY - bounds.minY) / 1000), material);
+    // Lay the plane flat with the drawing's north (its +Y) along −Z, which is IFC +Y.
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set((bounds.minX + bounds.maxX) / 2000, (storey.elevation + LABEL_LIFT) / 1000, -(bounds.minY + bounds.maxY) / 2000);
+    labels.add(mesh);
+  }
+}
 
 let box = new THREE.Box3();
 
@@ -79,11 +124,19 @@ async function load(name: string) {
   model.useCamera(world.camera.three);
   world.scene.three.add(model.object);
   await fragments.core.update(true);
+  await loadLabels(name);
   box = model.box.clone();
   grid.three.position.y = box.min.y - 0.01; // under the lowest slab, so it doesn't show through floors
   await setView((params.get("view") as View) ?? "sw");
   status.textContent = `${name}.ifc`;
 }
+
+const labelsButton = document.getElementById("labels") as HTMLButtonElement;
+labelsButton.setAttribute("aria-pressed", String(labels.visible));
+labelsButton.addEventListener("click", () => {
+  labels.visible = !labels.visible;
+  labelsButton.setAttribute("aria-pressed", String(labels.visible));
+});
 
 document.querySelectorAll<HTMLButtonElement>("[data-view]").forEach((b) =>
   b.addEventListener("click", () => setView(b.dataset.view as View)),

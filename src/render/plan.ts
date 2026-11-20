@@ -216,6 +216,42 @@ function scaleBar(at: Vec): string {
   return group({}, parts);
 }
 
+/** Each room's name, area and dimensions. */
+function roomLabels(storey: Storey, view: View, opts: PlanOptions): string[] {
+  const out: string[] = [];
+  for (const r of storey.rooms) {
+    const pts = r.outline.map(toVec);
+    const c = view.toPx(centroid(pts));
+    out.push(text(v(c.x, c.y - 4), r.name, { "font-size": 13, "font-weight": "bold", "text-anchor": "middle", fill: C.ink }));
+    out.push(text(v(c.x, c.y + 12), m2(area(pts)), { "font-size": 11, "text-anchor": "middle", fill: C.ink }));
+    // Rough label extent (px) from character counts; DejaVu Sans averages about 0.6 em per character.
+    const halfW = Math.max(r.name.length * 13 * 0.62, 7 * 11 * 0.6) / 2;
+    out.push(...roomDimensions(r.id, pts, { minX: c.x - halfW, maxX: c.x + halfW, minY: c.y - 17, maxY: c.y + (opts.ids ? 29 : 16) }, view));
+    if (opts.ids) out.push(text(v(c.x, c.y + 26), r.id, { "font-size": 8, "text-anchor": "middle", fill: C.id }));
+  }
+  return out;
+}
+
+/**
+ * The plan's room labels and dimensions alone, on a transparent background, for laying on the floor
+ * in the 3D viewer, with haloed text so it reads on any floor colour. `bounds` is the plan area (mm) the SVG covers, edge to edge.
+ */
+export function renderRoomLabels(storey: Storey): { svg: string; bounds: Bounds } {
+  const view = makeView(storey);
+  const minX = view.extent.minX - MARGIN.left / PX_PER_MM;
+  const maxY = view.extent.maxY + MARGIN.top / PX_PER_MM;
+  const bounds = { minX, maxY, maxX: minX + view.width / PX_PER_MM, minY: maxY - view.height / PX_PER_MM };
+  const svg = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${view.width}" height="${view.height}" viewBox="0 0 ${view.width} ${view.height}" font-family="${FONT}, sans-serif">`,
+    // Without the paper underneath, the text needs a halo and the lines more weight to read on a floor.
+    `<style>text { stroke: ${C.paper}; stroke-width: 3px; stroke-linejoin: round; paint-order: stroke; } line { stroke: ${C.ink}; stroke-width: 1px; }</style>`,
+    ...roomLabels(storey, view, { ids: false }),
+    "</svg>",
+    "",
+  ].join("\n");
+  return { svg, bounds };
+}
+
 export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptions): string {
   const view = makeView(storey);
   const { extent } = view;
@@ -246,16 +282,7 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
     out.push(!isCut(o) ? drawUncut(w, o, view) : o.kind === "door" ? drawDoor(w, o, view) : drawWindow(w, o, view));
   }
 
-  for (const r of storey.rooms) {
-    const pts = r.outline.map(toVec);
-    const c = view.toPx(centroid(pts));
-    out.push(text(v(c.x, c.y - 4), r.name, { "font-size": 13, "font-weight": "bold", "text-anchor": "middle", fill: C.ink }));
-    out.push(text(v(c.x, c.y + 12), m2(area(pts)), { "font-size": 11, "text-anchor": "middle", fill: C.ink }));
-    // Rough label extent (px) from character counts; DejaVu Sans averages about 0.6 em per character.
-    const halfW = Math.max(r.name.length * 13 * 0.62, 7 * 11 * 0.6) / 2;
-    out.push(...roomDimensions(r.id, pts, { minX: c.x - halfW, maxX: c.x + halfW, minY: c.y - 17, maxY: c.y + (opts.ids ? 29 : 16) }, view));
-    if (opts.ids) out.push(text(v(c.x, c.y + 26), r.id, { "font-size": 8, "text-anchor": "middle", fill: C.id }));
-  }
+  out.push(...roomLabels(storey, view, opts));
 
   if (opts.ids) {
     for (const w of walls) {
