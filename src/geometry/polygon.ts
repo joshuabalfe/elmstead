@@ -57,6 +57,35 @@ export function segmentsCross(a: Vec, b: Vec, c: Vec, d: Vec): boolean {
   return d1 * d2 < 0 && d3 * d4 < 0;
 }
 
+/** Reasons an outline is not a simple polygon; empty for a valid concave or convex outline. */
+export function polygonProblems(pts: readonly Vec[]): string[] {
+  const problems: string[] = [];
+  const same = (a: Vec, b: Vec) => a.x === b.x && a.y === b.y;
+  const closed = pts.length > 1 && same(pts[0]!, pts[pts.length - 1]!);
+  if (closed) problems.push("outline repeats its first point at the end");
+  const distinct = new Set(pts.map((p) => `${p.x},${p.y}`));
+  if (distinct.size < 3) problems.push("outline needs at least 3 distinct points");
+  const adjacentEnd = closed ? pts.length - 2 : pts.length - 1;
+  for (let i = 0; i < adjacentEnd; i++) {
+    if (same(pts[i]!, pts[i + 1]!)) {
+      problems.push("outline repeats adjacent points");
+      break;
+    }
+  }
+  if (distinct.size >= 3 && area(pts) === 0) problems.push("outline has zero area");
+  const n = pts.length;
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (j === i + 1 || (i === 0 && j === n - 1)) continue;
+      if (segmentsCross(pts[i]!, pts[(i + 1) % n]!, pts[j]!, pts[(j + 1) % n]!)) {
+        problems.push("outline crosses itself");
+        return problems;
+      }
+    }
+  }
+  return problems;
+}
+
 /**
  * Where the line `axis = at` passes through the outline, as [from, to] spans along the other axis,
  * in increasing order. For axis "y" the line is horizontal and the spans are x ranges.

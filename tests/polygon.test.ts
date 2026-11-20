@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { spans } from "../src/geometry/polygon.js";
+import { polygonProblems, spans } from "../src/geometry/polygon.js";
 
 const P = (x: number, y: number) => ({ x, y });
 // L shape: 0..4000 wide at the bottom, 0..1000 wide above y = 2000.
@@ -21,5 +21,29 @@ describe("spans", () => {
   it("is empty outside the outline and handles sloping edges", () => {
     expect(spans(ell, "y", 3500)).toEqual([]);
     expect(spans([P(0, 0), P(2000, 0), P(0, 2000)], "y", 500)).toEqual([[0, 1500]]);
+  });
+});
+
+describe("polygonProblems", () => {
+  it("accepts convex and concave outlines", () => {
+    expect(polygonProblems([P(0, 0), P(1000, 0), P(1000, 1000), P(0, 1000)])).toEqual([]);
+    expect(polygonProblems(ell)).toEqual([]);
+  });
+
+  it("reports an outline that repeats its first point", () => {
+    expect(polygonProblems([P(0, 0), P(1000, 0), P(1000, 1000), P(0, 0)])).toContain("outline repeats its first point at the end");
+  });
+
+  it("reports repeated adjacent and too few distinct points", () => {
+    expect(polygonProblems([P(0, 0), P(1000, 0), P(1000, 1000), P(1000, 1000)])).toContain("outline repeats adjacent points");
+    expect(polygonProblems([P(0, 0), P(1000, 0), P(0, 0)])).toContain("outline needs at least 3 distinct points");
+  });
+
+  it("reports zero area", () => {
+    expect(polygonProblems([P(0, 0), P(1000, 0), P(2000, 0)])).toContain("outline has zero area");
+  });
+
+  it("reports a bow-tie that crosses itself", () => {
+    expect(polygonProblems([P(0, 0), P(1000, 1000), P(1000, 0), P(0, 1000)])).toContain("outline crosses itself");
   });
 });

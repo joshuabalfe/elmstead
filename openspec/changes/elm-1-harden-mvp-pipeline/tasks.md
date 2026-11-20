@@ -2,9 +2,9 @@
 
 ## 1. Shared foundations
 
-- [ ] 1.1 Add `src/root.ts` with `PROJECT_ROOT` and an `outDir()` that honours `ELMSTEAD_OUT_DIR`; use it from the CLI, validator bridge and snapshot driver. Verify `build` works from the repo root and from `/tmp` with a temporary `ELMSTEAD_OUT_DIR`, and update `docs/getting-started.md`.
-- [ ] 1.2 Add `src/io.ts` with `writeFileAtomic(path, data)` (temp file + rename) and a unit test proving a failed write leaves the previous file intact. Verify with `npx vitest run tests/io.test.ts`.
-- [ ] 1.3 Add `polygonProblems(pts)` to `src/geometry/polygon.ts` covering distinct points, open outline, adjacent duplicates, zero area and self-intersection, reusing `segmentsCross`. Verify with unit tests for valid concave, repeated-point, zero-area and bow-tie outlines.
+- [x] 1.1 Add `src/root.ts` with `PROJECT_ROOT` and an `outDir()` that honours `ELMSTEAD_OUT_DIR`; use it from the CLI, validator bridge and snapshot driver. Verify `build` works from the repo root and from `/tmp` with a temporary `ELMSTEAD_OUT_DIR`, and update `docs/getting-started.md`.
+- [x] 1.2 Add `src/io.ts` with `writeFileAtomic(path, data)` (temp file + rename) and a unit test proving a failed write leaves the previous file intact. Verify with `npx vitest run tests/io.test.ts`.
+- [x] 1.3 Add `polygonProblems(pts)` to `src/geometry/polygon.ts` covering distinct points, open outline, adjacent duplicates, zero area and self-intersection, reusing `segmentsCross`. Verify with unit tests for valid concave, repeated-point, zero-area and bow-tie outlines.
 
 ## 2. Model integrity checks
 

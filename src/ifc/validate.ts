@@ -1,5 +1,7 @@
 import { spawnSync } from "node:child_process";
+import { join } from "node:path";
 import type { Issue } from "../checks/issue.js";
+import { PROJECT_ROOT } from "../root.js";
 
 export interface IfcValidation {
   issues: Issue[];
@@ -9,7 +11,7 @@ export interface IfcValidation {
 
 /** Runs validator/validate.py (IfcOpenShell) through uv and maps its JSON lines to Issues. */
 export function validateIfc(ifcPath: string): IfcValidation {
-  const r = spawnSync("uv", ["run", "--quiet", "validator/validate.py", ifcPath], { encoding: "utf8" });
+  const r = spawnSync("uv", ["run", "--quiet", join(PROJECT_ROOT, "validator/validate.py"), ifcPath], { encoding: "utf8", cwd: PROJECT_ROOT });
   if (r.error) {
     const hint = (r.error as NodeJS.ErrnoException).code === "ENOENT" ? " — install it with: brew install uv" : "";
     return { issues: [{ level: "ERROR", id: ifcPath, message: `could not run uv${hint}` }], errors: 1, warnings: 0 };

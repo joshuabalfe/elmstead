@@ -5,6 +5,7 @@
 import { join } from "node:path";
 import { chromium } from "playwright";
 import { createServer } from "vite";
+import { PROJECT_ROOT } from "../root.js";
 
 // Set by viewer/main.ts.
 declare global {
@@ -18,7 +19,7 @@ export const VIEWS = ["sw", "se", "ne", "nw", "top"] as const;
 export type View = (typeof VIEWS)[number];
 
 export async function snapshot3d(name: string, outDir: string, views: readonly View[] = VIEWS): Promise<string[]> {
-  const server = await createServer({ configFile: "viewer/vite.config.ts", server: { port: 0 }, logLevel: "error" });
+  const server = await createServer({ configFile: join(PROJECT_ROOT, "viewer/vite.config.ts"), server: { port: 0 }, logLevel: "error" });
   await server.listen();
   const url = server.resolvedUrls?.local[0];
   if (!url) throw new Error("viewer dev server did not start");

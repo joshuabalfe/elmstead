@@ -10,8 +10,7 @@ import { writeIfc } from "../ifc/writer.js";
 import { validateIfc } from "../ifc/validate.js";
 import { roundTripChecks } from "../ifc/roundtrip.js";
 import { BuildingModelSchema } from "../schema/schema.js";
-
-const OUT = "out";
+import { outDir } from "../root.js";
 
 const USAGE = `usage: elmstead <build|render|check|all> <models/name.ts | models/name/> [--ids] [--no-3d]`;
 
@@ -29,17 +28,17 @@ async function load(path: string): Promise<LoadedModel> {
   return r.value;
 }
 
-function writeJson({ name, model }: LoadedModel): string {
-  mkdirSync(OUT, { recursive: true });
-  const path = join(OUT, `${name}.building.json`);
+function writeJson({ name, model }: LoadedModel, out: string): string {
+  mkdirSync(out, { recursive: true });
+  const path = join(out, `${name}.building.json`);
   writeFileSync(path, formatJson(model));
   return path;
 }
 
 /** JSON → IFC → IfcOpenShell validation. The IFC is written from the JSON file, the contract between the two halves. */
-async function buildIfc(name: string, jsonPath: string, issues: Issue[]): Promise<void> {
+async function buildIfc(name: string, jsonPath: string, out: string, issues: Issue[]): Promise<void> {
   const model = BuildingModelSchema.parse(JSON.parse(readFileSync(jsonPath, "utf8")));
-  const ifcPath = join(OUT, `${name}.ifc`);
+  const ifcPath = join(out, `${name}.ifc`);
   const ifc = await writeIfc(model, { fileName: `${name}.ifc` });
   writeFileSync(ifcPath, ifc);
   console.log(`ifc     ${ifcPath}`);
@@ -59,25 +58,26 @@ async function main(argv: string[]): Promise<number> {
     return 2;
   }
   const loaded = await load(modelPath);
+  const out = outDir();
   const issues: Issue[] = [];
   switch (command) {
     case "build": {
       const checked = checkComponents(loaded.model);
       issues.push(...checked);
       if (hasErrors(checked)) break; // nothing written: fix the model first
-      const jsonPath = writeJson(loaded);
+      const jsonPath = writeJson(loaded, out);
       console.log(`json    ${jsonPath}`);
-      await buildIfc(loaded.name, jsonPath, issues);
+      await buildIfc(loaded.name, jsonPath, out, issues);
       break;
     }
     case "render": {
-      for (const p of renderAll(loaded.name, loaded.model, OUT, { ids: flags.has("--ids") })) console.log(`render  ${p}`);
+      for (const p of renderAll(loaded.name, loaded.model, out, { ids: flags.has("--ids") })) console.log(`render  ${p}`);
       if (flags.has("--no-3d")) break;
-      if (!existsSync(join(OUT, `${loaded.name}.ifc`))) {
+      if (!existsSync(join(out, `${loaded.name}.ifc`))) {
         issues.push({ level: "WARNING", id: loaded.name, message: "3D snapshots skipped: no IFC yet — run build first" });
         break;
       }
-      const r = await render3d(loaded.name, OUT);
+      const r = await render3d(loaded.name, out);
       for (const p of r.written) console.log(`render  ${p}`);
       issues.push(...r.issues);
       break;

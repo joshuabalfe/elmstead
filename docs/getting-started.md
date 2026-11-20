@@ -44,7 +44,8 @@ A command exits non-zero if any ERROR was reported.
 ### Output
 
 Everything is written to `out/`, which is git-ignored. Never edit it by hand; it is regenerated on
-every run.
+every run. Set `ELMSTEAD_OUT_DIR` to write somewhere else; the commands still find the project's
+model files, validator and viewer when run from any directory.
 
 | File | From |
 |---|---|
