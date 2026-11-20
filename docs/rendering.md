@@ -117,6 +117,10 @@ openings cut, doors and glazing in place, colours applied.
     shows what is in the walls below, as the plan does. From above, the Top view reads like the
     plan without cutting the model.
   - White background, no grid.
+- Navigation (`setNavigationInput` in `main.ts`), map-style in every view:
+  - Left drag or one finger pans; right drag or a two-finger drag orbits.
+  - The wheel or a pinch zooms. In the orthographic Top view the pinch is a true zoom, since
+    moving an orthographic camera closer changes nothing on screen.
 - Walk mode: the **Walk** button, or `?walk=1`, enters a first-person walkthrough.
   - The camera starts at the footprint centre of the model on its lowest storey, at a fixed
     1.6 m eye height, facing plan north. With no building JSON it starts 1.6 m above the IFC's

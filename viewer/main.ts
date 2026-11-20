@@ -11,6 +11,7 @@
 import * as OBC from "@thatopen/components";
 import { LodMode } from "@thatopen/fragments";
 import workerUrl from "@thatopen/fragments/worker?url";
+import CameraControls from "camera-controls";
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 import { STYLES } from "../src/ifc/styles.js";
@@ -40,6 +41,8 @@ world.scene.three.background = new THREE.Color(0xf4f4f2);
 world.renderer = new OBC.SimpleRenderer(components, document.getElementById("container")!, { preserveDrawingBuffer: true });
 world.camera = new OBC.OrthoPerspectiveCamera(components);
 components.init();
+setNavigationInput();
+world.camera.projection.onChanged.add(setNavigationInput);
 const grid = components.get(OBC.Grids).create(world);
 grid.config.color = new THREE.Color(0xd8d8d4);
 
@@ -285,6 +288,21 @@ function applyStyle() {
   world.scene.three.background = new THREE.Color(plan ? C.paper : 0xf4f4f2);
   grid.three.visible = !plan;
   planLayers.visible = plan;
+}
+
+/**
+ * Map-style input: left drag or one finger pans, right drag or a two-finger drag orbits, and the
+ * wheel or a pinch zooms. The pinch must be a true zoom in the orthographic Top view, where moving
+ * the camera closer changes nothing on screen; OBC's projection switch only rebinds the wheel.
+ */
+function setNavigationInput() {
+  const { ACTION } = CameraControls;
+  const controls = world.camera.controls;
+  const ortho = world.camera.projection.current === "Orthographic";
+  controls.mouseButtons.left = ACTION.TRUCK;
+  controls.mouseButtons.right = ACTION.ROTATE;
+  controls.touches.one = ACTION.TOUCH_TRUCK;
+  controls.touches.two = ortho ? ACTION.TOUCH_ZOOM_ROTATE : ACTION.TOUCH_DOLLY_ROTATE;
 }
 
 /** Three.js is Y-up with plan north along −Z (IFC +Y). */
