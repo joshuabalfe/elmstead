@@ -4,11 +4,12 @@
  * billboards that face the camera, and a compass pointing to true north (all from
  * out/<model>.building.json). Every view uses the plan's colours, with the plan's walls, doors and
  * windows laid on the wall tops, so the Top view reads like the plan. Query params: ?model=<name>&view=<sw|se|ne|nw|top (default)>&snapshot=1
- * &labels=0|1&style=plan|ifc (snapshot hides the UI and sets window.__elmsteadReady once the first
+ * &labels=0|1&style=plan|ifc&camera=px,py,pz,tx,ty,tz (snapshot hides the UI and sets window.__elmsteadReady once the first
  * frame is drawn; labels and the plan style are on by default, except in snapshots, which show the
  * IFC alone).
  */
 import * as OBC from "@thatopen/components";
+import { LodMode } from "@thatopen/fragments";
 import workerUrl from "@thatopen/fragments/worker?url";
 import * as THREE from "three";
 import { STYLES } from "../src/ifc/styles.js";
@@ -188,7 +189,7 @@ async function loadLabels(name: string) {
     const annotations = await planPlane(svg, bounds, y, { transparent: true, depthWrite: false });
     annotations.renderOrder = 1; // over the wall tops' layer
     labels.add(annotations);
-    const tops = renderWallTops(storey);
+    const tops = renderWallTops(storey, model.components);
     planLayers.add(await planPlane(tops.svg, tops.bounds, (storey.elevation + ceiling + WALL_TOP_LIFT) / 1000, { transparent: true, depthWrite: false }));
     // Only the lowest storey's floor: drawn without depth, an upper floor's would show through
     // the storeys below it.
@@ -304,12 +305,29 @@ async function setView(view: View) {
   updateCompass();
 }
 
+/**
+ * ?camera=px,py,pz,tx,ty,tz: a perspective camera at p looking at t, in the scene's metres (Y up,
+ * IFC +Y along −Z), for close-ups such as one window. Overrides the view on load.
+ */
+async function setCamera(spec: string) {
+  const v = spec.split(",").map(Number);
+  if (v.length !== 6 || v.some((n) => !Number.isFinite(n))) throw new Error(`?camera needs six numbers, got "${spec}"`);
+  await world.camera.projection.set("Perspective");
+  await world.camera.controls.setLookAt(v[0]!, v[1]!, v[2]!, v[3]!, v[4]!, v[5]!, false);
+  await fragments.core.update(true);
+  updateCompass();
+}
+
 async function load(name: string) {
   status.textContent = `loading ${name}.ifc…`;
   for (const [id] of fragments.list) await fragments.core.disposeModel(id);
   const buffer = new Uint8Array(await (await fetch(`/out/${name}.ifc`)).arrayBuffer());
   const model = await ifcLoader.load(buffer, true, name);
   model.useCamera(world.camera.three);
+  // Always full geometry. By default Fragments draws items it judges small on screen as lines (its
+  // LOD), and glazing bars and window frames qualify even close up: they showed as thin lines you
+  // could see through. Our models are small enough not to need it.
+  await model.setLodMode(LodMode.ALL_VISIBLE);
   world.scene.three.add(model.object);
   await fragments.core.update(true);
   await loadLabels(name);
@@ -317,6 +335,7 @@ async function load(name: string) {
   box = model.box.clone();
   grid.three.position.y = box.min.y - 0.01; // under the lowest slab, so it doesn't show through floors
   await setView((params.get("view") as View) ?? "top"); // the plan view, unless the URL asks for another
+  if (params.get("camera")) await setCamera(params.get("camera")!);
   status.textContent = `${name}.ifc`;
 }
 

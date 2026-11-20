@@ -39,6 +39,8 @@ const openingBase = {
   id: IdSchema,
   name: z.string().optional(),
   wallId: IdSchema,
+  /** The door or window component (in `components`) this opening is one of: its design, not its size. */
+  componentId: IdSchema.optional(),
   /** Distance along the wall from its start to the opening's near edge. */
   offsetAlongWall: NonNegativeMmSchema,
   width: PositiveMmSchema,
@@ -83,6 +85,46 @@ export const StoreySchema = z.strictObject({
   rooms: z.array(RoomSchema),
 }).meta({ id: "Storey" });
 
+/**
+ * A door or window design (construction, not size) shared by every opening that uses it, written
+ * to IFC as an IfcDoorType or IfcWindowType. Size belongs to each opening, as on IfcDoor and
+ * IfcWindow: one design comes in many sizes. Detail of the design (frame, glazing, panels, ...)
+ * goes here as it is added.
+ */
+const componentBase = {
+  id: IdSchema,
+  name: z.string().min(1),
+};
+export const DoorComponentSchema = z.strictObject(componentBase).meta({ id: "DoorComponent" });
+
+const ratios = z.array(z.number().positive()).min(1);
+
+/** How glazing bars divide a window into panes. Ratios, so one design fits windows of any size. */
+export const GlazingSchema = z.strictObject({
+  /** Widths of the columns of panes, left to right, as ratios: [1, 2, 1] is a wide centre pane. */
+  columns: ratios,
+  /** Heights of the rows of panes, bottom to top, as ratios: [1, 1] puts a bar half way up. */
+  rows: ratios,
+  /** Width of the bars between panes. The ratios share out what is left inside the frame. */
+  barWidth: PositiveMmSchema,
+}).meta({ id: "Glazing" });
+
+/** A frame around the inside of the opening, the same width all round. */
+export const WindowFrameSchema = z.strictObject({ width: PositiveMmSchema }).meta({ id: "WindowFrame" });
+
+export const WindowComponentSchema = z.strictObject({
+  ...componentBase,
+  /** Frame; without one the glass fills the opening. */
+  frame: WindowFrameSchema.optional(),
+  /** Glazing bars, dividing what is inside the frame; without them the window is a single pane. */
+  glazing: GlazingSchema.optional(),
+}).meta({ id: "WindowComponent" });
+
+export const ComponentsSchema = z.strictObject({
+  doors: z.array(DoorComponentSchema),
+  windows: z.array(WindowComponentSchema),
+}).meta({ id: "Components" });
+
 const NamedSchema = z.strictObject({ id: IdSchema, name: z.string().min(1) });
 
 export const SiteSchema = z.strictObject({
@@ -97,6 +139,8 @@ export const BuildingModelSchema = z.strictObject({
   project: NamedSchema,
   site: SiteSchema,
   building: NamedSchema,
+  /** Door and window designs that openings refer to by componentId. */
+  components: ComponentsSchema.optional(),
   storeys: z.array(StoreySchema).min(1),
 });
 
@@ -107,6 +151,10 @@ export type Swing = z.infer<typeof SwingSchema>;
 export type Door = z.infer<typeof DoorSchema>;
 export type Window = z.infer<typeof WindowSchema>;
 export type Opening = z.infer<typeof OpeningSchema>;
+export type DoorComponent = z.infer<typeof DoorComponentSchema>;
+export type WindowComponent = z.infer<typeof WindowComponentSchema>;
+export type Components = z.infer<typeof ComponentsSchema>;
+export type Glazing = z.infer<typeof GlazingSchema>;
 export type Slab = z.infer<typeof SlabSchema>;
 export type Room = z.infer<typeof RoomSchema>;
 export type Storey = z.infer<typeof StoreySchema>;

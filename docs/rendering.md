@@ -18,7 +18,8 @@ this order:
 1. slab outline, dashed
 2. room fills
 3. walls at their true thickness, split around the openings
-4. door leaves with swing arcs, and window symbols (frame and two glazing lines)
+4. door leaves with swing arcs, and window symbols (outline, two glazing lines, and a small block
+   for each frame piece or glazing bar the cut passes through: jambs and vertical bars)
 5. room labels (name and area in m²) and room dimensions: the longest clear wall-to-wall span
    east–west and north–south, in mm, drawn as dimension lines inside the room and kept clear of
    the label where the room is wide enough
@@ -70,6 +71,11 @@ openings cut, doors and glazing in place, colours applied.
   - In the scene Y is up and plan north is −Z.
   - The loader keeps IFC coordinates as they are (`COORDINATE_TO_ORIGIN: false`), so anything
     drawn from the model lines up with the IFC.
+  - Every model is drawn as full geometry (`setLodMode(LodMode.ALL_VISIBLE)`). By default
+    Fragments draws items it judges small on screen as lines, and thin parts such as glazing bars
+    and window frames qualify even close up.
+  - `?camera=px,py,pz,tx,ty,tz` places a perspective camera at p looking at t, in the scene's
+    metres (Y up, IFC +Y along −Z), for close-ups such as one window.
   - With `?snapshot=1` in the URL it hides the toolbar and sets `window.__elmsteadReady` once the
     frame is drawn, which is what the snapshot driver waits for.
 - Room labels: `main.ts` also reads `out/<name>.building.json` and draws each storey's room

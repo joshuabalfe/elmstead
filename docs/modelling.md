@@ -8,10 +8,21 @@ A larger model can be a folder whose `index.ts` default-exports the building, as
 
 ```
 models/elmstead/
-  index.ts     defineBuilding(...), storeys: [ground, ...]
-  shared.ts    dimensions every floor uses: outline, external wall thicknesses, floor levels
-  ground.ts    exports the ground-floor Storey
+  index.ts          defineBuilding(...): components, storeys: [ground, ...]
+  shared.ts         dimensions every floor uses: outline, external wall thicknesses, floor levels
+  components/       door and window designs, shared by every floor
+    doors.ts        front door, internal door
+    windows.ts      front window, fanlight, standard window
+    index.ts        the building's `components`
+  ground/           one folder per storey
+    walls.ts        walls, and the plan positions everything else derives from
+    openings.ts     doors and windows: which component, which wall, where, what size, which way it swings
+    rooms.ts        room outlines along the wall faces
+    index.ts        exports the ground-floor Storey
 ```
+
+Split a storey by role (walls, openings, rooms), not by room: walls and doors are shared between
+rooms, and rooms are outlined from wall faces.
 
 Only `index.ts`'s default export is the model; the other files are ordinary modules it imports.
 Pass the folder (`models/elmstead`) to the commands, and outputs are named after it.
@@ -79,6 +90,7 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
 | **Window** | `wallId`, `offsetAlongWall`, `width`, `height`, `sillHeight` | `kind: "window"` |
 | **Slab** | `outline`, `thickness`, `elevationOffset` | top of slab is at storey elevation + `elevationOffset`; the slab extends downwards from there |
 | **Room** | `name`, `outline` | 2D outline only, for now |
+| **Door / window component** | `id`, `name` | a design (not a size) shared by openings, in the building's `components: { doors, windows }`; written to IFC as `IfcDoorType` / `IfcWindowType` |
 
 - Outlines are open polygons: at least three points, and the first point is not repeated.
 - The schema does not allow unknown fields, so a typo in a field name is a validation error rather
@@ -110,6 +122,59 @@ east and west walls fit between them, so the corners neither overlap nor leave g
   If it is left out, the default is `{ hinge: "start", side: "left" }`. For the walls `rectWalls`
   makes, `left` is the inside of the building.
 
+### Components
+
+A component is a door or window design: "internal door", "sash window". Each opening says which
+one it is with `componentId`, so a design is described once and shared, and IFC tools see the
+doors and windows as instances of one type.
+
+- The component is the design: how it is built. So far that is its name and, for windows, a frame
+  and glazing bars (below). Door panels and the like go here as they are added.
+- The opening holds its size and where it is: width, height, wall, offset, sill height, swing. One
+  design comes in many sizes, as windows in an old house do. IFC does the same (`IfcWindow` carries
+  its own overall width and height).
+- So a component is worth having whenever two openings are built the same way, whatever their
+  sizes; a one-off design is a component used once.
+- `build` checks that each `componentId` exists and is the right kind (`src/checks/components.ts`),
+  and stops before writing anything if not.
+- Ids: `door-type-…` and `window-type-…`.
+
+#### Frames and glazing bars
+
+A window component's `frame` and `glazing` divide every window of that design into frame, panes
+and bars:
+
+```ts
+// A 100 mm frame, then a bar half way up and three panes across in the ratio 1:2:1: six panes.
+windowComponent("window-type-front", "Front window", {
+  frame: { width: mm(100) },
+  glazing: { columns: [1, 2, 1], rows: [1, 1], barWidth: mm(60) },
+});
+```
+
+- The frame is the same width all round and lies inside the window's `width` and `height`: the
+  opening stays the same size and the glass shrinks.
+- `columns` are the pane widths left to right and `rows` the pane heights bottom to top, as
+  ratios, so the design fits any size of window. The ratios share out what is left inside the
+  frame after the bars.
+- In IFC each pane is a glass panel, and the frame and bars are 70 mm deep white pieces standing
+  proud of the glass (`src/geometry/window.ts`). None of them overlap.
+- On the plan, every frame or bar piece the cut passes through shows as a small block across the
+  glazing lines: the jambs and the vertical bars.
+- `build` checks that the frame and bars leave room for glass in every window of the design.
+- Openings without a `componentId` are still allowed.
+
+```ts
+const internalDoor = doorComponent("door-type-internal", "Internal door");
+const sash = windowComponent("window-type-sash", "Sash window");
+
+door("door-living", hallWest, offset, internalDoor, { width: mm(800), height: m(2.1) }, { hinge: "start", side: "left" });
+window("window-kitchen", ext.north, offset, sash, { width: m(1.2), height: m(1.2), sillHeight: mm(900) });
+window("window-landing", ext.north, offset, sash, { width: mm(900), height: m(1.2), sillHeight: mm(900) }); // same design, own size
+
+defineBuilding({ ..., components: { doors: [internalDoor], windows: [sash] }, storeys: [...] });
+```
+
 ## Helpers
 
 All of these are in `src/model/helpers.ts` and exported from `src/model/index.ts`. They only
@@ -124,8 +189,10 @@ build plain values, so a model can always write the JSON shape out directly inst
 | `face(wall, "north" \| "south" \| "east" \| "west")` | the coordinate of one face of an axis-aligned wall |
 | `rectRoom(id, name, { west, east, south, north })` | a rectangular room outline |
 | `centredOn(wall, at, width)` | the `offsetAlongWall` that centres an opening of `width` on plan coordinate `at` |
-| `door(id, wall, offset, { width, height }, swing?)` | a door, with `sillHeight` 0 |
-| `window(id, wall, offset, { width, height, sillHeight })` | a window |
+| `doorComponent(id, name)`, `windowComponent(id, name)` | a door or window design for `components` |
+| `door(id, wall, offset, component?, { width, height }, swing?)` | a door, with `sillHeight` 0, linked to the component if given one |
+| `window(id, wall, offset, component?, { width, height, sillHeight })` | a window, linked to the component if given one |
+| `faceCrossing(wall, "left" \| "right", "x" \| "y", at)` | where a face of a wall at any angle crosses the line x = `at` or y = `at`: room corners against diagonal walls |
 
 ### Make dimensions follow each other
 

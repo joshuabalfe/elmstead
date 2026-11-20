@@ -7,7 +7,8 @@
  */
 import * as WebIFC from "web-ifc";
 import { faceOffsets, wallDirection, wallLength } from "../geometry/wall.js";
-import type { BuildingModel, Door, Opening, Point, Room, Slab, Storey, Wall, Window } from "../schema/schema.js";
+import { GLAZING_BAR_DEPTH, windowDivision, type Rect } from "../geometry/window.js";
+import type { BuildingModel, Door, Opening, Point, Room, Slab, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
 import { ifcGuid } from "./guid.js";
 import { STYLES, type StyleName } from "./styles.js";
 
@@ -79,6 +80,10 @@ class Writer {
   private readonly origin3 = new IFC4.IfcCartesianPoint([len(0), len(0), len(0)]);
   private readonly zAxis = new IFC4.IfcDirection([real(0), real(0), real(1)]);
   private bodyCtx!: InstanceType<typeof IFC4.IfcGeometricRepresentationSubContext>;
+  /** Doors and windows written so far, by the componentId they are an instance of. */
+  private readonly instances = new Map<string, InstanceType<typeof IFC4.IfcObject>[]>();
+  /** Window components (their frames and glazing bars), by id. */
+  private windowDesigns = new Map<string, WindowComponent>();
   private axisCtx!: InstanceType<typeof IFC4.IfcGeometricRepresentationSubContext>;
   private footprintCtx!: InstanceType<typeof IFC4.IfcGeometricRepresentationSubContext>;
 
@@ -182,8 +187,10 @@ class Writer {
     this.write(new IFC4.IfcRelAggregates(guid(`${model.project.id}#aggregates`), null, null, null, project, [site]));
     this.write(new IFC4.IfcRelAggregates(guid(`${model.site.id}#aggregates`), null, null, null, site, [building]));
 
+    this.windowDesigns = new Map((model.components?.windows ?? []).map((c) => [c.id, c]));
     const storeys = model.storeys.map((s) => this.storey(s, buildingPlacement));
     this.write(new IFC4.IfcRelAggregates(guid(`${model.building.id}#aggregates`), null, null, null, building, storeys));
+    this.components(model, project);
   }
 
   private storey(s: Storey, parent: InstanceType<typeof IFC4.IfcLocalPlacement>) {
@@ -247,6 +254,7 @@ class Writer {
     );
     this.write(new IFC4.IfcRelVoidsElement(guid(`${o.id}#voids`), null, null, null, wallEntity, opening));
     const filling = o.kind === "door" ? this.door(o, mid, placement) : this.window(o, mid, placement);
+    if (o.componentId) this.instances.set(o.componentId, [...(this.instances.get(o.componentId) ?? []), filling]);
     this.write(new IFC4.IfcRelFillsElement(guid(`${o.id}#fills`), null, null, null, opening, filling));
     return filling;
   }
@@ -280,9 +288,23 @@ class Writer {
     );
   }
 
+  /**
+   * Glass panes and, if its component has them, a frame and glazing bars (src/geometry/window.ts),
+   * each a box swept up from its own height. A plain window is one pane filling the opening.
+   */
   private window(win: Window, mid: number, openingPlacement: InstanceType<typeof IFC4.IfcLocalPlacement>) {
     const placement = this.placement(openingPlacement, win.width / 2, mid, 0);
-    const body = this.body(this.rectangle(0, 0, win.width, PANEL_THICKNESS), win.height, "glazing");
+    const { panes, bars, frame } = windowDivision(win, win.componentId ? this.windowDesigns.get(win.componentId) : undefined);
+    // Window-local X runs along the wall from the opening's centre; the rects are from its left edge.
+    const piece = (r: Rect, depth: number, style: StyleName) => {
+      const profile = this.rectangle(r.x + r.w / 2 - win.width / 2, 0, r.w, depth);
+      const at = r.z === 0 ? null : new IFC4.IfcAxis2Placement3D(this.pt3(0, 0, r.z), null, null);
+      const solid = new IFC4.IfcExtrudedAreaSolid(profile, at, this.zAxis, posLen(r.h));
+      this.write(new IFC4.IfcStyledItem(solid, [this.surfaceStyle(style)], null));
+      return solid;
+    };
+    const items = [...panes.map((p) => piece(p, PANEL_THICKNESS, "glazing")), ...[...frame, ...bars].map((b) => piece(b, GLAZING_BAR_DEPTH, "frame"))];
+    const body = new IFC4.IfcShapeRepresentation(this.bodyCtx, label("Body"), label("SweptSolid"), items);
     return this.write(
       new IFC4.IfcWindow(
         guid(win.id),
@@ -300,6 +322,27 @@ class Writer {
         null,
       ),
     );
+  }
+
+  /**
+   * Door and window components become IfcDoorType / IfcWindowType, declared in the project and
+   * linked to the doors and windows that use them. A door type's operation is NOTDEFINED: handing
+   * (left or right) varies door by door, and each IfcDoor keeps its own.
+   */
+  private components(model: BuildingModel, project: InstanceType<typeof IFC4.IfcProject>) {
+    const types: InstanceType<typeof IFC4.IfcTypeObject>[] = [];
+    const define = (id: string, type: InstanceType<typeof IFC4.IfcTypeObject>) => {
+      types.push(this.write(type));
+      const used = this.instances.get(id);
+      if (used?.length) this.write(new IFC4.IfcRelDefinesByType(guid(`${id}#instances`), null, null, null, used, type));
+    };
+    for (const c of model.components?.doors ?? []) {
+      define(c.id, new IFC4.IfcDoorType(guid(c.id), null, label(c.name), null, null, null, null, label(c.id), null, IFC4.IfcDoorTypeEnum.DOOR, IFC4.IfcDoorTypeOperationEnum.NOTDEFINED, null, null));
+    }
+    for (const c of model.components?.windows ?? []) {
+      define(c.id, new IFC4.IfcWindowType(guid(c.id), null, label(c.name), null, null, null, null, label(c.id), null, IFC4.IfcWindowTypeEnum.WINDOW, IFC4.IfcWindowTypePartitioningEnum.SINGLE_PANEL, null, null));
+    }
+    if (types.length) this.write(new IFC4.IfcRelDeclares(guid(`${model.project.id}#types`), null, null, null, project, types));
   }
 
   /** Slab top is at storey + elevationOffset; it is swept upwards from (top − thickness). */

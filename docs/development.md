@@ -18,13 +18,15 @@ which `npm install` downloads (see [Getting started](getting-started.md#prerequi
 |---|---|
 | `tests/units.test.ts` | `mm()`, `m()`, arithmetic helpers, and the branded type (with `@ts-expect-error`) |
 | `tests/schema.test.ts` | valid and invalid models, and a check that `schema/building.schema.json` is up to date |
-| `tests/helpers.test.ts` | `rectWalls`, `face`, `faceCrossing`, `centredOn` |
+| `tests/helpers.test.ts` | `rectWalls`, `face`, `faceCrossing`, `centredOn`, `door`/`window` with components |
 | `tests/polygon.test.ts` | `spans()`, where a horizontal or vertical line crosses an outline |
 | `tests/load.test.ts` | loading a model file; schema errors attributed to element ids; JSON formatting |
 | `tests/render.test.ts` | plan determinism, SVG snapshot, wall splitting, door and window symbols, labels, PNG size, door geometry |
 | `tests/guid.test.ts` | UUIDv5 and IFC GUID compression against reference vectors; fixed GlobalIds for known ids |
-| `tests/ifc.test.ts` | byte-identical IFC, GlobalId stability, round-trip volumes, validator pass and fail cases |
+| `tests/ifc.test.ts` | byte-identical IFC, GlobalId stability, door and window types, round-trip volumes, validator pass and fail cases |
 | `tests/plan-vs-3d.test.ts` | the viewer's Top view shows the same walls, rooms and openings as the plan, for each model; and that the check catches a room outline run to a wall's centreline |
+| `tests/window.test.ts` | frames and glazing bars: pane ratios, no overlaps, frame inside the window's size, fit checks, IFC volumes, plan symbol |
+| `tests/checks.test.ts` | component checks: unknown or wrong-kind `componentId`, duplicate component ids |
 | `tests/toolchain.test.ts` | web-ifc and uv/IfcOpenShell are available |
 
 `tests/plan-vs-3d.test.ts` builds each model into a temporary folder, serves it with the viewer

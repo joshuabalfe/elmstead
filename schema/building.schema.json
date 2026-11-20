@@ -45,6 +45,9 @@
       ],
       "additionalProperties": false
     },
+    "components": {
+      "$ref": "#/$defs/Components"
+    },
     "storeys": {
       "minItems": 1,
       "type": "array",
@@ -80,6 +83,116 @@
       "required": [
         "id",
         "name"
+      ],
+      "additionalProperties": false
+    },
+    "Components": {
+      "type": "object",
+      "properties": {
+        "doors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DoorComponent"
+          }
+        },
+        "windows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/WindowComponent"
+          }
+        }
+      },
+      "required": [
+        "doors",
+        "windows"
+      ],
+      "additionalProperties": false
+    },
+    "DoorComponent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "WindowComponent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frame": {
+          "$ref": "#/$defs/WindowFrame"
+        },
+        "glazing": {
+          "$ref": "#/$defs/Glazing"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "WindowFrame": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "width"
+      ],
+      "additionalProperties": false
+    },
+    "Glazing": {
+      "type": "object",
+      "properties": {
+        "columns": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "rows": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        },
+        "barWidth": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "columns",
+        "rows",
+        "barWidth"
       ],
       "additionalProperties": false
     },
@@ -225,6 +338,10 @@
           "type": "string",
           "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
         },
+        "componentId": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
         "offsetAlongWall": {
           "type": "integer",
           "minimum": 0,
@@ -299,6 +416,10 @@
           "type": "string"
         },
         "wallId": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "componentId": {
           "type": "string",
           "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
         },

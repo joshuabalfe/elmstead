@@ -2,7 +2,7 @@
  * Authoring helpers for model files. These only build plain schema values; they hold no state.
  * Everything here is optional sugar: a model can always write the JSON shape out by hand.
  */
-import { SCHEMA_VERSION, type BuildingModel, type Door, type Point, type Room, type Swing, type Wall, type Window } from "../schema/schema.js";
+import { SCHEMA_VERSION, type BuildingModel, type Door, type DoorComponent, type Point, type Room, type Swing, type Wall, type Window, type WindowComponent } from "../schema/schema.js";
 import { faceOffsets, wallDirection, wallLength } from "../geometry/wall.js";
 import { add, divRound, mm, sub, type Mm } from "../schema/units.js";
 
@@ -120,10 +120,48 @@ export function centredOn(w: Wall, at: Mm, width: Mm): Mm {
 
 type OpeningSize = Pick<Door, "width" | "height">;
 
-export function door(id: string, w: Wall, offsetAlongWall: Mm, size: OpeningSize, swing?: Swing): Door {
-  return { kind: "door", id, wallId: w.id, offsetAlongWall, ...size, sillHeight: mm(0), ...(swing ? { swing } : {}) };
+/** A door design (see `components` in the schema), for `door()`. */
+export const doorComponent = (id: string, name: string): DoorComponent => ({ id, name });
+/** A window design (see `components` in the schema), for `window()`, optionally with glazing bars. */
+export const windowComponent = (id: string, name: string, detail: Omit<WindowComponent, "id" | "name"> = {}): WindowComponent => ({ id, name, ...detail });
+
+/**
+ * A door, with `sillHeight` 0: `door(id, wall, offset, component, size, swing?)`, linked to the
+ * component, or `door(id, wall, offset, size, swing?)` without one.
+ */
+export function door(id: string, w: Wall, offsetAlongWall: Mm, component: DoorComponent, size: OpeningSize, swing?: Swing): Door;
+export function door(id: string, w: Wall, offsetAlongWall: Mm, size: OpeningSize, swing?: Swing): Door;
+export function door(id: string, w: Wall, offsetAlongWall: Mm, a: DoorComponent | OpeningSize, b?: OpeningSize | Swing, c?: Swing): Door {
+  const [component, size, swing] = "id" in a ? [a, b as OpeningSize, c] : [undefined, a, b as Swing | undefined];
+  return {
+    kind: "door",
+    id,
+    wallId: w.id,
+    offsetAlongWall,
+    ...(component ? { componentId: component.id } : {}),
+    width: size.width,
+    height: size.height,
+    sillHeight: mm(0),
+    ...(swing ? { swing } : {}),
+  };
 }
 
-export function window(id: string, w: Wall, offsetAlongWall: Mm, size: OpeningSize & Pick<Window, "sillHeight">): Window {
-  return { kind: "window", id, wallId: w.id, offsetAlongWall, ...size };
+/**
+ * A window: `window(id, wall, offset, component, { width, height, sillHeight })`, linked to the
+ * component, or `window(id, wall, offset, { width, height, sillHeight })` without one.
+ */
+export function window(id: string, w: Wall, offsetAlongWall: Mm, component: WindowComponent, size: OpeningSize & Pick<Window, "sillHeight">): Window;
+export function window(id: string, w: Wall, offsetAlongWall: Mm, size: OpeningSize & Pick<Window, "sillHeight">): Window;
+export function window(id: string, w: Wall, offsetAlongWall: Mm, a: WindowComponent | (OpeningSize & Pick<Window, "sillHeight">), b?: OpeningSize & Pick<Window, "sillHeight">): Window {
+  const [component, size] = "id" in a ? [a, b!] : [undefined, a];
+  return {
+    kind: "window",
+    id,
+    wallId: w.id,
+    offsetAlongWall,
+    ...(component ? { componentId: component.id } : {}),
+    width: size.width,
+    height: size.height,
+    sillHeight: size.sillHeight,
+  };
 }

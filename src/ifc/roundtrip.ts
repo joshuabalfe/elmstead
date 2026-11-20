@@ -6,6 +6,7 @@
 import * as WebIFC from "web-ifc";
 import type { Issue } from "../checks/issue.js";
 import { wallLength } from "../geometry/wall.js";
+import { GLAZING_BAR_DEPTH, windowDivision } from "../geometry/window.js";
 import type { BuildingModel } from "../schema/schema.js";
 import { PANEL_THICKNESS } from "./writer.js";
 
@@ -112,7 +113,18 @@ export async function roundTripChecks(model: BuildingModel, ifc: Uint8Array): Pr
       }, 0)) / 2;
       expect(sl.id, a * sl.thickness, "slab");
     }
-    for (const o of s.openings) expect(o.id, o.width * o.height * PANEL_THICKNESS, `${o.kind} panel`);
+    const designs = new Map((model.components?.windows ?? []).map((c) => [c.id, c]));
+    for (const o of s.openings) {
+      if (o.kind === "door") {
+        expect(o.id, o.width * o.height * PANEL_THICKNESS, "door panel");
+        continue;
+      }
+      // Frame, panes and bars never overlap, so their volumes add up.
+      const { panes, bars, frame } = windowDivision(o, o.componentId ? designs.get(o.componentId) : undefined);
+      const area = (rs: typeof panes) => rs.reduce((a, r) => a + r.w * r.h, 0);
+      const solid = [...frame, ...bars];
+      expect(o.id, area(panes) * PANEL_THICKNESS + area(solid) * GLAZING_BAR_DEPTH, solid.length ? "window (frame, panes and bars)" : "window panel");
+    }
   }
   return issues;
 }

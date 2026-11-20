@@ -24,8 +24,10 @@ Units: millimetres for length, m² for area, m³ for volume and radians for plan
 | Wall | `IfcWall` (`NOTDEFINED`) | `Axis` polyline and `Body` extruded rectangle. Local X runs along the wall and the origin is at the wall start, offset by its justification |
 | Opening | `IfcOpeningElement` + `IfcRelVoidsElement` | box the size of the opening, extended 10 mm past each face of the wall so the cut is clean |
 | Door | `IfcDoor` + `IfcRelFillsElement` | 50 mm panel in the opening; `OperationType` is `SINGLE_SWING_LEFT` or `SINGLE_SWING_RIGHT` from `swing` |
-| Window | `IfcWindow` + `IfcRelFillsElement` | 50 mm glazing panel at the sill height |
+| Window | `IfcWindow` + `IfcRelFillsElement` | 50 mm glazing panel at the sill height; with its component's frame and glazing bars, one panel per pane and a 70 mm deep `frame`-coloured box per frame piece and bar, none overlapping (`src/geometry/window.ts`) |
 | Slab | `IfcSlab` (`FLOOR`) | outline extruded up to `elevationOffset`, `thickness` deep |
+| Door component | `IfcDoorType` (`DOOR`), declared in the project (`IfcRelDeclares`), linked to its doors by `IfcRelDefinesByType` | none. `Name` is the component name, `Tag` its id. `OperationType` is `NOTDEFINED`, because handing differs door by door; each `IfcDoor` keeps its own |
+| Window component | `IfcWindowType` (`WINDOW`, `SINGLE_PANEL`), declared and linked the same way | none |
 | Room | `IfcSpace` (`INTERNAL`) | `FootPrint` 2D outline only, because rooms have no height yet. `Name` is the room id and `LongName` the room name |
 
 - Every element's `Tag` is its model id, and its `Name` is the model `name` (falling back to the id).
@@ -49,6 +51,8 @@ The key is the element id for elements. Things that have no id of their own get 
 | voids / fills relationships | `<id>#voids`, `<id>#fills` |
 | storey containment / space aggregation | `<storey>#contains`, `<storey>#spaces` |
 | other aggregations | `<parent>#aggregates` |
+| door or window type | the component id, e.g. `door-type-internal` |
+| its instances / the project's type declarations | `<component>#instances`, `<project>#types` |
 
 As a result:
 

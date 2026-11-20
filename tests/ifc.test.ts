@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import * as WebIFC from "web-ifc";
 import { describe, expect, it } from "vitest";
 import cottage from "../models/example-cottage.js";
 import { ifcGuid } from "../src/ifc/guid.js";
@@ -11,6 +12,10 @@ import { BuildingModelSchema, type BuildingModel } from "../src/schema/schema.js
 
 const model = BuildingModelSchema.parse(JSON.parse(JSON.stringify(cottage)));
 const text = async (m: BuildingModel) => new TextDecoder().decode(await writeIfc(m, { fileName: "t.ifc" }));
+const ids = (api: WebIFC.IfcAPI, model: number, type: number): number[] => {
+  const v = api.GetLineIDsWithType(model, type);
+  return Array.from({ length: v.size() }, (_, i) => v.get(i));
+};
 const globalIds = (ifc: string) => [...ifc.matchAll(/^#\d+=IFC\w+\('([0-9A-Za-z_$]{22})'/gm)].map((m) => m[1]);
 
 describe("IFC writer", () => {
@@ -29,6 +34,39 @@ describe("IFC writer", () => {
     const ids = globalIds(await text(model));
     expect(ids.length).toBeGreaterThan(50);
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("writes components as door and window types, declared in the project and linked to their openings", async () => {
+    const api = new WebIFC.IfcAPI();
+    await api.Init();
+    const id = api.OpenModel(await writeIfc(model, { fileName: "t.ifc" }));
+    try {
+      const tag = (e: number) => api.GetLine(id, e).Tag?.value as string;
+      const typeOf = new Map<string, string>();
+      for (const rel of ids(api, id, WebIFC.IFCRELDEFINESBYTYPE)) {
+        const r = api.GetLine(id, rel);
+        for (const o of r.RelatedObjects) typeOf.set(tag(o.value), tag(r.RelatingType.value));
+      }
+      expect(Object.fromEntries(typeOf)).toEqual({
+        "door-front": "door-type-external",
+        "door-back": "door-type-external",
+        "door-living": "door-type-internal",
+        "door-kitchen": "door-type-internal",
+        "door-bedroom": "door-type-internal",
+        "door-bathroom": "door-type-internal",
+        "window-living": "window-type-sash",
+        "window-bedroom": "window-type-sash",
+        "window-kitchen": "window-type-sash",
+        "window-bathroom": "window-type-sash",
+      });
+      expect(ids(api, id, WebIFC.IFCDOORTYPE).map(tag).sort()).toEqual(["door-type-external", "door-type-internal"]);
+      expect(ids(api, id, WebIFC.IFCWINDOWTYPE).map(tag)).toEqual(["window-type-sash"]);
+      const [declares] = ids(api, id, WebIFC.IFCRELDECLARES).map((e) => api.GetLine(id, e));
+      expect(declares.RelatedDefinitions).toHaveLength(3);
+      expect(api.GetLine(id, declares.RelatingContext.value).constructor.name).toBe("IfcProject");
+    } finally {
+      api.CloseModel(id);
+    }
   });
 
   it("keeps GlobalIds stable when geometry changes", async () => {
