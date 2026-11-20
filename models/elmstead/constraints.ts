@@ -36,15 +36,15 @@ export default defineConstraints([
   inRoom("room-bedroom", [
     {
       id: "bedroom-width",
-      note: "Bedroom size from the owner (3.3 x 3.8 m): the 3.8 m side, west to east",
+      note: "Bedroom size from the owner (3.3 x 3.85 m): the 3.85 m side, west to east",
       from: roomCorner("south-west"),
       to: roomCorner("north-east"),
       measure: "x",
-      distance: m(3.8),
+      distance: m(3.85),
     },
     {
       id: "bedroom-depth",
-      note: "Bedroom size from the owner (3.3 x 3.8 m): the 3.3 m side, from the thickened south wall to the bathroom wall",
+      note: "Bedroom size from the owner (3.3 x 3.85 m): the 3.3 m side, from the thickened south wall to the bathroom wall",
       from: roomCorner("south-west"),
       to: roomCorner("north-east"),
       measure: "y",
@@ -54,19 +54,29 @@ export default defineConstraints([
   inRoom("room-bathroom", [
     {
       id: "bathroom-width",
-      note: "Bathroom size from the owner (1.6 x 2.9 m): the 2.9 m side, west to east",
+      note: "Bathroom size from the owner (1.6 x 2.85 m): the 2.85 m side, west to east",
       from: roomCorner("south-west"),
       to: roomCorner("north-east"),
       measure: "x",
-      distance: m(2.9),
+      distance: m(2.85),
     },
     {
       id: "bathroom-depth",
-      note: "Bathroom size from the owner (1.6 x 2.9 m): the 1.6 m side, south to north",
+      note: "Bathroom size from the owner (1.6 x 2.85 m): the 1.6 m side, south to north",
       from: roomCorner("south-west"),
       to: roomCorner("north-east"),
       measure: "y",
       distance: m(1.6),
+    },
+  ]),
+  inRoom("room-lobby", [
+    {
+      id: "lobby-width",
+      note: "Lobby width from the owner",
+      from: corner({ wall: "wall-living-bedroom", face: "east" }, { wall: "wall-bedroom-bathroom", face: "north" }),
+      to: corner({ wall: "wall-lobby-bathroom", face: "west" }, { wall: "wall-bedroom-bathroom", face: "north" }),
+      measure: "x",
+      distance: mm(865),
     },
   ]),
   inRoom("room-hallway", [
