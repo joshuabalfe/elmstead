@@ -10,6 +10,7 @@ import { brickT, coreD, coreW, eastT, extEastX, extSouthY, groundFloor, northT, 
 
 export const wallH = groundFloor.ceilingHeight; // walls stop at the ceiling until there is an upper floor
 const breastT = mm(350); // chimney breasts and thickened masonry walls, per the owner
+const bathNorthT = mm(225); // bathroom north wall, 9-inch brick per the owner
 
 // ── Internal layout (plan faces) ─────────────────────────────────────────────
 export const partitionX = mm(4650); //  west face of the living/bedroom partition; living room 4.2 m wide (owner)
@@ -29,8 +30,8 @@ export const northIn = face(north, "south");
 export const west = wall("wall-west", pt(mm(0), northIn), pt(mm(0), southIn), { thickness: westT, height: wallH, justification: "left" });
 export const westIn = face(west, "east");
 
-// Bathroom north wall first: the core's east wall stops at its north face, north of the extension's south wall, closing both.
-export const bathNorth = wall("wall-bathroom-north", pt(sub(coreW, eastT), bathNorthY), pt(bathWestX, bathNorthY), { thickness: breastT, height: wallH, justification: "right" });
+// Bathroom north wall first: the core's east wall stops at its north face, level with the extension's south wall.
+export const bathNorth = wall("wall-bathroom-north", pt(sub(coreW, eastT), bathNorthY), pt(bathWestX, bathNorthY), { thickness: bathNorthT, height: wallH, justification: "right" });
 export const east = wall("wall-east", pt(coreW, southIn), pt(coreW, face(bathNorth, "north")), { thickness: eastT, height: wallH, justification: "left" });
 export const eastIn = face(east, "west");
 
