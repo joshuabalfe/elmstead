@@ -36,7 +36,7 @@ export default defineConstraints([
   inRoom("room-bedroom", [
     {
       id: "bedroom-width",
-      note: "Bedroom size from the owner (3.3 x 3.85 m): the 3.85 m side, west to east",
+      note: "Bedroom size from the owner (3.48 x 3.85 m): the 3.85 m side, west to east",
       from: roomCorner("south-west"),
       to: roomCorner("north-east"),
       measure: "x",
@@ -44,11 +44,11 @@ export default defineConstraints([
     },
     {
       id: "bedroom-depth",
-      note: "Bedroom size from the owner (3.3 x 3.85 m): the 3.3 m side, from the thickened south wall to the bathroom wall",
+      note: "Bedroom depth from the owner: 3.3 m plus the 180 mm stair surplus, from the thickened south wall to the bathroom wall",
       from: roomCorner("south-west"),
       to: roomCorner("north-east"),
       measure: "y",
-      distance: m(3.3),
+      distance: m(3.48),
     },
   ]),
   inRoom("room-bathroom", [
@@ -95,6 +95,14 @@ export default defineConstraints([
       note: "Stair flight width from the owner (both flights 0.91 m); the north flight, spine to north wall",
       from: wallEnd("wall-stair-spine", "end", "north"),
       to: wallEnd("wall-north", "start", "south"),
+      measure: "y",
+      distance: mm(910),
+    },
+    {
+      id: "stair-flight-width-south",
+      note: "Stair flight width from the owner (both flights 0.91 m); the south flight, bathroom north wall to spine",
+      from: wallEnd("wall-bathroom-north", "start", "north"),
+      to: wallEnd("wall-stair-spine", "end", "south"),
       measure: "y",
       distance: mm(910),
     },

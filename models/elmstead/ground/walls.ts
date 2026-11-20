@@ -15,10 +15,10 @@ const bathNorthT = mm(225); // bathroom north wall, 9-inch brick per the owner
 // ── Internal layout (plan faces) ─────────────────────────────────────────────
 export const partitionX = mm(4650); //  west face of the living/bedroom partition; living room 4.2 m wide (owner)
 export const hallWallY = mm(6400); //   south face of the hall/living wall; living room 5.8 m deep from the breast (owner)
-export const bedroomWallY = mm(3900); // south face of the bedroom/bathroom wall; bedroom 3.3 m deep from the breast (owner)
+export const bedroomWallY = mm(4080); // south face of the bedroom/bathroom wall; bedroom 3.48 m deep from the breast (owner, incl. stair surplus)
 export const bathWestX = mm(5690); //   west face of the lobby/bathroom wall; lobby 0.865 m wide (owner)
-export const bathNorthY = mm(5675); //  south face of the bathroom's north wall; bathroom 1.6 m deep (owner)
-export const spineY = mm(6990); //      south face of the wall between the stair flights; both flights 0.91 m wide (owner), the south one starting at the unmodelled stair start
+export const bathNorthY = mm(5855); //  south face of the bathroom's north wall; bathroom 1.6 m deep (owner)
+export const spineY = mm(6990); //      south face of the wall between the stair flights; both flights 0.91 m wide (owner)
 export const spineEastX = mm(8945); // keeps its traced overlap into the east wall
 export const livingBreast = { west: mm(1050), east: mm(3425) };
 
