@@ -26,12 +26,9 @@ as full geometry, never as LOD lines. In the scene Y SHALL be up and plan north 
 - **THEN** the bars and frame are drawn as solids, not lines
 
 ### Requirement: 3D snapshots
-`render` SHALL start the viewer on a free port and open it in headless Chromium through Playwright
-with `?snapshot=1`. For each camera it SHALL wait for `window.__elmsteadReady` and save a
-1200 × 900 PNG to `out/<name>.3d-<view>.png`. The cameras SHALL be perspective `sw`, `se`, `ne`
-and `nw`, and an orthographic `top`. Snapshots SHALL show the IFC's own colours with labels off.
-The viewer server and browser SHALL close on every success and failure path. A missing Chromium
-SHALL be a WARNING that still leaves the plans written; any other viewer failure SHALL be an ERROR.
+`render` SHALL save 3D snapshots of the IFC, taken in the viewer in headless Chromium. A missing
+Chromium SHALL be a WARNING that still leaves the plans written; any other viewer failure SHALL be
+an ERROR.
 
 #### Scenario: Chromium missing
 - **WHEN** Playwright's Chromium is not installed
@@ -40,6 +37,24 @@ SHALL be a WARNING that still leaves the plans written; any other viewer failure
 #### Scenario: Viewer fails to load the IFC
 - **WHEN** the viewer reports an error other than a missing browser
 - **THEN** render reports an ERROR and exits 1 after closing the server and browser
+
+### Requirement: Snapshot capture
+`render` SHALL start the viewer on a free port and open it through Playwright with `?snapshot=1`.
+For each camera it SHALL wait for `window.__elmsteadReady` and save a 1200 × 900 PNG to
+`out/<name>.3d-<view>.png`. The viewer server and browser SHALL close on every success and failure
+path.
+
+#### Scenario: Snapshots written
+- **WHEN** `render` runs on a model that builds
+- **THEN** it writes a 1200 × 900 `out/<name>.3d-<view>.png` for each camera and leaves no viewer server or browser running
+
+### Requirement: Snapshot cameras
+The snapshot cameras SHALL be perspective `sw`, `se`, `ne` and `nw`, and an orthographic `top`.
+Snapshots SHALL show the IFC's own colours with labels off.
+
+#### Scenario: One snapshot per camera
+- **WHEN** `render` writes a model's snapshots
+- **THEN** there are five, `sw`, `se`, `ne`, `nw` and `top`, in the IFC's colours with no room labels or dimensions
 
 ### Requirement: Annotations from the model
 When labels are on, the viewer SHALL read `out/<name>.building.json` and draw, at each storey's

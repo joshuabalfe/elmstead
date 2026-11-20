@@ -36,4 +36,4 @@
 
 ## 8. Integration
 
-- [ ] 8.1 Run `npm test` (including `tests/plan-vs-3d.test.ts`, which checks the wall tops still match the plan), `npm run typecheck` and `npx openspec validate --all --strict`. Build the example cottage on this branch and on main and confirm its JSON, IFC and SVG are byte-identical and that only Elmstead's outputs change.
+- [x] 8.1 Run `npm test` (including `tests/plan-vs-3d.test.ts`, which checks the wall tops still match the plan), `npm run typecheck` and `npx openspec validate --all --strict`. Build the example cottage on this branch and on main and confirm its JSON, IFC and SVG are byte-identical and that only Elmstead's outputs change.
