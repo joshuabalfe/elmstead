@@ -12,7 +12,7 @@ import * as OBC from "@thatopen/components";
 import workerUrl from "@thatopen/fragments/worker?url";
 import * as THREE from "three";
 import { STYLES } from "../src/ifc/styles.js";
-import { renderPlanAnnotations, renderRoomFills, renderWallTops, roomTags } from "../src/render/plan.js";
+import { renderFloor, renderPlanAnnotations, renderWallTops, roomTags } from "../src/render/plan.js";
 import { C, FONT, PX_PER_MM, ROOM_LABEL } from "../src/render/style.js";
 import type { BuildingModel } from "../src/schema/schema.js";
 
@@ -153,13 +153,13 @@ async function planPlane(svg: string, bounds: { minX: number; minY: number; maxX
 }
 
 /**
- * Plan colouring's layers (see applyStyle): the plan's room fills standing in for the slab's top
- * face, and the plan's walls, doors and windows laid over the wall tops.
+ * Plan colouring's layers (see applyStyle): the plan's room fills and door swings standing in for
+ * the slab's top face, and the plan's walls, door gaps and windows laid over the wall tops.
  */
 const planLayers = new THREE.Group();
 planLayers.visible = false;
 world.scene.three.add(planLayers);
-/** Height (mm) above the wall tops of the plan's walls, doors and windows; below the labels. */
+/** Height (mm) above the wall tops of the plan's walls, door gaps and windows; below the labels. */
 const WALL_TOP_LIFT = 5;
 
 /**
@@ -195,7 +195,7 @@ async function loadLabels(name: string) {
     if (storey === lowest) {
       // Drawn first and without depth, so the model always covers it; cut-out (alphaTest), not
       // blended, so it stays in the opaque pass that runs before the walls.
-      const fills = renderRoomFills(storey);
+      const fills = renderFloor(storey);
       const fill = await planPlane(fills.svg, fills.bounds, storey.elevation / 1000, { alphaTest: 0.5, depthTest: false, depthWrite: false });
       fill.renderOrder = -1;
       planLayers.add(fill);
@@ -213,14 +213,14 @@ let box = new THREE.Box3();
 /**
  * Plan colouring, in every view except snapshots (which show the IFC's own colours):
  *
- * - Floors: the slab's top face is not drawn; the plan's own room fills are drawn first, without
- *   depth, so the model always covers them. (A wall's underside lies exactly on the slab's top
+ * - Floors: the slab's top face is not drawn; the plan's own room fills and door swings are drawn
+ *   first, without depth, so the model always covers them. (A wall's underside lies exactly on the slab's top
  *   face, and on real GPUs the two fight for depth.) The slab's edges still show.
  * - Walls keep their IFC colour and lighting, except faces that look upwards (wall tops, window
  *   sills), which are the plan's charcoal, unlit. A small shader patch picks those out by their
  *   world-space normal, so the material itself is unchanged.
- * - The plan's walls, doors and windows are laid just above the wall tops, so looking down shows
- *   what is in the walls below (door gaps and swings, window symbols) as the plan does.
+ * - The plan's walls, door gaps and windows are laid just above the wall tops, so looking down
+ *   shows what is in the walls below (open door gaps, window symbols) as the plan does.
  * - White background, no grid.
  */
 type Style = "ifc" | "plan";

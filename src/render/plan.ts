@@ -91,6 +91,13 @@ function drawDoor(w: Wall, d: Door, view: View): string {
   ]);
 }
 
+/** A door's opening through the wall, in the paper colour: for the 3D wall tops, which aren't cut. */
+function drawDoorGap(w: Wall, d: Door, view: View): string {
+  return group({ class: "door-gap", "data-id": d.id }, [
+    polygon(wallSegmentFootprint(w, d.offsetAlongWall, d.offsetAlongWall + d.width).map(view.toPx), { fill: C.paper, stroke: "none" }),
+  ]);
+}
+
 function drawWindow(w: Wall, win: Window, view: View): string {
   const { left, right } = faceOffsets(w);
   const a = win.offsetAlongWall;
@@ -287,8 +294,12 @@ export function renderPlanAnnotations(storey: Storey, { names = true }: { names?
   ]);
 }
 
-/** Walls, split around the openings they cut, then door and window symbols, as the plan draws them. */
-function wallsAndOpenings(storey: Storey, view: View): string[] {
+/**
+ * Walls, split around the openings they cut, then door and window symbols, as the plan draws them.
+ * `doors` picks what a cut door draws: its swing (the plan), its gap in the paper colour (the 3D
+ * wall tops, which aren't cut), or nothing.
+ */
+function wallsAndOpenings(storey: Storey, view: View, doors: "swing" | "gap" = "swing"): string[] {
   const walls = storey.walls.filter((w) => wallLength(w) > 0);
   const wallById = new Map(walls.map((w) => [w.id, w]));
   const out: string[] = [];
@@ -298,25 +309,41 @@ function wallsAndOpenings(storey: Storey, view: View): string[] {
       out.push(polygon(piece.map(view.toPx), { class: "wall", "data-id": w.id, fill: C.wall, stroke: "none" }));
     }
   }
-  for (const o of storey.openings) {
+  // Uncut openings last, so a fanlight's dashed outline lies over the gap of the door below it.
+  for (const o of [...storey.openings].sort((a, b) => Number(!isCut(a)) - Number(!isCut(b)))) {
     const w = wallById.get(o.wallId);
     if (!w) continue; // reported by checks
-    out.push(!isCut(o) ? drawUncut(w, o, view) : o.kind === "door" ? drawDoor(w, o, view) : drawWindow(w, o, view));
+    if (!isCut(o)) out.push(drawUncut(w, o, view));
+    else if (o.kind === "window") out.push(drawWindow(w, o, view));
+    else out.push(doors === "swing" ? drawDoor(w, o, view) : drawDoorGap(w, o, view));
   }
   return out;
 }
 
-/**
- * The plan's walls, doors and windows alone, on a transparent background, for the 3D viewer to lay
- * over the wall tops, so looking down shows what is in the walls below as the plan does.
- */
-export function renderWallTops(storey: Storey): { svg: string; bounds: Bounds } {
-  return overlay(storey, (view) => wallsAndOpenings(storey, view));
+/** Each cut door's leaf and swing, as on the plan. */
+function doorSwings(storey: Storey, view: View): string[] {
+  const wallById = new Map(storey.walls.map((w) => [w.id, w]));
+  return storey.openings.flatMap((o) => {
+    const w = wallById.get(o.wallId);
+    return w && o.kind === "door" && isCut(o) && wallLength(w) > 0 ? [drawDoor(w, o, view)] : [];
+  });
 }
 
-/** The plan's room fills alone, on a transparent background, for the 3D viewer's plan-style floor. */
-export function renderRoomFills(storey: Storey): { svg: string; bounds: Bounds } {
-  return overlay(storey, (view) => storey.rooms.map((r) => polygon(r.outline.map((p) => view.toPx(toVec(p))), { fill: C.room, stroke: "none" })));
+/**
+ * The plan's walls, door gaps and windows alone, on a transparent background, for the 3D viewer to
+ * lay over the wall tops, so looking down shows what is in the walls below as the plan does. Door
+ * swings go on the floor instead (renderFloor).
+ */
+export function renderWallTops(storey: Storey): { svg: string; bounds: Bounds } {
+  return overlay(storey, (view) => wallsAndOpenings(storey, view, "gap"));
+}
+
+/** The plan's room fills and door swings alone, on a transparent background, for the 3D viewer's floor. */
+export function renderFloor(storey: Storey): { svg: string; bounds: Bounds } {
+  return overlay(storey, (view) => [
+    ...storey.rooms.map((r) => polygon(r.outline.map((p) => view.toPx(toVec(p))), { fill: C.room, stroke: "none" })),
+    ...doorSwings(storey, view),
+  ]);
 }
 
 export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptions): string {
