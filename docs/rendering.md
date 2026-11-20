@@ -69,13 +69,15 @@ openings cut, doors and glazing in place, colours applied.
   - The loader keeps IFC coordinates as they are (`COORDINATE_TO_ORIGIN: false`), so anything
     drawn from the model lines up with the IFC.
 - Room labels: `main.ts` also reads `out/<name>.building.json` and lays each storey's room
-  labels and dimensions on its floor, 10 mm up. They are the plan's own labels
+  labels and dimensions at its ceiling, 10 mm above the top of its tallest wall (the schema has
+  no ceiling height). They are the plan's own labels
   (`renderRoomLabels` in `src/render/plan.ts`), drawn to a texture at 2.5 mm per pixel, with a
-  white halo so they read on the grey floor.
+  white halo so they read over the model.
   - They come from the model JSON, not the IFC, because the IFC has no room dimensions.
   - The **Labels** button toggles them. `?labels=0` or `?labels=1` in the URL sets them.
   - They are on by default, but off in snapshots (`?snapshot=1`), so the 3D PNGs show only the IFC.
-  - Walls hide them as they would hide the floor, so they are easiest to read in the Top view.
+  - Being above the walls, they read from every camera, as if the plan were drawn on a glass
+    ceiling.
   - With `?snapshot=1` in the URL it hides the toolbar and sets `window.__elmsteadReady` once the
     frame is drawn, which is what the snapshot driver waits for.
 - `npm run view` runs the same app for interactive use. It reloads the page whenever an IFC in

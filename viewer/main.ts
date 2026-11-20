@@ -1,6 +1,6 @@
 /**
  * Local IFC viewer on That Open Engine: loads out/<model>.ifc, converts it to Fragments in the
- * browser and shows it, with the plan's room labels and dimensions laid on each floor (from
+ * browser and shows it, with the plan's room labels and dimensions at each storey's ceiling (from
  * out/<model>.building.json). Query params: ?model=<name>&view=<sw|se|ne|nw|top>&snapshot=1&labels=0|1
  * (snapshot hides the UI and sets window.__elmsteadReady once the first frame is drawn; labels are
  * on by default, except in snapshots, which show the IFC alone).
@@ -54,13 +54,16 @@ await ifcLoader.setup({ autoSetWasm: false, wasm: { path: "/wasm/", absolute: tr
 
 /** Texture px per plan-SVG px: the SVG is 1 px = 10 mm, so this is 2.5 mm per texel. */
 const LABEL_RESOLUTION = 4;
-/** Height (mm) above the storey floor at which the labels are laid. */
+/** Height (mm) above the ceiling at which the labels are laid, clear of the wall tops. */
 const LABEL_LIFT = 10;
 const labels = new THREE.Group();
 labels.visible = params.get("labels") === "1" || (!snapshot && params.get("labels") !== "0");
 world.scene.three.add(labels);
 
-/** The plan's room labels for each storey, as a transparent texture on a plane at floor level. */
+/**
+ * The plan's room labels for each storey, as a transparent texture on a plane at the ceiling. The
+ * schema has no ceiling height, so the ceiling is the top of the storey's tallest wall.
+ */
 async function loadLabels(name: string) {
   for (const mesh of labels.children as THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[]) {
     mesh.geometry.dispose();
@@ -87,7 +90,8 @@ async function loadLabels(name: string) {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry((bounds.maxX - bounds.minX) / 1000, (bounds.maxY - bounds.minY) / 1000), material);
     // Lay the plane flat with the drawing's north (its +Y) along −Z, which is IFC +Y.
     mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set((bounds.minX + bounds.maxX) / 2000, (storey.elevation + LABEL_LIFT) / 1000, -(bounds.minY + bounds.maxY) / 2000);
+    const ceiling = Math.max(0, ...storey.walls.map((w) => w.height));
+    mesh.position.set((bounds.minX + bounds.maxX) / 2000, (storey.elevation + ceiling + LABEL_LIFT) / 1000, -(bounds.minY + bounds.maxY) / 2000);
     labels.add(mesh);
   }
 }
