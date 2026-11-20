@@ -5,6 +5,7 @@
  * The drawing gives widths only. Door heights are a typical 2.1 m; the bathroom door's drawn gap
  * (about 440 mm) is taken as 700. The front window and fanlight sizes are the owner's.
  */
+import { wallLength } from "../../../src/geometry/wall.js";
 import { add, centredOn, door, face, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
 import { fanlight, frontDoor, frontWindow, internalDoor, standardWindow } from "../components/index.js";
 import { living } from "./rooms.js";
@@ -25,6 +26,7 @@ const frontWindowCentreY = mm(Math.round((living.outline[1]!.y + living.outline[
 const bathroomDoorOffset = mm(135);
 const bathroomDoorY = add(face(bedroomBathroom, "north"), bathroomDoorOffset); // the living-room door sits opposite it
 const lobbyCentreX = mm(Math.round((partitionEast + bathWestX) / 2));
+const lobbyDoor = { width: mm(550), height: doorH }; // narrower than the others, to fit the screen
 
 export const openings: Opening[] = [
   // West wall runs north→south, so "start" is the north end and "left" is inside.
@@ -39,8 +41,7 @@ export const openings: Opening[] = [
   // Lobby/bathroom wall runs south→north; "right" is the bathroom.
   door("door-bathroom", lobbyBathroom, bathroomDoorOffset, internalDoor, internal, { hinge: "start", side: "right" }),
   // Screen runs from the hall corner (south-west) to the spine (north-east); "right" is the lobby.
-  // Narrower than the others, to fit the screen.
-  door("door-lobby", lobbyScreen, mm(0), internalDoor, { width: mm(550), height: doorH }, { hinge: "start", side: "right" }),
+  door("door-lobby", lobbyScreen, mm(Math.round((wallLength(lobbyScreen) - lobbyDoor.width) / 2)), internalDoor, lobbyDoor, { hinge: "start", side: "right" }),
 
   window("window-bedroom", east, sub(mm(2285), southIn), standardWindow, { ...standard, width: mm(1050) }),
   window("window-rear-hall", extEast, mm(700), standardWindow, { ...standard, width: mm(950) }),
