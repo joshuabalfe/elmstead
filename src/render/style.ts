@@ -17,4 +17,7 @@ export const C = {
   id: "#c0392b",
 };
 
+/** Room label font sizes (px) and baselines relative to the room's centroid. */
+export const ROOM_LABEL = { name: { size: 13, dy: -4 }, area: { size: 11, dy: 12 } };
+
 export const MARGIN = { top: 70, right: 110, bottom: 120, left: 60 };

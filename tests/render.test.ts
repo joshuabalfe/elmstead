@@ -43,6 +43,17 @@ describe("plan renderer", () => {
     }
   });
 
+  it("turns the north arrow to site.northAngle and keeps the N upright beyond its tip", () => {
+    const turned = { ...model, site: { ...model.site, northAngle: 135 } } as typeof model;
+    const out = renderPlan(turned, storey, { ids: false });
+    expect(out).toContain("rotate(-135)");
+    // 135° counter-clockwise from up is down-left on screen, so the N sits left of and below the centre.
+    const [, x, y] = out.match(/<text x="([\d.]+)" y="([\d.]+)"[^>]*>N<\/text>/)!.map(Number);
+    const at = { x: Number(out.match(/width="(\d+)"/)![1]) - 35, y: 40 };
+    expect(x).toBeLessThan(at.x);
+    expect(y).toBeGreaterThan(at.y);
+  });
+
   it("draws one symbol per door and window, and every room", () => {
     expect(ids("door").sort()).toEqual(storey.openings.filter((o) => o.kind === "door").map((o) => o.id).sort());
     expect(ids("window").sort()).toEqual(storey.openings.filter((o) => o.kind === "window").map((o) => o.id).sort());
