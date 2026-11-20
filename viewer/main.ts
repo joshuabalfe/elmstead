@@ -3,7 +3,7 @@
  * browser and shows it, with the plan's room dimensions at each storey's ceiling and room names on
  * billboards that face the camera, and a compass pointing to true north (all from
  * out/<model>.building.json). Every view uses the plan's colours, with the plan's walls, doors and
- * windows laid on the wall tops, so the Top view reads like the plan. Query params: ?model=<name>&view=<sw|se|ne|nw|top>&snapshot=1
+ * windows laid on the wall tops, so the Top view reads like the plan. Query params: ?model=<name>&view=<sw|se|ne|nw|top (default)>&snapshot=1
  * &labels=0|1&style=plan|ifc (snapshot hides the UI and sets window.__elmsteadReady once the first
  * frame is drawn; labels and the plan style are on by default, except in snapshots, which show the
  * IFC alone).
@@ -316,7 +316,7 @@ async function load(name: string) {
   applyStyle();
   box = model.box.clone();
   grid.three.position.y = box.min.y - 0.01; // under the lowest slab, so it doesn't show through floors
-  await setView((params.get("view") as View) ?? "sw");
+  await setView((params.get("view") as View) ?? "top"); // the plan view, unless the URL asks for another
   status.textContent = `${name}.ifc`;
 }
 
