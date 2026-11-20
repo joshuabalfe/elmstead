@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DegSchema, MmSchema, NonNegativeMmSchema, PositiveMmSchema } from "./units.js";
+import { DegSchema, degBetween, MmSchema, NonNegativeMmSchema, PositiveMmSchema } from "./units.js";
 
 /**
  * The building JSON contract. Keep this deliberately small: add element types only when asked.
@@ -55,7 +55,21 @@ export const DoorSchema = z.strictObject({
   swing: SwingSchema.optional(),
 }).meta({ id: "Door" });
 
-export const WindowSchema = z.strictObject({ kind: z.literal("window"), ...openingBase }).meta({ id: "Window" });
+/**
+ * Both jambs splayed `angle` degrees off square, from the middle of the wall to `face` (looking from
+ * wall start towards wall end). The head, sill and the other half of the reveal stay square.
+ */
+export const RevealSchema = z.strictObject({
+  face: z.enum(["left", "right"]),
+  angle: degBetween(0, 90),
+}).meta({ id: "Reveal" });
+
+export const WindowSchema = z.strictObject({
+  kind: z.literal("window"),
+  ...openingBase,
+  /** Splayed jambs. `width` stays the width in the middle of the wall, where the frame sits. */
+  reveal: RevealSchema.optional(),
+}).meta({ id: "Window" });
 
 export const OpeningSchema = z.discriminatedUnion("kind", [DoorSchema, WindowSchema]);
 
@@ -151,6 +165,7 @@ export type Swing = z.infer<typeof SwingSchema>;
 export type Door = z.infer<typeof DoorSchema>;
 export type Window = z.infer<typeof WindowSchema>;
 export type Opening = z.infer<typeof OpeningSchema>;
+export type Reveal = z.infer<typeof RevealSchema>;
 export type DoorComponent = z.infer<typeof DoorComponentSchema>;
 export type WindowComponent = z.infer<typeof WindowComponentSchema>;
 export type Components = z.infer<typeof ComponentsSchema>;

@@ -4,7 +4,7 @@ import elmstead from "../models/elmstead/index.js";
 import { checkComponents } from "../src/checks/components.js";
 import { checkIds, checkModel, checkOpenings, checkOutlines, checkWalls } from "../src/checks/model.js";
 import { wallLength } from "../src/geometry/wall.js";
-import { mm, pt } from "../src/model/index.js";
+import { deg, m as metres, mm, pt, wall as makeWall, window as makeWindow, type Reveal } from "../src/model/index.js";
 import { BuildingModelSchema, type BuildingModel } from "../src/schema/schema.js";
 
 const model = (source: unknown = cottage): BuildingModel => BuildingModelSchema.parse(JSON.parse(JSON.stringify(source)));
@@ -100,6 +100,50 @@ describe("checkOpenings", () => {
     const window = opening(m, "window-living");
     window.offsetAlongWall = mm(door.offsetAlongWall - window.width);
     expect(checkOpenings(m)).toEqual([]);
+  });
+
+  describe("with splayed reveals", () => {
+    // A 6 m wall, 400 mm thick, so a 45° reveal splays each jamb 200 mm at its face.
+    const w = makeWall("wall-a", pt(mm(0), mm(0)), pt(metres(6), mm(0)), { thickness: mm(400), height: metres(2.4) });
+    const size = { width: mm(1200), height: metres(1.2), sillHeight: mm(900) };
+    const reveal = (face: Reveal["face"]): Reveal => ({ face, angle: deg(45) });
+    const withOpenings = (...openings: ReturnType<typeof makeWindow>[]): BuildingModel => {
+      const m = model();
+      m.storeys[0]!.walls = [w];
+      m.storeys[0]!.openings = openings;
+      return m;
+    };
+
+    it("reports a reveal past the wall start or end at its splayed face", () => {
+      expect(checkOpenings(withOpenings(makeWindow("window-a", w, mm(100), size, reveal("left"))))).toEqual([
+        { level: "ERROR", id: "window-a", message: "opening is 100 mm past the wall start" },
+      ]);
+      expect(checkOpenings(withOpenings(makeWindow("window-a", w, mm(4700), size, reveal("right"))))).toEqual([
+        { level: "ERROR", id: "window-a", message: "opening is 100 mm past the wall end" },
+      ]);
+      expect(checkOpenings(withOpenings(makeWindow("window-a", w, mm(200), size, reveal("left"))))).toEqual([]);
+    });
+
+    it("reports reveals that meet at the face they both splay to", () => {
+      const a = makeWindow("window-a", w, mm(1000), size, reveal("left"));
+      const b = makeWindow("window-b", w, mm(2500), size, reveal("left")); // 300 mm clear of window-a
+      expect(checkOpenings(withOpenings(a, b))).toEqual([
+        { level: "ERROR", id: "window-a", message: "opening overlaps window-b" },
+        { level: "ERROR", id: "window-b", message: "opening overlaps window-a" },
+      ]);
+    });
+
+    it("allows reveals on opposite faces that stop short of each other", () => {
+      const a = makeWindow("window-a", w, mm(1000), size, reveal("left"));
+      const b = makeWindow("window-b", w, mm(2500), size, reveal("right"));
+      expect(checkOpenings(withOpenings(a, b))).toEqual([]);
+    });
+
+    it("reports a reveal that reaches into a square opening", () => {
+      const a = makeWindow("window-a", w, mm(1000), size, reveal("left"));
+      const b = makeWindow("window-b", w, mm(2300), size); // 100 mm clear, inside window-a's 200 mm splay
+      expect(checkOpenings(withOpenings(a, b)).map((i) => i.id)).toEqual(["window-a", "window-b"]);
+    });
   });
 });
 
