@@ -1,9 +1,16 @@
 # AGENTS.md
 
-Instructions for coding agents working in this repo. Agent skills live in `.agents/skills/`.
+Instructions for coding agents working in this repo.
 
 elmstead is an LLM-editable building model: TypeScript in `models/` → zod-validated JSON → IFC4
 → plan drawings, 3D snapshots and a browser viewer. Start with [docs/](docs/README.md).
+
+## Skills
+
+This repo's skills live in `.agents/skills/<name>/SKILL.md`, whatever agent or harness you are.
+Your harness may not load them itself, so before starting a task, list `.agents/skills/` and read
+the front matter of each `SKILL.md`. When a skill's description fits the task, read the whole file
+and follow it. When the user names a skill (for example `/openspec-propose`), use that one.
 
 ## Commands
 
