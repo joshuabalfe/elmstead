@@ -2,7 +2,7 @@ import { faceOffsets, wallDirection, wallLength, wallPoint, wallSegmentFootprint
 import { area, bounds, centroid, spans, type Bounds } from "../geometry/polygon.js";
 import { GLAZING_BAR_DEPTH, windowDivision } from "../geometry/window.js";
 import { dot, perpLeft, toVec, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";
-import type { BuildingModel, Components, Door, Glazing, Opening, Storey, Wall, Window } from "../schema/schema.js";
+import type { BuildingModel, Components, Door, Opening, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
 import { C, CUT_HEIGHT, FONT, MARGIN, PX_PER_MM, ROOM_LABEL } from "./style.js";
 import { el, group, line, num, polygon, polyline, text } from "./svg.js";
 
@@ -99,16 +99,18 @@ function drawDoorGap(w: Wall, d: Door, view: View): string {
   ]);
 }
 
-/** Frame, two glass lines, and any vertical glazing bars, which the cut passes through. */
-function drawWindow(w: Wall, win: Window, view: View, glazing?: Glazing): string {
+/** Outline, two glass lines, and the frame and glazing bars wherever the cut passes through them. */
+function drawWindow(w: Wall, win: Window, view: View, design?: WindowComponent): string {
   const { left, right } = faceOffsets(w);
   const a = win.offsetAlongWall;
   const b = a + win.width;
   const frame = wallSegmentFootprint(w, a, b).map(view.toPx);
   const mid = (left + right) / 2;
   const glassGap = Math.min(25, (left - right) / 6);
-  // Vertical bars run the window's full height, so the cut always passes through them.
-  const bars = windowDivision(win, glazing).bars.filter((r) => r.h === win.height);
+  // In the window's own elevation the cut is a horizontal line: the jambs and vertical bars cross it.
+  const cutZ = CUT_HEIGHT - win.sillHeight;
+  const division = windowDivision(win, design);
+  const bars = [...division.frame, ...division.bars].filter((r) => r.z < cutZ && r.z + r.h > cutZ);
   const barHalf = Math.min(GLAZING_BAR_DEPTH, left - right) / 2;
   return group({ class: "window", "data-id": win.id }, [
     polygon(frame, { fill: C.paper, stroke: C.opening, "stroke-width": 0.8 }),
@@ -311,7 +313,7 @@ export function renderPlanAnnotations(storey: Storey, { names = true }: { names?
  * wall tops, which aren't cut), or nothing.
  */
 function wallsAndOpenings(storey: Storey, view: View, components: Components | undefined, doors: "swing" | "gap" = "swing"): string[] {
-  const glazing = new Map((components?.windows ?? []).map((c) => [c.id, c.glazing]));
+  const designs = new Map((components?.windows ?? []).map((c) => [c.id, c]));
   const walls = storey.walls.filter((w) => wallLength(w) > 0);
   const wallById = new Map(walls.map((w) => [w.id, w]));
   const out: string[] = [];
@@ -326,7 +328,7 @@ function wallsAndOpenings(storey: Storey, view: View, components: Components | u
     const w = wallById.get(o.wallId);
     if (!w) continue; // reported by checks
     if (!isCut(o)) out.push(drawUncut(w, o, view));
-    else if (o.kind === "window") out.push(drawWindow(w, o, view, o.componentId ? glazing.get(o.componentId) : undefined));
+    else if (o.kind === "window") out.push(drawWindow(w, o, view, o.componentId ? designs.get(o.componentId) : undefined));
     else out.push(doors === "swing" ? drawDoor(w, o, view) : drawDoorGap(w, o, view));
   }
   return out;

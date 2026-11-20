@@ -105,13 +105,18 @@ export const GlazingSchema = z.strictObject({
   columns: ratios,
   /** Heights of the rows of panes, bottom to top, as ratios: [1, 1] puts a bar half way up. */
   rows: ratios,
-  /** Width of the bars between panes. The ratios share out what is left of the opening. */
+  /** Width of the bars between panes. The ratios share out what is left inside the frame. */
   barWidth: PositiveMmSchema,
 }).meta({ id: "Glazing" });
 
+/** A frame around the inside of the opening, the same width all round. */
+export const WindowFrameSchema = z.strictObject({ width: PositiveMmSchema }).meta({ id: "WindowFrame" });
+
 export const WindowComponentSchema = z.strictObject({
   ...componentBase,
-  /** Glazing bars; without them the window is a single pane. */
+  /** Frame; without one the glass fills the opening. */
+  frame: WindowFrameSchema.optional(),
+  /** Glazing bars, dividing what is inside the frame; without them the window is a single pane. */
   glazing: GlazingSchema.optional(),
 }).meta({ id: "WindowComponent" });
 

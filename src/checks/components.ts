@@ -3,7 +3,7 @@ import type { Issue } from "./issue.js";
 
 /**
  * Door and window components: each opening's componentId names a component of its own kind, and a
- * window's glazing bars leave room for glass. Component ids are unique.
+ * window's frame and glazing bars leave room for glass. Component ids are unique.
  */
 export function checkComponents(model: BuildingModel): Issue[] {
   const issues: Issue[] = [];
@@ -16,7 +16,7 @@ export function checkComponents(model: BuildingModel): Issue[] {
   }
   const doors = new Set(doorList.map((c) => c.id));
   const windows = new Set(windowList.map((c) => c.id));
-  const glazing = new Map(windowList.map((c) => [c.id, c.glazing]));
+  const designs = new Map(windowList.map((c) => [c.id, c]));
   for (const storey of model.storeys) {
     for (const o of storey.openings) {
       if (o.componentId === undefined) continue;
@@ -27,11 +27,14 @@ export function checkComponents(model: BuildingModel): Issue[] {
         issues.push({ level: "ERROR", id: o.id, message: `componentId ${o.componentId} ${why}` });
         continue;
       }
-      const g = o.kind === "window" ? glazing.get(o.componentId) : undefined;
-      if (!g) continue;
-      for (const [along, length, n] of [["across", o.width, g.columns.length], ["up", o.height, g.rows.length]] as const) {
-        const bars = (n - 1) * g.barWidth;
-        if (bars >= length) issues.push({ level: "ERROR", id: o.id, message: `${n} panes ${along} need ${bars} mm of ${g.barWidth} mm bars, but the window is only ${length} mm ${along === "across" ? "wide" : "high"}` });
+      const design = o.kind === "window" ? designs.get(o.componentId) : undefined;
+      if (!design) continue;
+      const frame = 2 * (design.frame?.width ?? 0);
+      for (const [along, length, n] of [["across", o.width, design.glazing?.columns.length ?? 1], ["up", o.height, design.glazing?.rows.length ?? 1]] as const) {
+        const bars = (n - 1) * (design.glazing?.barWidth ?? 0);
+        if (frame + bars < length) continue;
+        const parts = [frame ? `${frame} mm of frame` : "", bars ? `${bars} mm of bars between ${n} panes` : ""].filter(Boolean).join(" and ");
+        issues.push({ level: "ERROR", id: o.id, message: `${parts} leave no glass ${along}: the window is only ${length} mm ${along === "across" ? "wide" : "high"}` });
       }
     }
   }

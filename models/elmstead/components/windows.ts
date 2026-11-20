@@ -2,10 +2,12 @@
 import { mm, windowComponent } from "../../../src/model/index.js";
 
 /**
- * The large front window: a horizontal bar half way up, and three panes across it in the ratio
- * 1:2:1, so six panes. Bar width is a typical 60 mm; the owner gave the layout, not the bars.
+ * The large front window: a 100 mm frame all round, inside the window's size, then a horizontal bar
+ * half way up and three panes across in the ratio 1:2:1, so six panes. Bar width is a typical
+ * 60 mm; the owner gave the frame and the layout, not the bars.
  */
 export const frontWindow = windowComponent("window-type-front", "Front window", {
+  frame: { width: mm(100) },
   glazing: { columns: [1, 2, 1], rows: [1, 1], barWidth: mm(60) },
 });
 /** The glazed panel over the front door: a different construction from the front window. */

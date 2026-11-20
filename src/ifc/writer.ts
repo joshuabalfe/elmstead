@@ -8,7 +8,7 @@
 import * as WebIFC from "web-ifc";
 import { faceOffsets, wallDirection, wallLength } from "../geometry/wall.js";
 import { GLAZING_BAR_DEPTH, windowDivision, type Rect } from "../geometry/window.js";
-import type { BuildingModel, Door, Glazing, Opening, Point, Room, Slab, Storey, Wall, Window } from "../schema/schema.js";
+import type { BuildingModel, Door, Opening, Point, Room, Slab, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
 import { ifcGuid } from "./guid.js";
 import { STYLES, type StyleName } from "./styles.js";
 
@@ -82,8 +82,8 @@ class Writer {
   private bodyCtx!: InstanceType<typeof IFC4.IfcGeometricRepresentationSubContext>;
   /** Doors and windows written so far, by the componentId they are an instance of. */
   private readonly instances = new Map<string, InstanceType<typeof IFC4.IfcObject>[]>();
-  /** Window components' glazing bars, by component id. */
-  private glazing = new Map<string, Glazing | undefined>();
+  /** Window components (their frames and glazing bars), by id. */
+  private windowDesigns = new Map<string, WindowComponent>();
   private axisCtx!: InstanceType<typeof IFC4.IfcGeometricRepresentationSubContext>;
   private footprintCtx!: InstanceType<typeof IFC4.IfcGeometricRepresentationSubContext>;
 
@@ -187,7 +187,7 @@ class Writer {
     this.write(new IFC4.IfcRelAggregates(guid(`${model.project.id}#aggregates`), null, null, null, project, [site]));
     this.write(new IFC4.IfcRelAggregates(guid(`${model.site.id}#aggregates`), null, null, null, site, [building]));
 
-    this.glazing = new Map((model.components?.windows ?? []).map((c) => [c.id, c.glazing]));
+    this.windowDesigns = new Map((model.components?.windows ?? []).map((c) => [c.id, c]));
     const storeys = model.storeys.map((s) => this.storey(s, buildingPlacement));
     this.write(new IFC4.IfcRelAggregates(guid(`${model.building.id}#aggregates`), null, null, null, building, storeys));
     this.components(model, project);
@@ -289,12 +289,12 @@ class Writer {
   }
 
   /**
-   * Glass panes and, if its component has them, glazing bars (src/geometry/window.ts), each a box
-   * swept up from its own height. A window without bars is one pane filling the opening.
+   * Glass panes and, if its component has them, a frame and glazing bars (src/geometry/window.ts),
+   * each a box swept up from its own height. A plain window is one pane filling the opening.
    */
   private window(win: Window, mid: number, openingPlacement: InstanceType<typeof IFC4.IfcLocalPlacement>) {
     const placement = this.placement(openingPlacement, win.width / 2, mid, 0);
-    const { panes, bars } = windowDivision(win, win.componentId ? this.glazing.get(win.componentId) : undefined);
+    const { panes, bars, frame } = windowDivision(win, win.componentId ? this.windowDesigns.get(win.componentId) : undefined);
     // Window-local X runs along the wall from the opening's centre; the rects are from its left edge.
     const piece = (r: Rect, depth: number, style: StyleName) => {
       const profile = this.rectangle(r.x + r.w / 2 - win.width / 2, 0, r.w, depth);
@@ -303,7 +303,7 @@ class Writer {
       this.write(new IFC4.IfcStyledItem(solid, [this.surfaceStyle(style)], null));
       return solid;
     };
-    const items = [...panes.map((p) => piece(p, PANEL_THICKNESS, "glazing")), ...bars.map((b) => piece(b, GLAZING_BAR_DEPTH, "frame"))];
+    const items = [...panes.map((p) => piece(p, PANEL_THICKNESS, "glazing")), ...[...frame, ...bars].map((b) => piece(b, GLAZING_BAR_DEPTH, "frame"))];
     const body = new IFC4.IfcShapeRepresentation(this.bodyCtx, label("Body"), label("SweptSolid"), items);
     return this.write(
       new IFC4.IfcWindow(

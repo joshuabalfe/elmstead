@@ -113,16 +113,17 @@ export async function roundTripChecks(model: BuildingModel, ifc: Uint8Array): Pr
       }, 0)) / 2;
       expect(sl.id, a * sl.thickness, "slab");
     }
-    const glazing = new Map((model.components?.windows ?? []).map((c) => [c.id, c.glazing]));
+    const designs = new Map((model.components?.windows ?? []).map((c) => [c.id, c]));
     for (const o of s.openings) {
       if (o.kind === "door") {
         expect(o.id, o.width * o.height * PANEL_THICKNESS, "door panel");
         continue;
       }
-      // Panes and bars never overlap, so their volumes add up.
-      const { panes, bars } = windowDivision(o, o.componentId ? glazing.get(o.componentId) : undefined);
+      // Frame, panes and bars never overlap, so their volumes add up.
+      const { panes, bars, frame } = windowDivision(o, o.componentId ? designs.get(o.componentId) : undefined);
       const area = (rs: typeof panes) => rs.reduce((a, r) => a + r.w * r.h, 0);
-      expect(o.id, area(panes) * PANEL_THICKNESS + area(bars) * GLAZING_BAR_DEPTH, bars.length ? "window (panes and bars)" : "window panel");
+      const solid = [...frame, ...bars];
+      expect(o.id, area(panes) * PANEL_THICKNESS + area(solid) * GLAZING_BAR_DEPTH, solid.length ? "window (frame, panes and bars)" : "window panel");
     }
   }
   return issues;

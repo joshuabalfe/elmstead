@@ -128,8 +128,8 @@ A component is a door or window design: "internal door", "sash window". Each ope
 one it is with `componentId`, so a design is described once and shared, and IFC tools see the
 doors and windows as instances of one type.
 
-- The component is the design: how it is built. So far that is its name and, for windows,
-  glazing bars (below). Frames, door panels and the like go here as they are added.
+- The component is the design: how it is built. So far that is its name and, for windows, a frame
+  and glazing bars (below). Door panels and the like go here as they are added.
 - The opening holds its size and where it is: width, height, wall, offset, sill height, swing. One
   design comes in many sizes, as windows in an old house do. IFC does the same (`IfcWindow` carries
   its own overall width and height).
@@ -139,24 +139,29 @@ doors and windows as instances of one type.
   and stops before writing anything if not.
 - Ids: `door-type-…` and `window-type-…`.
 
-#### Glazing bars
+#### Frames and glazing bars
 
-A window component's `glazing` divides every window of that design into panes:
+A window component's `frame` and `glazing` divide every window of that design into frame, panes
+and bars:
 
 ```ts
-// A bar half way up, and three panes across in the ratio 1:2:1: six panes.
+// A 100 mm frame, then a bar half way up and three panes across in the ratio 1:2:1: six panes.
 windowComponent("window-type-front", "Front window", {
+  frame: { width: mm(100) },
   glazing: { columns: [1, 2, 1], rows: [1, 1], barWidth: mm(60) },
 });
 ```
 
+- The frame is the same width all round and lies inside the window's `width` and `height`: the
+  opening stays the same size and the glass shrinks.
 - `columns` are the pane widths left to right and `rows` the pane heights bottom to top, as
-  ratios, so the design fits any size of window. The ratios share out what is left of the opening
-  after the bars.
-- In IFC each pane is a glass panel and each bar a 70 mm deep white bar, standing proud of the
-  glass (`src/geometry/window.ts`). On the plan, the vertical bars show as small blocks across the
-  glazing lines, because the cut passes through them.
-- `build` checks that the bars leave room for glass in every window of the design.
+  ratios, so the design fits any size of window. The ratios share out what is left inside the
+  frame after the bars.
+- In IFC each pane is a glass panel, and the frame and bars are 70 mm deep white pieces standing
+  proud of the glass (`src/geometry/window.ts`). None of them overlap.
+- On the plan, every frame or bar piece the cut passes through shows as a small block across the
+  glazing lines: the jambs and the vertical bars.
+- `build` checks that the frame and bars leave room for glass in every window of the design.
 - Openings without a `componentId` are still allowed.
 
 ```ts
