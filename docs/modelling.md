@@ -3,6 +3,19 @@
 A model is a TypeScript file in `models/` that default-exports a `BuildingModel`. Start from
 [`models/example-cottage.ts`](../models/example-cottage.ts), which is a full working example.
 
+A larger model can be a folder whose `index.ts` default-exports the building, as in
+[`models/elmstead/`](../models/elmstead/):
+
+```
+models/elmstead/
+  index.ts     defineBuilding(...), storeys: [ground, ...]
+  shared.ts    dimensions every floor uses: outline, external wall thicknesses, floor levels
+  ground.ts    exports the ground-floor Storey
+```
+
+Only `index.ts`'s default export is the model; the other files are ordinary modules it imports.
+Pass the folder (`models/elmstead`) to the commands, and outputs are named after it.
+
 ```ts
 import { defineBuilding, m, mm, pt, rectWalls, door, window } from "../src/model/index.js";
 

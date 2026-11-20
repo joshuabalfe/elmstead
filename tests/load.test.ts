@@ -1,12 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { formatJson } from "../src/cli/json-format.js";
-import { loadModel } from "../src/cli/load.js";
+import { loadModel, modelName } from "../src/cli/load.js";
 
 describe("loadModel", () => {
   it("loads and validates the example cottage", async () => {
     const r = await loadModel("models/example-cottage.ts");
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.value.name).toBe("example-cottage");
+  });
+
+  it("loads a multi-file model from its folder or its index.ts, named after the folder", async () => {
+    const byFolder = await loadModel("models/elmstead");
+    const byIndex = await loadModel("models/elmstead/index.ts");
+    expect(byFolder.ok && byFolder.value.name).toBe("elmstead");
+    expect(byIndex.ok && byIndex.value.name).toBe("elmstead");
+    expect(byFolder.ok && byIndex.ok && byFolder.value.model).toEqual(byIndex.ok && byIndex.value.model);
+  });
+
+  it("names outputs after the file, or the folder for index files", () => {
+    expect(modelName("models/example-cottage.ts")).toBe("example-cottage");
+    expect(modelName("models/elmstead")).toBe("elmstead");
+    expect(modelName("models/elmstead/")).toBe("elmstead");
+    expect(modelName("models/elmstead/index.ts")).toBe("elmstead");
   });
 
   it("reports schema failures with the offending element id", async () => {
