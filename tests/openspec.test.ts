@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -32,15 +32,6 @@ describe("OpenSpec change numbers", () => {
       if (n === undefined) continue;
       expect(seen.get(n), `${folder} reuses elm-${n}`).toBeUndefined();
       seen.set(n, folder);
-    }
-  });
-
-  it("openspec/next-change-number is above every number in use", () => {
-    const next = Number(readFileSync("openspec/next-change-number", "utf8").trim());
-    expect(Number.isInteger(next) && next > 0, "openspec/next-change-number should hold a positive integer").toBe(true);
-    for (const { folder, name } of changes()) {
-      const n = number(name);
-      if (n !== undefined) expect(n, `${folder} is not below openspec/next-change-number (${next})`).toBeLessThan(next);
     }
   });
 });

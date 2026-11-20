@@ -5,6 +5,7 @@
  */
 import * as WebIFC from "web-ifc";
 import type { Issue } from "../checks/issue.js";
+import { revealSplay } from "../geometry/opening.js";
 import { wallLength } from "../geometry/wall.js";
 import { GLAZING_BAR_DEPTH, windowDivision } from "../geometry/window.js";
 import type { BuildingModel } from "../schema/schema.js";
@@ -103,7 +104,8 @@ export async function roundTripChecks(model: BuildingModel, ifc: Uint8Array): Pr
   };
   for (const s of model.storeys) {
     for (const w of s.walls) {
-      const cut = s.openings.filter((o) => o.wallId === w.id).reduce((sum, o) => sum + o.width * o.height * w.thickness, 0);
+      // Each opening's plan area within the wall: a splayed reveal adds a triangle at each jamb.
+      const cut = s.openings.filter((o) => o.wallId === w.id).reduce((sum, o) => sum + (o.width + revealSplay(w, o) / 2) * w.thickness * o.height, 0);
       expect(w.id, wallLength(w) * w.thickness * w.height - cut, "wall (after opening cuts)");
     }
     for (const sl of s.slabs) {

@@ -3,13 +3,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as WebIFC from "web-ifc";
 import { describe, expect, it } from "vitest";
-import cottage from "../models/example-cottage.js";
+import cottage from "../models/example-cottage/index.js";
 import { mm } from "../src/model/index.js";
 import { ifcGuid } from "../src/ifc/guid.js";
 import { ifcGeometry, roundTripChecks } from "../src/ifc/roundtrip.js";
 import { validateIfc } from "../src/ifc/validate.js";
 import { writeIfc } from "../src/ifc/writer.js";
 import { BuildingModelSchema, type BuildingModel } from "../src/schema/schema.js";
+import { splayedCottage } from "./support/reveal.js";
 
 const model = BuildingModelSchema.parse(JSON.parse(JSON.stringify(cottage)));
 const text = async (m: BuildingModel) => new TextDecoder().decode(await writeIfc(m, { fileName: "t.ifc" }));
@@ -120,6 +121,53 @@ describe("IFC writer", () => {
     const south = (await ifcGeometry(ifc)).get("wall-south")!;
     expect(south.volume / 1e9).toBeCloseTo(3.84 - 0.378 - 2 * 0.288, 6);
   });
+
+  describe("a splayed reveal", () => {
+    const splayed = splayedCottage();
+    const openingProfile = (ifc: string, id: string) => {
+      // The opening's shape: the profile its body extrudes, found through the IfcOpeningElement's representation.
+      const lines = new Map([...ifc.matchAll(/^#(\d+)=(.*);$/gm)].map((m) => [m[1]!, m[2]!]));
+      const refs = (line: string) => [...line.matchAll(/#(\d+)/g)].map((m) => m[1]!);
+      const opening = [...lines.values()].find((l) => l.startsWith("IFCOPENINGELEMENT(") && l.includes(`'${id} opening'`))!;
+      let frontier = refs(opening);
+      for (let depth = 0; depth < 6; depth++) {
+        const profile = frontier.map((r) => lines.get(r)!).find((l) => /^IFC(ARBITRARYCLOSED|RECTANGLE)PROFILEDEF\(/.test(l));
+        if (profile) return { profile, lines, refs };
+        frontier = frontier.flatMap((r) => refs(lines.get(r) ?? ""));
+      }
+      throw new Error(`no profile for ${id}`);
+    };
+
+    it("voids the wall with the outline, square on one side and splayed on the other, 10 mm past each face", async () => {
+      const ifc = await text(splayed);
+      const { profile, lines, refs } = openingProfile(ifc, "window-living");
+      expect(profile).toMatch(/^IFCARBITRARYCLOSEDPROFILEDEF\(/);
+      const polyline = lines.get(refs(profile)[0]!)!;
+      const points = refs(polyline).map((r) => lines.get(r)!.match(/\(([-\d.E]+),([-\d.E]+)\)/)!.slice(1).map(Number));
+      // Opening-local x from its near jamb; y across the left-justified 200 mm wall, inside (left) at 200.
+      expect(points).toEqual([[0, -10], [1200, -10], [1200, 100], [1310, 210], [-110, 210], [0, 100], [0, -10]]);
+    });
+
+    it("keeps a rectangle for windows without a reveal", async () => {
+      const ifc = await text(splayed);
+      expect(openingProfile(ifc, "window-bedroom").profile).toMatch(/^IFCRECTANGLEPROFILEDEF\(/);
+    });
+
+    it("cuts the splayed volume from the wall, as the round-trip expects", async () => {
+      const ifc = await writeIfc(splayed, { fileName: "t.ifc" });
+      expect(await roundTripChecks(splayed, ifc)).toEqual([]);
+      // The living-room window cuts 1.2 × 0.2 × 1.2 m plus two 0.1 × 0.1 / 2 m triangles up its 1.2 m.
+      const south = (await ifcGeometry(ifc)).get("wall-south")!;
+      expect(south.volume / 1e9).toBeCloseTo(3.84 - 0.378 - 2 * 0.288 - 0.012, 6);
+    });
+
+    it("reports the wall when the IFC void is square but the model is splayed", async () => {
+      const square = await writeIfc(model, { fileName: "t.ifc" }); // the same cottage, unsplayed
+      const issues = await roundTripChecks(splayed, square);
+      expect(issues.map((i) => i.id)).toEqual(["wall-south"]);
+      expect(issues[0]!.message).toMatch(/wall \(after opening cuts\) volume/);
+    });
+  });
 });
 
 describe("IfcOpenShell validator", () => {
@@ -128,6 +176,14 @@ describe("IfcOpenShell validator", () => {
   it("passes the cottage with no errors or warnings", async () => {
     const path = join(dir, "ok.ifc");
     writeFileSync(path, await writeIfc(model, { fileName: "ok.ifc" }));
+    const v = validateIfc(path);
+    expect(v.issues).toEqual([]);
+    expect([v.errors, v.warnings]).toEqual([0, 0]);
+  }, 60_000);
+
+  it("passes a splayed reveal with no errors or warnings", async () => {
+    const path = join(dir, "splayed.ifc");
+    writeFileSync(path, await writeIfc(splayedCottage(), { fileName: "splayed.ifc" }));
     const v = validateIfc(path);
     expect(v.issues).toEqual([]);
     expect([v.errors, v.warnings]).toEqual([0, 0]);

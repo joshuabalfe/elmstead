@@ -16,8 +16,8 @@ the folder name for a folder model. The name is used for every output file.
 - **THEN** it loads `models/elmstead/index.ts` and names the outputs `elmstead`
 
 #### Scenario: Single-file model
-- **WHEN** a command is given `models/example-cottage.ts`
-- **THEN** outputs are named `example-cottage`
+- **WHEN** a command is given `models/<name>.ts`
+- **THEN** outputs are named `<name>`
 
 ### Requirement: Loading validates through JSON
 Loading SHALL import the model, round-trip its default export through JSON, and parse the result
@@ -72,8 +72,9 @@ angle crosses a given x or y, and `rectRoom` a rectangular room.
 
 ### Requirement: Opening and component helpers
 `door` and `window` SHALL make openings on a wall, linked to a component if given one. `door` SHALL
-set `sillHeight: 0`. `doorComponent` and `windowComponent` SHALL make designs. `centredOn` SHALL
-give the offset that centres an opening on a plan coordinate.
+set `sillHeight: 0`. `window` SHALL take an optional reveal last, as `door` takes a swing.
+`doorComponent` and `windowComponent` SHALL make designs. `centredOn` SHALL give the offset that
+centres an opening on a plan coordinate.
 
 #### Scenario: Door with a component
 - **WHEN** `door("door-living", wall, offset, internalDoor, size)` is called
@@ -82,6 +83,14 @@ give the offset that centres an opening on a plan coordinate.
 #### Scenario: Centred window
 - **WHEN** `centredOn(wall, at, width)` is used as a window's offset
 - **THEN** the window's centre lies at plan coordinate `at` along that wall
+
+#### Scenario: Window with a reveal
+- **WHEN** `window("window-living", wall, offset, frontWindow, size, { face: "left", angle: deg(45) })` is called
+- **THEN** the window's `reveal` is `{ face: "left", angle: 45 }`
+
+#### Scenario: Window without a reveal
+- **WHEN** `window` is called without a reveal
+- **THEN** the window has no `reveal` field
 
 ### Requirement: Plan coordinates
 Each storey's plan SHALL use x east and y north, in mm. Heights SHALL be measured up from the

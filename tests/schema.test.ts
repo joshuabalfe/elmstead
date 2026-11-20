@@ -69,6 +69,29 @@ describe("building schema", () => {
     expect(issues(d).join()).toMatch(/swing/);
   });
 
+  it("allows a reveal on windows, with an angle between 0 and 90 degrees", () => {
+    const withReveal = (reveal: unknown) => {
+      const d = minimal() as any;
+      d.storeys[0].openings[1].reveal = reveal;
+      return issues(d);
+    };
+    expect(withReveal({ face: "left", angle: 45 })).toEqual([]);
+    for (const angle of [0, 90, -10]) expect(withReveal({ face: "left", angle }).join()).toMatch(/openings\.1\.reveal\.angle/);
+    expect(withReveal({ face: "left", angel: 45 }).join()).toMatch(/angel/);
+    expect(withReveal({ face: "inside", angle: 45 }).join()).toMatch(/reveal\.face/);
+  });
+
+  it("allows a reveal only on windows", () => {
+    const d = minimal() as any;
+    d.storeys[0].openings[0].reveal = { face: "left", angle: 45 };
+    expect(issues(d).join()).toMatch(/reveal/);
+  });
+
+  it("exports the reveal angle's range to the JSON Schema", () => {
+    const reveal = JSON.parse(jsonSchemaText()).$defs.Reveal;
+    expect(reveal.properties.angle).toMatchObject({ exclusiveMinimum: 0, exclusiveMaximum: 90 });
+  });
+
   it("rejects polygons with fewer than 3 points", () => {
     const d = minimal();
     d.storeys[0]!.rooms[0]!.outline.pop();

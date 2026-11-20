@@ -5,8 +5,8 @@ An LLM-editable building model: TypeScript in `models/` → validated JSON → I
 
 ```sh
 npm install
-npm run build  models/example-cottage.ts
-npm run render models/example-cottage.ts
+npm run build  models/example-cottage
+npm run render models/example-cottage
 npm run view
 ```
 

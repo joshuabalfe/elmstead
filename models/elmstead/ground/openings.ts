@@ -6,7 +6,7 @@
  * (about 440 mm) is taken as 700. The front window and fanlight sizes are the owner's.
  */
 import { wallLength } from "../../../src/geometry/wall.js";
-import { add, centredOn, door, face, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
+import { add, centredOn, deg, door, face, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
 import { fanlight, frontDoor, frontWindow, internalDoor, standardWindow } from "../components/index.js";
 import { living } from "./rooms.js";
 import { bathWestX, bedroomBathroom, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, partitionEast, southIn, west } from "./walls.js";
@@ -27,12 +27,15 @@ const bathroomDoorOffset = mm(135);
 const bathroomDoorY = add(face(bedroomBathroom, "north"), bathroomDoorOffset); // the living-room door sits opposite it
 const lobbyCentreX = mm(Math.round((partitionEast + bathWestX) / 2));
 const lobbyDoor = { width: mm(550), height: doorH }; // narrower than the others, to fit the screen
+// The front window's returns splay out at about 45° on the inside. The frame is taken as sitting in
+// the middle of the wall, where the splay starts.
+const frontWindowReveal = { face: "left", angle: deg(45) } as const;
 
 export const openings: Opening[] = [
   // West wall runs north→south, so "start" is the north end and "left" is inside.
   door("door-front", west, frontDoorOffset, frontDoor, front, { hinge: "start", side: "left" }),
   window("window-front-fanlight", west, frontDoorOffset, fanlight, { width: front.width, height: sub(frontHead, fanlightSill), sillHeight: fanlightSill }),
-  window("window-living", west, centredOn(west, frontWindowCentreY, frontWindowSize.width), frontWindow, frontWindowSize),
+  window("window-living", west, centredOn(west, frontWindowCentreY, frontWindowSize.width), frontWindow, frontWindowSize, frontWindowReveal),
 
   // Partition runs south→north; "left" is the living room.
   door("door-living", livingBedroom, sub(bathroomDoorY, southIn), internalDoor, internal, { hinge: "start", side: "left" }),

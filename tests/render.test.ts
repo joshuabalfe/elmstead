@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import cottage from "../models/example-cottage.js";
-import { door, m, mm, pt, wall } from "../src/model/index.js";
+import cottage from "../models/example-cottage/index.js";
+import { deg, door, m, mm, pt, wall } from "../src/model/index.js";
 import { doorGeometry, renderPlan } from "../src/render/plan.js";
 import { svgToPng } from "../src/render/png.js";
 import { BuildingModelSchema } from "../src/schema/schema.js";
+import { splayedCottage } from "./support/reveal.js";
 
 const model = BuildingModelSchema.parse(JSON.parse(JSON.stringify(cottage)));
 const storey = model.storeys[0]!;
@@ -79,6 +80,57 @@ describe("plan renderer", () => {
     const pieces = [...out.matchAll(/class="wall" data-id="wall-south"/g)].length;
     expect(pieces).toBe(4); // unchanged: the fanlight does not split the wall again
     expect(out).toContain('class="window" data-id="window-fanlight" data-cut="false"');
+  });
+
+  describe("a splayed reveal", () => {
+    /** Each polygon's points for one element, as [x, y] pairs in px. */
+    const polygons = (out: string, cls: string, id: string) =>
+      [...out.matchAll(new RegExp(`<polygon points="([^"]+)"[^>]*class="${cls}" data-id="${id}"`, "g"))].map((x) => x[1]!.split(" ").map((p) => p.split(",").map(Number)));
+    const windowOutline = (out: string, id: string) => {
+      const group = out.match(new RegExp(`<g class="window" data-id="${id}"[^>]*>([\\s\\S]*?)</g>`))![1]!;
+      return group.match(/<polygon points="([^"]+)"/)![1]!.split(" ").map((p) => p.split(",").map(Number));
+    };
+
+    it("ends the wall either side at an angle from the middle to the splayed face", () => {
+      const m = splayedCottage();
+      const out = renderPlan(m, m.storeys[0]!, { ids: false });
+      // South wall, west to east: corner to living window, living window to front door, then square on.
+      const south = polygons(out, "wall", "wall-south");
+      expect(south.map((p) => p.length)).toEqual([5, 5, 4, 4]);
+      // At 1 px = 10 mm the 100 mm splay is 10 px at the inside (left, upper) face and none at the outside.
+      const [, , bend, inside] = south[0]!;
+      expect(south[0]!.slice(0, 2)).toEqual([[60, 670], [197.5, 670]]);
+      expect([bend, inside]).toEqual([[197.5, 660], [187.5, 650]]);
+      expect(windowOutline(out, "window-living")).toHaveLength(6);
+    });
+
+    it("bends both ends of a stretch between two splayed openings", () => {
+      const m = splayedCottage();
+      const s = m.storeys[0]!;
+      const bedroom = s.openings.find((o) => o.id === "window-bedroom")!;
+      if (bedroom.kind === "window") bedroom.reveal = { face: "left", angle: deg(45) };
+      s.openings = s.openings.filter((o) => o.id !== "door-front"); // so the two windows are neighbours
+      const out = renderPlan(m, s, { ids: false });
+      expect(polygons(out, "wall", "wall-south").map((p) => p.length)).toEqual([5, 6, 5]);
+    });
+
+    it("leaves out a stretch a splay runs into, rather than drawing it twisted", () => {
+      // The living window's inside splay reaches 2675; the bedroom window, moved to 2625, starts
+      // 50 mm after it on the outside face. The checks report the overlap; the plan stays sane.
+      const m = splayedCottage();
+      m.storeys[0]!.openings.find((o) => o.id === "window-bedroom")!.offsetAlongWall = mm(2625);
+      const out = renderPlan(m, m.storeys[0]!, { ids: false });
+      expect(polygons(out, "wall", "wall-south").map((p) => p.length)).toEqual([5, 4, 4]);
+    });
+
+    it("dashes the splayed outline of a window the cut misses", () => {
+      const m = splayedCottage();
+      const living = m.storeys[0]!.openings.find((o) => o.id === "window-living")!;
+      living.sillHeight = mm(1500);
+      const out = renderPlan(m, m.storeys[0]!, { ids: false });
+      const group = out.match(/<g class="window" data-id="window-living" data-cut="false">([\s\S]*?)<\/g>/)![1]!;
+      expect(group.match(/<polygon points="([^"]+)"/)![1]!.split(" ")).toHaveLength(6);
+    });
   });
 
   it("writes a PNG at 2× the SVG size", () => {
