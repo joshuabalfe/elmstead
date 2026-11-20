@@ -16,14 +16,18 @@ and follow it. When the user names a skill (for example `/openspec-propose`), us
 
 ```sh
 npm test                           # vitest; needs uv (IfcOpenShell) and the bundled Chromium
+npm run test:fast                  # vitest without uv, Chromium or CLI subprocess tests
 npm run typecheck
 npm run build  models/<model>.ts   # model → JSON → IFC, with round-trip and IfcOpenShell checks
+npm run check  models/<model>.ts   # model checks only; writes nothing
 npm run render models/<model>.ts   # plan SVG/PNG and 3D PNGs
+npm run all    models/<model>.ts   # build, then render if the build passed
 npm run view                       # local viewer
 npm run schema                     # regenerate schema/building.schema.json after a schema change
 ```
 
-Run `npm test` and `npm run typecheck` before every commit.
+Run `npm test` and `npm run typecheck` before every commit. `npm run test:fast` is the quick
+feedback loop while iterating.
 
 ## Rules
 

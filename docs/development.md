@@ -4,7 +4,10 @@
 
 ```sh
 npm test            # vitest: units, schema, helpers, loading, rendering, GUIDs, IFC + validator, 3D vs plan
+npm run test:fast   # the same without uv, Chromium or CLI subprocess tests
 npm run typecheck   # tsc for src/models/tests/scripts, and separately for viewer/
+npm run check       # model checks only, writing nothing
+npm run all         # build, then render if the build succeeded
 npm run schema      # regenerate schema/building.schema.json from the zod schema
 ```
 
@@ -38,14 +41,19 @@ them as an `Issue` against the element id. Add a fixture test to `tests/checks.t
 | `tests/units.test.ts` | `mm()`, `m()`, arithmetic helpers, and the branded type (with `@ts-expect-error`) |
 | `tests/schema.test.ts` | valid and invalid models, and a check that `schema/building.schema.json` is up to date |
 | `tests/helpers.test.ts` | `rectWalls`, `face`, `faceCrossing`, `centredOn`, `door`/`window` with components |
-| `tests/polygon.test.ts` | `spans()`, where a horizontal or vertical line crosses an outline |
+| `tests/polygon.test.ts` | `spans()`, and `polygonProblems()` for repeated points, zero area, crossings, touching and collinear overlaps |
 | `tests/load.test.ts` | loading a model file; schema errors attributed to element ids; JSON formatting |
 | `tests/render.test.ts` | plan determinism, SVG snapshot, wall splitting, door and window symbols, labels, PNG size, door geometry |
 | `tests/guid.test.ts` | UUIDv5 and IFC GUID compression against reference vectors; fixed GlobalIds for known ids |
-| `tests/ifc.test.ts` | byte-identical IFC, GlobalId stability, door and window types, round-trip volumes, validator pass and fail cases |
+| `tests/io.test.ts` | atomic writes leave the previous file and no temp file after a failure |
+| `tests/ifc.test.ts` | byte-identical IFC, GlobalId stability, door and window types, window partitioning, round-trip volumes, validator pass and fail cases |
 | `tests/plan-vs-3d.test.ts` | the viewer's Top view shows the same walls, rooms and openings as the plan, for each model; and that the check catches a room outline run to a wall's centreline |
 | `tests/window.test.ts` | frames and glazing bars: pane ratios, no overlaps, frame inside the window's size, fit checks, IFC volumes, plan symbol |
-| `tests/checks.test.ts` | component checks: unknown or wrong-kind `componentId`, duplicate component ids |
+| `tests/checks.test.ts` | component checks plus id, zero-length wall, opening host/fit/overlap and outline rules |
+| `tests/cli.test.ts` | `build`/`check`/`all`, failure fixtures, render-before-build and missing-Chromium warnings, exit statuses |
+| `tests/validate.test.ts` | validator bridge: non-JSON output, truncated JSON, crash status and exit 1 with findings (fake `uv`) |
+| `tests/viewer.test.ts` | path confinement, malformed encoding and `?view=` fallback |
+| `tests/snapshot.test.ts` | a viewer failure is an ERROR and the server closes |
 | `tests/toolchain.test.ts` | web-ifc and uv/IfcOpenShell are available |
 
 `tests/plan-vs-3d.test.ts` builds each model into a temporary folder, serves it with the viewer
@@ -62,6 +70,17 @@ them as an `Issue` against the element id. Add a fixture test to `tests/checks.t
 
 If you change the plan renderer on purpose, review the new SVG and update the snapshot with
 `npx vitest run -u`.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs two jobs:
+
+- **fast**: `npm ci`, `npm run typecheck`, a schema freshness check
+  (`npm run schema && git diff --exit-code schema/`) and `npm run test:fast`.
+- **full**: installs uv and Chromium's system libraries, then runs `npm test`, including the
+  IfcOpenShell validator and the 3D-versus-plan comparison.
+
+The actions are pinned by commit SHA, matching the repo's exact-version rule.
 
 ## Generated files
 

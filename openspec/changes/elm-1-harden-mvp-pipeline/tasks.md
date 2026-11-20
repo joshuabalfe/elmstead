@@ -43,9 +43,9 @@
 
 ## 8. CI and final verification
 
-- [ ] 8.1 Add `.github/workflows/ci.yml` with a fast job (typecheck, generated-schema freshness, fast tests) and a full job (uv + Chromium, `npm test`), with npm and uv caching. Verify the YAML parses and the commands match `package.json`.
-- [ ] 8.2 Update `docs/README.md`, `docs/development.md` and `AGENTS.md` where they describe the commands, checks or test requirements.
-- [ ] 8.3 Run `npm run typecheck`, `npm test` and `npx openspec validate --all`; confirm `schema/building.schema.json` is unchanged unless the schema genuinely changed, and review any SVG snapshot diff.
+- [x] 8.1 Add `.github/workflows/ci.yml` with a fast job (typecheck, generated-schema freshness, fast tests) and a full job (uv + Chromium, `npm test`), with npm and uv caching. Verify the YAML parses and the commands match `package.json`.
+- [x] 8.2 Update `docs/README.md`, `docs/development.md` and `AGENTS.md` where they describe the commands, checks or test requirements.
+- [x] 8.3 Run `npm run typecheck`, `npm test` and `npx openspec validate --all`; confirm `schema/building.schema.json` is unchanged unless the schema genuinely changed, and review any SVG snapshot diff.
 
 ## Workflow follow-up
 
