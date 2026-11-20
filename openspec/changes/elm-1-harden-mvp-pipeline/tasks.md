@@ -39,7 +39,7 @@
 
 ## 7. Elmstead model cleanup
 
-- [ ] 7.1 Replace the repeated `mm(8975)` in `models/elmstead/ground/rooms.ts` with a named constant and replace `sub(mm(3955), southIn)` in `models/elmstead/ground/openings.ts` with a named absolute point. Verify `npm run build models/elmstead` and confirm the generated IFC is unchanged.
+- [x] 7.1 Replace the repeated `mm(8975)` in `models/elmstead/ground/rooms.ts` with a named constant and replace `sub(mm(3955), southIn)` in `models/elmstead/ground/openings.ts` with a named absolute point. Verify `npm run build models/elmstead` and confirm the generated IFC is unchanged.
 
 ## 8. CI and final verification
 

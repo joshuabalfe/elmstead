@@ -21,6 +21,7 @@ const transom = mm(100); // between the top of the door and the fanlight
 const frontWindowSize = { width: m(2.5), height: sub(frontHead, mm(500)), sillHeight: mm(500) };
 const fanlightSill = add(front.height, transom);
 const frontWindowCentreY = mm(3025); // where the drawing shows it
+const livingDoorY = mm(3955); // plan y of the living-room door's south jamb
 
 export const openings: Opening[] = [
   // West wall runs north→south, so "start" is the north end and "left" is inside.
@@ -29,7 +30,7 @@ export const openings: Opening[] = [
   window("window-living", west, centredOn(west, frontWindowCentreY, frontWindowSize.width), frontWindow, frontWindowSize),
 
   // Partition runs south→north; "left" is the living room.
-  door("door-living", livingBedroom, sub(mm(3955), southIn), internalDoor, internal, { hinge: "start", side: "left" }),
+  door("door-living", livingBedroom, sub(livingDoorY, southIn), internalDoor, internal, { hinge: "start", side: "left" }),
   // Bedroom/bathroom wall runs west→east; "right" is the bedroom.
   door("door-bedroom", bedroomBathroom, mm(190), internalDoor, internal, { hinge: "start", side: "right" }),
   // Lobby/bathroom wall runs south→north; "right" is the bathroom.
