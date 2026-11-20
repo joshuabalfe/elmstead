@@ -52,8 +52,8 @@ and renames its change. `npm test` fails on an unnumbered change, a reused numbe
 counter.
 
 Start the title of a pull request that proposes or implements a change with its number in upper
-case, `ELM-<N>: `, for example `ELM-2: Add model constraints`. A pull request with no OpenSpec
-change has no prefix.
+case, `ELM-<N>: `, for example `ELM-2: Add model constraints`. Start the title of a pull request
+with no OpenSpec change with `ELM-X: `, for example `ELM-X: Fix a typo in the docs`.
 
 For anything beyond a small fix or a model tweak, use the skills in `.agents/skills/`:
 
