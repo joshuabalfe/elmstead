@@ -80,7 +80,8 @@ afterAll(async () => {
   await server?.close();
   delete process.env.ELMSTEAD_OUT_DIR;
   if (outDir) rmSync(outDir, { recursive: true, force: true });
-});
+  // Closing Chromium after three swiftshader WebGL pages can exceed the default 10 s on CI.
+}, 60_000);
 
 describe("3D Top view against the plan", () => {
   for (const path of ["models/example-cottage", "models/elmstead"]) {
