@@ -2,7 +2,7 @@ import { faceOffsets, wallDirection, wallLength, wallPoint, wallSegmentFootprint
 import { area, bounds, centroid, spans, type Bounds } from "../geometry/polygon.js";
 import { dot, perpLeft, toVec, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";
 import type { BuildingModel, Door, Opening, Storey, Wall, Window } from "../schema/schema.js";
-import { C, CUT_HEIGHT, FONT, MARGIN, PX_PER_MM } from "./style.js";
+import { C, CUT_HEIGHT, FONT, MARGIN, PX_PER_MM, ROOM_LABEL } from "./style.js";
 import { el, group, line, num, polygon, polyline, text } from "./svg.js";
 
 export interface PlanOptions {
@@ -216,16 +216,28 @@ function scaleBar(at: Vec): string {
   return group({}, parts);
 }
 
-/** Each room's name, area and dimensions. */
-function roomLabels(storey: Storey, view: View, opts: PlanOptions): string[] {
+/** Where each room's label goes (its centroid, mm) and what it says. */
+export function roomTags(storey: Storey): { id: string; name: string; area: string; at: Vec }[] {
+  return storey.rooms.map((r) => {
+    const pts = r.outline.map(toVec);
+    return { id: r.id, name: r.name, area: m2(area(pts)), at: centroid(pts) };
+  });
+}
+
+/** Each room's dimensions and, unless `names` is false, its name and area. */
+function roomLabels(storey: Storey, view: View, opts: PlanOptions, names = true): string[] {
   const out: string[] = [];
   for (const r of storey.rooms) {
     const pts = r.outline.map(toVec);
     const c = view.toPx(centroid(pts));
-    out.push(text(v(c.x, c.y - 4), r.name, { "font-size": 13, "font-weight": "bold", "text-anchor": "middle", fill: C.ink }));
-    out.push(text(v(c.x, c.y + 12), m2(area(pts)), { "font-size": 11, "text-anchor": "middle", fill: C.ink }));
+    const { name, area: areaFont } = ROOM_LABEL;
+    if (names) {
+      out.push(text(v(c.x, c.y + name.dy), r.name, { "font-size": name.size, "font-weight": "bold", "text-anchor": "middle", fill: C.ink }));
+      out.push(text(v(c.x, c.y + areaFont.dy), m2(area(pts)), { "font-size": areaFont.size, "text-anchor": "middle", fill: C.ink }));
+    }
     // Rough label extent (px) from character counts; DejaVu Sans averages about 0.6 em per character.
-    const halfW = Math.max(r.name.length * 13 * 0.62, 7 * 11 * 0.6) / 2;
+    // Dimensions keep clear of it even when the label is drawn elsewhere (the 3D viewer's billboards).
+    const halfW = Math.max(r.name.length * name.size * 0.62, 7 * areaFont.size * 0.6) / 2;
     out.push(...roomDimensions(r.id, pts, { minX: c.x - halfW, maxX: c.x + halfW, minY: c.y - 17, maxY: c.y + (opts.ids ? 29 : 16) }, view));
     if (opts.ids) out.push(text(v(c.x, c.y + 26), r.id, { "font-size": 8, "text-anchor": "middle", fill: C.id }));
   }
@@ -233,10 +245,11 @@ function roomLabels(storey: Storey, view: View, opts: PlanOptions): string[] {
 }
 
 /**
- * The plan's room labels and dimensions alone, on a transparent background, for laying on the floor
- * in the 3D viewer, with haloed text so it reads on any floor colour. `bounds` is the plan area (mm) the SVG covers, edge to edge.
+ * The plan's room dimensions and (unless `names` is false) room labels alone, on a transparent
+ * background, for laying in the 3D viewer, with haloed text so it reads over the model. `bounds`
+ * is the plan area (mm) the SVG covers, edge to edge.
  */
-export function renderRoomLabels(storey: Storey): { svg: string; bounds: Bounds } {
+export function renderRoomLabels(storey: Storey, { names = true }: { names?: boolean } = {}): { svg: string; bounds: Bounds } {
   const view = makeView(storey);
   const minX = view.extent.minX - MARGIN.left / PX_PER_MM;
   const maxY = view.extent.maxY + MARGIN.top / PX_PER_MM;
@@ -245,7 +258,7 @@ export function renderRoomLabels(storey: Storey): { svg: string; bounds: Bounds 
     `<svg xmlns="http://www.w3.org/2000/svg" width="${view.width}" height="${view.height}" viewBox="0 0 ${view.width} ${view.height}" font-family="${FONT}, sans-serif">`,
     // Without the paper underneath, the text needs a halo and the lines more weight to read on a floor.
     `<style>text { stroke: ${C.paper}; stroke-width: 3px; stroke-linejoin: round; paint-order: stroke; } line { stroke: ${C.ink}; stroke-width: 1px; }</style>`,
-    ...roomLabels(storey, view, { ids: false }),
+    ...roomLabels(storey, view, { ids: false }, names),
     "</svg>",
     "",
   ].join("\n");

@@ -68,17 +68,20 @@ openings cut, doors and glazing in place, colours applied.
   - In the scene Y is up and plan north is −Z.
   - The loader keeps IFC coordinates as they are (`COORDINATE_TO_ORIGIN: false`), so anything
     drawn from the model lines up with the IFC.
-- Room labels: `main.ts` also reads `out/<name>.building.json` and lays each storey's room
-  labels and dimensions at its ceiling, 10 mm above the top of its tallest wall (the schema has
-  no ceiling height). They are the plan's own labels
-  (`renderRoomLabels` in `src/render/plan.ts`), drawn to a texture at 2.5 mm per pixel, with a
-  white halo so they read over the model.
+  - With `?snapshot=1` in the URL it hides the toolbar and sets `window.__elmsteadReady` once the
+    frame is drawn, which is what the snapshot driver waits for.
+- Room labels: `main.ts` also reads `out/<name>.building.json` and draws each storey's room
+  labels at its ceiling, 10 mm above the top of its tallest wall (the schema has no ceiling
+  height). Being above the walls, they read from every camera.
+  - Dimension lines lie flat, as if drawn on a glass ceiling: the plan's own dimensions
+    (`renderRoomLabels(storey, { names: false })` in `src/render/plan.ts`) drawn to a texture
+    at 2.5 mm per pixel.
+  - Room names and areas are billboards (sprites) that turn to face the camera, at the room's
+    centroid and the plan's text size (`roomTags` and `ROOM_LABEL` in `src/render/style.ts`).
+    They are drawn over the model so the wall tops don't cut them.
+  - All of it has a white halo so it reads over the model.
   - They come from the model JSON, not the IFC, because the IFC has no room dimensions.
   - The **Labels** button toggles them. `?labels=0` or `?labels=1` in the URL sets them.
   - They are on by default, but off in snapshots (`?snapshot=1`), so the 3D PNGs show only the IFC.
-  - Being above the walls, they read from every camera, as if the plan were drawn on a glass
-    ceiling.
-  - With `?snapshot=1` in the URL it hides the toolbar and sets `window.__elmsteadReady` once the
-    frame is drawn, which is what the snapshot driver waits for.
 - `npm run view` runs the same app for interactive use. It reloads the page whenever an IFC in
   `out/` changes.
