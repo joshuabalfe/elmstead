@@ -56,3 +56,22 @@ export function segmentsCross(a: Vec, b: Vec, c: Vec, d: Vec): boolean {
   const d4 = cross(vsub(d, c), vsub(b, c));
   return d1 * d2 < 0 && d3 * d4 < 0;
 }
+
+/**
+ * Where the line `axis = at` passes through the outline, as [from, to] spans along the other axis,
+ * in increasing order. For axis "y" the line is horizontal and the spans are x ranges.
+ */
+export function spans(pts: readonly Vec[], axis: "x" | "y", at: number): [number, number][] {
+  const other = axis === "y" ? "x" : "y";
+  const hits: number[] = [];
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i]!;
+    const q = pts[(i + 1) % pts.length]!;
+    // Half-open test so a line through a vertex is counted once.
+    if (p[axis] <= at !== q[axis] <= at) hits.push(p[other] + ((at - p[axis]) * (q[other] - p[other])) / (q[axis] - p[axis]));
+  }
+  hits.sort((a, b) => a - b);
+  const out: [number, number][] = [];
+  for (let i = 0; i + 1 < hits.length; i += 2) out.push([hits[i]!, hits[i + 1]!]);
+  return out;
+}

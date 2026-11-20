@@ -33,6 +33,16 @@ describe("plan renderer", () => {
     expect(pieces).toHaveLength(18);
   });
 
+  it("dimensions every room wall to wall, east–west then north–south", () => {
+    for (const r of storey.rooms) {
+      const g = svg.match(new RegExp(`<g class="room-dimensions" data-id="${r.id}">([\\s\\S]*?)</g>`))?.[1] ?? "";
+      const figures = [...g.matchAll(/>(\d+)<\/text>/g)].map((x) => Number(x[1]));
+      const xs = r.outline.map((p) => p.x);
+      const ys = r.outline.map((p) => p.y);
+      expect(figures, r.id).toEqual([Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)]);
+    }
+  });
+
   it("draws one symbol per door and window, and every room", () => {
     expect(ids("door").sort()).toEqual(storey.openings.filter((o) => o.kind === "door").map((o) => o.id).sort());
     expect(ids("window").sort()).toEqual(storey.openings.filter((o) => o.kind === "window").map((o) => o.id).sort());

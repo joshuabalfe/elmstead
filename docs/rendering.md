@@ -19,12 +19,14 @@ this order:
 2. room fills
 3. walls at their true thickness, split around the openings
 4. door leaves with swing arcs, and window symbols (frame and two glazing lines)
-5. room labels: name, area in m², and inside width × depth
+5. room labels (name and area in m²) and room dimensions: the longest clear wall-to-wall span
+   east–west and north–south, in mm, drawn as dimension lines inside the room and kept clear of
+   the label where the room is wide enough
 6. element ids in red, only with `--ids`
 7. overall dimensions
 8. title, north arrow and a 5 m scale bar
 
-Every element is an SVG group with `class` (`wall`, `door`, `window`, `room`, `slab`) and
+Every element is an SVG group with `class` (`wall`, `door`, `window`, `room`, `room-dimensions`, `slab`) and
 `data-id` set to its model id, so the SVG can be inspected or queried.
 
 Drawing style is all in one place: `src/render/style.ts` holds the scale, colours, font and
