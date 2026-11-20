@@ -27,13 +27,18 @@ build reports an ERROR. `--ids` and `--no-3d` SHALL affect the render step as th
 - **THEN** `all` writes nothing and exits 1
 
 ### Requirement: Unexpected failures are issues
-The CLI SHALL catch unexpected errors from loading, writing, rendering and validating and report
-them as an ERROR issue. It SHALL NOT print a raw stack trace or leave a partially written output
-file. A command SHALL exit with status 1 when such an error is reported.
+The CLI SHALL catch unexpected pipeline errors from loading, writing, rendering and validating and
+report them as a single ERROR issue. A pipeline failure SHALL NOT print a raw stack trace. A model
+evaluation error SHALL keep its stack inside the issue message, because it is the most useful part
+for the model author. A command SHALL exit with status 1 when such an error is reported.
 
 #### Scenario: Writer precondition
 - **WHEN** a model reaches the writer with a missing host wall
 - **THEN** the CLI prints an ERROR and exits 1 without an uncaught exception
+
+#### Scenario: Model throws
+- **WHEN** a model file throws while being evaluated
+- **THEN** the CLI reports one ERROR whose message contains the model's stack trace
 
 #### Scenario: Validator output is not JSON
 - **WHEN** the validator prints a non-JSON line on stdout
@@ -52,12 +57,18 @@ root. Commands SHALL behave the same when run from any working directory.
 - **THEN** it still finds the validator and viewer and writes to the project's output directory
 
 ### Requirement: Atomic output files
-Each generated file SHALL be written to a temporary file and renamed into place, so an interrupted
-or failed write leaves the previous version intact.
+Each generated file SHALL be written to a temporary file with a per-process name and renamed into
+place, so an interrupted or failed write leaves the previous version intact and the temporary file
+is removed. `build` SHALL generate the JSON and IFC in memory before writing either file, so a
+writer failure leaves both previous versions intact.
 
 #### Scenario: Failed write
 - **WHEN** writing an output file fails part way
-- **THEN** the previous file at that path is unchanged
+- **THEN** the previous file at that path is unchanged and no temporary file is left behind
+
+#### Scenario: IFC writer fails
+- **WHEN** the IFC writer throws after the JSON has been generated
+- **THEN** neither the JSON nor the IFC in the output directory changes
 
 ## MODIFIED Requirements
 

@@ -4,15 +4,20 @@
 
 ### Requirement: Unique ids across the model
 Every id-bearing node SHALL have an id unique across the project, site, building, storeys, walls,
-openings, slabs, rooms and components. A duplicate SHALL be an ERROR against that id.
+openings, slabs, rooms and components. A duplicate SHALL be an ERROR against that id whose message
+names both kinds involved.
 
 #### Scenario: Element and component share an id
 - **WHEN** a window component and a wall have the same id
-- **THEN** the checks report an ERROR against that id
+- **THEN** the checks report an ERROR against that id saying it is used by a wall and a window component
 
 #### Scenario: Duplicate room ids
 - **WHEN** two rooms on one storey have the same id
-- **THEN** the checks report an ERROR instead of writing IFC with duplicate GlobalIds
+- **THEN** the checks report an ERROR against that id saying it is used by two rooms, instead of writing IFC with duplicate GlobalIds
+
+#### Scenario: Duplicate component ids
+- **WHEN** a door component and a window component share an id
+- **THEN** the checks report an ERROR "component id is used twice" against that id
 
 ### Requirement: Openings belong to a wall on their storey
 Each opening's `wallId` SHALL name a wall on the same storey. A zero-length wall SHALL be an ERROR.
@@ -46,17 +51,30 @@ vertical extent. An overlap SHALL be an ERROR against both openings.
 - **THEN** the checks report an ERROR against both openings
 
 ### Requirement: Outlines are simple polygons
-Every room and slab outline SHALL have at least three distinct points, SHALL NOT repeat the first
-point at the end, SHALL NOT repeat adjacent points, SHALL have non-zero area and SHALL NOT
-self-intersect. A violation SHALL be an ERROR against the outline's element.
+Every room and slab outline SHALL have at least three distinct points, SHALL NOT repeat any point,
+SHALL NOT repeat the first point at the end, SHALL have non-zero area and SHALL NOT self-intersect.
+Edges SHALL NOT cross, touch a non-adjacent edge or overlap collinearly, and adjacent edges SHALL
+NOT double back over each other. A violation SHALL be an ERROR against the outline's element.
 
 #### Scenario: Self-intersecting room
 - **WHEN** a room outline crosses itself
 - **THEN** the checks report an ERROR against the room
 
 #### Scenario: Repeated point
-- **WHEN** a slab outline repeats a point
+- **WHEN** a slab outline repeats a point, including at a non-adjacent position
 - **THEN** the checks report an ERROR against the slab
+
+#### Scenario: Vertex on a non-adjacent edge
+- **WHEN** an outline has a vertex lying on an edge it is not adjacent to
+- **THEN** the checks report an ERROR against the element
+
+#### Scenario: Collinear overlapping edges
+- **WHEN** two non-adjacent edges of an outline overlap along the same line
+- **THEN** the checks report an ERROR against the element
+
+#### Scenario: Adjacent edges double back
+- **WHEN** an outline returns along an edge it has just traversed
+- **THEN** the checks report an ERROR against the element
 
 ## MODIFIED Requirements
 
@@ -72,3 +90,7 @@ they report an ERROR.
 #### Scenario: Render refuses an invalid model
 - **WHEN** `render` runs on a model with a check ERROR
 - **THEN** no plan or snapshot is written and the command exits 1
+
+## REMOVED Requirements
+
+### Requirement: Unique component ids

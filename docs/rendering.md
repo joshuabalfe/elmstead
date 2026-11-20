@@ -56,7 +56,9 @@ openings cut, doors and glazing in place, colours applied.
 - If there is no IFC yet, `render` warns and skips the snapshots. Run `build` first.
 - Chromium comes with `npm install` (`@playwright/browser-chromium`). If it is missing anyway (install
   scripts skipped), `render` warns with the fix (`npm rebuild @playwright/browser-chromium`) and
-  still draws the plans.
+  still draws the plans. Any other viewer failure is an ERROR and exits 1.
+- The viewer server and browser close on every success and failure path, and screenshots are
+  written atomically alongside the other outputs.
 - Pass `--no-3d` to skip the snapshots. They add about 5 seconds.
 
 ## The viewer
@@ -66,7 +68,9 @@ openings cut, doors and glazing in place, colours applied.
 
 - `vite.config.ts` serves `/models.json` (the IFCs in `out/`), `/out/*` and the web-ifc WASM
   from `node_modules`, so nothing comes from a CDN. `ELMSTEAD_OUT_DIR` serves another folder in
-  place of `out/` (the tests use it).
+  place of `out/` (the tests use it). Requests are confined to those directories; traversal,
+  sibling-directory prefixes and malformed percent-encoding return 404. It reloads on `change`
+  and `add`, so an atomic IFC rename is noticed too.
 - `main.ts` loads the IFC through ThatOpen's IFC loader and sets up the camera views.
   - In the scene Y is up and plan north is −Z.
   - The loader keeps IFC coordinates as they are (`COORDINATE_TO_ORIGIN: false`), so anything
@@ -74,6 +78,9 @@ openings cut, doors and glazing in place, colours applied.
   - Every model is drawn as full geometry (`setLodMode(LodMode.ALL_VISIBLE)`). By default
     Fragments draws items it judges small on screen as lines, and thin parts such as glazing bars
     and window frames qualify even close up.
+  - `?view=` accepts only `sw`, `se`, `ne`, `nw` and `top`; any other value falls back to `top`.
+    The model picker is built with `textContent`, so a file name containing markup is shown
+    literally.
   - `?camera=px,py,pz,tx,ty,tz` places a perspective camera at p looking at t, in the scene's
     metres (Y up, IFC +Y along −Z), for close-ups such as one window.
   - With `?snapshot=1` in the URL it hides the toolbar and sets `window.__elmsteadReady` once the

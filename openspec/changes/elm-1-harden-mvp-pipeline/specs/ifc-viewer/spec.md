@@ -18,6 +18,14 @@ fall back to `top` instead of failing to render.
 - **WHEN** the viewer is opened with `?view=sideways`
 - **THEN** it shows the top view
 
+### Requirement: Viewer reloads on rebuild
+The viewer dev server SHALL reload the page when an IFC in the output directory is added or
+changed, so an atomic rename is noticed as well as an in-place write.
+
+#### Scenario: Rebuilt IFC renamed into place
+- **WHEN** `build` atomically renames a new IFC over the old one
+- **THEN** the viewer reloads and shows the new model
+
 ### Requirement: Model names are rendered as text
 The viewer SHALL treat model names from `/models.json` as text when building the model picker, so a
 file name containing markup is displayed literally.

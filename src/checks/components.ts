@@ -3,17 +3,12 @@ import type { Issue } from "./issue.js";
 
 /**
  * Door and window components: each opening's componentId names a component of its own kind, and a
- * window's frame and glazing bars leave room for glass. Component ids are unique.
+ * window's frame and glazing bars leave room for glass. Id uniqueness is in checkIds.
  */
 export function checkComponents(model: BuildingModel): Issue[] {
   const issues: Issue[] = [];
   const doorList = model.components?.doors ?? [];
   const windowList = model.components?.windows ?? [];
-  const seen = new Set<string>();
-  for (const c of [...doorList, ...windowList]) {
-    if (seen.has(c.id)) issues.push({ level: "ERROR", id: c.id, message: "component id is used twice" });
-    seen.add(c.id);
-  }
   const doors = new Set(doorList.map((c) => c.id));
   const windows = new Set(windowList.map((c) => c.id));
   const designs = new Map(windowList.map((c) => [c.id, c]));

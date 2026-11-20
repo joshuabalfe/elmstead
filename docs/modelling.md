@@ -75,7 +75,8 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
 
 - Every element has an `id` in lower-case kebab-case: `^[a-z0-9]+(-[a-z0-9]+)*$`, for example
   `wall-north-1` or `door-front`.
-- Ids must be unique across the whole model, and they should not change when geometry changes.
+- Ids must be unique across the whole model, including components, and they should not change
+  when geometry changes. `check` and `build` report a duplicate against that id.
   The IFC GlobalId is derived from the id, so renaming an element makes it a different element in
   IFC.
 - Prefix ids with the element type (`wall-`, `door-`, `window-`, `room-`, `slab-`, `storey-`) so
@@ -92,7 +93,9 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
 | **Room** | `name`, `outline` | 2D outline only, for now |
 | **Door / window component** | `id`, `name` | a design (not a size) shared by openings, in the building's `components: { doors, windows }`; written to IFC as `IfcDoorType` / `IfcWindowType` |
 
-- Outlines are open polygons: at least three points, and the first point is not repeated.
+- Outlines are open polygons: at least three distinct points, no repeated adjacent points, the
+  first point is not repeated at the end, the area is non-zero and the outline does not cross
+  itself. Concave outlines are fine.
 - The schema does not allow unknown fields, so a typo in a field name is a validation error rather
   than being silently ignored.
 
@@ -113,6 +116,10 @@ east and west walls fit between them, so the corners neither overlap nor leave g
 
 - `offsetAlongWall` is measured along the wall from its `start` to the near edge of the opening.
 - `sillHeight` is measured from the storey floor. Doors have `sillHeight: 0`.
+- An opening must fit inside its wall: `offsetAlongWall + width` may not exceed the wall length,
+  and `sillHeight + height` may not exceed the wall height. Two openings on one wall may touch at
+  an edge but may not overlap in both directions. The checks report violations before anything is
+  written.
 - Door `swing` has two fields:
   - `hinge: "start" | "end"`: which jamb the door is hinged on, the one nearer the wall start or
     the one nearer the wall end.

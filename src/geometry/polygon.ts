@@ -1,4 +1,4 @@
-import { cross, vsub, type Vec } from "./vec.js";
+import { cross, dot, vsub, type Vec } from "./vec.js";
 
 /** Signed area (mm²), positive for counter-clockwise outlines. The outline is implicitly closed. */
 export function signedArea(pts: readonly Vec[]): number {
@@ -55,6 +55,63 @@ export function segmentsCross(a: Vec, b: Vec, c: Vec, d: Vec): boolean {
   const d3 = cross(vsub(d, c), vsub(a, c));
   const d4 = cross(vsub(d, c), vsub(b, c));
   return d1 * d2 < 0 && d3 * d4 < 0;
+}
+
+/** Reasons an outline is not a simple polygon; empty for a valid concave or convex outline. */
+export function polygonProblems(pts: readonly Vec[]): string[] {
+  const problems: string[] = [];
+  const same = (a: Vec, b: Vec) => a.x === b.x && a.y === b.y;
+  const closed = pts.length > 1 && same(pts[0]!, pts[pts.length - 1]!);
+  if (closed) problems.push("outline repeats its first point at the end");
+  const body = closed ? pts.slice(0, -1) : pts;
+  const distinct = new Set(body.map((p) => `${p.x},${p.y}`));
+  if (distinct.size < 3) problems.push("outline needs at least 3 distinct points");
+  else if (distinct.size < body.length) problems.push("outline repeats a point");
+  for (let i = 0; i < body.length - 1; i++) {
+    if (same(body[i]!, body[i + 1]!)) {
+      problems.push("outline repeats adjacent points");
+      break;
+    }
+  }
+  if (distinct.size >= 3 && area(body) === 0) problems.push("outline has zero area");
+
+  const touch = (a: Vec, b: Vec, c: Vec, d: Vec): boolean =>
+    segmentsCross(a, b, c, d) || onSegment(a, c, d) || onSegment(b, c, d) || onSegment(c, a, b) || onSegment(d, a, b);
+  const n = body.length;
+  for (let i = 0; i < n; i++) {
+    const a = body[i]!;
+    const b = body[(i + 1) % n]!;
+    for (let j = i + 1; j < n; j++) {
+      const c = body[j]!;
+      const d = body[(j + 1) % n]!;
+      if (j === i + 1 || (i === 0 && j === n - 1)) {
+        // Adjacent edges share a vertex; they only overlap when they double back along the same ray.
+        const shared = j === i + 1 ? b : a;
+        const first = j === i + 1 ? a : b;
+        const second = j === i + 1 ? d : c;
+        if (!same(shared, first) && !same(shared, second) && collinear(shared, first, second) && dot(vsub(first, shared), vsub(second, shared)) > 0) {
+          problems.push("outline doubles back on itself");
+          return problems;
+        }
+        continue;
+      }
+      if (same(a, c) || same(a, d) || same(b, c) || same(b, d)) continue; // reported as a repeated point
+      if (touch(a, b, c, d)) {
+        problems.push("outline crosses itself");
+        return problems;
+      }
+    }
+  }
+  return problems;
+}
+
+const near = 1e-6;
+const collinear = (a: Vec, b: Vec, c: Vec): boolean => Math.abs(cross(vsub(b, a), vsub(c, a))) <= near;
+
+/** Whether p lies on segment ab, including its endpoints and collinear overlap. */
+function onSegment(p: Vec, a: Vec, b: Vec): boolean {
+  if (!collinear(a, b, p)) return false;
+  return p.x >= Math.min(a.x, b.x) - near && p.x <= Math.max(a.x, b.x) + near && p.y >= Math.min(a.y, b.y) - near && p.y <= Math.max(a.y, b.y) + near;
 }
 
 /**

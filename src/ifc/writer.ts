@@ -24,6 +24,22 @@ const FIXED_TIMESTAMP = "1970-01-01T00:00:00";
 /** FILE_NAME.authorization must be a STRING; web-ifc writes an empty one as $ (null). */
 const AUTHORIZATION = "none";
 
+/**
+ * IFC4 partitions its window types into one, two or three panels; larger grids are USERDEFINED.
+ * The enum names describe the arrangement of the panels: VERTICAL is side by side, HORIZONTAL is
+ * stacked (matching TRIPLE_PANEL_TOP's "two panels vertically and the third horizontally at the top").
+ */
+function windowPartitioning(design?: Pick<WindowComponent, "glazing">): { value: any; userDefined: string | null } {
+  const columns = design?.glazing?.columns.length ?? 1;
+  const rows = design?.glazing?.rows.length ?? 1;
+  if (columns === 1 && rows === 1) return { value: IFC4.IfcWindowTypePartitioningEnum.SINGLE_PANEL, userDefined: null };
+  if (rows === 1 && columns === 2) return { value: IFC4.IfcWindowTypePartitioningEnum.DOUBLE_PANEL_VERTICAL, userDefined: null };
+  if (columns === 1 && rows === 2) return { value: IFC4.IfcWindowTypePartitioningEnum.DOUBLE_PANEL_HORIZONTAL, userDefined: null };
+  if (rows === 1 && columns === 3) return { value: IFC4.IfcWindowTypePartitioningEnum.TRIPLE_PANEL_VERTICAL, userDefined: null };
+  if (columns === 1 && rows === 3) return { value: IFC4.IfcWindowTypePartitioningEnum.TRIPLE_PANEL_HORIZONTAL, userDefined: null };
+  return { value: IFC4.IfcWindowTypePartitioningEnum.USERDEFINED, userDefined: `${columns}x${rows} grid` };
+}
+
 
 export interface WriteOptions {
   /** Used for FILE_NAME in the header. */
@@ -294,7 +310,9 @@ class Writer {
    */
   private window(win: Window, mid: number, openingPlacement: InstanceType<typeof IFC4.IfcLocalPlacement>) {
     const placement = this.placement(openingPlacement, win.width / 2, mid, 0);
-    const { panes, bars, frame } = windowDivision(win, win.componentId ? this.windowDesigns.get(win.componentId) : undefined);
+    const design = win.componentId ? this.windowDesigns.get(win.componentId) : undefined;
+    const { panes, bars, frame } = windowDivision(win, design);
+    const partitioning = windowPartitioning(design);
     // Window-local X runs along the wall from the opening's centre; the rects are from its left edge.
     const piece = (r: Rect, depth: number, style: StyleName) => {
       const profile = this.rectangle(r.x + r.w / 2 - win.width / 2, 0, r.w, depth);
@@ -318,8 +336,8 @@ class Writer {
         posLen(win.height),
         posLen(win.width),
         IFC4.IfcWindowTypeEnum.WINDOW,
-        IFC4.IfcWindowTypePartitioningEnum.SINGLE_PANEL,
-        null,
+        partitioning.value,
+        partitioning.userDefined === null ? null : label(partitioning.userDefined),
       ),
     );
   }
@@ -340,7 +358,8 @@ class Writer {
       define(c.id, new IFC4.IfcDoorType(guid(c.id), null, label(c.name), null, null, null, null, label(c.id), null, IFC4.IfcDoorTypeEnum.DOOR, IFC4.IfcDoorTypeOperationEnum.NOTDEFINED, null, null));
     }
     for (const c of model.components?.windows ?? []) {
-      define(c.id, new IFC4.IfcWindowType(guid(c.id), null, label(c.name), null, null, null, null, label(c.id), null, IFC4.IfcWindowTypeEnum.WINDOW, IFC4.IfcWindowTypePartitioningEnum.SINGLE_PANEL, null, null));
+      const partitioning = windowPartitioning(c);
+      define(c.id, new IFC4.IfcWindowType(guid(c.id), null, label(c.name), null, null, null, null, label(c.id), null, IFC4.IfcWindowTypeEnum.WINDOW, partitioning.value, null, partitioning.userDefined === null ? null : label(partitioning.userDefined)));
     }
     if (types.length) this.write(new IFC4.IfcRelDeclares(guid(`${model.project.id}#types`), null, null, null, project, types));
   }
