@@ -118,9 +118,13 @@ openings cut, doors and glazing in place, colours applied.
     plan without cutting the model.
   - White background, no grid.
 - Navigation (`setNavigationInput` in `main.ts`), map-style in every view:
-  - Left drag or one finger pans; right drag or a two-finger drag orbits.
-  - The wheel or a pinch zooms. In the orthographic Top view the pinch is a true zoom, since
-    moving an orthographic camera closer changes nothing on screen.
+  - Left drag or one finger pans.
+  - The wheel or a pinch zooms. A pinch tracks the fingers: spreading them 4× zooms about 4×. In
+    the orthographic Top view it is a true zoom, since moving an orthographic camera closer
+    changes nothing on screen.
+  - The middle or right button, or three fingers, orbits.
+  - Drags follow the pointer without easing, so a fast pinch is not lost to the camera's lag.
+- The That Open Company logo overlay is hidden (`showLogo = false`).
 - Walk mode: the **Walk** button, or `?walk=1`, enters a first-person walkthrough.
   - The camera starts at the footprint centre of the model on its lowest storey, at a fixed
     1.6 m eye height, facing plan north. With no building JSON it starts 1.6 m above the IFC's

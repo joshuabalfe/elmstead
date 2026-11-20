@@ -39,10 +39,16 @@ world.scene = new OBC.SimpleScene(components);
 world.scene.setup();
 world.scene.three.background = new THREE.Color(0xf4f4f2);
 world.renderer = new OBC.SimpleRenderer(components, document.getElementById("container")!, { preserveDrawingBuffer: true });
+world.renderer.showLogo = false;
 world.camera = new OBC.OrthoPerspectiveCamera(components);
 components.init();
 setNavigationInput();
 world.camera.projection.onChanged.add(setNavigationInput);
+// A pinch spreading the fingers 4× should zoom about 4×; camera-controls' one dollySpeed also sets
+// the wheel's, so pick it per gesture. The container's capture listeners run before the canvas's.
+const container = document.getElementById("container")!;
+container.addEventListener("pointerdown", (e) => (world.camera.controls.dollySpeed = e.pointerType === "touch" ? 1.5 : 1), { capture: true });
+container.addEventListener("wheel", () => (world.camera.controls.dollySpeed = 1), { capture: true, passive: true });
 const grid = components.get(OBC.Grids).create(world);
 grid.config.color = new THREE.Color(0xd8d8d4);
 
@@ -291,18 +297,24 @@ function applyStyle() {
 }
 
 /**
- * Map-style input: left drag or one finger pans, right drag or a two-finger drag orbits, and the
- * wheel or a pinch zooms. The pinch must be a true zoom in the orthographic Top view, where moving
- * the camera closer changes nothing on screen; OBC's projection switch only rebinds the wheel.
+ * Map-style input: left drag or one finger pans; the wheel or a pinch zooms; the middle or right
+ * button, or three fingers, orbits. OBC's projection switch rebinds the wheel and middle button, so
+ * this runs again after each switch. The pinch must be a true zoom in the orthographic Top view,
+ * where moving the camera closer changes nothing on screen.
  */
 function setNavigationInput() {
   const { ACTION } = CameraControls;
   const controls = world.camera.controls;
   const ortho = world.camera.projection.current === "Orthographic";
   controls.mouseButtons.left = ACTION.TRUCK;
+  controls.mouseButtons.middle = ACTION.ROTATE;
   controls.mouseButtons.right = ACTION.ROTATE;
   controls.touches.one = ACTION.TOUCH_TRUCK;
-  controls.touches.two = ortho ? ACTION.TOUCH_ZOOM_ROTATE : ACTION.TOUCH_DOLLY_ROTATE;
+  controls.touches.two = ortho ? ACTION.TOUCH_ZOOM : ACTION.TOUCH_DOLLY;
+  controls.touches.three = ACTION.TOUCH_ROTATE;
+  // camera-controls scales each pinch step from the camera's current, still-easing zoom, so any
+  // lag behind the fingers loses most of the pinch. Track drags without easing.
+  controls.draggingSmoothTime = 0;
 }
 
 /** Three.js is Y-up with plan north along −Z (IFC +Y). */
