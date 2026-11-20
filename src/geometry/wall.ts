@@ -25,13 +25,6 @@ export function wallPoint(w: Wall, along: number, across: number): Vec {
   return vadd(toVec(w.start), vadd(vscale(d, along), vscale(perpLeft(d), across)));
 }
 
-/** Footprint rectangle of the wall body, counter-clockwise: start-right, end-right, end-left, start-left. */
-export function wallFootprint(w: Wall): Vec[] {
-  const L = wallLength(w);
-  const { left, right } = faceOffsets(w);
-  return [wallPoint(w, 0, right), wallPoint(w, L, right), wallPoint(w, L, left), wallPoint(w, 0, left)];
-}
-
 /** Footprint of a stretch of wall between two distances along it (e.g. an opening cut). */
 export function wallSegmentFootprint(w: Wall, from: number, to: number): Vec[] {
   const { left, right } = faceOffsets(w);

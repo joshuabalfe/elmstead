@@ -362,7 +362,6 @@ export function renderFloor(storey: Storey): { svg: string; bounds: Bounds } {
 
 export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptions): string {
   const view = makeView(storey);
-  const { extent } = view;
   const walls = [...storey.walls].filter((w) => wallLength(w) > 0);
   const wallById = new Map(walls.map((w) => [w.id, w]));
   const out: string[] = [];

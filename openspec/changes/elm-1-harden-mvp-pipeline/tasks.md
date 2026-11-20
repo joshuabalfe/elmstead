@@ -8,11 +8,11 @@
 
 ## 2. Model integrity checks
 
-- [ ] 2.1 Add `checkIds` and `checkWalls` in `src/checks/model.ts`: unique ids across every id-bearing node (including components) and zero-length walls. Verify with tests that duplicate element/component ids and zero-length walls are ERRORs against the id.
-- [ ] 2.2 Add `checkOpenings`: host wall on the same storey, offset+width within the wall length, sill+height within the wall height, and pairwise overlap on the same wall. Verify with fixtures for missing host, past the end, above the top and overlapping openings.
-- [ ] 2.3 Add `checkOutlines` for rooms and slabs using `polygonProblems`. Verify with self-intersecting room and repeated-point slab fixtures.
-- [ ] 2.4 Export `checkModel` (components + ids + walls + openings + outlines), run it in `build` before writing anything and in `render` before writing plans, and update `docs/development.md` and `docs/modelling.md` with the new rules. Verify that a failing model writes no files and that both commands exit 1.
-- [ ] 2.5 Remove the now-unused `wallFootprint` and the unused `extent` binding, enable `noUnusedLocals` and `noUnusedParameters` in `tsconfig.json`, and fix any fallout. Verify with `npm run typecheck`.
+- [x] 2.1 Add `checkIds` and `checkWalls` in `src/checks/model.ts`: unique ids across every id-bearing node (including components) and zero-length walls. Verify with tests that duplicate element/component ids and zero-length walls are ERRORs against the id.
+- [x] 2.2 Add `checkOpenings`: host wall on the same storey, offset+width within the wall length, sill+height within the wall height, and pairwise overlap on the same wall. Verify with fixtures for missing host, past the end, above the top and overlapping openings.
+- [x] 2.3 Add `checkOutlines` for rooms and slabs using `polygonProblems`. Verify with self-intersecting room and repeated-point slab fixtures.
+- [x] 2.4 Export `checkModel` (components + ids + walls + openings + outlines), run it in `build` before writing anything and in `render` before writing plans, and update `docs/development.md` and `docs/modelling.md` with the new rules. Verify that a failing model writes no files and that both commands exit 1.
+- [x] 2.5 Remove the now-unused `wallFootprint` and the unused `extent` binding, enable `noUnusedLocals` and `noUnusedParameters` in `tsconfig.json`, and fix any fallout. Verify with `npm run typecheck`.
 
 ## 3. CLI and error handling
 

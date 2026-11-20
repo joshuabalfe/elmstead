@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdtempSync } from "node:fs";
+import { writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as WebIFC from "web-ifc";

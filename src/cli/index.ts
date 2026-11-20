@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { checkComponents } from "../checks/components.js";
 import { formatIssue, hasErrors, type Issue } from "../checks/issue.js";
+import { checkModel } from "../checks/model.js";
 import { formatJson } from "./json-format.js";
 import { loadModel, type LoadedModel } from "./load.js";
 import { render3d, renderAll } from "../render/index.js";
@@ -62,7 +62,7 @@ async function main(argv: string[]): Promise<number> {
   const issues: Issue[] = [];
   switch (command) {
     case "build": {
-      const checked = checkComponents(loaded.model);
+      const checked = checkModel(loaded.model);
       issues.push(...checked);
       if (hasErrors(checked)) break; // nothing written: fix the model first
       const jsonPath = writeJson(loaded, out);
@@ -71,6 +71,9 @@ async function main(argv: string[]): Promise<number> {
       break;
     }
     case "render": {
+      const checked = checkModel(loaded.model);
+      issues.push(...checked);
+      if (hasErrors(checked)) break; // nothing written: fix the model first
       for (const p of renderAll(loaded.name, loaded.model, out, { ids: flags.has("--ids") })) console.log(`render  ${p}`);
       if (flags.has("--no-3d")) break;
       if (!existsSync(join(out, `${loaded.name}.ifc`))) {

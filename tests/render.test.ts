@@ -9,7 +9,6 @@ const model = BuildingModelSchema.parse(JSON.parse(JSON.stringify(cottage)));
 const storey = model.storeys[0]!;
 const svg = renderPlan(model, storey, { ids: false });
 
-const count = (re: RegExp) => (svg.match(re) ?? []).length;
 const ids = (cls: string) => [...svg.matchAll(new RegExp(`class="${cls}" data-id="([^"]+)"`, "g"))].map((x) => x[1]);
 
 describe("plan renderer", () => {
