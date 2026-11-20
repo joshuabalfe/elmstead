@@ -196,10 +196,15 @@ function roomDimensions(id: string, pts: readonly Vec[], label: Bounds, view: Vi
 
 function northArrow(at: Vec, northAngleDeg: number): string {
   // northAngle is counter-clockwise from plan +y; SVG rotation is clockwise.
-  return group({ transform: `translate(${num(at.x)} ${num(at.y)}) rotate(${num(-northAngleDeg)})` }, [
-    el("circle", { cx: 0, cy: 0, r: 22, fill: "none", stroke: C.ink, "stroke-width": 1 }),
-    polygon([v(0, -20), v(8, 10), v(0, 4), v(-8, 10)], { fill: C.ink }),
-    text(v(0, -28), "N", { "font-size": 14, "font-weight": "bold", "text-anchor": "middle", fill: C.ink }),
+  const a = (northAngleDeg * Math.PI) / 180;
+  // The "N" stays upright, just beyond the arrow's tip (5 px lower to centre it vertically).
+  const n = v(at.x - 33 * Math.sin(a), at.y - 33 * Math.cos(a) + 5);
+  return group({}, [
+    group({ transform: `translate(${num(at.x)} ${num(at.y)}) rotate(${num(-northAngleDeg)})` }, [
+      el("circle", { cx: 0, cy: 0, r: 22, fill: "none", stroke: C.ink, "stroke-width": 1 }),
+      polygon([v(0, -20), v(8, 10), v(0, 4), v(-8, 10)], { fill: C.ink }),
+    ]),
+    text(n, "N", { "font-size": 14, "font-weight": "bold", "text-anchor": "middle", fill: C.ink }),
   ]);
 }
 
@@ -322,7 +327,8 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
   const sub = `Elevation ${storey.elevation} mm · dimensions in mm · 1 px = ${num(1 / PX_PER_MM)} mm`;
   out.push(text(v(MARGIN.left, 28), title, { "font-size": 18, "font-weight": "bold", fill: C.ink }));
   out.push(text(v(MARGIN.left, 46), sub, { "font-size": 11, fill: C.dim }));
-  out.push(northArrow(v(view.width - 45, 60), model.site.northAngle ?? 0));
+  // Top right, clear of the overall dimension line below it whichever way the "N" falls.
+  out.push(northArrow(v(view.width - 35, 40), model.site.northAngle ?? 0));
   out.push(scaleBar(v(MARGIN.left, view.height - 40)));
 
   return [
