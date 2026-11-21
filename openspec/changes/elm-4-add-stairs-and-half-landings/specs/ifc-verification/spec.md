@@ -17,18 +17,13 @@ missing.
 - **WHEN** a stair is written as an `IfcStair` container with flight and landing bodies
 - **THEN** the round-trip does not report the stair container as missing geometry
 
-### Requirement: Expected volumes
-The round-trip SHALL expect:
-- wall: length × thickness × height, minus width × height × thickness for every opening in it;
-- slab: outline area × thickness;
-- door: width × height × 50 mm;
-- window: pane area × 50 mm plus frame and bar area × 70 mm;
-- stair flight: stepped profile area × width;
-- stair landing: outline area × thickness.
+## ADDED Requirements
 
-#### Scenario: Opening does not cut the wall
-- **WHEN** a wall's IFC mesh still includes the volume of an opening in it
-- **THEN** build reports an ERROR against that wall saying its volume differs from the model
+### Requirement: Stair volumes
+The round-trip SHALL expect a stair flight's volume to be its stepped profile area × its width, and
+a stair landing's to be its outline area × its thickness. The `IfcStair` container SHALL contribute
+no expected volume, because it has no body. These extend the *Expected volumes* list, which keeps
+the wall, slab, door and window rules — including a window reveal's splay — as they are.
 
 #### Scenario: Stair flight volume
 - **WHEN** a stair flight's IFC mesh volume differs from its stepped profile area × width
@@ -37,3 +32,7 @@ The round-trip SHALL expect:
 #### Scenario: Stair landing volume
 - **WHEN** a stair landing's IFC mesh volume differs from its outline area × thickness
 - **THEN** build reports an ERROR against that landing
+
+#### Scenario: Container expects no volume
+- **WHEN** the round-trip lists what a stair contributes
+- **THEN** its flights and landings are listed and the `IfcStair` itself is not

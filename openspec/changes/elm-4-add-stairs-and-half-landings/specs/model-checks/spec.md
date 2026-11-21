@@ -41,21 +41,6 @@ rejects a flight with fewer than two risers, so the checks do not repeat that ru
 - **WHEN** a flight's start and end points are the same
 - **THEN** the checks report an ERROR against the stair
 
-### Requirement: Stair landing outlines are simple polygons
-Every stair landing outline SHALL satisfy the same polygon rules as a room or slab outline: at least
-three distinct points, no repeated point, non-zero area, no self-intersection, no edge crossing,
-touching a non-adjacent edge or overlapping collinearly, and no doubling back between adjacent
-edges. A violation SHALL be an ERROR against the landing. Without this the outline check skips
-landings, and a self-intersecting one reaches the IFC extrusion and the boundary test below.
-
-#### Scenario: Self-intersecting landing
-- **WHEN** a stair landing outline crosses itself
-- **THEN** the checks report an ERROR against the landing
-
-#### Scenario: Repeated point in a landing
-- **WHEN** a stair landing outline repeats a point
-- **THEN** the checks report an ERROR against the landing
-
 ### Requirement: Stair landings connect their flights
 Each landing SHALL meet the previous flight's end and the next flight's start: both points SHALL lie
 on the landing outline's boundary within 1 mm. A landing that does not meet its flights SHALL be an
@@ -69,17 +54,64 @@ ERROR against the landing.
 - **WHEN** the previous flight's end and the next flight's start both lie on the landing boundary
 - **THEN** the checks report no ERROR for that landing
 
-### Requirement: Stair ids join the model-wide id table
-Stair, flight and landing ids SHALL join the model-wide id table that ELM-1's *Unique ids across the
-model* requirement defines, so they are unique alongside every other element and component id. A
-duplicate SHALL be an ERROR against that id, whose message names both kinds involved. This extends
-that rule to three more id-bearing nodes rather than restating it; ELM-1 is implemented but not yet
-archived, so its requirement reaches `openspec/specs/` when ELM-1 is synced.
+## MODIFIED Requirements
+
+### Requirement: Unique ids across the model
+Every id-bearing node SHALL have an id unique across the project, site, building, storeys, walls,
+openings, slabs, rooms, stairs, stair flights, stair landings and components. A duplicate SHALL be
+an ERROR against that id whose message names both kinds involved.
+
+#### Scenario: Element and component share an id
+- **WHEN** a window component and a wall have the same id
+- **THEN** the checks report an ERROR against that id saying it is used by a wall and a window component
+
+#### Scenario: Duplicate room ids
+- **WHEN** two rooms on one storey have the same id
+- **THEN** the checks report an ERROR against that id saying it is used by two rooms, instead of writing IFC with duplicate GlobalIds
+
+#### Scenario: Duplicate component ids
+- **WHEN** a door component and a window component share an id
+- **THEN** the checks report an ERROR "component id is used twice" against that id
 
 #### Scenario: Flight and wall share an id
 - **WHEN** a stair flight and a wall have the same id
-- **THEN** the checks report an ERROR against that id naming both kinds
+- **THEN** the checks report an ERROR against that id saying it is used by a wall and a stair flight
 
 #### Scenario: Duplicate landing ids
 - **WHEN** two stair landings have the same id
-- **THEN** the checks report an ERROR against that id
+- **THEN** the checks report an ERROR against that id saying it is used by two stair landings
+
+### Requirement: Outlines are simple polygons
+Every room, slab and stair landing outline SHALL have at least three distinct points, SHALL NOT
+repeat any point, SHALL NOT repeat the first point at the end, SHALL have non-zero area and SHALL
+NOT self-intersect. Edges SHALL NOT cross, touch a non-adjacent edge or overlap collinearly, and
+adjacent edges SHALL NOT double back over each other. A violation SHALL be an ERROR against the
+outline's element.
+
+#### Scenario: Self-intersecting room
+- **WHEN** a room outline crosses itself
+- **THEN** the checks report an ERROR against the room
+
+#### Scenario: Repeated point
+- **WHEN** a slab outline repeats a point, including at a non-adjacent position
+- **THEN** the checks report an ERROR against the slab
+
+#### Scenario: Vertex on a non-adjacent edge
+- **WHEN** an outline has a vertex lying on an edge it is not adjacent to
+- **THEN** the checks report an ERROR against the element
+
+#### Scenario: Collinear overlapping edges
+- **WHEN** two non-adjacent edges of an outline overlap along the same line
+- **THEN** the checks report an ERROR against the element
+
+#### Scenario: Adjacent edges double back
+- **WHEN** an outline returns along an edge it has just traversed
+- **THEN** the checks report an ERROR against the element
+
+#### Scenario: Self-intersecting landing
+- **WHEN** a stair landing outline crosses itself
+- **THEN** the checks report an ERROR against the landing
+
+#### Scenario: Repeated point in a landing
+- **WHEN** a stair landing outline repeats a point
+- **THEN** the checks report an ERROR against the landing

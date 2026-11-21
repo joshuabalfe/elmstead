@@ -33,16 +33,11 @@
 
 ## 6. Fixture and integration
 
-- [ ] 6.1 Add `models/example-two-storey.ts`, a two-storey model with a half-turn stair and a 3050 mm rise — `models/`, not `tests/fixtures/`, which holds only invalid models; verify `npm run build` and `npm run render` complete and the plan and 3D PNGs show the stair
-- [ ] 6.2 Add the fixture to the IFC, renderer, checks and plan-vs-3D integration coverage; verify the full suite includes it without changing the example cottage snapshot
+- [ ] 6.1 Add the folder model `models/example-two-storey/index.ts`: two storeys, a half-turn stair and a 3050 mm rise — a folder like every model the tests import, under `models/` rather than `tests/fixtures/`, which holds only invalid models, and with no constraints file, which is optional; verify `npm run build` and `npm run render` complete and the plan and 3D PNGs show the stair
+- [ ] 6.2 Add the fixture to the IFC, renderer, checks and plan-vs-3D integration coverage, including the model list in `tests/plan-vs-3d.test.ts`; verify the full suite includes it without changing `example-cottage.storey-ground.plan.svg`
 - [ ] 6.3 Run `npm test`, `npm run typecheck`, `npm run schema` and `npx openspec validate --all`; verify all pass and generated files are committed
 
 ## Workflow follow-up
 
-- Sync and archive ELM-1 first, so its *Unique ids across the model* requirement is in
-  `openspec/specs/` before this change extends it.
-- Resolve `openspec/next-change-number` on merge: `main` is at 2 while PR #12 (ELM-3) and PR #15
-  (ELM-2) each set 4 and this change sets 5. The file conflicts three ways; the last branch merged
-  keeps 5, which is what `tests/openspec.test.ts` wants once all three change folders exist.
 - Archive the change after implementation and the project's review requirements are satisfied.
-- Verify the archived result and the change counter.
+- Verify the archived result.

@@ -2,23 +2,6 @@
 
 ## MODIFIED Requirements
 
-### Requirement: Plan geometry
-The plan SHALL draw, in order:
-1. slab outlines, dashed;
-2. room fills;
-3. walls at their true thickness, split around openings;
-4. door leaves with swing arcs;
-5. window symbols: an outline, two glazing lines, and a block for each frame piece or vertical bar the cut passes through;
-6. stairs: flight footprints, tread lines, landing outlines and a walking-direction arrow for each flight.
-
-#### Scenario: Door in a wall
-- **WHEN** a wall has a door
-- **THEN** the wall is drawn in pieces either side of the opening and the door shows a leaf and swing arc on the side it opens to
-
-#### Scenario: Stair in the plan
-- **WHEN** a storey has a half-turn stair
-- **THEN** the plan draws both flight footprints, their tread lines, the landing outline and an arrow on each flight
-
 ### Requirement: Queryable SVG
 Every element SHALL be an SVG group with a `class` (`wall`, `door`, `window`, `room`,
 `room-dimensions`, `slab`, `stair`, `stair-flight` or `stair-landing`) and a `data-id` of its model
@@ -38,8 +21,8 @@ id.
 Each stair SHALL be an SVG group with class `stair` and its model id. Its flights and landings SHALL
 be groups with classes `stair-flight` and `stair-landing` and their ids. A flight SHALL draw its
 footprint, tread lines at each going and an arrow along its walking direction; a landing SHALL draw
-its outline. Stairs SHALL be drawn in full: `CUT_HEIGHT` gates only which openings are cut, and no
-geometry is cut, so a landing above it is drawn like any other.
+its outline. Stairs SHALL be the last geometry layer, after the window symbols, and SHALL be drawn
+in full rather than cut.
 
 #### Scenario: Half-turn stair symbols
 - **WHEN** a stair has two flights and one landing
@@ -55,7 +38,7 @@ geometry is cut, so a landing above it is drawn like any other.
 
 #### Scenario: Landing above the cut height
 - **WHEN** a half landing sits at 1525 mm, above `CUT_HEIGHT`
-- **THEN** the plan still draws the landing and the upper flight, as it draws every other geometry in full
+- **THEN** the plan still draws the landing and the upper flight, because `CUT_HEIGHT` gates only which openings are cut
 
 ### Requirement: Stairs stay out of the viewer's plan overlay
 Stairs SHALL be drawn by `renderPlan` alone. `renderFloor`, `renderWallTops` and

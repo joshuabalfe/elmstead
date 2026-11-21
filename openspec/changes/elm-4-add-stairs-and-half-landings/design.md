@@ -161,12 +161,9 @@ self-intersecting one has to be caught there rather than surfacing as a bogus vo
 Landing adjacency is geometric, and `risers >= 2` stays in the schema: it is a property of one
 flight, not a cross-element rule, so the checks do not repeat it and the check could never fire.
 
-Stair, flight and landing ids join the model-wide id table introduced by ELM-1 — three more entries
-in `idEntries`, no new rule. ELM-1 is implemented but not yet archived, so that requirement is still
-in `openspec/changes/elm-1-harden-mvp-pipeline/` and `openspec/specs/model-checks/` still carries the
-*Unique component ids* requirement ELM-1 removes. This change extends ELM-1's rule rather than
-restating it, and ELM-1 should be synced and archived first so the two do not land as competing
-requirements.
+Stair, flight and landing ids join the model-wide id table — three more entries in `idEntries`, no
+new rule — so this change modifies *Unique ids across the model* rather than adding a parallel
+requirement. The same goes for landing outlines, which modify *Outlines are simple polygons*.
 
 Deferred checks: headroom, stairwell fit, collision with walls and rooms, building-code limits, and
 the upper-floor slab opening.
@@ -186,7 +183,10 @@ would imply an incompatibility that does not exist.
   as plain `number` millimetres, never through `mm()`, `div()` or `divRound()`; write them as IFC
   reals; round SVG output to one decimal; compare volumes with tolerance.
 - **Solid-to-base flights look heavy** → Acceptable for a massing model; replace with a sloped
-  soffit later without changing the JSON contract or IFC entities.
+  soffit later without changing the JSON contract or IFC entities. Walk mode makes this more
+  visible than the snapshots did: the camera passes through the stairwell at 1.6 m, so it spends
+  time inside the flight mass, and what that looks like depends on back-face culling of the
+  extrusion. Check it in the browser before accepting the fixture's stair.
 - **`IfcStair` has no body** → The round-trip explicitly exempts container elements; tests cover
   both the container and its parts.
 - **IFC decomposition validity** → IfcOpenShell validation runs on the fixture; web-ifc supports
@@ -201,9 +201,12 @@ would imply an incompatibility that does not exist.
 - **The target storey must be the next one up** → A stair that legitimately skips a storey would be
   rejected. Accept that: nothing else bounds the riser height while building-code checks are out of
   scope, and a skipped storey is far more likely to be a modelling mistake than an intent.
-- **ELM-1 is implemented but unarchived** → `openspec/specs/` still predates it, so this change's
-  id requirement extends a rule that is not in the baseline yet. Sync and archive ELM-1 first, or
-  the two land as competing requirements.
+- **Walk mode passes through the stair** → ELM-3's walk mode snaps the camera to a fixed eye height
+  with no geometry query, so a stair is scenery, not a route: you walk through the flight massing
+  rather than up it. At the 1.6 m entry height the half landing at 1525 mm sits just below the
+  eyeline, which reads well; the 5 cm near plane lets treads be inspected close up. Climbing would
+  need floor-following, which modifies ELM-3's fixed-height and no-blocking rules and needs the
+  stairwell void first, so it is a separate change.
 - **Landing adjacency is geometric** → Check with a 1 mm tolerance; authored points are integer
   millimetres and derived points are exact until SVG rounding.
 - **Upper-floor slab void is not modelled** → Out of scope; the first-floor plan and slab openings
