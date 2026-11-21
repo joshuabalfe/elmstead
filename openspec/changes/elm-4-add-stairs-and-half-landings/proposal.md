@@ -19,8 +19,8 @@ produce no stair semantics in IFC, and leave the plan without a stair symbol or 
   aggregated under the stair, with deterministic GlobalIds and a display colour.
 - Draw stairs on plans: flight footprints, tread lines, landings, an up arrow and queryable SVG
   groups.
-- Add model checks for the target storey, segment order, positive geometry and flight/landing
-  adjacency.
+- Add model checks for the target storey (which must be the next one up), segment order, positive
+  flight runs, landing outlines and flight/landing adjacency.
 - Add a two-storey model fixture with a half-turn stair to exercise schema, IFC, rendering and
   checks. Elmstead's own stair waits for the first-floor plan.
 - Keep `schemaVersion: 1`: `stairs` is optional, so existing models remain valid.
@@ -50,7 +50,9 @@ None.
 - `src/render/plan.ts`, `src/render/style.ts`
 - `src/checks/` and `src/checks/model.ts`
 - Tests, docs, and a two-storey fixture
-- No viewer changes: the IFC geometry renders in the existing viewer. `models/elmstead/` is not
-  changed until its first floor is traced.
+- No viewer code changes: the IFC geometry renders in the existing viewer. Stairs are drawn by
+  `renderPlan` alone, so the plan-style overlay the viewer composites from `renderFloor`,
+  `renderWallTops` and `renderPlanAnnotations` is untouched. `models/elmstead/` is not changed until
+  its first floor is traced.
 - Out of scope: winders, curved or spiral stairs, railings, front steps, upper-floor slab openings,
   headroom and building-code checks, and the Elmstead first-floor layout.

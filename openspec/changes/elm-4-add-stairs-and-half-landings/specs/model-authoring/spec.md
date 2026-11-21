@@ -19,3 +19,18 @@ supplies plan geometry and riser counts only.
 #### Scenario: Landing values
 - **WHEN** `stairLanding("stair-landing-half", outline, { thickness: mm(150) })` is called
 - **THEN** it returns a landing with that outline and thickness
+
+### Requirement: Derived stair dimensions are plain numbers
+Derived stair dimensions — the riser height, each flight's going and every segment's level — SHALL be
+plain `number` millimetres, not the branded `Mm`. `Mm` is an integer brand, so `mm()` and `div()`
+throw on a fraction and `divRound()` would round a 3050 / 16 riser to 191 mm, making sixteen risers
+reach 3056 mm and miss the target storey. The IFC writer's `len` and `posLen` already take a plain
+number, so nothing converts on the way out.
+
+#### Scenario: Fractional riser height
+- **WHEN** a stair geometry helper divides a 3050 mm rise into 16 risers
+- **THEN** it returns 190.625 as a `number`, without passing it through `mm()`
+
+#### Scenario: Division that must not round
+- **WHEN** the helper divides a rise by a riser count
+- **THEN** it uses plain division, because `div(mm(3050), 16)` throws and `divRound(mm(3050), 16)` gives 191

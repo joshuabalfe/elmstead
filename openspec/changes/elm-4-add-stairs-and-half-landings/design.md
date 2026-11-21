@@ -22,7 +22,8 @@ for Elmstead.
 - Headroom, building-code or collision checks.
 - The Elmstead first-floor layout or its stair dimensions.
 - Drawing an arriving stair on the destination storey's plan.
-- Viewer changes; the existing viewer renders the IFC geometry.
+- Viewer code changes. The viewer renders the stair's IFC geometry as it is, and its plan-style
+  overlay is unchanged because stairs are drawn only in `renderPlan`.
 
 ## Decisions
 
@@ -38,8 +39,9 @@ target storey (rejected because it duplicates the floor level and can drift); se
 `StairFlight` and `StairLanding` elements (rejected because it adds more top-level types without a
 stair container).
 
-Consequence: a stair can only be added when its destination storey exists. The fixture supplies
-that; Elmstead's stair waits for its first floor to be traced.
+Consequence: a stair can only be added when its destination storey exists, and the checks require
+that destination to be the next storey up rather than any higher one. The fixture supplies that;
+Elmstead's stair waits for its first floor to be traced.
 
 ### Ordered segments carry the stair's sequence
 
@@ -70,6 +72,14 @@ fractional. IFC accepts real lengths, the SVG writer rounds to one decimal, and 
 tolerance. Storing these values instead would create two sources of truth and let a stair drift
 away from its storeys.
 
+Derived values are therefore plain `number` millimetres, not the branded `Mm` the authoring helpers
+use. `Mm` is an integer brand, so the units module fights this derivation: `mm(190.625)` and
+`div(mm(3050), 16)` both throw, and `divRound(mm(3050), 16)` returns 191, which sixteen risers turn
+into 3056 mm — six millimetres past the target storey, and no check would notice because the
+building-code limits are out of scope. The stair geometry helper divides plainly and returns
+`number`; the writer's `len` and `posLen` already take a plain number, so nothing converts on the way
+out.
+
 ### Flight geometry is one stepped profile extruded across the width
 
 Each flight body is a single closed profile in the vertical plane along the run: a stepped top,
@@ -82,11 +92,16 @@ changing the schema or IFC entity choices.
 
 ### IFC mapping separates the container from its parts
 
-- `IfcStair` is contained in the lower storey. Its `ShapeType` is derived from the flights:
-  one flight `STRAIGHT_RUN_STAIR`; two flights at 0° `TWO_STRAIGHT_RUN_STAIR`; 90°
-  `QUARTER_TURN_STAIR`; 180° `HALF_TURN_STAIR`; otherwise `NOTDEFINED`.
-- Each flight is an `IfcStairFlight` with `NumberOfRiser`, `NumberOfTreads` (risers minus one),
+- `IfcStair` is contained in the lower storey. Its `PredefinedType` comes from the turning angle
+  between consecutive flights' plan directions: one flight `STRAIGHT_RUN_STAIR`; two flights at 0°
+  `TWO_STRAIGHT_RUN_STAIR`; 90° `QUARTER_TURN_STAIR`; 180° `HALF_TURN_STAIR`; otherwise `NOTDEFINED`.
+- Each flight is an `IfcStairFlight` with `NumberOfRisers`, `NumberOfTreads` (risers minus one),
   `RiserHeight`, `TreadLength` and a stepped body.
+
+Both attribute names are the IFC4 ones, checked against IfcOpenShell 0.9.0.post1's IFC4 declaration:
+`IfcStair` has no `ShapeType` and `IfcStairFlight` has no `NumberOfRiser` — those are the IFC2x3
+names, and IFC4 rejects both. `IfcStairFlight` also has no `ShapeType` in IFC4; its `PredefinedType`
+is left `NOTDEFINED`. The enum values themselves are unchanged between the two releases.
 - Each landing is an `IfcSlab` with `PredefinedType` `LANDING` and a body extruded down by its
   thickness.
 - Flights and landings are aggregated under the stair with one `IfcRelAggregates` keyed
@@ -104,18 +119,54 @@ The plan draws each stair in full on its containing storey: flight footprints, t
 going, landing outlines and a walking-direction arrow on each flight. Stair points join the
 drawing extent. Groups use `class="stair"`, `stair-flight` and `stair-landing` with `data-id`.
 
-A strict plan cut at 1200 mm would hide the half landing and upper flight, which is exactly what
-this change is about. A break line and a destination-storey down arrow can be added later.
+Nothing needs exempting from the plan cut: `CUT_HEIGHT` only decides which openings are cut, and no
+geometry is cut at all, so a half landing at 1525 mm is drawn like everything else. A break line and
+a destination-storey down arrow can be added later.
 
-The plan-vs-3D test classifies only wall, room and paper pixels. Stair colours must stay away from
-those three so stair pixels are `Other` and the comparison ignores them; the IFC stair colour must
-be equally distinct for the top-view screenshot.
+Stairs are drawn by `renderPlan` alone. `renderFloor`, `renderWallTops` and `renderPlanAnnotations`
+are also imported by `viewer/main.ts`, which composites them into the viewer's plan-style overlay,
+so putting stair line work in one of them would silently change the viewer and the top view the
+plan-vs-3D test reads back. Drawing them only in `renderPlan` keeps the overlay as it is and leaves
+the viewer to show stairs as their own IFC solids — so "no viewer changes" means no viewer code
+changes and no change to what the overlay draws.
+
+The plan-vs-3D test classifies only wall, room and paper pixels, skipping a pixel when either side
+is something else. Two colour constraints follow:
+
+- **Plan side.** Stair lines must not be `C.wall`, `C.room` or `C.paper`, or plan stair pixels become
+  comparable against 3D pixels that show IFC-coloured solids. They must not be `C.wall` in
+  particular: `wallBox` aligns the two images on runs of wall-coloured pixels, and a flight
+  footprint is easily a 1200 mm run.
+- **IFC side.** The stair colour must be at least 0.02 away in RGB distance from every entry in
+  `STYLES`, not just visually distinct. `viewer/main.ts` nearest-matches each material against
+  `STYLES` and patches what it recognises: a stair matched as `wall` gets its upward faces painted
+  the plan's charcoal, and one matched as `slab` has its upward faces discarded, which would leave
+  the stair invisible from above. An unrecognised stair material is left alone, which is what we
+  want.
 
 ### Checks join the existing model-checks layer
 
-`checkStairs` validates the target storey, segment alternation, flight run and landing adjacency.
-Stair, flight and landing ids join the model-wide id table introduced by ELM-1. Checks report
-against the stair or landing id and never write.
+`checkStairs` validates the target storey, segment alternation, flight run, landing outlines and
+landing adjacency. Checks report against the stair or landing id and never write.
+
+The target must be the *next* storey up, not merely a higher one. Nothing else bounds the riser
+height — the building-code limits are out of scope — so a stair from the ground to a second storey
+would silently derive 381 mm risers over 16 of them and pass every check. Requiring adjacency makes
+the rise one storey's rise by construction.
+
+Landing outlines join `checkOutlines`, which currently walks rooms and slabs only. A landing outline
+is the same kind of open polygon and feeds both an IFC extrusion and the boundary test below, so a
+self-intersecting one has to be caught there rather than surfacing as a bogus volume.
+
+Landing adjacency is geometric, and `risers >= 2` stays in the schema: it is a property of one
+flight, not a cross-element rule, so the checks do not repeat it and the check could never fire.
+
+Stair, flight and landing ids join the model-wide id table introduced by ELM-1 — three more entries
+in `idEntries`, no new rule. ELM-1 is implemented but not yet archived, so that requirement is still
+in `openspec/changes/elm-1-harden-mvp-pipeline/` and `openspec/specs/model-checks/` still carries the
+*Unique component ids* requirement ELM-1 removes. This change extends ELM-1's rule rather than
+restating it, and ELM-1 should be synced and archived first so the two do not land as competing
+requirements.
 
 Deferred checks: headroom, stairwell fit, collision with walls and rooms, building-code limits, and
 the upper-floor slab opening.
@@ -131,16 +182,28 @@ would imply an incompatibility that does not exist.
 - **The stair requires a destination storey** → Use a two-storey fixture now; add Elmstead's stair
   when its first-floor plan is traced. Changing the target elevation automatically updates the
   stair.
-- **Derived riser and going are fractional** → Keep authored lengths integer; write derived lengths
-  as IFC reals; round SVG output to one decimal; compare volumes with tolerance.
+- **Derived riser and going are fractional** → Keep authored lengths integer; carry derived lengths
+  as plain `number` millimetres, never through `mm()`, `div()` or `divRound()`; write them as IFC
+  reals; round SVG output to one decimal; compare volumes with tolerance.
 - **Solid-to-base flights look heavy** → Acceptable for a massing model; replace with a sloped
   soffit later without changing the JSON contract or IFC entities.
 - **`IfcStair` has no body** → The round-trip explicitly exempts container elements; tests cover
   both the container and its parts.
 - **IFC decomposition validity** → IfcOpenShell validation runs on the fixture; web-ifc supports
-  `IfcStair`, `IfcStairFlight` and `IfcSlab` with `LANDING`.
-- **Plan-vs-3D colour classification** → Choose stair plan and IFC colours away from wall, room and
-  paper; add a test that the comparison still passes with stairs present.
+  `IfcStair`, `IfcStairFlight` and `IfcSlab` with `LANDING`. The attribute names were checked against
+  IfcOpenShell 0.9.0.post1's IFC4 declaration, where the IFC2x3 spellings `ShapeType` on `IfcStair`
+  and `NumberOfRiser` are both out of bounds.
+- **Plan-vs-3D colour classification** → Two constraints, both tested. The plan's stair colours stay
+  off `C.wall`, `C.room` and `C.paper`, so stair pixels are skipped rather than compared, and off
+  `C.wall` above all because `wallBox` aligns the images on runs of wall-coloured pixels. The IFC
+  stair colour stays at least 0.02 in RGB distance from every `STYLES` entry, so the viewer's
+  `styleOf` leaves the material alone instead of painting its tops charcoal or discarding them.
+- **The target storey must be the next one up** → A stair that legitimately skips a storey would be
+  rejected. Accept that: nothing else bounds the riser height while building-code checks are out of
+  scope, and a skipped storey is far more likely to be a modelling mistake than an intent.
+- **ELM-1 is implemented but unarchived** → `openspec/specs/` still predates it, so this change's
+  id requirement extends a rule that is not in the baseline yet. Sync and archive ELM-1 first, or
+  the two land as competing requirements.
 - **Landing adjacency is geometric** → Check with a 1 mm tolerance; authored points are integer
   millimetres and derived points are exact until SVG rounding.
 - **Upper-floor slab void is not modelled** → Out of scope; the first-floor plan and slab openings

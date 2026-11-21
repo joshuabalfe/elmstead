@@ -79,6 +79,10 @@ SHALL be a flight's plan run divided by its risers minus one.
 - **WHEN** a flight has 8 risers and a 1865 mm plan run
 - **THEN** its going is 1865/7 mm, about 266.43 mm
 
-#### Scenario: Top meets the target storey
-- **WHEN** the last flight's risers are added to the preceding levels
-- **THEN** the stair top equals the target storey's elevation
+#### Scenario: Uneven riser split still reaches the target
+- **WHEN** a stair from a storey at 0 to a storey at 3050 mm has flights of 9 and 7 risers with a landing between them
+- **THEN** the riser height is 190.625 mm, the landing is 1715.625 mm up, and walking the segments ends at 3050 mm
+
+#### Scenario: Rounding the riser would miss the target
+- **WHEN** the derived riser height is rounded to a whole millimetre before the levels are walked
+- **THEN** the stair top is 3056 mm, not the target storey's 3050 mm, which is why derived lengths stay fractional
