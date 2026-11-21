@@ -5,8 +5,8 @@ context: |
   Specs describe the pipeline (schema, checks, IFC, rendering, viewer), not a particular building.
   A change that adds an element type to the schema must say why an existing type can't express it.
   Tasks end with npm test and npm run typecheck passing, and generated files regenerated.
-  Change names are elm-<N>-<kebab-name>: N comes from openspec/next-change-number, which the
-  proposal increments (see AGENTS.md).
+  Change names are elm-<N>-<kebab-name>: N is one more than the highest number on main or in an
+  open pull request (see AGENTS.md).
 
 # Project context (optional)
 # Add only constraints that should guide OpenSpec artifacts and workflows.

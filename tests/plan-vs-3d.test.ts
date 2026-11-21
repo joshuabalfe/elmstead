@@ -80,10 +80,11 @@ afterAll(async () => {
   await server?.close();
   delete process.env.ELMSTEAD_OUT_DIR;
   if (outDir) rmSync(outDir, { recursive: true, force: true });
-});
+  // Closing Chromium after three swiftshader WebGL pages can exceed the default 10 s on CI.
+}, 60_000);
 
 describe("3D Top view against the plan", () => {
-  for (const path of ["models/example-cottage.ts", "models/elmstead"]) {
+  for (const path of ["models/example-cottage", "models/elmstead"]) {
     it(`shows the same walls, rooms and openings as the plan: ${path}`, async () => {
       const m = await model(path);
       const name = `test-${path.replace(/\W+/g, "-")}`;
@@ -110,11 +111,11 @@ describe("3D Top view against the plan", () => {
     await publish("test-elmstead-centreline", m);
     const r = comparePlanTo3d(planPixels(m), await topView("test-elmstead-centreline"));
     expect(r.badTiles.length).toBeGreaterThan(0);
-    // The worst tile covers the screen, which runs from (4.2, 5.7) to (4.65, 6.03) m.
+    // The worst tile covers the screen, which runs from (4.825, 6.575) to (5.45, 6.99) m.
     const [worst] = r.badTiles;
-    expect(worst!.x[0]).toBeLessThan(4.65);
-    expect(worst!.x[1]).toBeGreaterThan(4.2);
-    expect(worst!.y[0]).toBeLessThan(6.03);
-    expect(worst!.y[1]).toBeGreaterThan(5.7);
+    expect(worst!.x[0]).toBeLessThan(5.45);
+    expect(worst!.x[1]).toBeGreaterThan(4.825);
+    expect(worst!.y[0]).toBeLessThan(6.99);
+    expect(worst!.y[1]).toBeGreaterThan(6.575);
   }, 120_000);
 });

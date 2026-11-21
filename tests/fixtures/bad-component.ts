@@ -1,4 +1,4 @@
-import cottage from "../../models/example-cottage.js";
+import cottage from "../../models/example-cottage/index.js";
 
 // Same as the cottage, with its front door naming a component that does not exist.
 const broken = structuredClone(cottage) as any;

@@ -1,11 +1,13 @@
 /** Ground-floor rooms, outlined along the faces of the walls around them (./walls.ts). */
 import { face, faceCrossing, mm, pt, rectRoom, type Room } from "../../../src/model/index.js";
+import { coreW } from "../shared.js";
 import {
   bathNorthY,
   bedroomBathroom,
   bedroomWallY,
   breastBedroom,
   breastLiving,
+  east,
   eastIn,
   extEast,
   extSouth,
@@ -23,14 +25,16 @@ import {
 
 const hallNorthFace = face(hallLiving, "north");
 const spineNorth = face(spine, "north");
-const stairWestX = mm(5050); // where the stair footprint starts north of the spine
+const stairWestX = mm(5675); // where the stair footprint starts north of the spine
 const bathWestFace = face(lobbyBathroom, "east");
 const bedBathNorth = face(bedroomBathroom, "north");
-const rearHallEastX = mm(8975); // east face of the rear hall, where it meets the extension
+const rearHallEastX = mm(10000); // east face of the rear hall, where it meets the extension
+
+// Starts at the front of the chimney breast: the alcoves either side of it are built-ins, not floor space.
+export const living = rectRoom("room-living", "Living room", { west: westIn, east: partitionX, south: face(breastLiving, "north"), north: hallWallY });
 
 export const rooms: Room[] = [
-  // Starts at the front of the chimney breast: the alcoves either side of it are built-ins, not floor space.
-  rectRoom("room-living", "Living room", { west: westIn, east: partitionX, south: face(breastLiving, "north"), north: hallWallY }),
+  living,
   {
     id: "room-hallway",
     name: "Hallway",
@@ -75,13 +79,16 @@ export const rooms: Room[] = [
   {
     id: "room-rear-hall",
     name: "Rear hall",
+    // Steps around the east wall's head, which sits just north of the extension's south wall face.
     outline: [
-      pt(spineEastX, face(extSouth, "north")),
+      pt(coreW, face(extSouth, "north")),
       pt(face(extEast, "west"), face(extSouth, "north")),
       pt(face(extEast, "west"), northIn),
       pt(rearHallEastX, northIn),
       pt(rearHallEastX, spineNorth),
       pt(spineEastX, spineNorth),
+      pt(spineEastX, east.end.y),
+      pt(coreW, east.end.y),
     ],
   },
 ];

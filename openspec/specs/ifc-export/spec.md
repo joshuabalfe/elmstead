@@ -36,11 +36,20 @@ the id.
 ### Requirement: Walls and openings
 A wall SHALL be an `IfcWall` (`NOTDEFINED`) with an `Axis` polyline and an extruded `Body`, placed
 by its start, direction and justification. Each opening SHALL be an `IfcOpeningElement` that voids
-its wall, and its box SHALL extend 10 mm past each wall face.
+its wall, and its box SHALL extend 10 mm past each wall face. A window with a reveal SHALL be voided
+by its plan outline extruded up its height, its splayed jambs continued 10 mm past the face.
 
 #### Scenario: Opening cut
 - **WHEN** a wall has a window
 - **THEN** an `IfcOpeningElement` voids the wall and the window fills that opening
+
+#### Scenario: Splayed opening cut
+- **WHEN** a window has a 45° reveal on its wall's left face
+- **THEN** its `IfcOpeningElement` is square from the right face to the middle of the wall and widens at 45° on both jambs to the left face
+
+#### Scenario: Window without a reveal is unchanged
+- **WHEN** a window has no reveal
+- **THEN** its `IfcOpeningElement` is still a rectangle profile, the window's width by the wall's thickness plus 10 mm each side, extruded up its height
 
 ### Requirement: Doors
 A door SHALL fill its opening with a 50 mm `IfcDoor` panel. Its `OperationType` SHALL be
@@ -70,13 +79,37 @@ no height yet. Its `Name` SHALL be the room id and its `LongName` the room name.
 
 ### Requirement: Components as types
 Each door component SHALL be an `IfcDoorType` (`DOOR`, operation `NOTDEFINED`). Each window
-component SHALL be an `IfcWindowType` (`WINDOW`, `SINGLE_PANEL`). Each type's `Name` SHALL be the
-component name and its `Tag` the component id. Types SHALL be declared in the project
-(`IfcRelDeclares`) and linked to their openings (`IfcRelDefinesByType`).
+component SHALL be an `IfcWindowType` (`WINDOW`) whose `PartitioningType` follows its glazing grid;
+its instances SHALL carry the same value. Types SHALL carry the component name and id, be declared
+in the project and be linked to their openings.
 
 #### Scenario: Shared design
 - **WHEN** two windows of different sizes name the same window component
 - **THEN** both are instances of one `IfcWindowType`
+
+#### Scenario: Glazed front window
+- **WHEN** a window component has three columns and two rows of panes
+- **THEN** its `IfcWindowType` and instances use `USERDEFINED` with `UserDefinedPartitioningType` "3x2 grid"
+
+#### Scenario: Two-pane window
+- **WHEN** a window component has two columns and one row of panes
+- **THEN** its `IfcWindowType` and instances use `DOUBLE_PANEL_VERTICAL`
+
+#### Scenario: Two rows of panes
+- **WHEN** a window component has one column and two rows of panes
+- **THEN** its `IfcWindowType` and instances use `DOUBLE_PANEL_HORIZONTAL`
+
+#### Scenario: Three panes in a row
+- **WHEN** a window component has three columns and one row of panes
+- **THEN** its `IfcWindowType` and instances use `TRIPLE_PANEL_VERTICAL`
+
+#### Scenario: Three panes in a column
+- **WHEN** a window component has one column and three rows of panes
+- **THEN** its `IfcWindowType` and instances use `TRIPLE_PANEL_HORIZONTAL`
+
+#### Scenario: Plain window
+- **WHEN** a window component has no glazing
+- **THEN** its `IfcWindowType` and instances use `SINGLE_PANEL`
 
 ### Requirement: Deterministic GlobalIds
 Every GlobalId SHALL be a UUIDv5 compressed to IFC's 22-character form. The UUID SHALL be made from

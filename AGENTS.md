@@ -35,6 +35,10 @@ feedback loop while iterating.
 - **Never edit generated files by hand.** That means `out/` (git-ignored),
   `schema/building.schema.json`, SVG snapshots and IFC. Regenerate them instead. See
   [docs/development.md](docs/development.md#generated-files).
+- **When a constraint fails, fix the model, not the constraint.** A model's constraints file
+  (`constraints.ts` or `<name>.constraints.ts`) holds real measurements. Change or add a
+  constraint only when the user gives a measurement, with a `note` saying where it came from. See
+  [docs/modelling.md](docs/modelling.md#constraints).
 - **Keep the schema small.** If a model needs something the schema can't express, propose a
   new element type and agree its shape before adding it. Don't invent one.
 - **Pin dependency versions exactly.** Check the current release before adding or upgrading one.
@@ -49,11 +53,19 @@ Changes are tracked with [OpenSpec](https://github.com/Fission-AI/OpenSpec), in 
 - `openspec/changes/archive/` holds completed changes, so the history lives here.
 
 Every change is numbered like a ticket: `elm-<N>-<name>`, for example `elm-2-add-model-constraints`.
-To propose one, take N from `openspec/next-change-number`, name the change `elm-<N>-<name>`, and
-increment the file in the same commit. Never reuse or renumber a change. If two branches take the
-same number, the file conflicts when they merge: the branch merged second takes the next number
-and renames its change. `npm test` fails on an unnumbered change, a reused number or a stale
-counter.
+To propose one, take N as one more than the highest number already taken, counting:
+
+- the changes on `main`, in `openspec/changes/` and `openspec/changes/archive/`;
+- every open pull request, whose title starts `ELM-<N>: ` (`gh pr list --state open`).
+
+Open the pull request, as a draft if it isn't ready, as soon as you take a number, so the next
+change sees it. Never reuse or renumber a change. If two changes still end up with the same
+number, the one merged second takes the next free number and renames its change. `npm test` fails
+on an unnumbered change or a reused number.
+
+Name a branch that works on a change after the change, `elm-<N>-<name>`, so the remote branch
+says which spec it is for. Add a suffix when one change needs several branches, for example
+`elm-2-add-model-constraints-archive`.
 
 Start the title of a pull request that proposes or implements a change with its number in upper
 case, `ELM-<N>: `, for example `ELM-2: Add model constraints`. Start the title of a pull request

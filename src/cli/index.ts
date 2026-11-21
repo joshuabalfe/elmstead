@@ -2,6 +2,8 @@ import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { formatIssue, hasErrors, type Issue } from "../checks/issue.js";
 import { checkModel } from "../checks/model.js";
+import { checkConstraints } from "../constraints/check.js";
+import { loadConstraints, type LoadedConstraints } from "../constraints/load.js";
 import { writeIfc } from "../ifc/writer.js";
 import { roundTripChecks } from "../ifc/roundtrip.js";
 import { validateIfc } from "../ifc/validate.js";
@@ -31,11 +33,24 @@ async function verifyIfc(model: BuildingModel, ifc: Uint8Array, ifcPath: string,
   console.log(`valid   ${ifcPath}: ${v.errors} errors, ${v.warnings} warnings (ifcopenshell.validate)`);
 }
 
-/** Returns true when the build wrote its files without an ERROR. */
-async function runBuild(loaded: LoadedModel, out: string, issues: Issue[]): Promise<boolean> {
+/**
+ * The model checks, then the model's constraints when it has them, printing how many were met.
+ * Returns true when neither reported an ERROR.
+ */
+function runChecks(loaded: LoadedModel, constraints: LoadedConstraints | undefined, issues: Issue[]): boolean {
   const checked = checkModel(loaded.model);
+  if (constraints) {
+    const report = checkConstraints(loaded.model, constraints.groups);
+    checked.push(...report.issues);
+    console.log(`constr  ${constraints.path}: ${report.met} of ${report.total} met`);
+  }
   issues.push(...checked);
-  if (hasErrors(checked)) return false; // nothing written: fix the model first
+  return !hasErrors(checked);
+}
+
+/** Returns true when the build wrote its files without an ERROR. */
+async function runBuild(loaded: LoadedModel, constraints: LoadedConstraints | undefined, out: string, issues: Issue[]): Promise<boolean> {
+  if (!runChecks(loaded, constraints, issues)) return false; // nothing written: fix the model first
   // Build both artefacts in memory first, so a writer failure cannot leave new JSON beside an old IFC.
   const json = formatJson(loaded.model);
   const model = BuildingModelSchema.parse(JSON.parse(json));
@@ -51,10 +66,9 @@ async function runBuild(loaded: LoadedModel, out: string, issues: Issue[]): Prom
   return !hasErrors(issues);
 }
 
-async function runRender(loaded: LoadedModel, out: string, flags: Set<string>, issues: Issue[]): Promise<void> {
-  const checked = checkModel(loaded.model);
-  issues.push(...checked);
-  if (hasErrors(checked)) return; // nothing written: fix the model first
+/** `constraints` is undefined in `all`, whose build step has already checked them. */
+async function runRender(loaded: LoadedModel, constraints: LoadedConstraints | undefined, out: string, flags: Set<string>, issues: Issue[]): Promise<void> {
+  if (!runChecks(loaded, constraints, issues)) return; // nothing written: fix the model first
   for (const p of renderAll(loaded.name, loaded.model, out, { ids: flags.has("--ids") })) console.log(`render  ${p}`);
   if (flags.has("--no-3d")) return;
   if (!existsSync(join(out, `${loaded.name}.ifc`))) {
@@ -86,19 +100,26 @@ async function main(argv: string[]): Promise<number> {
       return 1;
     }
     const loaded = result.value;
+    const constrained = await loadConstraints(modelPath);
+    if (!constrained.ok) {
+      print(constrained.issues);
+      console.log(`FAILED  ${constrained.path}: constraints did not validate`);
+      return 1;
+    }
+    const constraints = constrained.value;
     const out = outDir();
     switch (command) {
       case "build":
-        await runBuild(loaded, out, issues);
+        await runBuild(loaded, constraints, out, issues);
         break;
       case "render":
-        await runRender(loaded, out, flags, issues);
+        await runRender(loaded, constraints, out, flags, issues);
         break;
       case "check":
-        issues.push(...checkModel(loaded.model));
+        runChecks(loaded, constraints, issues);
         break;
       case "all":
-        if (await runBuild(loaded, out, issues)) await runRender(loaded, out, flags, issues);
+        if (await runBuild(loaded, constraints, out, issues)) await runRender(loaded, undefined, out, flags, issues);
         break;
     }
   } catch (e) {

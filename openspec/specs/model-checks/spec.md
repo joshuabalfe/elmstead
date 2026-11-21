@@ -6,13 +6,6 @@ written (`src/checks/`). So far these cover door and window components.
 
 ## Requirements
 
-### Requirement: Unique component ids
-Door and window component ids SHALL be unique across both lists.
-
-#### Scenario: Same id in doors and windows
-- **WHEN** a door component and a window component share an id
-- **THEN** an ERROR "component id is used twice" is reported against that id
-
 ### Requirement: Openings reference a component of their own kind
 An opening's `componentId`, when present, SHALL name a component of the same kind: doors name door
 components and windows name window components. Openings without a `componentId` SHALL be allowed.
@@ -36,8 +29,101 @@ direction.
 
 ### Requirement: Checks gate the build
 `build` SHALL run the model checks before writing any output and SHALL write nothing if they report
-an ERROR.
+an ERROR. `render` SHALL run the model checks before writing any plan and SHALL write nothing if
+they report an ERROR.
 
 #### Scenario: Failing check
 - **WHEN** any model check reports an ERROR
-- **THEN** no file in `out/` is written or changed by that build
+- **THEN** no file in `out/` is written or changed by that command
+
+#### Scenario: Render refuses an invalid model
+- **WHEN** `render` runs on a model with a check ERROR
+- **THEN** no plan or snapshot is written and the command exits 1
+
+### Requirement: Unique ids across the model
+Every id-bearing node SHALL have an id unique across the project, site, building, storeys, walls,
+openings, slabs, rooms and components. A duplicate SHALL be an ERROR against that id whose message
+names both kinds involved.
+
+#### Scenario: Element and component share an id
+- **WHEN** a window component and a wall have the same id
+- **THEN** the checks report an ERROR against that id saying it is used by a wall and a window component
+
+#### Scenario: Duplicate room ids
+- **WHEN** two rooms on one storey have the same id
+- **THEN** the checks report an ERROR against that id saying it is used by two rooms, instead of writing IFC with duplicate GlobalIds
+
+#### Scenario: Duplicate component ids
+- **WHEN** a door component and a window component share an id
+- **THEN** the checks report an ERROR "component id is used twice" against that id
+
+### Requirement: Openings belong to a wall on their storey
+Each opening's `wallId` SHALL name a wall on the same storey. A zero-length wall SHALL be an ERROR.
+
+#### Scenario: Missing host wall
+- **WHEN** an opening names a wall that is not on its storey
+- **THEN** the checks report an ERROR against the opening
+
+#### Scenario: Zero-length wall
+- **WHEN** a wall's start and end points are the same
+- **THEN** the checks report an ERROR against the wall
+
+### Requirement: Openings fit their wall
+An opening SHALL fit wholly within its wall: the offset plus its width SHALL NOT exceed the wall
+length, and its sill height plus its height SHALL NOT exceed the wall height. A window with a
+reveal SHALL also fit at its splayed face, where it is wider at both jambs.
+
+#### Scenario: Opening past the wall end
+- **WHEN** an opening's `offsetAlongWall` plus `width` is greater than the wall length
+- **THEN** the checks report an ERROR against the opening
+
+#### Scenario: Opening above the wall top
+- **WHEN** an opening's `sillHeight` plus `height` is greater than the wall height
+- **THEN** the checks report an ERROR against the opening
+
+#### Scenario: Reveal past the wall start
+- **WHEN** a window with a 45° reveal in a 400 mm wall has an `offsetAlongWall` of 100
+- **THEN** the checks report an ERROR against the window that it is 100 mm past the wall start
+
+### Requirement: Openings on one wall do not overlap
+Two openings on the same wall SHALL NOT overlap in both their plan outline and their vertical
+extent. A window's plan outline SHALL include its splayed reveal. An overlap SHALL be an ERROR
+against both openings.
+
+#### Scenario: Two openings cut the same wall volume
+- **WHEN** two windows on one wall share part of their width and part of their height range
+- **THEN** the checks report an ERROR against both openings
+
+#### Scenario: Reveals overlap at the face
+- **WHEN** two windows at the same height are 300 mm apart on a 400 mm wall and both have a 45° reveal on the same face
+- **THEN** the checks report an ERROR against both windows, because their 200 mm splays meet at that face
+
+#### Scenario: Reveals on opposite faces
+- **WHEN** two windows at the same height are 300 mm apart on a 400 mm wall, one with a 45° reveal on the left face and one on the right
+- **THEN** the checks report no overlap, because each 200 mm splay stops short of the other window's square half
+
+### Requirement: Outlines are simple polygons
+Every room and slab outline SHALL have at least three distinct points, SHALL NOT repeat any point,
+SHALL NOT repeat the first point at the end, SHALL have non-zero area and SHALL NOT self-intersect.
+Edges SHALL NOT cross, touch a non-adjacent edge or overlap collinearly, and adjacent edges SHALL
+NOT double back over each other. A violation SHALL be an ERROR against the outline's element.
+
+#### Scenario: Self-intersecting room
+- **WHEN** a room outline crosses itself
+- **THEN** the checks report an ERROR against the room
+
+#### Scenario: Repeated point
+- **WHEN** a slab outline repeats a point, including at a non-adjacent position
+- **THEN** the checks report an ERROR against the slab
+
+#### Scenario: Vertex on a non-adjacent edge
+- **WHEN** an outline has a vertex lying on an edge it is not adjacent to
+- **THEN** the checks report an ERROR against the element
+
+#### Scenario: Collinear overlapping edges
+- **WHEN** two non-adjacent edges of an outline overlap along the same line
+- **THEN** the checks report an ERROR against the element
+
+#### Scenario: Adjacent edges double back
+- **WHEN** an outline returns along an edge it has just traversed
+- **THEN** the checks report an ERROR against the element
