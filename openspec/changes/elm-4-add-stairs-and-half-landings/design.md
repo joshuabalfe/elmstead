@@ -101,7 +101,8 @@ changing the schema or IFC entity choices.
 Both attribute names are the IFC4 ones, checked against IfcOpenShell 0.9.0.post1's IFC4 declaration:
 `IfcStair` has no `ShapeType` and `IfcStairFlight` has no `NumberOfRiser` — those are the IFC2x3
 names, and IFC4 rejects both. `IfcStairFlight` also has no `ShapeType` in IFC4; its `PredefinedType`
-is left `NOTDEFINED`. The enum values themselves are unchanged between the two releases.
+is `STRAIGHT`, since winders and curved flights are out of scope. The stair enum values themselves
+are unchanged between the two releases.
 - Each landing is an `IfcSlab` with `PredefinedType` `LANDING` and a body extruded down by its
   thickness.
 - Flights and landings are aggregated under the stair with one `IfcRelAggregates` keyed
