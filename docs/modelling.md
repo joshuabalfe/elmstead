@@ -93,6 +93,9 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
 | **Window** | `wallId`, `offsetAlongWall`, `width`, `height`, `sillHeight`, `reveal?` | `kind: "window"` |
 | **Slab** | `outline`, `thickness`, `elevationOffset` | top of slab is at storey elevation + `elevationOffset`; the slab extends downwards from there |
 | **Room** | `name`, `outline` | 2D outline only, for now |
+| **Stair** | `toStoreyId`, `segments` | a storey element climbing to the next storey up; `segments` run bottom to top |
+| **Stair flight** | `start`, `end`, `width`, `risers` | `kind: "flight"`; a straight run, centred on its start→end line, of at least 2 risers |
+| **Stair landing** | `outline`, `thickness` | `kind: "landing"`; a flat platform, its level derived from the flights below it |
 | **Door / window component** | `id`, `name` | a design (not a size) shared by openings, in the building's `components: { doors, windows }`; written to IFC as `IfcDoorType` / `IfcWindowType` |
 
 - Outlines are open polygons: at least three distinct points, no repeated adjacent points, the
@@ -202,6 +205,49 @@ window("window-landing", ext.north, offset, sash, { width: mm(900), height: m(1.
 defineBuilding({ ..., components: { doors: [internalDoor], windows: [sash] }, storeys: [...] });
 ```
 
+## Stairs
+
+A stair climbs from the storey that holds it to the storey named by `toStoreyId`, which must be the
+next one up. Its `segments` run bottom to top, start and end with a flight, and never put two
+landings in a row. A flight is centred on its start→end line and a landing's outline must meet the
+end of the flight before it and the start of the flight after it.
+
+Nothing vertical is stored. The rise comes from the two storeys and the rest follows:
+
+```text
+total rise = toStorey.elevation − storey.elevation
+riser      = total rise / the sum of every flight's risers
+going      = a flight's plan run / (its risers − 1)
+levels     = walk the segments: a flight rises by risers × riser, a landing stays level
+```
+
+So a 3050 mm rise over two flights of 8 risers gives 190.625 mm risers, a half landing 1525 mm up,
+and a top that lands exactly on the storey above. Move that storey and the whole stair follows.
+Derived lengths are plain numbers rather than the branded integer `Mm`: rounding 190.625 to 191
+would put sixteen risers at 3056 mm, past the storey the stair climbs to.
+
+`models/example-two-storey/index.ts` is a worked half-turn stair:
+
+```ts
+const rise = m(3.05); // 3050 mm over 16 risers: 190.625 mm each
+
+const firstFloor: Storey = { id: "storey-first", name: "First floor", elevation: rise, ... };
+
+const lowerFlight = stairFlight("stair-flight-lower", pt(mm(2600), mm(1400)), pt(mm(4400), mm(1400)), { width: mm(800), risers: 8 });
+const halfLanding = stairLanding("stair-landing-half", outline, { thickness: mm(150) });
+const upperFlight = stairFlight("stair-flight-upper", pt(mm(4400), mm(2200)), pt(mm(2600), mm(2200)), { width: mm(800), risers: 8 });
+
+const ground: Storey = {
+  id: "storey-ground", elevation: mm(0), ...,
+  stairs: [stair("stair-main", firstFloor, [lowerFlight, halfLanding, upperFlight])],
+};
+```
+
+The two flights turn through 180°, so the IFC calls the stair `HALF_TURN_STAIR`. Its landing is an
+ordinary polygon, so an irregular one — a rear hall wrapping around it, say — needs no special case.
+Not modelled yet: winders, curved and spiral stairs, railings, front steps, headroom, and openings
+cut in an upper floor's slab (shape the slab's outline around the stairwell instead).
+
 ## Helpers
 
 All of these are in `src/model/helpers.ts` and exported from `src/model/index.ts`. They only
@@ -220,6 +266,9 @@ build plain values, so a model can always write the JSON shape out directly inst
 | `door(id, wall, offset, component?, { width, height }, swing?)` | a door, with `sillHeight` 0, linked to the component if given one |
 | `window(id, wall, offset, component?, { width, height, sillHeight }, reveal?)` | a window, linked to the component if given one, with splayed jambs if given a reveal |
 | `faceCrossing(wall, "left" \| "right", "x" \| "y", at)` | where a face of a wall at any angle crosses the line x = `at` or y = `at`: room corners against diagonal walls |
+| `stairFlight(id, start, end, { width, risers })` | a straight flight of steps, for `stair()` |
+| `stairLanding(id, outline, { thickness })` | a flat platform between flights, for `stair()` |
+| `stair(id, toStorey, segments)` | a stair to `toStorey`, recording its id as `toStoreyId`; segments run bottom to top |
 
 ### Make dimensions follow each other
 
@@ -324,6 +373,6 @@ room's storey).
 
 ## Things the schema does not have yet
 
-Room heights (rooms are 2D outlines in IFC), wall types (external or internal), stairs, roofs and
-curved walls. Don't approximate these with the existing types. Propose a schema change instead
-(see [Development](development.md#adding-a-new-element-type)).
+Room heights (rooms are 2D outlines in IFC), wall types (external or internal), roofs, curved walls,
+winder and spiral stairs, and railings. Don't approximate these with the existing types. Propose a
+schema change instead (see [Development](development.md#adding-a-new-element-type)).

@@ -84,7 +84,7 @@ afterAll(async () => {
 }, 60_000);
 
 describe("3D Top view against the plan", () => {
-  for (const path of ["models/example-cottage", "models/elmstead"]) {
+  for (const path of ["models/example-cottage", "models/elmstead", "models/example-two-storey"]) {
     it(`shows the same walls, rooms and openings as the plan: ${path}`, async () => {
       const m = await model(path);
       const name = `test-${path.replace(/\W+/g, "-")}`;

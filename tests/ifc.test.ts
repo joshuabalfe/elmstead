@@ -4,6 +4,7 @@ import { join } from "node:path";
 import * as WebIFC from "web-ifc";
 import { describe, expect, it } from "vitest";
 import cottage from "../models/example-cottage/index.js";
+import twoStorey from "../models/example-two-storey/index.js";
 import { mm } from "../src/model/index.js";
 import { ifcGuid } from "../src/ifc/guid.js";
 import { ifcGeometry, roundTripChecks } from "../src/ifc/roundtrip.js";
@@ -170,6 +171,140 @@ describe("IFC writer", () => {
   });
 });
 
+describe("a stair in IFC", () => {
+  const stairModel = BuildingModelSchema.parse(JSON.parse(JSON.stringify(twoStorey)));
+  const stair = stairModel.storeys[0]!.stairs![0]!;
+  const write = (m: BuildingModel) => writeIfc(m, { fileName: "stair.ifc" });
+  const enumValue = (v: unknown) => (typeof v === "string" ? v : ((v as { value?: string } | null)?.value ?? null));
+
+  /** Open the written IFC and read every line of one entity type. */
+  async function lines(ifc: Uint8Array, type: number) {
+    const api = new WebIFC.IfcAPI();
+    await api.Init();
+    const id = api.OpenModel(ifc);
+    try {
+      return ids(api, id, type).map((e) => api.GetLine(id, e));
+    } finally {
+      api.CloseModel(id);
+    }
+  }
+
+  it("writes the stair as a bodyless IfcStair container typed by its flights' turn", async () => {
+    const [container] = await lines(await write(stairModel), WebIFC.IFCSTAIR);
+    expect(container!.Tag.value).toBe("stair-main");
+    expect(enumValue(container!.PredefinedType)).toBe("HALF_TURN_STAIR");
+    expect(container!.Representation).toBeNull();
+  });
+
+  it("types a straight stair and an odd angle", async () => {
+    const straight = structuredClone(stairModel);
+    straight.storeys[0]!.stairs![0]!.segments = [structuredClone(stair.segments[0]!)];
+    expect(enumValue((await lines(await write(straight), WebIFC.IFCSTAIR))[0]!.PredefinedType)).toBe("STRAIGHT_RUN_STAIR");
+
+    const odd = structuredClone(stairModel);
+    const upper = odd.storeys[0]!.stairs![0]!.segments[2]!;
+    if (upper.kind === "flight") upper.end = { x: upper.start.x - 1800, y: upper.start.y + 1800 } as never; // 45° turn
+    expect(enumValue((await lines(await write(odd), WebIFC.IFCSTAIR))[0]!.PredefinedType)).toBe("NOTDEFINED");
+  });
+
+  it("writes each flight with the IFC4 riser and tread attributes", async () => {
+    const flights = await lines(await write(stairModel), WebIFC.IFCSTAIRFLIGHT);
+    expect(flights).toHaveLength(2);
+    for (const f of flights) {
+      expect(f.NumberOfRisers?.value ?? f.NumberOfRisers).toBe(8);
+      expect(f.NumberOfTreads?.value ?? f.NumberOfTreads).toBe(7);
+      expect(f.RiserHeight?.value ?? f.RiserHeight).toBeCloseTo(190.625, 9);
+      expect(f.TreadLength?.value ?? f.TreadLength).toBeCloseTo(1800 / 7, 6);
+      expect(enumValue(f.PredefinedType)).toBe("STRAIGHT");
+    }
+    expect(flights.map((f) => f.Tag.value).sort()).toEqual(["stair-flight-lower", "stair-flight-upper"]);
+  });
+
+  it("writes each landing as an IfcSlab LANDING", async () => {
+    const slabs = await lines(await write(stairModel), WebIFC.IFCSLAB);
+    const landing = slabs.find((s) => s.Tag.value === "stair-landing-half")!;
+    expect(enumValue(landing.PredefinedType)).toBe("LANDING");
+    expect(slabs.filter((s) => enumValue(s.PredefinedType) === "LANDING")).toHaveLength(1);
+  });
+
+  it("aggregates the flights and the landing under the stair, and contains only the stair", async () => {
+    const ifc = await write(stairModel);
+    const api = new WebIFC.IfcAPI();
+    await api.Init();
+    const id = api.OpenModel(ifc);
+    try {
+      const tag = (e: number) => api.GetLine(id, e).Tag?.value as string;
+      const aggregates = ids(api, id, WebIFC.IFCRELAGGREGATES).map((e) => api.GetLine(id, e));
+      const stairRel = aggregates.filter((r) => tag(r.RelatingObject.value) === "stair-main");
+      expect(stairRel).toHaveLength(1);
+      expect(stairRel[0]!.RelatedObjects.map((o: { value: number }) => tag(o.value)).sort()).toEqual([
+        "stair-flight-lower",
+        "stair-flight-upper",
+        "stair-landing-half",
+      ]);
+      // Only the container is contained in the storey; the parts reach it through the aggregation.
+      const contained = ids(api, id, WebIFC.IFCRELCONTAINEDINSPATIALSTRUCTURE)
+        .map((e) => api.GetLine(id, e))
+        .flatMap((c) => c.RelatedElements.map((e: { value: number }) => tag(e.value)));
+      expect(contained).toContain("stair-main");
+      for (const part of ["stair-flight-lower", "stair-flight-upper", "stair-landing-half"]) expect(contained).not.toContain(part);
+    } finally {
+      api.CloseModel(id);
+    }
+  });
+
+  it("derives GlobalIds from the stair, flight and landing ids", async () => {
+    const ifc = new TextDecoder().decode(await write(stairModel));
+    for (const key of ["stair-main", "stair-flight-lower", "stair-flight-upper", "stair-landing-half", "stair-main#aggregates"]) {
+      expect(ifc).toContain(`('${ifcGuid(key)}'`);
+    }
+  });
+
+  it("styles both flights and the landing, and leaves the container unstyled", async () => {
+    const ifc = new TextDecoder().decode(await write(stairModel));
+    const style = /#(\d+)=IFCSURFACESTYLE\('stair'/.exec(ifc)![1];
+    const styled = ifc.match(new RegExp(`IFCSTYLEDITEM\\(#\\d+,\\(#${style}\\)`, "g")) ?? [];
+    expect(styled).toHaveLength(3); // two flights and one landing; the container has no body to style
+  });
+
+  it("matches the flight and landing volumes in the round-trip", async () => {
+    const ifc = await write(stairModel);
+    expect(await roundTripChecks(stairModel, ifc)).toEqual([]);
+    const geom = await ifcGeometry(ifc);
+    // Flight: stepped profile area × width = (run × the flight's rise / 2) × width.
+    expect(geom.get("stair-flight-lower")!.volume).toBeCloseTo(((1800 * 1525) / 2) * 800, 0);
+    // Landing: 800 × 1600 outline × 150 thick.
+    expect(geom.get("stair-landing-half")!.volume).toBeCloseTo(800 * 1600 * 150, 0);
+    expect(geom.has("stair-main")).toBe(false); // the container has no body, and is not expected to
+  });
+
+  it("reports a stair part the IFC has no geometry for", async () => {
+    const ifc = await write(stairModel);
+    const ghost = structuredClone(stairModel);
+    ghost.storeys[0]!.stairs![0]!.segments.push({
+      kind: "flight",
+      id: "stair-flight-ghost",
+      start: { x: 0, y: 0 },
+      end: { x: 1800, y: 0 },
+      width: 800,
+      risers: 8,
+    } as never);
+    const issues = await roundTripChecks(ghost, ifc);
+    expect(issues.map((i) => i.id)).toContain("stair-flight-ghost");
+    expect(issues.find((i) => i.id === "stair-flight-ghost")!.message).toMatch(/no geometry for this stair flight/);
+  });
+
+  it("reports a landing whose volume the IFC does not match", async () => {
+    const ifc = await write(stairModel);
+    const thicker = structuredClone(stairModel);
+    const landing = thicker.storeys[0]!.stairs![0]!.segments[1]!;
+    if (landing.kind === "landing") landing.thickness = 300 as never;
+    const issues = await roundTripChecks(thicker, ifc);
+    expect(issues.map((i) => i.id)).toEqual(["stair-landing-half"]);
+    expect(issues[0]!.message).toMatch(/stair landing volume/);
+  });
+});
+
 describe("IfcOpenShell validator", () => {
   const dir = mkdtempSync(join(tmpdir(), "elmstead-"));
 
@@ -184,6 +319,14 @@ describe("IfcOpenShell validator", () => {
   it("passes a splayed reveal with no errors or warnings", async () => {
     const path = join(dir, "splayed.ifc");
     writeFileSync(path, await writeIfc(splayedCottage(), { fileName: "splayed.ifc" }));
+    const v = validateIfc(path);
+    expect(v.issues).toEqual([]);
+    expect([v.errors, v.warnings]).toEqual([0, 0]);
+  }, 60_000);
+
+  it("passes a stair, its flights and its landing with no errors or warnings", async () => {
+    const path = join(dir, "stair.ifc");
+    writeFileSync(path, await writeIfc(BuildingModelSchema.parse(JSON.parse(JSON.stringify(twoStorey))), { fileName: "stair.ifc" }));
     const v = validateIfc(path);
     expect(v.issues).toEqual([]);
     expect([v.errors, v.warnings]).toEqual([0, 0]);

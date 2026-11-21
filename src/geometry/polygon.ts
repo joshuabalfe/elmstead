@@ -1,4 +1,4 @@
-import { cross, dot, vsub, type Vec } from "./vec.js";
+import { cross, dot, len, vsub, vscale, vadd, type Vec } from "./vec.js";
 
 /** Signed area (mm²), positive for counter-clockwise outlines. The outline is implicitly closed. */
 export function signedArea(pts: readonly Vec[]): number {
@@ -112,6 +112,23 @@ const collinear = (a: Vec, b: Vec, c: Vec): boolean => Math.abs(cross(vsub(b, a)
 function onSegment(p: Vec, a: Vec, b: Vec): boolean {
   if (!collinear(a, b, p)) return false;
   return p.x >= Math.min(a.x, b.x) - near && p.x <= Math.max(a.x, b.x) + near && p.y >= Math.min(a.y, b.y) - near && p.y <= Math.max(a.y, b.y) + near;
+}
+
+/** Distance from a point to a segment, in mm. */
+function distanceToSegment(p: Vec, a: Vec, b: Vec): number {
+  const ab = vsub(b, a);
+  const span = dot(ab, ab);
+  const t = span === 0 ? 0 : Math.max(0, Math.min(1, dot(vsub(p, a), ab) / span));
+  return len(vsub(p, vadd(a, vscale(ab, t))));
+}
+
+/** Distance in mm from a point to the nearest edge of an implicitly closed outline. */
+export function distanceToOutline(p: Vec, pts: readonly Vec[]): number {
+  let best = Infinity;
+  for (let i = 0; i < pts.length; i++) {
+    best = Math.min(best, distanceToSegment(p, pts[i]!, pts[(i + 1) % pts.length]!));
+  }
+  return best;
 }
 
 /**

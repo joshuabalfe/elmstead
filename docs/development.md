@@ -24,12 +24,15 @@ output is written and the command exits 1. The rules are:
 - component ids are unique, each `componentId` names a component of its own kind, and a window's
   frame and glazing bars leave room for glass
 - every id-bearing node has a model-unique id (project, site, building, storeys, walls, openings,
-  slabs, rooms and components)
+  slabs, rooms, stairs, stair flights, stair landings and components)
 - walls have non-zero length
 - openings name a wall on their storey, fit within its length and height, and do not overlap
   another opening on the same wall in both directions
-- room and slab outlines are simple polygons: at least three distinct points, no repeated first
-  or adjacent points, non-zero area and no self-intersection
+- room, slab and stair landing outlines are simple polygons: at least three distinct points, no
+  repeated first or adjacent points, non-zero area and no self-intersection
+- a stair names the next storey up, alternates flight and landing starting and ending with a
+  flight, runs somewhere on every flight, and each landing meets the flights either side of it
+  within 1 mm
 
 Add new rules to the matching `check*` function, keep them pure (no writes or exits), and report
 them as an `Issue` against the element id. Add a fixture test to `tests/checks.test.ts`.

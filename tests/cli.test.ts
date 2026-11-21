@@ -66,6 +66,13 @@ describe("CLI", () => {
     expect(r.files).toEqual([]);
   });
 
+  it("reports a stair landing its flights miss, and writes nothing", () => {
+    const r = run(["build", "tests/fixtures/bad-stair.ts"]);
+    expect(r.status).toBe(1);
+    expect(output(r)).toContain("stair-landing-half: stair-flight-lower ends 100 mm away from this landing");
+    expect(r.files).toEqual([]);
+  });
+
   it("warns but still writes plans when render runs before build", () => {
     const r = run(["render", "models/example-cottage"]);
     expect(r.status).toBe(0);

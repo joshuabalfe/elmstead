@@ -242,6 +242,12 @@
           "items": {
             "$ref": "#/$defs/Room"
           }
+        },
+        "stairs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Stair"
+          }
         }
       },
       "required": [
@@ -539,6 +545,112 @@
         "id",
         "name",
         "outline"
+      ],
+      "additionalProperties": false
+    },
+    "Stair": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "toStoreyId": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "segments": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/StairFlight"
+              },
+              {
+                "$ref": "#/$defs/StairLanding"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "id",
+        "toStoreyId",
+        "segments"
+      ],
+      "additionalProperties": false
+    },
+    "StairFlight": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "flight"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "start": {
+          "$ref": "#/$defs/Point"
+        },
+        "end": {
+          "$ref": "#/$defs/Point"
+        },
+        "width": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "risers": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "start",
+        "end",
+        "width",
+        "risers"
+      ],
+      "additionalProperties": false
+    },
+    "StairLanding": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "landing"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "outline": {
+          "minItems": 3,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Point"
+          }
+        },
+        "thickness": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "outline",
+        "thickness"
       ],
       "additionalProperties": false
     }

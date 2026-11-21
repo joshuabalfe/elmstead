@@ -23,15 +23,24 @@ this order:
 4. door leaves with swing arcs, and window symbols (outline, two glazing lines, and a small block
    for each frame piece or glazing bar the cut passes through: jambs and vertical bars). A splayed
    window's outline, and the dashed outline of one the cut misses, follow its reveal
-5. room labels (name and area in m²) and room dimensions: the longest clear wall-to-wall span
+5. stairs, drawn in full rather than cut: each flight's footprint, a tread line per tread and a
+   walking-direction arrow, and each landing's outline. The cut height only decides which openings
+   are cut, so a half landing above it is drawn like any other geometry
+6. room labels (name and area in m²) and room dimensions: the longest clear wall-to-wall span
    east–west and north–south, in mm, drawn as dimension lines inside the room and kept clear of
    the label where the room is wide enough
-6. element ids in red, only with `--ids`
-7. overall dimensions
-8. title, north arrow and a 5 m scale bar
+7. element ids in red, only with `--ids`
+8. overall dimensions
+9. title, north arrow and a 5 m scale bar
 
-Every element is an SVG group with `class` (`wall`, `door`, `window`, `room`, `room-dimensions`, `slab`) and
-`data-id` set to its model id, so the SVG can be inspected or queried.
+Every element is an SVG group with `class` (`wall`, `door`, `window`, `room`, `room-dimensions`,
+`slab`, `stair`, `stair-flight`, `stair-landing`) and `data-id` set to its model id, so the SVG can
+be inspected or queried. A stair's flights and landings are groups nested inside the stair's.
+
+Stairs are drawn by `renderPlan` alone. `renderFloor`, `renderWallTops` and `renderPlanAnnotations`,
+which the viewer composites into its plan-style overlay, do not draw them, so the viewer shows a
+stair as its own IFC geometry and needs no stair-specific code. Stair colours stay clear of the
+wall, room and paper colours the plan-versus-3D comparison classifies (`src/render/style.ts`).
 
 Drawing style is all in one place: `src/render/style.ts` holds the scale, colours, font and
 margins.

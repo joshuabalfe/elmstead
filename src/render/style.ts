@@ -15,6 +15,10 @@ export const C = {
   glass: "#3a7bd5",
   dim: "#5a5a5a",
   id: "#c0392b",
+  // Stairs. Must stay clear of wall, room and paper: the plan-versus-3D test classifies a pixel by
+  // those three and compares only the pixels it recognises, so stair pixels must not be mistaken
+  // for one of them (see tests/support/plan-vs-3d.ts).
+  stair: "#5c8a55",
 };
 
 /** Room label font sizes (px) and baselines relative to the room's centroid. */

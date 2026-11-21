@@ -88,6 +88,42 @@ export const RoomSchema = z.strictObject({
   outline: PolygonSchema,
 }).meta({ id: "Room" });
 
+/**
+ * One straight run of steps. `start` and `end` are plan coordinates; the levels, the riser height
+ * and the going are derived from the two storeys and the segment order, never stored.
+ */
+export const StairFlightSchema = z.strictObject({
+  kind: z.literal("flight"),
+  id: IdSchema,
+  start: PointSchema,
+  end: PointSchema,
+  width: PositiveMmSchema,
+  /** Risers climbed. The top one lands on the next landing or storey, so treads are risers - 1. */
+  risers: z.number().int().min(2),
+}).meta({ id: "StairFlight" });
+
+/** A flat platform between flights. Its level follows from the flights below it. */
+export const StairLandingSchema = z.strictObject({
+  kind: z.literal("landing"),
+  id: IdSchema,
+  outline: PolygonSchema,
+  /** The landing extends downwards from its level. */
+  thickness: PositiveMmSchema,
+}).meta({ id: "StairLanding" });
+
+export const StairSegmentSchema = z.discriminatedUnion("kind", [StairFlightSchema, StairLandingSchema]);
+
+/**
+ * A storey element climbing to another storey: segments in bottom-to-top order, starting and ending
+ * with a flight. The bottom is the containing storey's elevation and the top is `toStoreyId`'s.
+ */
+export const StairSchema = z.strictObject({
+  id: IdSchema,
+  name: z.string().optional(),
+  toStoreyId: IdSchema,
+  segments: z.array(StairSegmentSchema).min(1),
+}).meta({ id: "Stair" });
+
 export const StoreySchema = z.strictObject({
   id: IdSchema,
   name: z.string().min(1),
@@ -97,6 +133,8 @@ export const StoreySchema = z.strictObject({
   openings: z.array(OpeningSchema),
   slabs: z.array(SlabSchema),
   rooms: z.array(RoomSchema),
+  /** Stairs climbing from this storey to the next one up. */
+  stairs: z.array(StairSchema).optional(),
 }).meta({ id: "Storey" });
 
 /**
@@ -172,6 +210,10 @@ export type Components = z.infer<typeof ComponentsSchema>;
 export type Glazing = z.infer<typeof GlazingSchema>;
 export type Slab = z.infer<typeof SlabSchema>;
 export type Room = z.infer<typeof RoomSchema>;
+export type StairFlight = z.infer<typeof StairFlightSchema>;
+export type StairLanding = z.infer<typeof StairLandingSchema>;
+export type StairSegment = z.infer<typeof StairSegmentSchema>;
+export type Stair = z.infer<typeof StairSchema>;
 export type Storey = z.infer<typeof StoreySchema>;
 export type Site = z.infer<typeof SiteSchema>;
 export type BuildingModel = z.infer<typeof BuildingModelSchema>;
