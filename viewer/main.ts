@@ -256,6 +256,7 @@ async function loadLabels(name: string) {
     }
   }
   labels.clear();
+  constraints.clear();
   planLayers.clear();
   northAngle = null;
   lowestElevation = null;
