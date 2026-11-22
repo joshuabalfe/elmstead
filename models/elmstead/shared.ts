@@ -28,3 +28,8 @@ export const studT = mm(100); //  light partitions
 // ── Levels ───────────────────────────────────────────────────────────────────
 /** Ceiling height is from the owner. */
 export const groundFloor = { elevation: mm(0), ceilingHeight: m(2.9) };
+/**
+ * Provisional: neither level is measured yet. The elevation is the ground ceiling height, so the
+ * ground walls meet it; revisit both when the owner's first-floor plan is traced.
+ */
+export const firstFloor = { elevation: m(2.9), ceilingHeight: m(2.4) };

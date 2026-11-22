@@ -4,8 +4,10 @@
  *   shared.ts     outline, external wall thicknesses and floor levels used by every floor
  *   components/   door and window designs (doors.ts, windows.ts), shared by every floor
  *   ground/       ground floor: walls, openings, rooms, traced from the owner's plan image
+ *   first/        first floor: provisional, the ground layout re-id'd with a stairwell void
  *
- * Upper floors to follow, one folder per storey.
+ * The first floor is a placeholder for looking at a two-storey Elmstead; trace it properly when the
+ * owner's first-floor plan arrives.
  *
  * Plan axes follow the traced drawing: "north" in element ids (wall-north etc.) means the top of
  * the drawing. True north is roughly towards the plan's south-west corner, the one nearest the
@@ -13,6 +15,7 @@
  */
 import { defineBuilding, deg } from "../../src/model/index.js";
 import { components } from "./components/index.js";
+import { first } from "./first/index.js";
 import { ground } from "./ground/index.js";
 
 export default defineBuilding({
@@ -20,5 +23,5 @@ export default defineBuilding({
   site: { id: "site-default", name: "Default site", northAngle: deg(135) },
   building: { id: "building-elmstead", name: "Elmstead" },
   components,
-  storeys: [ground],
+  storeys: [ground, first],
 });
