@@ -9,7 +9,7 @@
 ## 2. Plan style as a single-storey mode
 
 - [ ] 2.1 With exactly one storey shown, draw that storey's fills at its elevation, its charcoal wall tops and its plan linework, and keep ELM-4's straight-down slab-top discard; verify the top view of an upper storey shows its own fills
-- [ ] 2.2 With more than one storey shown, render the IFC colours with no fills and no discard, keeping the white background, no grid and the annotations; verify a corner view and the top view both occlude correctly on the two-storey model
+- [ ] 2.2 With more than one storey shown, render the IFC colours with no fills and no discard, keeping the white background, no grid and the annotations; verify a corner view and the top view both occlude correctly on the synthesised two-storey model
 - [ ] 2.3 Honour `?style=ifc` always and `?style=plan` only with one storey shown; verify the fallback is documented in the status line or help text
 
 ## 3. Walk mode on the shown storeys
@@ -18,18 +18,22 @@
 
 ## 4. Plan-versus-3D per storey
 
-- [ ] 4.1 Compare every storey's plan with the top view of that storey alone, on the cottage, Elmstead and ELM-4's two-storey model; verify both storeys of the two-storey model pass with their different layouts
-- [ ] 4.2 Keep the existing centreline regression case working against the storey it belongs to
+- [ ] 4.1 Add a test helper that synthesises a two-storey model from Elmstead: a cloned second storey at a higher elevation whose walls and rooms differ from the ground floor's, published from memory like the existing cases
+- [ ] 4.2 Compare every storey's plan with the top view of that storey alone, on the cottage, Elmstead and the synthesised model; verify both storeys of the synthesised model pass despite their different layouts
+- [ ] 4.3 Keep the existing centreline regression case working against the storey it belongs to
 
 ## 5. Docs and verification
 
 - [ ] 5.1 Document `?storeys=`, the single-storey plan mode and the occlusive multi-storey render in `docs/rendering.md`, including that `?style=plan` falls back to the IFC colours with several storeys shown
 - [ ] 5.2 Run `npm test`, `npm run typecheck` and `npx openspec validate --all`; verify all pass
-- [ ] 5.3 Eye-check in the browser: the whole two-storey model from a corner and from above with the slab solid; each storey alone as its plan; orbit out of a single-storey top view and back
+- [ ] 5.3 Eye-check in the browser on the synthesised model, or on ELM-4's `models/example-two-storey` if that has landed: the whole building from a corner and from above with the top slab solid; each storey alone as its plan; orbit out of a single-storey top view and back
 
 ## Workflow follow-up
 
 - Archive the change after implementation and the project's review requirements are satisfied.
 - Verify the archived result.
+- If ELM-4 merges after this change, re-cut its ifc-viewer *Plan style* delta against this change's
+  text and expect one small conflict in `applyStyle`/`patchTops`; its direction-keyed slab discard
+  belongs inside the single-storey plan mode this change defines.
 - The checkbox UI, and making the occlusive render the named default in the help text, are the next
   change on this primitive; a roof waits for the model to grow one.

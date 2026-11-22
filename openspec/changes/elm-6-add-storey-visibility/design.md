@@ -14,6 +14,12 @@ spatial tree with a `localId` per node, and `model.setVisible(localIds, visible)
 writer already puts every element in exactly one storey's containment, so the tree is authoritative
 and no new data needs carrying in the IFC or the JSON.
 
+No model file is needed to prove any of it. The viewer test publishes JSON and IFC from an in-memory
+model, and the plan side renders from the same object, so the tests synthesise a two-storey model by
+cloning an existing single-storey one and adding a second storey at a higher elevation with a
+different wall layout — the case the current comparison cannot handle. This change therefore depends
+on no other open change, and can merge in either order with ELM-4.
+
 ## Goals / Non-Goals
 
 **Goals:**
@@ -91,6 +97,11 @@ lowest *shown* one instead, so hiding the ground floor walks you on the first.
 - **Fragments visibility is per item, and stairs aggregate.** A stair's flights and landing hang off
   the stair, which hangs off the storey; the spatial tree must be walked through aggregations, not
   just containment, or hidden storeys leave their stairs behind.
+- **ELM-4 may merge after this change.** Both modify ifc-viewer's *Plan style* and both edit
+  `applyStyle` and `patchTops` in `viewer/main.ts`, so whichever lands second re-cuts one MODIFIED
+  block against the new baseline and resolves one small code conflict. Semantically they compose:
+  this change scopes plan style to one shown storey, and ELM-4's direction-keyed slab discard then
+  lives inside that mode. Nothing here needs ELM-4's schema, IFC or stair work.
 
 ## Migration Plan
 
@@ -98,7 +109,8 @@ lowest *shown* one instead, so hiding the ground floor walks you on the first.
 2. Hide unselected storeys through the spatial tree, including their annotations and plan layers.
 3. Scope plan style to one shown storey; render IFC colours otherwise.
 4. Point walk mode's entry pose at the lowest shown storey.
-5. Re-point the plan-versus-3D test per storey and add the two-storey model's upper floor to it.
+5. Re-point the plan-versus-3D test per storey, adding the synthesised two-storey model's upper floor
+   as a compared case.
 6. Update `docs/rendering.md` and run `npm test`, `npm run typecheck` and `npx openspec validate --all`.
 
 The change is additive in the URL and subtractive in what plan style claims; no model, schema or IFC

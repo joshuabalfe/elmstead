@@ -51,7 +51,10 @@ None.
   this same primitive.
 - `tests/plan-vs-3d.test.ts`: per-storey comparisons.
 - `docs/rendering.md`: the viewer section.
-- Depends on ELM-4 for a two-storey model to exercise this: `models/example-two-storey`. If ELM-4 is
-  not on main when this is implemented, add a minimal two-storey model here instead.
+- No dependency on any other open change. The two-storey case the tests need is synthesised in the
+  test from an existing single-storey model — a cloned second storey at a higher elevation with a
+  different wall layout — because the viewer test publishes JSON and IFC from an in-memory model and
+  never needs a model file. ELM-4's `models/example-two-storey`, if it lands first, is welcome as an
+  extra case but is not required.
 - Out of scope: the checkbox UI, a roof, per-storey plan SVGs from `render` (already per storey), and
   sections or cut planes.
