@@ -21,11 +21,13 @@ both rely on, and the checkboxes this vision ends with are that primitive with a
 - Add storey visibility to the viewer. `?storeys=` takes a comma-separated list of storey ids and
   shows only those; omitting it shows every storey, as today. Hiding works through the IFC spatial
   structure the writer already emits, via fragments' spatial tree and per-item visibility.
-- Make plan style a single-storey mode. With exactly one storey shown it behaves as now, for that
-  storey: its room fills and door swings are the floor, its wall tops go charcoal, its plan linework
-  floats above them, and slab tops are discarded while looking straight down. With more than one
-  storey shown the viewer renders the IFC's own colours, occlusively, keeping the white background,
-  no grid and the room annotations.
+- Make plan style stack. Each shown storey's floor becomes its own room fills and door swings, at
+  that storey's level, writing depth: the floor you see is the topmost one, and it hides the storeys
+  below instead of the grey slab showing through. Slab tops stay discarded in plan style, at every
+  storey, so the fills are the floor.
+- Room names and areas join the dimensions on the plane at each storey's ceiling, instead of
+  camera-facing billboards. A billboard stands up through the floor above it and can never be
+  occluded; a plane at the ceiling is occluded exactly like the rooms it names.
 - The Top view of a single shown storey is that storey's plan view, whichever storey it is, so an
   upper floor gets a plan surrogate of its own for the first time.
 - Point the plan-versus-3D test at the storey it compares: each storey's plan is checked against the

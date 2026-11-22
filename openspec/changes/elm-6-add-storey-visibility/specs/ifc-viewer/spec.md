@@ -6,7 +6,7 @@
 `?storeys=` SHALL take a comma-separated list of storey ids and show only those storeys. Omitting it
 SHALL show every storey, as today. An id that names no storey SHALL be ignored, with a note in the
 status line, rather than failing to render. Hiding a storey SHALL hide everything the IFC contains
-or aggregates in it, and the annotations and plan layers drawn for it.
+or aggregates in it, and the drawings and labels made for it.
 
 #### Scenario: One storey of two
 - **WHEN** the viewer is opened with `?storeys=storey-ground` on a two-storey model
@@ -20,38 +20,46 @@ or aggregates in it, and the annotations and plan layers drawn for it.
 - **WHEN** the URL has no `storeys` parameter
 - **THEN** every storey is shown
 
-### Requirement: Multi-storey views render occlusively
-With more than one storey shown the viewer SHALL render the IFC's own colours, with nearer walls and
-floors hiding what is behind and beneath them. It SHALL keep the white background, the absence of a
-grid and the room annotations, and SHALL draw no floor fills and discard no slab tops.
+### Requirement: Floors stack occlusively
+In plan style each shown storey's floor SHALL be its own room fills and door swings, at that
+storey's level, drawn so that it hides everything below it. Slab tops SHALL stay discarded in plan
+style, at every storey, so the fills are the floor rather than a grey plane over them.
 
 #### Scenario: Whole building from a corner
 - **WHEN** every storey of a two-storey model is shown in a corner view
-- **THEN** the upper storey's walls and slab hide the ground floor behind and beneath them
+- **THEN** the upper storey's floor and walls hide the ground floor behind and beneath them
 
 #### Scenario: Whole building from above
 - **WHEN** every storey is shown in the top view
-- **THEN** the topmost slab is solid, and no lower storey shows through it
+- **THEN** the topmost storey's room fills are the floor, and no lower storey shows through them
+
+#### Scenario: Looking up from inside
+- **WHEN** walk mode stands on the ground floor of a two-storey model
+- **THEN** the first floor's underside is the ceiling, and its fills do not bleed through it
 
 ## MODIFIED Requirements
 
 ### Requirement: Plan style
-Plan style SHALL apply when exactly one storey is shown, drawing for that storey:
-- the plan's room fills and door swings under the model as the floor;
+Interactively, the viewer SHALL use a plan style:
+- each shown storey's room fills and door swings as its floor, at its own level, hiding the storeys below;
 - wall tops and sills in the plan's charcoal, unlit;
 - the plan's wall pieces, door gaps and window symbols 5 mm above the wall tops;
+- each storey's room names, areas and dimensions on a plane at its ceiling, hidden by any storey above;
 - a white background and no grid.
 
-`?style=ifc` SHALL force the IFC colours; `?style=plan` SHALL force plan style, or the IFC colours
-when several storeys are shown.
+`?style=ifc` or `?style=plan` SHALL force a style.
 
 #### Scenario: Top view
 - **WHEN** the interactive viewer shows the top view
-- **THEN** it reads like the plan drawing without cutting the model
+- **THEN** it reads like the plan drawing of the topmost shown storey without cutting the model
 
 #### Scenario: Upper storey alone
 - **WHEN** only an upper storey is shown in the top view
 - **THEN** its own room fills are the floor, at its own elevation
+
+#### Scenario: Labels of a hidden storey
+- **WHEN** a storey is hidden by `?storeys=`
+- **THEN** its room names, areas and dimensions are hidden with it
 
 ### Requirement: Plan and 3D agree
 The test suite SHALL build each model and, for every storey, render the viewer's top view with only

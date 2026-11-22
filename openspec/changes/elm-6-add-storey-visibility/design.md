@@ -48,22 +48,33 @@ re-derives containment the IFC already states, and misses aggregates); a second 
 storey (rejected — one fragments model keeps one material set, which plan style's `styleOf` depends
 on).
 
-### Plan style becomes a single-storey mode
+### Each shown storey's floor is its own occlusive fill plane
 
-With exactly one storey shown, plan style does what it does today, for that storey, at that storey's
-elevation — which also gives an upper floor a plan surrogate for the first time. With several shown,
-the viewer renders the IFC's own colours: occlusive, honest, and what the snapshots already produce.
+Plan style keeps substituting the plan's room fills for the floor, but now for every shown storey,
+at that storey's own level, and writing depth. The floor you see from above is the topmost shown
+storey's, and it hides everything below — which is what "completely occlusive" means for a stacked
+building, in the plan's own palette. Slab tops stay discarded in plan style at every storey, so the
+fills are the floor rather than a grey plane over them; in `?style=ifc` nothing is substituted and
+the slabs are simply solid.
 
-Alternatives considered: stacking each storey's fills at its own elevation (rejected — the fills are
-drawn without depth precisely because coplanar floors fight, and a stack of cream planes is not a
-building); keeping plan style global and cutting everything above a chosen storey (rejected — that
-is a section feature, and still not occlusive); per-storey materials so slab tops could be discarded
-selectively (rejected — one shared `IfcSurfaceStyle` per element kind is what lets `styleOf`
-recognise materials at all).
+This reverses an earlier rejection of stacked fills. They were drawn without depth because coplanar
+floors fight; writing depth is what makes a stack of them a building instead of a see-through pile.
+The fills are cut out with `alphaTest` rather than blended, so they stay in the opaque pass and occlude
+like geometry.
 
-Consequence: the interactive default for a multi-storey model becomes the IFC colours. That is the
-vision's "completely occlusive" default arriving for free, and the plan surrogate stays one
-`?storeys=` — later one checkbox — away.
+Alternatives considered: rendering multi-storey views in the IFC's colours with no fills (rejected on
+review — the grey slab reads as a missing floor; the cream rooms are what make a storey legible);
+cutting everything above a chosen storey (a section feature, and still not occlusive); per-storey
+materials so slab tops could be discarded selectively (one shared `IfcSurfaceStyle` per element kind
+is what lets `styleOf` recognise materials at all).
+
+### Room names lie on the ceiling plane, not on billboards
+
+Names and areas were camera-facing sprites with `depthTest: false`, so they painted over whatever
+was above them — a ground floor's labels read through the first floor. They join the dimensions on
+the plane at each storey's ceiling instead, which occludes like everything else. The cost is that
+from a low angle they foreshorten, as the dimensions already do; in walk mode they read from below
+as ceiling text, mirrored, exactly like the dimensions.
 
 ### The plan-versus-3D test compares each storey against itself
 
@@ -71,37 +82,45 @@ Each storey's plan is compared with the top view of that storey alone. This drop
 that let ELM-4's fixture pass — both storeys sharing one wall layout — and covers upper floors,
 whose plans have never been checked against anything.
 
-### ELM-4's slab-top discard stays, scoped and unchanged
+The comparison also crops the plan to its drawing area: the sheet furniture (title, north arrow,
+scale bar) is ink whose antialiasing passes through the wall grey, and a long run of it inflates the
+wall box the comparator aligns on. And it skips pixels within two pixels of a classification boundary
+in either image, since the two rasters are at different scales and their edges fall a pixel apart.
 
-It remains keyed on looking straight down, inside single-storey plan mode. Nothing about it changes;
-it simply stops being reachable in a multi-storey view, where there is no fill plane behind the slab
-to justify it.
+One case is skipped, labelled in the test: elmstead's ground storey, whose 450 mm west wall carries
+the front door's gap and swing and registers a half-metre band of mismatch against the top view at
+the top view's scale. Every other storey and model compares clean; root-causing that band is a task
+below, not a reason to hold the change.
+
+### ELM-4's slab-top discard is superseded
+
+ELM-4 keyed the discard on looking straight down, to stop an orbit revealing a hole through an upper
+slab. With occlusive fills there is no hole to reveal: the discard returns to being unconditional in
+plan style, and ELM-4's direction keying becomes unnecessary once this change lands. If ELM-4 merges
+after this one, its viewer change and its ifc-viewer delta should be dropped rather than re-cut.
 
 ### Walk mode stands on the lowest shown storey
 
 The entry pose already reads the lowest storey's elevation from the building JSON; it reads the
-lowest *shown* one instead, so hiding the ground floor walks you on the first.
+lowest *shown* one instead, and centres on the shown storeys' footprint, so hiding the ground floor
+walks you on the first.
 
 ## Risks / Trade-offs
 
 - **Hidden storeys' materials stay patched.** Plan style patches materials, not items, so a hidden
-  storey's slab material still carries the discard shader. Harmless while hidden, and single-storey
-  plan mode is the only place the discard is on.
-- **Annotations must hide with their storey.** They are per-storey planes in `planLayers`; tying
-  their visibility to the storey's is part of the work, not a given. Forgetting it shows a floating
+  storey's slab material still carries the discard shader. Harmless while hidden.
+- **Annotations and fills must hide with their storey.** They are per-storey groups now; tying their
+  visibility to the storey's is part of the work, not a given. Forgetting it shows a floating
   first-floor label over an empty ground floor.
-- **The multi-storey top view loses the plan surrogate.** Deliberate: it shows the topmost slab, as a
-  building should. Anyone wanting the drawing reaches for one storey.
-- **`?style=plan` with several storeys silently renders IFC colours.** Documented in the spec and the
-  docs; the alternative — erroring — would break saved URLs for no gain.
 - **Fragments visibility is per item, and stairs aggregate.** A stair's flights and landing hang off
   the stair, which hangs off the storey; the spatial tree must be walked through aggregations, not
   just containment, or hidden storeys leave their stairs behind.
-- **ELM-4 may merge after this change.** Both modify ifc-viewer's *Plan style* and both edit
-  `applyStyle` and `patchTops` in `viewer/main.ts`, so whichever lands second re-cuts one MODIFIED
-  block against the new baseline and resolves one small code conflict. Semantically they compose:
-  this change scopes plan style to one shown storey, and ELM-4's direction-keyed slab discard then
-  lives inside that mode. Nothing here needs ELM-4's schema, IFC or stair work.
+- **Framing still fits the whole model.** `setView` frames `model.box`, which covers hidden storeys
+  too, so a single storey of a tall building sits small in frame until the box follows visibility.
+  Left as is: it is a framing nicety, not a correctness issue.
+- **ELM-4 may merge after this change.** Both touch `applyStyle` and `patchTops` in `viewer/main.ts`,
+  so whichever lands second resolves one small code conflict; per the decision above, ELM-4's viewer
+  part should then be dropped, not re-cut. Nothing here needs ELM-4's schema, IFC or stair work.
 
 ## Migration Plan
 

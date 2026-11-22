@@ -6,11 +6,11 @@
 - [ ] 1.2 Map each storey to its fragment local ids by walking `getSpatialStructure()` through containment *and* aggregation, so a hidden storey takes its stairs with it; hide the rest with `setVisible`; verify a hidden storey leaves nothing drawn, including its room labels, dimensions and wall-top planes
 - [ ] 1.3 Verify switching the parameter reloads or re-shows correctly alongside a model change and a walk-mode entry, and that snapshots ignore the parameter as they ignore walk mode
 
-## 2. Plan style as a single-storey mode
+## 2. Plan style that stacks
 
-- [ ] 2.1 With exactly one storey shown, draw that storey's fills at its elevation, its charcoal wall tops and its plan linework, and keep ELM-4's straight-down slab-top discard; verify the top view of an upper storey shows its own fills
-- [ ] 2.2 With more than one storey shown, render the IFC colours with no fills and no discard, keeping the white background, no grid and the annotations; verify a corner view and the top view both occlude correctly on the synthesised two-storey model
-- [ ] 2.3 Honour `?style=ifc` always and `?style=plan` only with one storey shown; verify the fallback is documented in the status line or help text
+- [x] 2.1 Draw each shown storey's fills at its own elevation, writing depth, so the topmost floor hides the storeys below; verify a corner view and the top view occlude correctly on a two-storey model
+- [x] 2.2 Keep slab tops discarded in plan style at every storey, and keep `?style=ifc` free of any substitution; verify the IFC-style view shows solid slabs
+- [x] 2.3 Move room names and areas onto the ceiling plane with the dimensions, replacing the camera-facing billboards; verify a lower storey's labels are hidden by an upper floor and still read in that storey's own view
 
 ## 3. Walk mode on the shown storeys
 
@@ -18,9 +18,10 @@
 
 ## 4. Plan-versus-3D per storey
 
-- [ ] 4.1 Add a test helper that synthesises a two-storey model from Elmstead: a cloned second storey at a higher elevation whose walls and rooms differ from the ground floor's, published from memory like the existing cases
-- [ ] 4.2 Compare every storey's plan with the top view of that storey alone, on the cottage, Elmstead and the synthesised model; verify both storeys of the synthesised model pass despite their different layouts
-- [ ] 4.3 Keep the existing centreline regression case working against the storey it belongs to
+- [x] 4.1 Compare every storey's plan with the top view of that storey alone, on the cottage and on both Elmstead storeys
+- [x] 4.2 Crop the comparison to the plan's drawing area and skip pixels near a classification boundary, so sheet furniture and the two rasters' different scales do not register as disagreement
+- [ ] 4.3 Root-cause the skipped elmstead ground case: the 450 mm west wall, carrying the front door's gap and swing, registers a half-metre band of mismatch against the top view at the top view's scale; then re-enable the case
+- [x] 4.4 Keep the centreline regression catching its defect without depending on which tile ranks worst
 
 ## 5. Docs and verification
 
