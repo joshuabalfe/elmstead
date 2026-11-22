@@ -96,8 +96,6 @@ let lowestElevation: number | null = null;
 let modelJson: BuildingModel | null = null;
 /** The storey ids `?storeys=` asked for, in the model's order; null means every storey. */
 let shownStoreys: string[] | null = null;
-/** Fragment local ids owned by each storey, from the IFC spatial tree. */
-let storeyItems = new Map<string, number[]>();
 /** The label and plan-layer groups drawn for each storey, so hiding it takes its drawings with it. */
 const storeyLayers = new Map<string, THREE.Group[]>();
 
@@ -241,7 +239,7 @@ const WALL_TOP_LIFT = 5;
  * tops 5 mm and its labels 10 mm above its ceiling, which is this storey's elevation, so a floor
  * plane at exactly the elevation would pass beneath them and they would show through it.
  */
-const FLOOR_LIFT = 20;
+const FLOOR_LIFT = LABEL_LIFT + 10;
 
 /**
  * The plan's room names, areas and dimensions for each storey, as one transparent texture on a
@@ -342,7 +340,7 @@ function parseStoreysParam(model: BuildingModel | null) {
  * stays visible rather than vanishing.
  */
 async function applyStoreyVisibility(model: FragmentsModel) {
-  storeyItems = new Map();
+  const storeyItems = new Map<string, number[]>();
   if (shownStoreys === null || !modelJson) return;
   // Which storey owns each element id, from the model JSON: the IFC is the geometry, but the JSON is
   // the authority on which storey an element belongs to.
@@ -484,7 +482,7 @@ function setNavigationInput() {
 
 /** Three.js is Y-up with plan north along −Z (IFC +Y). */
 async function setView(view: View) {
-  const centre = box.getCenter(new THREE.Vector3());
+  const centre = shownBox().getCenter(new THREE.Vector3());
   const dir: Record<View, [number, number, number]> = {
     sw: [-1, 0.7, 1],
     se: [1, 0.7, 1],
@@ -496,7 +494,7 @@ async function setView(view: View) {
   await world.camera.projection.set(view === "top" ? "Orthographic" : "Perspective");
   // Start well outside the model, then fit to its bounding sphere: fitToSphere keeps the viewing
   // direction (fitToBox would snap to the nearest face).
-  const sphere = box.getBoundingSphere(new THREE.Sphere());
+  const sphere = shownBox().getBoundingSphere(new THREE.Sphere());
   const d = new THREE.Vector3(...dir[view]).normalize().multiplyScalar(sphere.radius * 4);
   await world.camera.controls.setLookAt(centre.x + d.x, centre.y + d.y, centre.z + d.z, centre.x, centre.y, centre.z, false);
   sphere.radius *= view === "top" ? 0.78 : 0.92; // the sphere is loose around a flat box; tighten the framing
