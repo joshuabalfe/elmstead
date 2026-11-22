@@ -1,12 +1,14 @@
 /**
  * Local IFC viewer on That Open Engine: loads out/<model>.ifc, converts it to Fragments in the
- * browser and shows it, with each storey's room names, areas and dimensions lying at its ceiling
- * and a compass pointing to true north (all from out/<model>.building.json). `?storeys=` shows a
- * subset of storeys. Every view uses the plan's colours, with the plan's walls, doors and windows
- * laid on the wall tops, so the Top view reads like the plan. Query params: ?model=<name>&view=<sw|se|ne|nw|top (default)>&snapshot=1
- * &labels=0|1&style=plan|ifc&camera=px,py,pz,tx,ty,tz&walk=1 (snapshot hides the UI and sets window.__elmsteadReady once the first
- * frame is drawn; labels and the plan style are on by default, except in snapshots, which show the
- * IFC alone; walk=1 enters first-person walk mode, which snapshots ignore).
+ * browser and shows it, with each storey's room names, areas and dimensions lying at its ceiling,
+ * the model's constraints as red labels and dotted spans, and a compass pointing to true north (all
+ * from out/<model>.building.json and out/<model>.constraints.json). `?storeys=` shows a subset of
+ * storeys. Every view uses the plan's colours, with the plan's walls, doors and windows laid on the
+ * wall tops, so the Top view reads like the plan. Query params: ?model=<name>&view=<sw|se|ne|nw|top (default)>&snapshot=1
+ * &labels=0|1&constraints=0|1&style=plan|ifc&camera=px,py,pz,tx,ty,tz&walk=1 (snapshot hides the UI and sets window.__elmsteadReady once the first
+ * frame is drawn; labels and the plan style are on by default and constraints start off, except in
+ * snapshots, which show the IFC alone; walk=1 enters first-person walk mode, which snapshots
+ * ignore).
  */
 import * as OBC from "@thatopen/components";
 import { LodMode, type FragmentsModel, type SpatialTreeItem } from "@thatopen/fragments";
@@ -14,10 +16,15 @@ import workerUrl from "@thatopen/fragments/worker?url";
 import CameraControls from "camera-controls";
 import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+import { Line2 } from "three/addons/lines/Line2.js";
+import { LineGeometry } from "three/addons/lines/LineGeometry.js";
+import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { STYLES } from "../src/ifc/styles.js";
 import { renderFloor, renderPlanAnnotations, renderWallTops } from "../src/render/plan.js";
-import { C } from "../src/render/style.js";
+import { C, FONT, PX_PER_MM } from "../src/render/style.js";
 import type { BuildingModel } from "../src/schema/schema.js";
+import type { ResolvedConstraint } from "../src/constraints/check.js";
+import { constraintLabels } from "./constraints.js";
 import { parseView, type View } from "./view.js";
 import { WALK_AXES, entryPosition, headingBasis, movementOffset, walkRequested, walkStep } from "./walk.js";
 declare global {
@@ -76,6 +83,11 @@ const labels = new THREE.Group();
 labels.visible = params.get("labels") === "1" || (!snapshot && params.get("labels") !== "0");
 world.scene.three.add(labels);
 
+/** Constraint labels and dotted spans, off until the Constraints button or `?constraints=1`. */
+const constraints = new THREE.Group();
+constraints.visible = params.get("constraints") === "1";
+world.scene.three.add(constraints);
+
 /** True north, degrees counter-clockwise from plan +y (site.northAngle); null when there is no model JSON. */
 let northAngle: number | null = null;
 /** The lowest storey's elevation in scene metres, from the model JSON; null when there is none. */
@@ -121,6 +133,82 @@ function updateCompass() {
 world.camera.controls.addEventListener("update", updateCompass);
 window.addEventListener("resize", updateCompass);
 
+interface BillboardLine {
+  text: string;
+  size: number;
+  bold?: boolean;
+  /** Baseline offset from the sprite's centre, in canvas px. */
+  dy: number;
+}
+
+/** A sprite that always faces the camera, at the plan's text scale, with a halo so it reads over the model. */
+function billboard(lines: BillboardLine[], fill: string, renderOrder: number): THREE.Sprite {
+  const halo = 3;
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d")!;
+  const font = (l: BillboardLine) => `${l.bold ? "bold " : ""}${l.size}px "${FONT}", sans-serif`;
+  const width = Math.max(...lines.map((l) => ((ctx.font = font(l)), ctx.measureText(l.text).width))) + 2 * halo;
+  // Lay the baselines out around the centre, so the sprite centres on its anchor.
+  const top = Math.min(...lines.map((l) => l.dy - l.size));
+  const bottom = Math.max(...lines.map((l) => l.dy + 4));
+  const height = bottom - top;
+  canvas.width = Math.ceil(width * LABEL_RESOLUTION);
+  canvas.height = Math.ceil((height + 2 * halo) * LABEL_RESOLUTION);
+  ctx.scale(LABEL_RESOLUTION, LABEL_RESOLUTION);
+  ctx.textAlign = "center";
+  ctx.lineJoin = "round";
+  for (const l of lines) {
+    ctx.font = font(l);
+    ctx.lineWidth = halo;
+    ctx.strokeStyle = C.paper;
+    ctx.strokeText(l.text, width / 2, halo - top + l.dy);
+    ctx.fillStyle = fill;
+    ctx.fillText(l.text, width / 2, halo - top + l.dy);
+  }
+  const map = new THREE.CanvasTexture(canvas);
+  map.colorSpace = THREE.SRGBColorSpace;
+  // Constraints are an inspection overlay, so they draw over the model rather than being cut by it.
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthTest: false, depthWrite: false }));
+  sprite.renderOrder = renderOrder;
+  const mPerPx = 1 / PX_PER_MM / 1000;
+  sprite.scale.set(width * mPerPx, (height + 2 * halo) * mPerPx, 1);
+  return sprite;
+}
+
+/** Constraint labels draw above everything, including their dotted spans. */
+function constraintBillboard(lines: string[]): THREE.Sprite {
+  const step = 14;
+  return billboard(
+    lines.map((text, i) => ({ text, size: 11, bold: true, dy: (i - (lines.length - 1) / 2) * step })),
+    C.constraint,
+    7,
+  );
+}
+
+/** Red dotted spans: 4 cm wide in world units, drawn over the model, room labels and dimensions. */
+const constraintLineMaterial = new LineMaterial({
+  color: C.constraint,
+  linewidth: 0.04,
+  worldUnits: true,
+  dashed: true,
+  dashSize: 0.15,
+  gapSize: 0.1,
+  depthTest: false,
+  depthWrite: false,
+  transparent: true,
+});
+
+/** A red dotted span between two plan points, at scene height `y`, drawn over the model. */
+function constraintLine(from: { x: number; y: number }, to: { x: number; y: number }, y: number): Line2 {
+  const geometry = new LineGeometry();
+  geometry.setPositions([from.x / 1000, y, -from.y / 1000, to.x / 1000, y, -to.y / 1000]);
+  const line = new Line2(geometry, constraintLineMaterial);
+  line.computeLineDistances();
+  line.frustumCulled = false; // a flat line's bounding sphere can miss the camera
+  line.renderOrder = 6; // over the model, room labels and dimensions; under the red labels
+  return line;
+}
+
 /** A plan-sized SVG overlay as a flat plane at height `y` (m), the drawing's north along −Z (IFC +Y). */
 async function planPlane(svg: string, bounds: { minX: number; minY: number; maxX: number; maxY: number }, y: number, material: THREE.MeshBasicMaterialParameters) {
   const img = new Image();
@@ -157,17 +245,22 @@ const FLOOR_LIFT = 20;
 
 /**
  * The plan's room names, areas and dimensions for each storey, as one transparent texture on a
- * plane at its ceiling. The schema has no ceiling height, so the ceiling is the top of the storey's
- * tallest wall. Lying flat, an upper storey's floor occludes a lower storey's labels, as it does
- * its rooms.
+ * plane at its ceiling, and that storey's constraints as red labels and dotted spans beside them.
+ * The schema has no ceiling height, so the ceiling is the top of the storey's tallest wall. Lying
+ * flat, an upper storey's floor occludes a lower storey's labels, as it does its rooms.
  */
-async function loadLabels(model: BuildingModel | null) {
-  for (const obj of [...labels.children, ...planLayers.children] as THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[]) {
-    obj.geometry.dispose();
-    obj.material.map?.dispose();
-    obj.material.dispose();
-  }
+async function loadLabels(name: string, model: BuildingModel | null) {
+  const dispose = (obj: THREE.Object3D) => {
+    for (const child of [...obj.children]) dispose(child);
+    if (obj instanceof Line2) obj.geometry.dispose(); // the line material is shared by every constraint
+    if (obj instanceof THREE.Mesh) obj.geometry.dispose(); // sprites share one geometry
+    const material = "material" in obj ? (obj.material as THREE.MeshBasicMaterial | THREE.SpriteMaterial) : undefined;
+    material?.map?.dispose();
+    material?.dispose();
+  };
+  for (const obj of [...labels.children, ...constraints.children, ...planLayers.children]) dispose(obj);
   labels.clear();
+  constraints.clear();
   planLayers.clear();
   storeyLayers.clear();
   northAngle = null;
@@ -175,6 +268,8 @@ async function loadLabels(model: BuildingModel | null) {
   modelJson = model;
   if (!model) return; // no JSON next to the IFC: show the IFC without labels
   northAngle = model.site.northAngle ?? 0;
+  const constraintsRes = await fetch(`/out/${name}.constraints.json`);
+  const resolved = constraintsRes.ok ? ((await constraintsRes.json()) as ResolvedConstraint[]) : [];
   const shown = model.storeys.filter((s) => isShown(s.id));
   const lowest = (shown.length ? shown : model.storeys).reduce((a, b) => (b.elevation < a.elevation ? b : a));
   lowestElevation = lowest.elevation / 1000; // the JSON is millimetres, the scene metres
@@ -200,11 +295,24 @@ async function loadLabels(model: BuildingModel | null) {
       fill.renderOrder = -1;
       layerGroup.add(fill);
     }
+    // Constraints live in their own per-storey group inside the constraints layer, so the
+    // Constraints button and the storey selection compose.
+    const constraintGroup = new THREE.Group();
+    for (const label of constraintLabels(resolved, storey.id)) {
+      const sprite = constraintBillboard(label.lines);
+      sprite.position.set(label.at.x / 1000, y, -label.at.y / 1000);
+      constraintGroup.add(sprite);
+    }
+    for (const c of resolved) {
+      if (c.storey === storey.id) constraintGroup.add(constraintLine(c.span.from, c.span.to, y));
+    }
+    constraints.add(constraintGroup);
     labelGroup.visible = isShown(storey.id);
     layerGroup.visible = isShown(storey.id);
+    constraintGroup.visible = isShown(storey.id);
     labels.add(labelGroup);
     planLayers.add(layerGroup);
-    storeyLayers.set(storey.id, [labelGroup, layerGroup]);
+    storeyLayers.set(storey.id, [labelGroup, layerGroup, constraintGroup]);
   }
 }
 
@@ -586,7 +694,7 @@ async function load(name: string) {
   await model.setLodMode(LodMode.ALL_VISIBLE);
   world.scene.three.add(model.object);
   await fragments.core.update(true);
-  await loadLabels(json);
+  await loadLabels(name, json);
   await applyStoreyVisibility(model);
   applyStyle();
   box = model.box.clone();
@@ -602,6 +710,13 @@ labelsButton.addEventListener("click", () => {
   labels.visible = !labels.visible;
   labelsButton.setAttribute("aria-pressed", String(labels.visible));
   updateCompass();
+});
+
+const constraintsButton = document.getElementById("constraints") as HTMLButtonElement;
+constraintsButton.setAttribute("aria-pressed", String(constraints.visible));
+constraintsButton.addEventListener("click", () => {
+  constraints.visible = !constraints.visible;
+  constraintsButton.setAttribute("aria-pressed", String(constraints.visible));
 });
 
 document.querySelectorAll<HTMLButtonElement>("[data-view]").forEach((b) =>

@@ -2,7 +2,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { formatIssue, hasErrors, type Issue } from "../checks/issue.js";
 import { checkModel } from "../checks/model.js";
-import { checkConstraints } from "../constraints/check.js";
+import { checkConstraints, type ResolvedConstraint } from "../constraints/check.js";
 import { loadConstraints, type LoadedConstraints } from "../constraints/load.js";
 import { writeIfc } from "../ifc/writer.js";
 import { roundTripChecks } from "../ifc/roundtrip.js";
@@ -35,31 +35,37 @@ async function verifyIfc(model: BuildingModel, ifc: Uint8Array, ifcPath: string,
 
 /**
  * The model checks, then the model's constraints when it has them, printing how many were met.
- * Returns true when neither reported an ERROR.
+ * Returns whether neither reported an ERROR, and the constraints' resolved geometry.
  */
-function runChecks(loaded: LoadedModel, constraints: LoadedConstraints | undefined, issues: Issue[]): boolean {
+function runChecks(loaded: LoadedModel, constraints: LoadedConstraints | undefined, issues: Issue[]): { ok: boolean; resolved: ResolvedConstraint[] } {
   const checked = checkModel(loaded.model);
+  let resolved: ResolvedConstraint[] = [];
   if (constraints) {
     const report = checkConstraints(loaded.model, constraints.groups);
     checked.push(...report.issues);
+    resolved = report.resolved;
     console.log(`constr  ${constraints.path}: ${report.met} of ${report.total} met`);
   }
   issues.push(...checked);
-  return !hasErrors(checked);
+  return { ok: !hasErrors(checked), resolved };
 }
 
 /** Returns true when the build wrote its files without an ERROR. */
 async function runBuild(loaded: LoadedModel, constraints: LoadedConstraints | undefined, out: string, issues: Issue[]): Promise<boolean> {
-  if (!runChecks(loaded, constraints, issues)) return false; // nothing written: fix the model first
-  // Build both artefacts in memory first, so a writer failure cannot leave new JSON beside an old IFC.
+  const checked = runChecks(loaded, constraints, issues);
+  if (!checked.ok) return false; // nothing written: fix the model first
+  // Build every artefact in memory first, so a writer failure cannot leave new JSON beside an old IFC.
   const json = formatJson(loaded.model);
+  const resolvedJson = constraints ? formatJson(checked.resolved) : undefined;
   const model = BuildingModelSchema.parse(JSON.parse(json));
   const ifc = await writeIfc(model, { fileName: `${loaded.name}.ifc` });
   mkdirSync(out, { recursive: true });
   const jsonPath = join(out, `${loaded.name}.building.json`);
   const ifcPath = join(out, `${loaded.name}.ifc`);
+  const resolvedPath = join(out, `${loaded.name}.constraints.json`);
   writeFileAtomic(jsonPath, json);
   writeFileAtomic(ifcPath, ifc);
+  if (resolvedJson !== undefined) writeFileAtomic(resolvedPath, resolvedJson);
   console.log(`json    ${jsonPath}`);
   console.log(`ifc     ${ifcPath}`);
   await verifyIfc(model, ifc, ifcPath, issues);
@@ -68,7 +74,7 @@ async function runBuild(loaded: LoadedModel, constraints: LoadedConstraints | un
 
 /** `constraints` is undefined in `all`, whose build step has already checked them. */
 async function runRender(loaded: LoadedModel, constraints: LoadedConstraints | undefined, out: string, flags: Set<string>, issues: Issue[]): Promise<void> {
-  if (!runChecks(loaded, constraints, issues)) return; // nothing written: fix the model first
+  if (!runChecks(loaded, constraints, issues).ok) return; // nothing written: fix the model first
   for (const p of renderAll(loaded.name, loaded.model, out, { ids: flags.has("--ids") })) console.log(`render  ${p}`);
   if (flags.has("--no-3d")) return;
   if (!existsSync(join(out, `${loaded.name}.ifc`))) {

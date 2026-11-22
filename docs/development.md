@@ -87,6 +87,7 @@ The actions are pinned by commit SHA, matching the repo's exact-version rule.
 | File | Regenerate with | Notes |
 |---|---|---|
 | `out/**` | `npm run build` / `npm run render` | git-ignored; never edit |
+| `out/<name>.constraints.json` | `npm run build` | resolved constraints for the viewer's red labels; written only when the model has a constraints file |
 | `schema/building.schema.json` | `npm run schema` | committed; `tests/schema.test.ts` fails if it is stale |
 | `validator/validate.py.lock` | `uv lock --script validator/validate.py` | run after changing the script's dependencies |
 | `tests/__snapshots__/*.svg` | `npx vitest run -u` | review the diff before committing |
