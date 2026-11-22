@@ -250,6 +250,11 @@ ERROR   living-corner-to-window: is 1200 mm, should be 1175 ±10 mm (room-living
 for a new measurement, and say where it came from in its `note`. Don't record positions traced
 from a drawing as constraints.
 
+The **Constraints** button (off by default) shows each constraint in red at the midpoint of its
+measured span, labelled with its id and required distance, with a thick red dotted line along the
+span. `build` resolves the points into `out/<name>.constraints.json` for the viewer; that file is
+generated, so don't edit it.
+
 ### Where they live
 
 Constraints sit beside the model, not in it, and never reach `building.json` or the IFC:

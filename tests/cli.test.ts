@@ -39,9 +39,39 @@ describe("CLI", () => {
   it("builds a valid model into ELMSTEAD_OUT_DIR", () => {
     const r = run(["build", "models/example-cottage"]);
     expect(r.status).toBe(0);
-    expect(r.files).toEqual(["example-cottage.building.json", "example-cottage.ifc"]);
+    expect(r.files).toEqual(["example-cottage.building.json", "example-cottage.constraints.json", "example-cottage.ifc"]);
     expect(r.stdout).toContain("ifc");
     expect(r.stdout).toContain("valid");
+  }, 120_000);
+
+  it("publishes resolved constraints for the viewer", () => {
+    const r = run(["build", "models/example-cottage"]);
+    expect(r.status).toBe(0);
+    const list = JSON.parse(readFileSync(join(r.out, "example-cottage.constraints.json"), "utf8")) as {
+      id: string;
+      scope: string;
+      storey: string;
+      from: { x: number; y: number };
+      to: { x: number; y: number };
+      span: { from: { x: number; y: number }; to: { x: number; y: number } };
+      distance: number;
+    }[];
+    expect(list).toHaveLength(6);
+    expect(list.find((c) => c.id === "living-width")).toEqual({
+      id: "living-width",
+      scope: "room-living",
+      storey: "storey-ground",
+      from: { x: 200, y: 200 },
+      to: { x: 3750, y: 3350 },
+      span: { from: { x: 200, y: 200 }, to: { x: 3750, y: 200 } },
+      distance: 3550,
+    });
+  }, 120_000);
+
+  it("writes no constraints JSON for a model without a constraints file", () => {
+    const r = run(["build", "tests/fixtures/unconstrained.ts"]);
+    expect(r.status).toBe(0);
+    expect(r.files).toEqual(["unconstrained.building.json", "unconstrained.ifc"]);
   }, 120_000);
 
   it("writes nothing when a component check fails", () => {
@@ -102,6 +132,7 @@ describe("CLI", () => {
     expect(r.status).toBe(0);
     expect(r.files).toEqual([
       "example-cottage.building.json",
+      "example-cottage.constraints.json",
       "example-cottage.ifc",
       "example-cottage.storey-ground.plan.png",
       "example-cottage.storey-ground.plan.svg",
@@ -154,7 +185,9 @@ describe("CLI", () => {
     const withC = run(["build", "tests/fixtures/same-name/with/example-cottage"]);
     const withoutC = run(["build", "tests/fixtures/same-name/without/example-cottage"]);
     expect(withC.stdout).toContain("6 of 6 met");
+    expect(withC.files).toContain("example-cottage.constraints.json");
     expect(withoutC.stdout).not.toContain("constr");
+    expect(withoutC.files).not.toContain("example-cottage.constraints.json");
     for (const file of ["example-cottage.building.json", "example-cottage.ifc"]) {
       expect(readFileSync(join(withC.out, file)).equals(readFileSync(join(withoutC.out, file))), file).toBe(true);
     }
