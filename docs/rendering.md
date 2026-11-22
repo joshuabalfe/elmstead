@@ -104,6 +104,11 @@ openings cut, doors and glazing in place, colours applied.
   - They come from the model JSON, not the IFC, because the IFC has no room dimensions.
   - The **Labels** button toggles them. `?labels=0` or `?labels=1` in the URL sets them.
   - They are on by default, but off in snapshots (`?snapshot=1`), so the 3D PNGs show only the IFC.
+- Constraint labels: when `build` has written `out/<name>.constraints.json`, each measured
+  constraint is a red billboard at the midpoint of the span its measurement covers on its storey,
+  reading `<id> <distance>` in millimetres, with a thick red dotted line along that span. They
+  start hidden; the **Constraints** button or `?constraints=1` turns them on, independently of the
+  room labels, and snapshots leave them off.
 - Plan colouring, the same in every view (`applyStyle` in `main.ts`):
   - Floors are the plan's own room fills and door swings (`renderFloor` in `src/render/plan.ts`),
     cream rooms on white, drawn first and without depth so the model always covers them. The slab's top face

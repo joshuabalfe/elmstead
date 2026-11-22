@@ -11,6 +11,7 @@
              background: rgba(255,255,255,.92); padding: 8px 10px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
       #bar button, #bar select { font: inherit; padding: 3px 8px; }
       #labels[aria-pressed="true"] { font-weight: 600; }
+      #constraints[aria-pressed="true"] { font-weight: 600; }
       #walk[aria-pressed="true"] { font-weight: 600; }
       #status { color: #666; margin-left: 4px; }
       body.snapshot #bar { display: none; }
@@ -33,6 +34,7 @@
       <button data-view="ne">NE</button><button data-view="nw">NW</button>
       <button data-view="top">Top</button>
       <button id="labels" title="Room labels and dimensions">Labels</button>
+      <button id="constraints" title="Measured constraints as red labels and dotted lines">Constraints</button>
       <button id="walk" title="First-person walk mode">Walk</button>
       <span id="status"></span>
     </div>

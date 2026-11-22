@@ -152,11 +152,34 @@ function checkStorey(refs: Resolved["refs"], scope: Scope): void {
   if (away) fail(`${away.id} is not on ${scope.kind === "room" ? "the room's storey" : "the group's storey"}, ${scope.storey}`);
 }
 
-/** The constraint's measured distance, rounded to the nearest mm. Throws ConstraintError if it cannot be measured. */
-export function measureConstraint(ix: ModelIndex, c: Constraint, scope: Scope): number {
+/** A constraint's resolved endpoints and measured distance, rounded to the nearest mm. */
+export interface ConstraintMeasurement {
+  from: Vec;
+  to: Vec;
+  /** The plan span the measurement covers: the points, an x/y difference, or a projection along a wall. */
+  span: { from: Vec; to: Vec };
+  distance: number;
+}
+
+/** Where the measurement runs in plan: between the points, along x or y, or along a wall's direction. */
+function measuredSpan(ix: ModelIndex, a: Vec, b: Vec, m: Measure): { from: Vec; to: Vec } {
+  if (m === "straight") return { from: a, to: b };
+  if (m === "x") return { from: a, to: v(b.x, a.y) };
+  if (m === "y") return { from: a, to: v(a.x, b.y) };
+  const d = wallDirection(wallOf(ix, m.along).element);
+  return { from: a, to: vadd(a, vscale(d, dot(vsub(b, a), d))) };
+}
+
+/** Resolve and measure a constraint. Throws ConstraintError if it cannot be measured. */
+export function measureConstraintPoints(ix: ModelIndex, c: Constraint, scope: Scope): ConstraintMeasurement {
   const from = resolvePoint(ix, c.from, scope);
   const to = resolvePoint(ix, c.to, scope);
   const m = measure(ix, from.at, to.at, c.measure);
   checkStorey([...from.refs, ...to.refs, ...m.refs], scope);
-  return Math.round(m.distance);
+  return { from: from.at, to: to.at, span: measuredSpan(ix, from.at, to.at, c.measure), distance: Math.round(m.distance) };
+}
+
+/** The constraint's measured distance, rounded to the nearest mm. Throws ConstraintError if it cannot be measured. */
+export function measureConstraint(ix: ModelIndex, c: Constraint, scope: Scope): number {
+  return measureConstraintPoints(ix, c, scope).distance;
 }

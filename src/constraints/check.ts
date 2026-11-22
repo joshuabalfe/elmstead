@@ -1,12 +1,30 @@
+import type { Vec } from "../geometry/vec.js";
 import type { Issue } from "../checks/issue.js";
 import type { BuildingModel } from "../schema/schema.js";
-import { ConstraintError, indexModel, lookup, measureConstraint, type ModelIndex, type Scope } from "./resolve.js";
+import { ConstraintError, indexModel, lookup, measureConstraintPoints, type ConstraintMeasurement, type ModelIndex, type Scope } from "./resolve.js";
 import { DEFAULT_TOLERANCE, type ConstraintGroup } from "./schema.js";
+
+/** A constraint that measured, with the plan geometry the viewer draws. */
+export interface ResolvedConstraint {
+  id: string;
+  /** The group's scope: its storey or room id. */
+  scope: string;
+  storey: string;
+  /** Model plan coordinates in mm. */
+  from: Vec;
+  to: Vec;
+  /** The plan span the measurement covers, for drawing. */
+  span: { from: Vec; to: Vec };
+  /** The required distance in mm, not the measured one. */
+  distance: number;
+}
 
 export interface ConstraintsReport {
   issues: Issue[];
   met: number;
   total: number;
+  /** Every constraint that could be measured, met or not. */
+  resolved: ResolvedConstraint[];
 }
 
 /** The group's scope, or an ERROR against the scope id when the model has no such storey or room. */
@@ -27,6 +45,7 @@ function scopeOf(ix: ModelIndex, group: ConstraintGroup): Scope | Issue {
 export function checkConstraints(model: BuildingModel, groups: readonly ConstraintGroup[]): ConstraintsReport {
   const ix = indexModel(model);
   const issues: Issue[] = [];
+  const resolved: ResolvedConstraint[] = [];
   let met = 0;
   let total = 0;
   for (const group of groups) {
@@ -38,17 +57,26 @@ export function checkConstraints(model: BuildingModel, groups: readonly Constrai
     }
     for (const c of group.constraints) {
       const tolerance = c.tolerance ?? DEFAULT_TOLERANCE;
-      let measured: number;
+      let measurement: ConstraintMeasurement;
       try {
-        measured = measureConstraint(ix, c, scope);
+        measurement = measureConstraintPoints(ix, c, scope);
       } catch (e) {
         if (!(e instanceof ConstraintError)) throw e;
         issues.push({ level: "ERROR", id: c.id, message: `${e.message} (${scope.id})` });
         continue;
       }
-      if (Math.abs(measured - c.distance) <= tolerance) met++;
-      else issues.push({ level: "ERROR", id: c.id, message: `is ${measured} mm, should be ${c.distance} ±${tolerance} mm (${scope.id})` });
+      resolved.push({
+        id: c.id,
+        scope: scope.id,
+        storey: scope.storey,
+        from: measurement.from,
+        to: measurement.to,
+        span: measurement.span,
+        distance: c.distance,
+      });
+      if (Math.abs(measurement.distance - c.distance) <= tolerance) met++;
+      else issues.push({ level: "ERROR", id: c.id, message: `is ${measurement.distance} mm, should be ${c.distance} ±${tolerance} mm (${scope.id})` });
     }
   }
-  return { issues, met, total };
+  return { issues, met, total, resolved };
 }

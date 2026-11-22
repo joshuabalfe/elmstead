@@ -306,9 +306,18 @@ describe("checkConstraints", () => {
   const window = jamb("window-living", "start"); // 1175 mm east of sw, along wall-south
   const along = { along: "wall-south" } as const;
   const check = (...constraints: Constraint[]) => checkConstraints(testModel(), [inRoom("room-living", constraints)]);
+  const measured = (id: string, distance: number) => ({
+    id,
+    scope: "room-living",
+    storey: "storey-ground",
+    from: { x: 200, y: 200 },
+    to: { x: 1375, y: 0 },
+    span: { from: { x: 200, y: 200 }, to: { x: 1375, y: 200 } },
+    distance,
+  });
 
-  it("counts a constraint that is met", () => {
-    expect(check({ id: "c", from: sw, to: window, measure: along, distance: mm(1175) })).toEqual({ issues: [], met: 1, total: 1 });
+  it("counts a constraint that is met and records its resolved geometry", () => {
+    expect(check({ id: "c", from: sw, to: window, measure: along, distance: mm(1175) })).toEqual({ issues: [], met: 1, total: 1, resolved: [measured("c", 1175)] });
   });
 
   it("allows 10 mm by default, or the constraint's own tolerance", () => {
@@ -317,6 +326,7 @@ describe("checkConstraints", () => {
       issues: [{ level: "ERROR", id: "c", message: "is 1175 mm, should be 1167 ±5 mm (room-living)" }],
       met: 0,
       total: 1,
+      resolved: [measured("c", 1167)],
     });
   });
 
@@ -329,7 +339,12 @@ describe("checkConstraints", () => {
 
   it("reports a constraint that cannot be measured and still checks the rest", () => {
     const r = check({ id: "gone", from: sw, to: jamb("window-gone", "start"), measure: along, distance: mm(0) }, { id: "ok", from: sw, to: window, measure: along, distance: mm(1175) });
-    expect(r).toEqual({ issues: [{ level: "ERROR", id: "gone", message: "window-gone is not in the model (room-living)" }], met: 1, total: 2 });
+    expect(r).toEqual({
+      issues: [{ level: "ERROR", id: "gone", message: "window-gone is not in the model (room-living)" }],
+      met: 1,
+      total: 2,
+      resolved: [measured("ok", 1175)],
+    });
   });
 
   it("reports a group whose room or storey is not in the model", () => {
@@ -341,6 +356,7 @@ describe("checkConstraints", () => {
       ],
       met: 0,
       total: 1,
+      resolved: [],
     });
   });
 });
@@ -352,7 +368,9 @@ describe("the models' constraints", () => {
       const constraints = await loadConstraints(path);
       expect(loaded.ok && constraints.ok && constraints.value).toBeTruthy();
       if (!loaded.ok || !constraints.ok || !constraints.value) return;
-      expect(checkConstraints(loaded.value.model, constraints.value.groups)).toEqual({ issues: [], met: count, total: count });
+      const report = checkConstraints(loaded.value.model, constraints.value.groups);
+      expect(report).toMatchObject({ issues: [], met: count, total: count });
+      expect(report.resolved).toHaveLength(count);
     });
   }
 });
