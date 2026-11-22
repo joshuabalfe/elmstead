@@ -19,8 +19,10 @@ both rely on, and the checkboxes this vision ends with are that primitive with a
 ## What Changes
 
 - Add storey visibility to the viewer. `?storeys=` takes a comma-separated list of storey ids and
-  shows only those; omitting it shows every storey, as today. Hiding works through the IFC spatial
-  structure the writer already emits, via fragments' spatial tree and per-item visibility.
+  shows only those; omitting it shows every storey, as today. Hiding maps each fragment to its
+  storey by the Tag the writer puts on every element — or the Name, for spaces, whose Tag is empty —
+  so a hidden storey takes its openings, rooms and, once stairs exist, its flights and landings
+  with it.
 - Make plan style stack. Each shown storey's floor becomes its own room fills and door swings, at
   that storey's level, writing depth: the floor you see is the topmost one, and it hides the storeys
   below instead of the grey slab showing through. Slab tops stay discarded in plan style, at every

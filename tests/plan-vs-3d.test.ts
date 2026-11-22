@@ -41,11 +41,10 @@ async function publish(name: string, m: BuildingModel) {
   writeFileSync(join(outDir, `${name}.ifc`), await writeIfc(m, { fileName: `${name}.ifc` }));
 }
 
-/** The viewer's Top view in plan style, labels off, as raw pixels from its WebGL canvas. */
-async function topView(name: string, storeyId?: string): Promise<Raster> {
+/** The viewer's canvas as raw pixels, for any query string. */
+async function viewOf(name: string, query: string): Promise<Raster> {
   const url = server!.resolvedUrls!.local[0]!;
-  const storeys = storeyId ? `&storeys=${encodeURIComponent(storeyId)}` : "";
-  await page.goto(`${url}?model=${encodeURIComponent(name)}&view=top&snapshot=1&labels=0&style=plan${storeys}`);
+  await page.goto(`${url}?model=${encodeURIComponent(name)}&${query}`);
   await page.waitForFunction(() => window.__elmsteadReady || window.__elmsteadError, null, { timeout: 60_000 });
   const failed = await page.evaluate(() => window.__elmsteadError);
   if (failed) throw new Error(`viewer failed: ${failed}`);
@@ -61,6 +60,12 @@ async function topView(name: string, storeyId?: string): Promise<Raster> {
     return { width: c.width, height: c.height, b64: btoa(s) };
   });
   return { width, height, data: new Uint8Array(Buffer.from(b64, "base64")) };
+}
+
+/** The viewer's Top view in plan style, labels off, as raw pixels from its WebGL canvas. */
+async function topView(name: string, storeyId?: string): Promise<Raster> {
+  const storeys = storeyId ? `&storeys=${encodeURIComponent(storeyId)}` : "";
+  return viewOf(name, `view=top&snapshot=1&labels=0&style=plan${storeys}`);
 }
 
 /** The plan's drawing area only: the sheet furniture (title, north arrow, scale bar) is ink that
@@ -145,5 +150,29 @@ describe("3D Top view against the plan", () => {
     // Some tile covers the screen, which runs from (4.825, 6.575) to (5.45, 6.99) m.
     const over = r.badTiles.find((t) => t.x[0] < 5.45 && t.x[1] > 4.825 && t.y[0] < 6.99 && t.y[1] > 6.575);
     expect(over, `screen tiles among ${r.badTiles.length}: ${JSON.stringify(r.badTiles.slice(0, 4))}`).toBeDefined();
+  }, 120_000);
+});
+
+describe("storey selection", () => {
+  it("notes an unknown storey id in the status line and shows everything", async () => {
+    const m = await model("models/example-cottage");
+    await publish("test-unknown-storey", m);
+    await viewOf("test-unknown-storey", "view=top&snapshot=1&labels=0&style=plan&storeys=storey-nope");
+    expect(await page.textContent("#status")).toContain('no storey "storey-nope"');
+  }, 120_000);
+
+  it("hides a storey's geometry, not just its drawings", async () => {
+    const m = await model("models/elmstead");
+    await publish("test-hidden-storey", m);
+    const both = await viewOf("test-hidden-storey", "view=se&snapshot=1&labels=0&style=ifc");
+    const ground = await viewOf("test-hidden-storey", "view=se&snapshot=1&labels=0&style=ifc&storeys=storey-ground");
+    // In the IFC's colours the first floor is the mass above the ground floor's windows; hiding it
+    // removes a visible chunk of the model's pixels from the frame.
+    const inked = (r: Raster) => {
+      let n = 0;
+      for (let i = 0; i < r.data.length; i += 4) if (r.data[i]! < 240 || r.data[i + 1]! < 240 || r.data[i + 2]! < 240) n++;
+      return n;
+    };
+    expect(inked(ground)).toBeLessThan(inked(both) - 50_000);
   }, 120_000);
 });

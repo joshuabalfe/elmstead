@@ -35,18 +35,19 @@ on no other open change, and can merge in either order with ELM-4.
 
 ## Decisions
 
-### Visibility comes from the IFC spatial tree, driven by a URL parameter for now
+### Visibility maps fragments to storeys by Tag, driven by a URL parameter for now
 
-`?storeys=a,b` selects storey ids; the viewer walks the spatial tree, collects each selected storey
-node's descendants' local ids, and hides everything else with `setVisible`. The room-label,
-dimension and wall-top planes are built per storey already, so they hide with it. An unknown id falls
-back to showing everything and says so in the status line, matching how `?view=` treats an unknown
-view rather than failing the render.
+`?storeys=a,b` selects storey ids; every fragment whose Tag (or Name, for spaces, whose Tag the
+writer leaves empty) is an element of a hidden storey is hidden with `setVisible`, as are that
+storey's label, floor and constraint groups. The model JSON supplies the element-id-to-storey map,
+so the IFC needs no new data and the mapping cannot drift from the model.
 
-Alternatives considered: matching elements by `Tag` against the building JSON (rejected — it
-re-derives containment the IFC already states, and misses aggregates); a second model load per
-storey (rejected — one fragments model keeps one material set, which plan style's `styleOf` depends
-on).
+Alternatives considered: walking fragments' spatial tree (rejected after measurement — the tree
+surfaced only one of the two storey nodes and gave every node a null localId, so hiding the upper
+storey silently did nothing); matching elements by position or material (no stable key).
+
+Elements with neither Tag nor Name — opening voids, component types — are never hidden. They carry
+no geometry of their own, so nothing is left behind.
 
 ### Each shown storey's floor is its own occlusive fill plane
 
@@ -112,9 +113,9 @@ walks you on the first.
 - **Annotations and fills must hide with their storey.** They are per-storey groups now; tying their
   visibility to the storey's is part of the work, not a given. Forgetting it shows a floating
   first-floor label over an empty ground floor.
-- **Fragments visibility is per item, and stairs aggregate.** A stair's flights and landing hang off
-  the stair, which hangs off the storey; the spatial tree must be walked through aggregations, not
-  just containment, or hidden storeys leave their stairs behind.
+- **Stairs are not in this branch's schema yet.** The owner map reads a storey's `stairs`
+  defensively, so when ELM-4 lands, its flights and landings hide with their storey by Tag without
+  further work; until then this branch has never hidden a stair.
 - **Framing still fits the whole model.** `setView` frames `model.box`, which covers hidden storeys
   too, so a single storey of a tall building sits small in frame until the box follows visibility.
   Left as is: it is a framing nicety, not a correctness issue.

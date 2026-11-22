@@ -11,7 +11,7 @@
  * ignore).
  */
 import * as OBC from "@thatopen/components";
-import { LodMode, type FragmentsModel, type SpatialTreeItem } from "@thatopen/fragments";
+import { LodMode, type FragmentsModel } from "@thatopen/fragments";
 import workerUrl from "@thatopen/fragments/worker?url";
 import CameraControls from "camera-controls";
 import * as THREE from "three";
@@ -342,34 +342,32 @@ function parseStoreysParam(model: BuildingModel | null) {
  * stays visible rather than vanishing.
  */
 async function applyStoreyVisibility(model: FragmentsModel) {
-  if (shownStoreys === null || !modelJson) return;
-  const tree = await model.getSpatialStructure();
-  const storeyNodes: { node: SpatialTreeItem; tag?: string | undefined }[] = [];
-  const localIds: number[] = [];
-  const collect = (node: SpatialTreeItem) => {
-    if (node.localId !== null) localIds.push(node.localId);
-    if ((node.category ?? "").toUpperCase() === "IFCBUILDINGSTOREY") storeyNodes.push({ node });
-    for (const child of node.children ?? []) collect(child);
-  };
-  collect(tree);
-  if (storeyNodes.length) {
-    const items = await model.getItems(localIds);
-    for (const entry of storeyNodes) entry.tag = items.get(entry.node.localId!)?.data.Tag?.value as string | undefined;
-  }
-  const storeyIds = modelJson.storeys.map((s) => s.id);
-  const byTag = storeyNodes.length === storeyIds.length && storeyNodes.every((n) => n.tag && storeyIds.includes(n.tag));
   storeyItems = new Map();
-  storeyNodes.forEach((entry, i) => {
-    const id = byTag ? entry.tag! : storeyIds[i];
-    if (!id) return;
-    const ids: number[] = [];
-    const walk = (node: SpatialTreeItem) => {
-      if (node.localId !== null) ids.push(node.localId);
-      for (const child of node.children ?? []) walk(child);
-    };
-    walk(entry.node);
-    storeyItems.set(id, ids);
-  });
+  if (shownStoreys === null || !modelJson) return;
+  // Which storey owns each element id, from the model JSON: the IFC is the geometry, but the JSON is
+  // the authority on which storey an element belongs to.
+  const owner = new Map<string, string>();
+  for (const s of modelJson.storeys) {
+    for (const w of s.walls) owner.set(w.id, s.id);
+    for (const o of s.openings) owner.set(o.id, s.id);
+    for (const sl of s.slabs) owner.set(sl.id, s.id);
+    for (const r of s.rooms) owner.set(r.id, s.id);
+    // Stairs arrive with ELM-4; read them defensively so this mapping is ready for them.
+    const stairs = (s as { stairs?: { id: string; segments: { id: string }[] }[] }).stairs ?? [];
+    for (const st of stairs) {
+      owner.set(st.id, s.id);
+      for (const seg of st.segments) owner.set(seg.id, s.id);
+    }
+  }
+  // Fragments' spatial tree does not surface every storey, so map items by their Tag (elements) or
+  // Name (spaces, whose Tag the writer leaves empty) instead of walking it.
+  const items = await model.getItems();
+  for (const [localId, item] of items) {
+    const key = (item.data.Tag?.value ?? item.data.Name?.value) as string | undefined;
+    const storey = key ? owner.get(key) : undefined;
+    if (!storey) continue;
+    storeyItems.set(storey, [...(storeyItems.get(storey) ?? []), localId]);
+  }
   const hidden = [...storeyItems.entries()].filter(([id]) => !isShown(id)).flatMap(([, ids]) => ids);
   if (hidden.length) await model.setVisible(hidden, false);
   for (const [id, groups] of storeyLayers) for (const g of groups) g.visible = isShown(id);
