@@ -158,11 +158,17 @@ nothing is drawn behind it: from above or from a corner you look straight throug
 the ground floor's cream fills. Walk mode hid the bug because it views slabs from underneath, where
 the normal points down and the patch leaves it alone.
 
-The fix keys the discard on the projection rather than the storey. Only the Top view is
-orthographic, so a shared shader uniform flips it off everywhere else; no per-storey materials are
-needed, which the single shared `IfcSurfaceStyle` per element kind would otherwise force. The Top
-view — and so the plan-versus-3D test — behaves exactly as before. Measured on the fixture from
-directly above: 401,756 room-fill pixels through the first floor before, 0 after.
+The fix keys the discard on the camera direction rather than the storey: straight down, within a
+couple of degrees, discards; anything tilted does not. Keying on the projection would not have
+worked — orbiting out of the Top view keeps the orthographic projection, and that orbit is exactly
+where the hole shows. A shared shader uniform flips it, so no per-storey materials are needed, which
+the single shared `IfcSurfaceStyle` per element kind would otherwise force. The Top view — and so
+the plan-versus-3D test — behaves exactly as before. Measured on the fixture from directly above:
+401,756 room-fill pixels seen through the first floor before the fix, 0 after.
+
+Residue, stated plainly: a perspective camera pointed straight down (`?camera=`) also reads like the
+plan, and orbiting back to exactly vertical re-opens the see-through. Both are the same rule doing
+its job; neither is a pose anyone holds by accident.
 
 ### Checks join the existing model-checks layer
 

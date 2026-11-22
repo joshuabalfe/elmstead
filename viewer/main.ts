@@ -258,18 +258,28 @@ function styleOf(material: THREE.MeshLambertMaterial): keyof typeof STYLES | und
 const wallTop = new THREE.Color(C.wall); // linear, as the shader works in linear
 
 /**
- * Whether slab tops are discarded, as a shader uniform so switching views needs no recompile.
- * Only the orthographic Top view wants it: that is the view where the plan's own room fills stand in
- * for the lowest storey's floor, so the model reads like the drawing. In a perspective view — a
- * corner view or walk mode — an upper storey's slab has no fill plane behind it, and discarding its
- * top leaves a hole you see straight through to the storey below.
+ * Whether slab tops are discarded, as a shader uniform so changing it needs no recompile.
+ * Looking straight down is the pose that reads like the plan: the plan's own room fills stand in
+ * for the lowest storey's floor, so the slab top has to go. Tilt away from straight down — orbiting
+ * out of the Top view keeps the orthographic projection — and nothing is drawn behind an upper
+ * storey's slab, so its top must come back or the floor is a hole you see straight through.
  */
 const discardSlabTops = { value: 0 };
+const viewDirection = new THREE.Vector3();
 
-/** Keep `discardSlabTops` in step with the camera; only the Top view is orthographic. */
+/** Keep `discardSlabTops` in step with the camera; straight down is within about 2.5° of vertical. */
 function syncSlabTops() {
-  discardSlabTops.value = world.camera.projection.current === "Orthographic" ? 1 : 0;
+  world.camera.three.getWorldDirection(viewDirection);
+  const next = viewDirection.y < -0.999 ? 1 : 0;
+  if (next === discardSlabTops.value) return;
+  discardSlabTops.value = next;
+  // The listener that renders on camera updates is registered before this one, so the frame just
+  // drawn used the previous value; redraw now that it has changed.
+  void fragments.core.update();
 }
+
+// Orbiting and panning never go through setView, so follow the camera as it moves.
+world.camera.controls.addEventListener("update", syncSlabTops);
 
 /**
  * Patch a material so its upward faces are drawn in the plan's wall colour (`mode` 1) or not at
@@ -492,6 +502,7 @@ function walkFrame(now: number) {
     // The controls' "update" event no longer fires while walking, so refresh culling and the
     // compass here.
     void fragments.core.update();
+    syncSlabTops();
     updateCompass();
   }
   walkLast = now;

@@ -39,13 +39,8 @@ async function publish(name: string, m: BuildingModel) {
   writeFileSync(join(outDir, `${name}.ifc`), await writeIfc(m, { fileName: `${name}.ifc` }));
 }
 
-/** The viewer's canvas as raw pixels, for any query string. */
-async function viewOf(name: string, query: string): Promise<Raster> {
-  const url = server!.resolvedUrls!.local[0]!;
-  await page.goto(`${url}?model=${encodeURIComponent(name)}&${query}`);
-  await page.waitForFunction(() => window.__elmsteadReady || window.__elmsteadError, null, { timeout: 60_000 });
-  const failed = await page.evaluate(() => window.__elmsteadError);
-  if (failed) throw new Error(`viewer failed: ${failed}`);
+/** The viewer's canvas as raw pixels, without navigating anywhere. */
+async function readCanvas(): Promise<Raster> {
   const { width, height, b64 } = await page.evaluate(() => {
     const gl = document.querySelector<HTMLCanvasElement>("#container canvas")!;
     const c = document.createElement("canvas");
@@ -58,6 +53,32 @@ async function viewOf(name: string, query: string): Promise<Raster> {
     return { width: c.width, height: c.height, b64: btoa(s) };
   });
   return { width, height, data: new Uint8Array(Buffer.from(b64, "base64")) };
+}
+
+/** The viewer's canvas as raw pixels, for any query string. */
+async function viewOf(name: string, query: string): Promise<Raster> {
+  const url = server!.resolvedUrls!.local[0]!;
+  await page.goto(`${url}?model=${encodeURIComponent(name)}&${query}`);
+  await page.waitForFunction(() => window.__elmsteadReady || window.__elmsteadError, null, { timeout: 60_000 });
+  const failed = await page.evaluate(() => window.__elmsteadError);
+  if (failed) throw new Error(`viewer failed: ${failed}`);
+  return readCanvas();
+}
+
+/**
+ * Orbit out of the Top view with a right-button drag, as a person would, keeping its projection.
+ * The drag goes upwards: from straight down the polar angle is already at its minimum, so a
+ * downward drag is clamped and only spins the view about the vertical.
+ */
+async function orbitOutOfTop(name: string): Promise<Raster> {
+  await viewOf(name, "view=top&snapshot=1&labels=0&style=plan");
+  const box = (await page.locator("#container canvas").boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down({ button: "right" });
+  await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2 - 200, { steps: 10 });
+  await page.mouse.up({ button: "right" });
+  await page.waitForTimeout(400); // let the controls settle and a frame draw
+  return readCanvas();
 }
 
 /** The viewer's Top view in plan style, labels off, as raw pixels from its WebGL canvas. */
@@ -137,16 +158,20 @@ describe("plan style and an upper storey's slab", () => {
     return n;
   }
 
-  it("discards slab tops in the orthographic Top view only", async () => {
+  it("shows an upper storey's slab solid once the camera tilts off vertical", async () => {
     const m = await model("models/example-two-storey");
     await publish("test-two-storey-slab", m);
     const query = "snapshot=1&labels=0&style=plan";
-    // The Top view is orthographic and stands the plan's room fills in for the lowest floor, so the
-    // ground floor's cream shows. Straight down from a perspective camera over the first-floor slab,
-    // west of the stairwell void, that slab must be solid and hide it.
     const top = roomPixels(await viewOf("test-two-storey-slab", `view=top&${query}`));
-    const above = roomPixels(await viewOf("test-two-storey-slab", `camera=1.5,6,-2,1.5,3,-2&${query}`));
+    // Straight down reads like the plan in either projection: the fills stand in for the floor.
+    const straightDown = roomPixels(await viewOf("test-two-storey-slab", `camera=1.5,6,-2,1.5,3,-2&${query}`));
+    // Tilted off vertical — as orbiting out of the Top view leaves it — the first floor's slab is
+    // solid and hides the ground floor's fills, except through the stairwell void.
+    const tilted = roomPixels(await viewOf("test-two-storey-slab", `camera=1.5,6,-6,3,2.5,-2&${query}`));
+    const orbited = roomPixels(await orbitOutOfTop("test-two-storey-slab"));
     expect(top).toBeGreaterThan(50_000);
-    expect(above).toBeLessThan(top / 10);
-  }, 120_000);
+    expect(straightDown).toBeGreaterThan(top / 2);
+    expect(tilted).toBeLessThan(top / 10);
+    expect(orbited).toBeLessThan(top / 10);
+  }, 180_000);
 });
