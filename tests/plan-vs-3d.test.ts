@@ -16,6 +16,7 @@ import { loadModel } from "../src/cli/load.js";
 import { writeIfc } from "../src/ifc/writer.js";
 import { renderPlan } from "../src/render/plan.js";
 import { svgToPixels } from "../src/render/png.js";
+import { C } from "../src/render/style.js";
 import type { BuildingModel } from "../src/schema/schema.js";
 import { comparePlanTo3d, type Raster } from "./support/plan-vs-3d.js";
 
@@ -38,10 +39,10 @@ async function publish(name: string, m: BuildingModel) {
   writeFileSync(join(outDir, `${name}.ifc`), await writeIfc(m, { fileName: `${name}.ifc` }));
 }
 
-/** The viewer's Top view in plan style, labels off, as raw pixels from its WebGL canvas. */
-async function topView(name: string): Promise<Raster> {
+/** The viewer's canvas as raw pixels, for any query string. */
+async function viewOf(name: string, query: string): Promise<Raster> {
   const url = server!.resolvedUrls!.local[0]!;
-  await page.goto(`${url}?model=${encodeURIComponent(name)}&view=top&snapshot=1&labels=0&style=plan`);
+  await page.goto(`${url}?model=${encodeURIComponent(name)}&${query}`);
   await page.waitForFunction(() => window.__elmsteadReady || window.__elmsteadError, null, { timeout: 60_000 });
   const failed = await page.evaluate(() => window.__elmsteadError);
   if (failed) throw new Error(`viewer failed: ${failed}`);
@@ -57,6 +58,11 @@ async function topView(name: string): Promise<Raster> {
     return { width: c.width, height: c.height, b64: btoa(s) };
   });
   return { width, height, data: new Uint8Array(Buffer.from(b64, "base64")) };
+}
+
+/** The viewer's Top view in plan style, labels off, as raw pixels from its WebGL canvas. */
+async function topView(name: string): Promise<Raster> {
+  return viewOf(name, "view=top&snapshot=1&labels=0&style=plan");
 }
 
 const planPixels = (m: BuildingModel): Raster => svgToPixels(renderPlan(m, m.storeys[0]!, { ids: false }));
@@ -117,5 +123,30 @@ describe("3D Top view against the plan", () => {
     expect(worst!.x[1]).toBeGreaterThan(4.825);
     expect(worst!.y[0]).toBeLessThan(6.99);
     expect(worst!.y[1]).toBeGreaterThan(6.575);
+  }, 120_000);
+});
+
+describe("plan style and an upper storey's slab", () => {
+  /** Pixels within the classifier's tolerance of the plan's room fill. */
+  function roomPixels(r: Raster): number {
+    const [cr, cg, cb] = [1, 3, 5].map((i) => parseInt(C.room.slice(i, i + 2), 16)) as [number, number, number];
+    let n = 0;
+    for (let i = 0; i < r.data.length; i += 4) {
+      if (Math.abs(r.data[i]! - cr) <= 5 && Math.abs(r.data[i + 1]! - cg) <= 5 && Math.abs(r.data[i + 2]! - cb) <= 5) n++;
+    }
+    return n;
+  }
+
+  it("discards slab tops in the orthographic Top view only", async () => {
+    const m = await model("models/example-two-storey");
+    await publish("test-two-storey-slab", m);
+    const query = "snapshot=1&labels=0&style=plan";
+    // The Top view is orthographic and stands the plan's room fills in for the lowest floor, so the
+    // ground floor's cream shows. Straight down from a perspective camera over the first-floor slab,
+    // west of the stairwell void, that slab must be solid and hide it.
+    const top = roomPixels(await viewOf("test-two-storey-slab", `view=top&${query}`));
+    const above = roomPixels(await viewOf("test-two-storey-slab", `camera=1.5,6,-2,1.5,3,-2&${query}`));
+    expect(top).toBeGreaterThan(50_000);
+    expect(above).toBeLessThan(top / 10);
   }, 120_000);
 });

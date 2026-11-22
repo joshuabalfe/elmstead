@@ -48,11 +48,15 @@ None.
 - `src/geometry/` (stair profile and derived dimensions)
 - `src/ifc/writer.ts`, `src/ifc/roundtrip.ts`, `src/ifc/styles.ts`
 - `src/render/plan.ts`, `src/render/style.ts`
+- `viewer/main.ts`, for the plan-style slab-top fix
 - `src/checks/` and `src/checks/model.ts`
 - Tests, docs, and a two-storey fixture
-- No viewer code changes: the IFC geometry renders in the existing viewer. Stairs are drawn by
-  `renderPlan` alone, so the plan-style overlay the viewer composites from `renderFloor`,
-  `renderWallTops` and `renderPlanAnnotations` is untouched. `models/elmstead/` is not changed until
-  its first floor is traced.
+- Stairs need no viewer work: they are drawn by `renderPlan` alone, so the plan-style overlay the
+  viewer composites from `renderFloor`, `renderWallTops` and `renderPlanAnnotations` is untouched,
+  and the IFC geometry renders as it is. But this is the project's first two-storey model, and it
+  exposed a plan-style bug: slab top faces were discarded in every view, so an upper floor was a
+  hole you saw straight through. Discarding is now limited to the orthographic Top view, where the
+  plan's room fills stand in for the floor. `models/elmstead/` is not changed until its first floor
+  is traced.
 - Out of scope: winders, curved or spiral stairs, railings, front steps, upper-floor slab openings,
   headroom and building-code checks, and the Elmstead first-floor layout.

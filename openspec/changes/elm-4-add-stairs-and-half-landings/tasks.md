@@ -24,6 +24,7 @@
 - [x] 4.1 Include stair points in the plan extent and draw flight footprints, tread lines, landing outlines and walking-direction arrows with `stair`/`stair-flight`/`stair-landing` groups and ids, in `renderPlan` only; verify renderer tests cover a half-turn stair, `--ids`, a stair outside the room outlines, and that neither `renderFloor` nor `renderWallTops` — which `viewer/main.ts` composites into its plan-style overlay — emits any stair group
 - [x] 4.2 Pick stair colours that survive the plan-vs-3D comparison: on the plan, off `C.wall`, `C.room` and `C.paper` so stair pixels classify as other and are skipped; in `STYLES`, at least 0.02 RGB distance from every existing entry so the viewer's `styleOf` does not patch stair tops as walls or discard them as slabs; verify the comparison test still passes with the stair fixture and a unit test asserts both distances
 - [x] 4.3 Update the SVG snapshot if the renderer changes existing output and document stair symbols in `docs/rendering.md`; verify the reviewed snapshot and the documented symbols match the output
+- [x] 4.4 Limit plan style's slab-top discarding to the orthographic Top view, so an upper storey's slab is solid in corner views, walk mode and any perspective camera; verify the plan-versus-3D test still passes and a new test counts room-fill pixels from directly above in both projections
 
 ## 5. Model checks
 

@@ -258,20 +258,36 @@ function styleOf(material: THREE.MeshLambertMaterial): keyof typeof STYLES | und
 const wallTop = new THREE.Color(C.wall); // linear, as the shader works in linear
 
 /**
+ * Whether slab tops are discarded, as a shader uniform so switching views needs no recompile.
+ * Only the orthographic Top view wants it: that is the view where the plan's own room fills stand in
+ * for the lowest storey's floor, so the model reads like the drawing. In a perspective view — a
+ * corner view or walk mode — an upper storey's slab has no fill plane behind it, and discarding its
+ * top leaves a hole you see straight through to the storey below.
+ */
+const discardSlabTops = { value: 0 };
+
+/** Keep `discardSlabTops` in step with the camera; only the Top view is orthographic. */
+function syncSlabTops() {
+  discardSlabTops.value = world.camera.projection.current === "Orthographic" ? 1 : 0;
+}
+
+/**
  * Patch a material so its upward faces are drawn in the plan's wall colour (`mode` 1) or not at
- * all (`mode` 2).
+ * all (`mode` 2, while `discardSlabTops` is set).
  */
 function patchTops(m: THREE.MeshLambertMaterial, mode: 1 | 2) {
   m.onBeforeCompile = (shader) => {
     shader.uniforms.planTopColour = { value: wallTop };
+    const discardUniform = mode === 2 ? "uniform float discardTops;\n" : "";
+    if (mode === 2) shader.uniforms.discardTops = discardSlabTops; // one shared object, so flipping it updates every slab
     shader.fragmentShader = shader.fragmentShader
-      .replace("void main() {", "uniform vec3 planTopColour;\nvoid main() {")
+      .replace("void main() {", `uniform vec3 planTopColour;\n${discardUniform}void main() {`)
       // `normal` is view-space; `normal * mat3(viewMatrix)` is the world-space normal (the view
       // matrix is orthonormal).
       .replace(
         "#include <opaque_fragment>",
         `if ((normal * mat3(viewMatrix)).y > 0.7) {
-          ${mode === 2 ? "discard;" : "outgoingLight = planTopColour;"}
+          ${mode === 2 ? "if (discardTops > 0.5) discard;" : "outgoingLight = planTopColour;"}
         }
         #include <opaque_fragment>`,
       );
@@ -337,6 +353,7 @@ async function setView(view: View) {
   sphere.radius *= view === "top" ? 0.78 : 0.92; // the sphere is loose around a flat box; tighten the framing
   await world.camera.controls.fitToSphere(sphere, false);
   await fragments.core.update(true);
+  syncSlabTops();
   updateCompass();
 }
 
@@ -350,6 +367,7 @@ async function setCamera(spec: string) {
   await world.camera.projection.set("Perspective");
   await world.camera.controls.setLookAt(v[0]!, v[1]!, v[2]!, v[3]!, v[4]!, v[5]!, false);
   await fragments.core.update(true);
+  syncSlabTops();
   updateCompass();
 }
 
@@ -426,6 +444,7 @@ async function enterWalk(lock: boolean) {
   walkRaf = requestAnimationFrame(walkFrame);
   if (lock) pointerLockControls.lock();
   await fragments.core.update(true);
+  syncSlabTops();
   updateCompass();
 }
 
@@ -458,6 +477,7 @@ async function exitWalk() {
   await world.camera.controls.setLookAt(p.x, p.y, p.z, t.x, t.y, t.z, false);
   world.camera.controls.enabled = true;
   await fragments.core.update(true);
+  syncSlabTops();
   updateCompass();
 }
 

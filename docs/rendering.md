@@ -115,9 +115,13 @@ openings cut, doors and glazing in place, colours applied.
   - They are on by default, but off in snapshots (`?snapshot=1`), so the 3D PNGs show only the IFC.
 - Plan colouring, the same in every view (`applyStyle` in `main.ts`):
   - Floors are the plan's own room fills and door swings (`renderFloor` in `src/render/plan.ts`),
-    cream rooms on white, drawn first and without depth so the model always covers them. The slab's top face
-    is not drawn; its edges still show. (A wall's underside lies exactly on the slab's top face,
-    and on real GPUs the two fight for depth.) Only the lowest storey's floor, for now.
+    cream rooms on white, drawn first and without depth so the model always covers them. A slab's
+    top face is not drawn, so those fills show in its place; its edges still show. (A wall's
+    underside lies exactly on the slab's top face, and on real GPUs the two fight for depth.) Only
+    the lowest storey gets a floor, so slab tops are dropped **only in the orthographic Top view**:
+    anywhere else an upper storey's slab would be a hole straight through to the storey below. A
+    shared shader uniform (`discardSlabTops` in `main.ts`) flips it, so changing view needs no
+    shader recompile. Walk mode looks up at slab undersides, which the patch never touched.
   - Walls keep their IFC colour and lighting, except faces that look upwards (wall tops, window
     sills), which are the plan's charcoal, unlit. A small shader patch picks those out by their
     world-space normal, so the material itself is unchanged.

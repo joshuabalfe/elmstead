@@ -22,8 +22,9 @@ for Elmstead.
 - Headroom, building-code or collision checks.
 - The Elmstead first-floor layout or its stair dimensions.
 - Drawing an arriving stair on the destination storey's plan.
-- Viewer code changes. The viewer renders the stair's IFC geometry as it is, and its plan-style
-  overlay is unchanged because stairs are drawn only in `renderPlan`.
+- Viewer work for stairs. The viewer renders the stair's IFC geometry as it is, and its plan-style
+  overlay is unchanged because stairs are drawn only in `renderPlan`. The one viewer fix here is not
+  about stairs: it is the plan-style slab-top bug the first two-storey model exposed.
 
 ## Decisions
 
@@ -144,6 +145,24 @@ is something else. Two colour constraints follow:
   the plan's charcoal, and one matched as `slab` has its upward faces discarded, which would leave
   the stair invisible from above. An unrecognised stair material is left alone, which is what we
   want.
+
+### Plan style discards slab tops only in the Top view
+
+Plan colouring patches every material it recognises as a slab so its upward-facing fragments are
+discarded, letting the plan's own room fills — drawn once, for the lowest storey only — stand in for
+the floor. That is what makes the Top view read like the drawing, and the plan-versus-3D test
+depends on it.
+
+With one storey it is invisible. With two, every slab top goes, including the first floor's, and
+nothing is drawn behind it: from above or from a corner you look straight through the upper floor to
+the ground floor's cream fills. Walk mode hid the bug because it views slabs from underneath, where
+the normal points down and the patch leaves it alone.
+
+The fix keys the discard on the projection rather than the storey. Only the Top view is
+orthographic, so a shared shader uniform flips it off everywhere else; no per-storey materials are
+needed, which the single shared `IfcSurfaceStyle` per element kind would otherwise force. The Top
+view — and so the plan-versus-3D test — behaves exactly as before. Measured on the fixture from
+directly above: 401,756 room-fill pixels through the first floor before, 0 after.
 
 ### Checks join the existing model-checks layer
 
