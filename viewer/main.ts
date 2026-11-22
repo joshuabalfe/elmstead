@@ -148,6 +148,12 @@ planLayers.visible = false;
 world.scene.three.add(planLayers);
 /** Height (mm) above the wall tops of the plan's walls, door gaps and windows; below the labels. */
 const WALL_TOP_LIFT = 5;
+/**
+ * Height (mm) a storey's floor plane sits above its own elevation. The storey below draws its wall
+ * tops 5 mm and its labels 10 mm above its ceiling, which is this storey's elevation, so a floor
+ * plane at exactly the elevation would pass beneath them and they would show through it.
+ */
+const FLOOR_LIFT = 20;
 
 /**
  * The plan's room names, areas and dimensions for each storey, as one transparent texture on a
@@ -190,7 +196,7 @@ async function loadLabels(model: BuildingModel | null) {
       // floor you see is the topmost one, and it hides the storeys below. Cut-out (alphaTest), not
       // blended, so it stays in the opaque pass that runs before the walls.
       const fills = renderFloor(storey);
-      const fill = await planPlane(fills.svg, fills.bounds, storey.elevation / 1000, { alphaTest: 0.5 });
+      const fill = await planPlane(fills.svg, fills.bounds, (storey.elevation + FLOOR_LIFT) / 1000, { alphaTest: 0.5 });
       fill.renderOrder = -1;
       layerGroup.add(fill);
     }
@@ -311,8 +317,9 @@ function styleOf(material: THREE.MeshLambertMaterial): keyof typeof STYLES | und
 const wallTop = new THREE.Color(C.wall); // linear, as the shader works in linear
 
 /**
- * Patch a material so its upward faces are drawn in the plan's wall colour (`mode` 1) or not at
- * all (`mode` 2).
+ * Patch a material for plan style. `mode` 1 paints upward faces in the plan's wall colour; `mode` 2
+ * keeps only downward faces, so a slab contributes its underside — the ceiling of the storey below —
+ * and nothing else: no grey top over the room fills, and no grey edges floating on the facade.
  */
 function patchTops(m: THREE.MeshLambertMaterial, mode: 1 | 2) {
   m.onBeforeCompile = (shader) => {
@@ -320,12 +327,11 @@ function patchTops(m: THREE.MeshLambertMaterial, mode: 1 | 2) {
     shader.fragmentShader = shader.fragmentShader
       .replace("void main() {", "uniform vec3 planTopColour;\nvoid main() {")
       // `normal` is view-space; `normal * mat3(viewMatrix)` is the world-space normal (the view
-      // matrix is orthonormal).
+      // matrix is orthonormal). It is only defined by the time the opaque fragment runs.
       .replace(
         "#include <opaque_fragment>",
-        `if ((normal * mat3(viewMatrix)).y > 0.7) {
-          ${mode === 2 ? "discard;" : "outgoingLight = planTopColour;"}
-        }
+        `float planTopNy = (normal * mat3(viewMatrix)).y;
+        ${mode === 1 ? "if (planTopNy > 0.7) { outgoingLight = planTopColour; }" : "if (planTopNy > -0.7) discard;"}
         #include <opaque_fragment>`,
       );
   };

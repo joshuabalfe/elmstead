@@ -138,10 +138,12 @@ describe("3D Top view against the plan", () => {
     hallway.outline.splice(1, 2, screen.start, screen.end);
     lobby.outline.splice(3, 2, screen.end, screen.start);
     await publish("test-elmstead-centreline", m);
-    const r = comparePlanTo3d(planPixels(m), await topView("test-elmstead-centreline", "storey-ground"));
-    // The mutation is still caught. Localising it to the screen's tiles is left to the same
-    // registration work as the skipped elmstead ground case above: with occlusive per-storey
-    // floors the mismatch no longer ranks the screen's tiles first.
+    // Finer tiles than the default: the defect is a door gap, a band only as deep as the wall, which
+    // a 500 mm tile dilutes below the comparator's 25%-comparable threshold.
+    const r = comparePlanTo3d(planPixels(m), await topView("test-elmstead-centreline", "storey-ground"), { tile: 250, step: 125 });
     expect(r.badTiles.length).toBeGreaterThan(0);
+    // Some tile covers the screen, which runs from (4.825, 6.575) to (5.45, 6.99) m.
+    const over = r.badTiles.find((t) => t.x[0] < 5.45 && t.x[1] > 4.825 && t.y[0] < 6.99 && t.y[1] > 6.575);
+    expect(over, `screen tiles among ${r.badTiles.length}: ${JSON.stringify(r.badTiles.slice(0, 4))}`).toBeDefined();
   }, 120_000);
 });

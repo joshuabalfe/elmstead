@@ -22,8 +22,9 @@ or aggregates in it, and the drawings and labels made for it.
 
 ### Requirement: Floors stack occlusively
 In plan style each shown storey's floor SHALL be its own room fills and door swings, at that
-storey's level, drawn so that it hides everything below it. Slab tops SHALL stay discarded in plan
-style, at every storey, so the fills are the floor rather than a grey plane over them.
+storey's level, drawn so that it hides everything below it. A slab SHALL render only its downward
+face: its underside, the ceiling of the storey below. Its top and its edges SHALL NOT be drawn, so
+the fills are the floor and no grey band crosses the facade.
 
 #### Scenario: Whole building from a corner
 - **WHEN** every storey of a two-storey model is shown in a corner view
@@ -33,9 +34,13 @@ style, at every storey, so the fills are the floor rather than a grey plane over
 - **WHEN** every storey is shown in the top view
 - **THEN** the topmost storey's room fills are the floor, and no lower storey shows through them
 
+#### Scenario: Slab edges from outside
+- **WHEN** a two-storey model is shown in plan style from outside, at any height
+- **THEN** no grey slab edge crosses the facade; the walls read continuous from the ground to the top
+
 #### Scenario: Looking up from inside
 - **WHEN** walk mode stands on the ground floor of a two-storey model
-- **THEN** the first floor's underside is the ceiling, and its fills do not bleed through it
+- **THEN** the first floor's slab underside is the ceiling, and its fills do not bleed through it
 
 ## MODIFIED Requirements
 
