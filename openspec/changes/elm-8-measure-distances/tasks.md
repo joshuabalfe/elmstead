@@ -1,0 +1,32 @@
+# Tasks
+
+## 1. Setup and pure measurement helpers
+
+- [ ] 1.1 Install the worktree's dependencies if `node_modules` is absent (`npm ci`), then run `npm run typecheck` and verify it reaches the project rather than failing on missing types.
+- [ ] 1.2 Add `measure` to `C` in `src/render/style.ts` and create `viewer/measure.ts` with `Point3`, `MeasurementValues`, `measurementValues`, `measurementLines` and `measurementSummary`. Add unit tests in `tests/viewer.test.ts` for a level horizontal span, a vertical span, a mixed span, rounding in the display helpers, and the exact label and list-row text; verify `npm run test:fast` passes.
+- [ ] 1.3 Add `nearestSnap` and `isMeasureGesture` to `viewer/measure.ts` and unit-test the nearest-candidate choice, the corner-on-a-tie rule, the `SNAP_MAX_PX` cut-off, and the 4 px click-slop boundary; verify `npm run test:fast` passes.
+
+## 2. Picking and measurement state
+
+- [ ] 2.1 Keep the active `FragmentsModel` on the viewer, add the pick path with `RaycastData.mouse` in client/CSS pixels, project the snap candidates, choose with `nearestSnap`, and fall back to the plain face raycast. Add the load epoch and measurement epoch so late loads and late picks are dropped, and keep one future click candidate while a pick is in flight. Add a temporary console log of the chosen point for this task; verify `npm run typecheck` passes and, in the running viewer, clicks near a known corner, a known edge and the middle of a face land on the corner, edge and face respectively.
+- [ ] 2.2 Add measure mode state, pointerdown/pointerup click-versus-drag handling, multi-touch cancellation, the one-finger tap path, the pending-point marker and the one-deep future-click queue. Verify with `npm run view` that a click marks a point, a tap picks one, a drag pans without measuring, a second finger does not measure, a click off the model adds nothing, and a rapid second click made while the first pick resolves is kept as the next point.
+- [ ] 2.3 Add the completed measurement list, numbering, the read-only `window.__elmsteadMeasurements` snapshot (initialised to `[]`) and the lifecycle rules: Clear removes everything including a pending-only point, Escape cancels pending then exits the mode, mode-off keeps completed measurements, model change and walk entry clear everything, and a view change keeps them. Remove the temporary pick log from 2.1 and verify each rule in the running viewer and by reading the snapshot in the console.
+
+## 3. Drawing and controls
+
+- [ ] 3.1 Draw each completed measurement as a depth-tested thick teal line, endpoint markers and a camera-facing three-line label in a measurement group; dispose per-measurement line geometry and label textures on Clear and model change. Verify in the Top view and a corner view that the line, both markers and all three distances are legible when in front of the model, and that a wall or an upper storey hides them rather than letting them draw through; check with labels and constraints toggled on and off.
+- [ ] 3.2 Add the bottom-left measurement list panel with one `measurementSummary` row per measurement, hidden when empty and in snapshots, scrolling when long, updating on add and Clear; verify the rows match the scene labels and that the list stays visible with measure mode off.
+- [ ] 3.3 Add the **Measure** toggle, **Clear** button (disabled only when there is neither a pending point nor a measurement), crosshair cursor, bottom-centre measure hint and `?measure=1`; apply the URL parameter once after the initial load, never inside later model loads. Hide the hint and list and ignore the mode in snapshots; make measure and walk mutually exclusive and confirm walk wins when both URL parameters are present. Verify each button and URL state in the viewer, including turning Measure off and then changing models.
+- [ ] 3.4 Update the query-parameter header in `viewer/main.ts`, the viewer sections of `docs/getting-started.md` and `docs/rendering.md`, and the test table in `docs/development.md` with the controls, `?measure=1`, the measurement list and the straight-line/horizontal/vertical semantics. Verify the documented URLs and button behaviour match what the viewer does.
+
+## 4. Automated and visual verification
+
+- [ ] 4.1 Add `tests/viewer-measure.test.ts`, following `tests/plan-vs-3d.test.ts`: publish two copies of `models/example-cottage` to a temporary output directory, open the Top view, click two points inside the building, and assert one measurement with one positive value and `straight ≈ sqrt(horizontal² + vertical²)`. Also assert a drag adds none, Clear empties the list, Escape cancels a pending point, a touch-enabled page picks a point with `touchscreen.tap`, and `?snapshot=1&measure=1` leaves the list empty after clicking the same known geometry. Create a measurement, turn Measure off, select the second model, and assert the mode stays off and the list is empty. Add the file to the `test:fast` excludes. Verify the new test passes under `npm test` and `npm run test:fast` does not launch a browser.
+- [ ] 4.2 Run `npm run build models/example-cottage`, `npm run build models/elmstead`, `npm run all -- models/example-cottage` and `npm run render models/elmstead`; verify no generated file changed unexpectedly and that the 3D snapshots still show the IFC without measurements.
+- [ ] 4.3 Run the viewer headlessly against both models, take screenshots after a two-point measurement, inspect them yourself for a legible line, markers, label and list when in front of the model, and confirm an upper storey occludes a measurement on the storey below. Check the page console for WebGL or shader errors. Then start `npm run view`, find the actual port from `lsof` and confirm it with `/models.json` if the default is taken, and give the user direct `?model=…&view=…&measure=1` URLs. Verify the default-off state, Measure/Clear, Labels and Constraints independence, and a snapshot before handing over.
+- [ ] 4.4 Finish with `npm test`, `npm run typecheck` and `npx openspec validate --all`, and verify all pass with no generated file left modified.
+
+## Workflow follow-up
+
+- Open the ELM-8 draft pull request when the plan is ready for review; this plan PR becomes the implementation PR.
+- Archive the change after the project's review requirements are satisfied.
