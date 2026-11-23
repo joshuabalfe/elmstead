@@ -2,8 +2,9 @@
  * Local IFC viewer on That Open Engine: loads out/<model>.ifc, converts it to Fragments in the
  * browser and shows it, with each storey's room names, areas and dimensions lying at its ceiling,
  * the model's constraints as red labels and dotted spans, and a compass pointing to true north (all
- * from out/<model>.building.json and out/<model>.constraints.json). `?storeys=` shows a subset of
- * storeys. Every view uses the plan's colours, with the plan's walls, doors and windows laid on the
+ * from out/<model>.building.json and out/<model>.constraints.json). A storey selector in the bar
+ * shows every storey up to the chosen floor, and `?storeys=` shows an exact subset. Every view uses
+ * the plan's colours, with the plan's walls, doors and windows laid on the
  * wall tops, so the Top view reads like the plan. Query params: ?model=<name>&view=<sw|se|ne|nw|top (default)>&snapshot=1
  * &labels=0|1&constraints=0|1&style=plan|ifc&camera=px,py,pz,tx,ty,tz&walk=1 (snapshot hides the UI and sets window.__elmsteadReady once the first
  * frame is drawn; labels and the plan style are on by default and constraints start off, except in
@@ -22,7 +23,7 @@ import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { STYLES } from "../src/ifc/styles.js";
 import { renderFloor, renderPlanAnnotations, renderWallTops } from "../src/render/plan.js";
 import { C, FONT, PX_PER_MM } from "../src/render/style.js";
-import type { BuildingModel } from "../src/schema/schema.js";
+import type { BuildingModel, Storey } from "../src/schema/schema.js";
 import type { ResolvedConstraint } from "../src/constraints/check.js";
 import { constraintLabels } from "./constraints.js";
 import { parseView, type View } from "./view.js";
@@ -31,6 +32,8 @@ declare global {
   interface Window {
     __elmsteadReady?: boolean;
     __elmsteadError?: string;
+    /** Increments after a storey choice has been applied and drawn; tests wait on it. */
+    __elmsteadStoreyChanges?: number;
   }
 }
 
@@ -39,6 +42,8 @@ const snapshot = params.has("snapshot");
 if (snapshot) document.body.classList.add("snapshot");
 const status = document.getElementById("status")!;
 const select = document.getElementById("model") as HTMLSelectElement;
+const storeySelect = document.getElementById("storeys") as HTMLSelectElement;
+const storeyLabel = document.getElementById("storey-label")!;
 
 const components = new OBC.Components();
 const world = components.get(OBC.Worlds).create<OBC.SimpleScene, OBC.OrthoPerspectiveCamera, OBC.SimpleRenderer>();
@@ -94,8 +99,12 @@ let northAngle: number | null = null;
 let lowestElevation: number | null = null;
 /** The model JSON beside the IFC; null when there is none. */
 let modelJson: BuildingModel | null = null;
+/** The loaded Fragments model, so a storey choice can update it without a reload. */
+let currentModel: FragmentsModel | null = null;
 /** The storey ids `?storeys=` asked for, in the model's order; null means every storey. */
 let shownStoreys: string[] | null = null;
+/** The view the camera was last set to; a storey choice re-frames it. */
+let currentView: View = parseView(params.get("view"));
 /** The label and plan-layer groups drawn for each storey, so hiding it takes its drawings with it. */
 const storeyLayers = new Map<string, THREE.Group[]>();
 
@@ -241,6 +250,14 @@ const WALL_TOP_LIFT = 5;
  */
 const FLOOR_LIFT = LABEL_LIFT + 10;
 
+/** Walk mode stands on the lowest storey the selection still shows. */
+function updateLowestElevation() {
+  if (!modelJson) return;
+  const shown = modelJson.storeys.filter((s) => isShown(s.id));
+  const lowest = (shown.length ? shown : modelJson.storeys).reduce((a, b) => (b.elevation < a.elevation ? b : a));
+  lowestElevation = lowest.elevation / 1000; // the JSON is millimetres, the scene metres
+}
+
 /**
  * The plan's room names, areas and dimensions for each storey, as one transparent texture on a
  * plane at its ceiling, and that storey's constraints as red labels and dotted spans beside them.
@@ -268,9 +285,7 @@ async function loadLabels(name: string, model: BuildingModel | null) {
   northAngle = model.site.northAngle ?? 0;
   const constraintsRes = await fetch(`/out/${name}.constraints.json`);
   const resolved = constraintsRes.ok ? ((await constraintsRes.json()) as ResolvedConstraint[]) : [];
-  const shown = model.storeys.filter((s) => isShown(s.id));
-  const lowest = (shown.length ? shown : model.storeys).reduce((a, b) => (b.elevation < a.elevation ? b : a));
-  lowestElevation = lowest.elevation / 1000; // the JSON is millimetres, the scene metres
+  updateLowestElevation();
   for (const storey of model.storeys) {
     const labelGroup = new THREE.Group();
     const layerGroup = new THREE.Group();
@@ -284,15 +299,14 @@ async function loadLabels(name: string, model: BuildingModel | null) {
     labelGroup.add(annotations);
     const tops = renderWallTops(storey, model.components);
     layerGroup.add(await planPlane(tops.svg, tops.bounds, (storey.elevation + ceiling + WALL_TOP_LIFT) / 1000, { transparent: true, depthWrite: false }));
-    if (isShown(storey.id)) {
-      // Every shown storey's floor is its own room fills, at its own level, writing depth: the
-      // floor you see is the topmost one, and it hides the storeys below. Cut-out (alphaTest), not
-      // blended, so it stays in the opaque pass that runs before the walls.
-      const fills = renderFloor(storey);
-      const fill = await planPlane(fills.svg, fills.bounds, (storey.elevation + FLOOR_LIFT) / 1000, { alphaTest: 0.5 });
-      fill.renderOrder = -1;
-      layerGroup.add(fill);
-    }
+    // Every storey's floor is its own room fills, at its own level, writing depth: the floor you
+    // see is the topmost one, and it hides the storeys below. Cut-out (alphaTest), not blended, so
+    // it stays in the opaque pass that runs before the walls. Built even while hidden, so the
+    // selector can show a storey again without rebuilding it.
+    const fills = renderFloor(storey);
+    const fill = await planPlane(fills.svg, fills.bounds, (storey.elevation + FLOOR_LIFT) / 1000, { alphaTest: 0.5 });
+    fill.renderOrder = -1;
+    layerGroup.add(fill);
     // Constraints live in their own per-storey group inside the constraints layer, so the
     // Constraints button and the storey selection compose.
     const constraintGroup = new THREE.Group();
@@ -332,16 +346,76 @@ function parseStoreysParam(model: BuildingModel | null) {
   if (unknown.length) storeysNote = ` · no storey ${unknown.map((u) => `"${u}"`).join(", ")}, showing all`;
 }
 
+/** The model's storeys, lowest first: the selector's order and a cumulative choice's order. */
+const storeysLowestFirst = (model: BuildingModel): Storey[] => [...model.storeys].sort((a, b) => a.elevation - b.elevation);
+
+/** Whether `ids` is every storey up to one floor: the shape the selector writes to `?storeys=`. */
+function isStoreyPrefix(ids: string[], ordered: Storey[]): boolean {
+  const selected = new Set(ids);
+  return ordered.every((s, i) => selected.has(s.id) === (i < ids.length));
+}
+
+/** Fill the selector from the model, showing the floor the selection reaches or a custom value. */
+function populateStoreySelector(model: BuildingModel | null) {
+  const ordered = model ? storeysLowestFirst(model) : [];
+  const show = ordered.length > 1;
+  storeyLabel.hidden = !show;
+  storeySelect.hidden = !show;
+  if (!show) {
+    storeySelect.replaceChildren();
+    return;
+  }
+  const options = ordered.map((s) => {
+    const option = document.createElement("option");
+    option.value = s.id;
+    option.textContent = s.name;
+    return option;
+  });
+  let top: string | undefined;
+  if (shownStoreys !== null && !isStoreyPrefix(shownStoreys, ordered)) {
+    // The URL asked for a set no single floor describes; say so until a floor is chosen.
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "Custom";
+    option.disabled = true;
+    option.selected = true;
+    options.unshift(option);
+  } else {
+    const shown = new Set(shownStoreys ?? ordered.map((s) => s.id));
+    top = ([...ordered].reverse().find((s) => shown.has(s.id)) ?? ordered[ordered.length - 1]!).id;
+  }
+  storeySelect.replaceChildren(...options);
+  if (top) storeySelect.value = top;
+}
+
+/** Apply the selector: show `topId` and every storey below it, hiding everything above. */
+async function chooseStorey(topId: string): Promise<void> {
+  if (!modelJson || !currentModel || !topId) return;
+  const ordered = storeysLowestFirst(modelJson);
+  const end = ordered.findIndex((s) => s.id === topId);
+  if (end < 0) return;
+  const ids = ordered.slice(0, end + 1).map((s) => s.id);
+  shownStoreys = ids.length === ordered.length ? null : ids;
+  storeysNote = "";
+  if (shownStoreys === null) params.delete("storeys");
+  else params.set("storeys", shownStoreys.join(","));
+  history.replaceState(null, "", `?${params}`);
+  populateStoreySelector(modelJson);
+  await applyStoreyVisibility(currentModel);
+  updateLowestElevation();
+  status.textContent = `${select.value}.ifc`;
+  await setView(currentView);
+}
+
 /**
- * Hide every storey `?storeys=` left out, through the IFC spatial tree: each storey node's whole
- * subtree, aggregations included, so a hidden storey takes its stairs and openings with it. Storey
- * nodes are matched to the model's storeys by their Tag, which the writer sets to the storey id,
- * falling back to tree order when the item data carries no Tags. A storey the tree does not surface
- * stays visible rather than vanishing.
+ * Show exactly the selected storeys through fragments: each item is visible when the storey its Tag
+ * — or its Name, for spaces — belongs to is. Items that name no model element are left alone; they
+ * carry no geometry. Storey layers follow the same selection, so labels, floors and constraints
+ * travel with their storey.
  */
 async function applyStoreyVisibility(model: FragmentsModel) {
   const storeyItems = new Map<string, number[]>();
-  if (shownStoreys === null || !modelJson) return;
+  if (!modelJson) return;
   // Which storey owns each element id, from the model JSON: the IFC is the geometry, but the JSON is
   // the authority on which storey an element belongs to.
   const owner = new Map<string, string>();
@@ -366,8 +440,7 @@ async function applyStoreyVisibility(model: FragmentsModel) {
     if (!storey) continue;
     storeyItems.set(storey, [...(storeyItems.get(storey) ?? []), localId]);
   }
-  const hidden = [...storeyItems.entries()].filter(([id]) => !isShown(id)).flatMap(([, ids]) => ids);
-  if (hidden.length) await model.setVisible(hidden, false);
+  for (const [storey, ids] of storeyItems) await model.setVisible(ids, isShown(storey));
   for (const [id, groups] of storeyLayers) for (const g of groups) g.visible = isShown(id);
 }
 
@@ -677,12 +750,15 @@ document.addEventListener("pointerlockerror", () => {
 
 async function load(name: string) {
   status.textContent = `loading ${name}.ifc…`;
+  currentModel = null;
   for (const [id] of fragments.list) await fragments.core.disposeModel(id);
   const buffer = new Uint8Array(await (await fetch(`/out/${name}.ifc`)).arrayBuffer());
   const res = await fetch(`/out/${name}.building.json`);
   const json = res.ok ? ((await res.json()) as BuildingModel) : null;
   parseStoreysParam(json);
+  populateStoreySelector(json);
   const model = await ifcLoader.load(buffer, true, name);
+  currentModel = model;
   model.useCamera(world.camera.three);
   // Always full geometry. By default Fragments draws items it judges small on screen as lines (its
   // LOD), and glazing bars and window frames qualify even close up: they showed as thin lines you
@@ -695,7 +771,8 @@ async function load(name: string) {
   applyStyle();
   box = model.box.clone();
   grid.three.position.y = box.min.y - 0.01; // under the lowest slab, so it doesn't show through floors
-  await setView(parseView(params.get("view"))); // the plan view, unless the URL asks for another
+  currentView = parseView(params.get("view")); // the plan view, unless the URL asks for another
+  await setView(currentView);
   if (params.get("camera")) await setCamera(params.get("camera")!);
   status.textContent = `${name}.ifc${storeysNote}`;
 }
@@ -718,9 +795,15 @@ constraintsButton.addEventListener("click", () => {
 document.querySelectorAll<HTMLButtonElement>("[data-view]").forEach((b) =>
   b.addEventListener("click", async () => {
     await exitWalk(); // choosing a view leaves walk mode before the view changes
-    await setView(parseView(b.dataset.view ?? null));
+    currentView = parseView(b.dataset.view ?? null);
+    await setView(currentView);
   }),
 );
+storeySelect.addEventListener("change", async () => {
+  await exitWalk(); // a new selection re-frames the view, so walking ends first
+  await chooseStorey(storeySelect.value);
+  requestAnimationFrame(() => requestAnimationFrame(() => (window.__elmsteadStoreyChanges = (window.__elmsteadStoreyChanges ?? 0) + 1)));
+});
 select.addEventListener("change", async () => {
   await exitWalk();
   params.set("model", select.value);

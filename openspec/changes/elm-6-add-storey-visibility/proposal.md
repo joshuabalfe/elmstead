@@ -14,7 +14,8 @@ of that visible, and ELM-4's direction-keyed slab discard is a stopgap, not an a
 The direction is a viewer that shows the whole building honestly: storeys stacked, nearer walls and
 floors blocking what is behind and beneath them, a roof when one is traced. Plan style keeps its
 value where it actually works — as the plan view of one storey. Storey visibility is the primitive
-both rely on, and the checkboxes this vision ends with are that primitive with a face on it.
+both rely on, and this change gives it a face: a selector in the bar that shows every storey up to
+the chosen one.
 
 ## What Changes
 
@@ -23,6 +24,9 @@ both rely on, and the checkboxes this vision ends with are that primitive with a
   storey by the Tag the writer puts on every element — or the Name, for spaces, whose Tag is empty —
   so a hidden storey takes its openings, rooms and, once stairs exist, its flights and landings
   with it.
+- Add a storey selector to the viewer bar: choosing a storey shows it and every storey below it,
+  hiding everything above. The choice is written to `?storeys=` as the cumulative list, so it can
+  be shared, while the parameter keeps its exact-subset meaning for tests and hand-written URLs.
 - Make plan style stack. Each shown storey's floor becomes its own room fills and door swings, at
   that storey's level, writing depth: the floor you see is the topmost one, and it hides the storeys
   below instead of the grey slab showing through. Slab tops stay discarded in plan style, at every
@@ -50,15 +54,15 @@ None.
 
 ## Impact
 
-- `viewer/main.ts`: visibility, plan-style scoping, walk-mode entry.
-- `viewer/index.html`: a storey picker is deliberately not here yet; the checkboxes come later on
-  this same primitive.
-- `tests/plan-vs-3d.test.ts`: per-storey comparisons.
+- `viewer/main.ts`: visibility, the selector, plan-style scoping, walk-mode entry.
+- `viewer/index.html`: the storey selector in the bar.
+- `tests/plan-vs-3d.test.ts`: per-storey comparisons and the selector's picture.
 - `docs/rendering.md`: the viewer section.
 - No dependency on any other open change. The two-storey case the tests need is synthesised in the
   test from an existing single-storey model — a cloned second storey at a higher elevation with a
   different wall layout — because the viewer test publishes JSON and IFC from an in-memory model and
   never needs a model file. ELM-4's `models/example-two-storey`, if it lands first, is welcome as an
   extra case but is not required.
-- Out of scope: the checkbox UI, a roof, per-storey plan SVGs from `render` (already per storey), and
-  sections or cut planes.
+- Out of scope: per-storey checkboxes for arbitrary subsets (the selector is cumulative, and
+  `?storeys=` already expresses any subset), a roof, per-storey plan SVGs from `render` (already per
+  storey), and sections or cut planes.

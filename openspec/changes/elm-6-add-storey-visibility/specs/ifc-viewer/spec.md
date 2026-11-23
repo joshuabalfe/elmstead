@@ -20,6 +20,29 @@ or aggregates in it, and the drawings and labels made for it.
 - **WHEN** the URL has no `storeys` parameter
 - **THEN** every storey is shown
 
+### Requirement: Storey selector
+The viewer SHALL offer a selector listing the model's storeys from lowest to highest. Choosing a
+storey SHALL show that storey and every storey below it, hiding every storey above. The selection
+SHALL be written to `?storeys=` as the ids it shows, and the topmost storey SHALL clear the
+parameter. A `?storeys=` set that is not some floor's prefix SHALL show a disabled custom value
+until a floor is chosen. The selector SHALL be hidden for a single-storey model.
+
+#### Scenario: Choosing a floor
+- **WHEN** the viewer shows a two-storey model and the user chooses the ground storey
+- **THEN** only the ground storey is drawn, with its labels and floor
+
+#### Scenario: Everything below
+- **WHEN** the user chooses the topmost storey
+- **THEN** every storey is drawn and the URL has no `storeys` parameter
+
+#### Scenario: Shared view
+- **WHEN** the viewer is opened with `?storeys=storey-ground,storey-first-floor`
+- **THEN** the selector shows the first floor and both storeys are drawn
+
+#### Scenario: Upper storey alone
+- **WHEN** the viewer is opened with `?storeys=` naming only an upper storey
+- **THEN** that storey alone is drawn and the selector shows a disabled custom value
+
 ### Requirement: Floors stack occlusively
 In plan style each shown storey's floor SHALL be its own room fills and door swings, at that
 storey's level, drawn so that it hides everything below it. A slab SHALL render only its downward

@@ -29,6 +29,13 @@
 - [x] 5.2 Run `npm test`, `npm run typecheck` and `npx openspec validate --all`; verify all pass
 - [x] 5.3 Eye-check in the browser on the synthesised model, or on ELM-4's `models/example-two-storey` if that has landed: the whole building from a corner and from above with the top slab solid; each storey alone as its plan; orbit out of a single-storey top view and back
 
+## 6. Storey selector
+
+- [x] 6.1 Add a storey select to the bar, lowest first and hidden for single-storey models; choosing a storey shows it and every storey below, hides those above, and updates the loaded model without a reload
+- [x] 6.2 Write the cumulative selection to `?storeys=` (clearing it for the top storey), show a disabled custom value for a non-prefix URL subset, and re-frame the current view and walk entry on the shown storeys
+- [x] 6.3 Verify a browser test compares the selector's picture with the equivalent `?storeys=` picture, and that the topmost choice matches the all-storey picture with no parameter left
+- [x] 6.4 Document the selector in `docs/rendering.md`; verify `npm test`, `npm run typecheck` and `npx openspec validate --all`
+
 ## Workflow follow-up
 
 - Archive the change after implementation and the project's review requirements are satisfied.
@@ -36,5 +43,5 @@
 - If ELM-4 merges after this change, re-cut its ifc-viewer *Plan style* delta against this change's
   text and expect one small conflict in `applyStyle`/`patchTops`; its direction-keyed slab discard
   belongs inside the single-storey plan mode this change defines.
-- The checkbox UI, and making the occlusive render the named default in the help text, are the next
-  change on this primitive; a roof waits for the model to grow one.
+- Per-storey checkboxes for arbitrary subsets, and making the occlusive render the named default in
+  the help text, remain the next change on this primitive; a roof waits for the model to grow one.

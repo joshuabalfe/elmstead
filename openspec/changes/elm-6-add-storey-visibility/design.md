@@ -9,10 +9,9 @@ down. Every one of those substitutions assumes there is a single storey to subst
 two-storey fixture is the first model to break the assumption, and ELM-4's direction-keyed discard
 only stopped the worst symptom.
 
-The fragments API already holds the missing primitive: `model.getSpatialStructure()` returns the IFC
-spatial tree with a `localId` per node, and `model.setVisible(localIds, visible)` hides items. The
-writer already puts every element in exactly one storey's containment, so the tree is authoritative
-and no new data needs carrying in the IFC or the JSON.
+The fragments API already holds the missing primitive: `model.setVisible(localIds, visible)` shows
+or hides items. The model JSON already says which storey owns each element, so no new data needs
+carrying in the IFC or the JSON.
 
 No model file is needed to prove any of it. The viewer test publishes JSON and IFC from an in-memory
 model, and the plan side renders from the same object, so the tests synthesise a two-storey model by
@@ -23,13 +22,15 @@ on no other open change, and can merge in either order with ELM-4.
 ## Goals / Non-Goals
 
 **Goals:**
-- Show any subset of storeys, hidden through the IFC spatial structure.
+- Show any subset of storeys, hidden through fragments by Tag.
+- Choose a floor in the bar and see it and everything below it.
 - Make a multi-storey view an occlusive render of the model in its own colours.
 - Keep the plan surrogate exactly where it is true: one shown storey, in the top view.
 - Give every storey its own plan-versus-3D comparison.
 
 **Non-Goals:**
-- The checkbox UI. It is this change's primitive with a face on it, and gets its own change.
+- Per-storey checkboxes for arbitrary subsets. The selector is cumulative; any subset remains
+  expressible through `?storeys=`, and checkboxes can follow on this same primitive.
 - A roof, sections, cut planes, or per-storey plan SVGs from `render` (already one per storey).
 - Changing the 3D snapshots, which render the IFC's colours with every storey shown.
 
@@ -48,6 +49,25 @@ storey silently did nothing); matching elements by position or material (no stab
 
 Elements with neither Tag nor Name — opening voids, component types — are never hidden. They carry
 no geometry of their own, so nothing is left behind.
+
+### The selector is a cumulative "up to" choice, written to `?storeys=`
+
+A select in the bar lists the model's storeys lowest first. Choosing one sets the shown storeys to
+the lowest floor through it, so it shows that floor and everything below, hiding everything above;
+the topmost choice is every storey and clears the parameter. `?storeys=` keeps its exact-subset
+meaning, so the tests and hand-written links still ask for one storey alone. A URL whose set is not
+some floor's prefix has no single floor to display, so the selector shows a disabled custom value
+until a floor is chosen.
+
+The selector updates the loaded model in place: every storey's labels, floor and constraint groups
+are built up front and toggled, and each fragment is made visible or hidden with `setVisible`. No
+reload and no texture rebuild. A change re-frames the current view on the shown storeys, and leaves
+walk mode first, because disappearing upper floors invalidate the old framing and the old walk
+pose.
+
+Alternatives considered: checkboxes (the requested behaviour is cumulative, so a select expresses
+it with less UI); a half-open range (a floor is the obvious unit); a slider (no storey names, and it
+reads as a section cut).
 
 ### Each shown storey's floor is its own occlusive fill plane
 
@@ -116,9 +136,12 @@ walks you on the first.
 - **Stairs are not in this branch's schema yet.** The owner map reads a storey's `stairs`
   defensively, so when ELM-4 lands, its flights and landings hide with their storey by Tag without
   further work; until then this branch has never hidden a stair.
-- **Framing still fits the whole model.** `setView` frames `model.box`, which covers hidden storeys
-  too, so a single storey of a tall building sits small in frame until the box follows visibility.
-  Left as is: it is a framing nicety, not a correctness issue.
+- **Every storey's plan layers exist even when hidden.** Building them up front is what lets the
+  selector re-show a floor without a reload; the cost is texture and line memory for layers that
+  are not drawn. Small at this model's size; rebuild on demand if a real building makes it hurt.
+- **A selection change re-frames the camera.** Choosing a floor fits the view to the shown storeys,
+  which discards a hand-set `?camera=` close-up. Accepted: the alternative leaves one floor framed
+  for the whole building.
 - **ELM-4 may merge after this change.** Both touch `applyStyle` and `patchTops` in `viewer/main.ts`,
   so whichever lands second resolves one small code conflict; per the decision above, ELM-4's viewer
   part should then be dropped, not re-cut. Nothing here needs ELM-4's schema, IFC or stair work.
@@ -126,20 +149,21 @@ walks you on the first.
 ## Migration Plan
 
 1. Parse and validate `?storeys=`, falling back to all storeys.
-2. Hide unselected storeys through the spatial tree, including their annotations and plan layers.
-3. Scope plan style to one shown storey; render IFC colours otherwise.
-4. Point walk mode's entry pose at the lowest shown storey.
-5. Re-point the plan-versus-3D test per storey, adding the synthesised two-storey model's upper floor
+2. Add the storey selector: cumulative selection, updated in place, written back to `?storeys=`.
+3. Hide unselected storeys by Tag, including their annotations and plan layers.
+4. Scope plan style to one shown storey; render IFC colours otherwise.
+5. Point walk mode's entry pose at the lowest shown storey.
+6. Re-point the plan-versus-3D test per storey, adding the synthesised two-storey model's upper floor
    as a compared case.
-6. Update `docs/rendering.md` and run `npm test`, `npm run typecheck` and `npx openspec validate --all`.
+7. Update `docs/rendering.md` and run `npm test`, `npm run typecheck` and `npx openspec validate --all`.
 
 The change is additive in the URL and subtractive in what plan style claims; no model, schema or IFC
 change is involved.
 
 ## Open Questions
 
-- The checkbox UI's shape, and whether hiding a storey should survive in the URL so a view can be
-  shared: both belong to the follow-up change.
+- Whether per-storey checkboxes for arbitrary subsets should follow. The selector covers the
+  cumulative case and `?storeys=` already expresses any subset.
 - Whether the occlusive multi-storey view should keep the charcoal wall tops as a nod to the plan.
   This change says no; it is cheap to revisit once it can be seen.
 - Whether `render` should grow a per-storey snapshot set. Not needed while the plans cover that role.

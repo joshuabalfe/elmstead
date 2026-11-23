@@ -22,6 +22,12 @@ import { MARGIN, PNG_ZOOM } from "../src/render/style.js";
 import type { BuildingModel, Storey } from "../src/schema/schema.js";
 import { comparePlanTo3d, type Raster } from "./support/plan-vs-3d.js";
 
+declare global {
+  interface Window {
+    __elmsteadStoreyChanges?: number;
+  }
+}
+
 const VIEWPORT = { width: 1600, height: 1200 };
 
 let outDir: string;
@@ -41,13 +47,8 @@ async function publish(name: string, m: BuildingModel) {
   writeFileSync(join(outDir, `${name}.ifc`), await writeIfc(m, { fileName: `${name}.ifc` }));
 }
 
-/** The viewer's canvas as raw pixels, for any query string. */
-async function viewOf(name: string, query: string): Promise<Raster> {
-  const url = server!.resolvedUrls!.local[0]!;
-  await page.goto(`${url}?model=${encodeURIComponent(name)}&${query}`);
-  await page.waitForFunction(() => window.__elmsteadReady || window.__elmsteadError, null, { timeout: 60_000 });
-  const failed = await page.evaluate(() => window.__elmsteadError);
-  if (failed) throw new Error(`viewer failed: ${failed}`);
+/** The viewer's canvas as raw pixels. */
+async function canvasPixels(): Promise<Raster> {
   const { width, height, b64 } = await page.evaluate(() => {
     const gl = document.querySelector<HTMLCanvasElement>("#container canvas")!;
     const c = document.createElement("canvas");
@@ -60,6 +61,25 @@ async function viewOf(name: string, query: string): Promise<Raster> {
     return { width: c.width, height: c.height, b64: btoa(s) };
   });
   return { width, height, data: new Uint8Array(Buffer.from(b64, "base64")) };
+}
+
+/** The viewer's canvas as raw pixels, for any query string. */
+async function viewOf(name: string, query: string): Promise<Raster> {
+  const url = server!.resolvedUrls!.local[0]!;
+  await page.goto(`${url}?model=${encodeURIComponent(name)}&${query}`);
+  await page.waitForFunction(() => window.__elmsteadReady || window.__elmsteadError, null, { timeout: 60_000 });
+  const failed = await page.evaluate(() => window.__elmsteadError);
+  if (failed) throw new Error(`viewer failed: ${failed}`);
+  return canvasPixels();
+}
+
+const samePixels = (a: Raster, b: Raster) => a.width === b.width && a.height === b.height && Buffer.from(a.data).equals(Buffer.from(b.data));
+
+/** Choose a floor in the bar and wait until the viewer has applied and drawn it. */
+async function selectStorey(id: string) {
+  const before = await page.evaluate(() => window.__elmsteadStoreyChanges ?? 0);
+  await page.selectOption("#storeys", id);
+  await page.waitForFunction((n: number) => (window.__elmsteadStoreyChanges ?? 0) > n, before, { timeout: 60_000 });
 }
 
 /** The viewer's Top view in plan style, labels off, as raw pixels from its WebGL canvas. */
@@ -168,5 +188,31 @@ describe("storey selection", () => {
     // Hiding a storey must be the same picture as a model that never had it: same framing, same
     // pixels, every one of them.
     expect(Buffer.from(hidden.data).equals(Buffer.from(absent.data))).toBe(true);
+  }, 120_000);
+
+  it("shows the chosen floor and every storey below it", async () => {
+    const m = await model("models/elmstead");
+    await publish("test-storey-selector", m);
+    const all = await viewOf("test-storey-selector", "view=top&labels=0&style=plan");
+
+    // The ground choice is the ground alone, the same picture as the exact-subset URL.
+    await selectStorey("storey-ground");
+    expect(new URL(page.url()).searchParams.get("storeys")).toBe("storey-ground");
+    const ground = await canvasPixels();
+    const groundOnly = await viewOf("test-storey-selector", "view=top&labels=0&style=plan&storeys=storey-ground");
+    expect(samePixels(ground, groundOnly)).toBe(true);
+
+    // The topmost choice puts the first floor back: everything, with no parameter left behind.
+    await selectStorey("storey-first-floor");
+    expect(new URL(page.url()).searchParams.has("storeys")).toBe(false);
+    expect(samePixels(await canvasPixels(), all)).toBe(true);
+
+    // A URL subset no single floor describes reads as custom rather than as some floor.
+    await viewOf("test-storey-selector", "view=top&labels=0&style=plan&storeys=storey-first-floor");
+    const picker = await page.evaluate(() => {
+      const s = document.getElementById("storeys") as HTMLSelectElement;
+      return { value: s.value, text: s.selectedOptions[0]?.textContent };
+    });
+    expect(picker).toEqual({ value: "", text: "Custom" });
   }, 120_000);
 });
