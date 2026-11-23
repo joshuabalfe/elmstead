@@ -98,8 +98,13 @@ export interface CompareOptions {
 
 /** Compare the plan (as rendered to PNG) with a screenshot of the 3D Top view in plan style. */
 export function comparePlanTo3d(plan: Raster, top: Raster, { tile = 500, step = 250, tileLimit = 0.1 }: CompareOptions = {}): Comparison {
-  const pb = wallBox(plan, 120);
-  const tb = wallBox(top, 80);
+  // The two rasters antialias their outer wall edges differently, and no tolerance can make a
+  // 1-pixel gradient agree across scales, so the comparison stays a few pixels inside the wall box.
+  const inset = 3;
+  const pb0 = wallBox(plan, 120);
+  const tb0 = wallBox(top, 80);
+  const pb = { x0: pb0.x0 + inset, y0: pb0.y0 + inset, x1: pb0.x1 - inset, y1: pb0.y1 - inset };
+  const tb = { x0: tb0.x0 + inset, y0: tb0.y0 + inset, x1: tb0.x1 - inset, y1: tb0.y1 - inset };
   const sx = (tb.x1 - tb.x0) / (pb.x1 - pb.x0);
   const sy = (tb.y1 - tb.y0) / (pb.y1 - pb.y0);
   const pxPerMm = PX_PER_MM * PNG_ZOOM;

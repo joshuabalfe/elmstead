@@ -108,17 +108,13 @@ afterAll(async () => {
 
 describe("3D Top view against the plan", () => {
   // Every storey of every model, each against the top view of that storey alone: with more than one
-  // storey shown the viewer still reads top-down through the stack, which is not what a plan looks
-  // like. TODO(elm-6): elmstead's ground storey is skipped while the 450 mm west wall — the one
-  // carrying the front door's gap and swing — registers a half-metre band of mismatch against the
-  // top view at the top view's scale; every other storey and model compares clean.
-  const unresolved = (path: string, id: string) => path === "models/elmstead" && id === "storey-ground";
+  // storey shown the top view reads as the topmost storey's plan, not the one being compared.
   for (const [path, source] of [
     ["models/example-cottage", cottage],
     ["models/elmstead", elmstead],
   ] as const) {
     for (const storey of source.storeys) {
-      it.skipIf(unresolved(path, storey.id))(`shows the same walls, rooms and openings as the plan: ${path} ${storey.id}`, async () => {
+      it(`shows the same walls, rooms and openings as the plan: ${path} ${storey.id}`, async () => {
         const m = structuredClone(source) as BuildingModel;
         const name = `test-${path.replace(/\W+/g, "-")}`;
         await publish(name, m);
@@ -164,15 +160,13 @@ describe("storey selection", () => {
   it("hides a storey's geometry, not just its drawings", async () => {
     const m = await model("models/elmstead");
     await publish("test-hidden-storey", m);
-    const both = await viewOf("test-hidden-storey", "view=se&snapshot=1&labels=0&style=ifc");
-    const ground = await viewOf("test-hidden-storey", "view=se&snapshot=1&labels=0&style=ifc&storeys=storey-ground");
-    // In the IFC's colours the first floor is the mass above the ground floor's windows; hiding it
-    // removes a visible chunk of the model's pixels from the frame.
-    const inked = (r: Raster) => {
-      let n = 0;
-      for (let i = 0; i < r.data.length; i += 4) if (r.data[i]! < 240 || r.data[i + 1]! < 240 || r.data[i + 2]! < 240) n++;
-      return n;
-    };
-    expect(inked(ground)).toBeLessThan(inked(both) - 50_000);
+    const groundOnly = structuredClone(m);
+    groundOnly.storeys = groundOnly.storeys.filter((s) => s.id === "storey-ground");
+    await publish("test-ground-only", groundOnly);
+    const hidden = await viewOf("test-hidden-storey", "view=se&snapshot=1&labels=0&style=ifc&storeys=storey-ground");
+    const absent = await viewOf("test-ground-only", "view=se&snapshot=1&labels=0&style=ifc");
+    // Hiding a storey must be the same picture as a model that never had it: same framing, same
+    // pixels, every one of them.
+    expect(Buffer.from(hidden.data).equals(Buffer.from(absent.data))).toBe(true);
   }, 120_000);
 });

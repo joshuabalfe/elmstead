@@ -113,7 +113,7 @@ function updateCompass() {
   compass.hidden = !labels.visible || northAngle === null;
   if (compass.hidden) return;
   const a = (northAngle! * Math.PI) / 180;
-  const centre = box.getCenter(new THREE.Vector3()).setY(box.min.y);
+  const centre = shownBox().getCenter(new THREE.Vector3()).setY(box.min.y);
   // Plan north (−sin a, cos a) in IFC x/y; the scene has IFC +y along −Z.
   const tip = centre.clone().add(new THREE.Vector3(-Math.sin(a), 0, -Math.cos(a)));
   const camera = world.camera.three;
@@ -165,8 +165,9 @@ function billboard(lines: BillboardLine[], fill: string, renderOrder: number): T
   }
   const map = new THREE.CanvasTexture(canvas);
   map.colorSpace = THREE.SRGBColorSpace;
-  // Constraints are an inspection overlay, so they draw over the model rather than being cut by it.
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthTest: false, depthWrite: false }));
+  // Depth-tested, like the ceiling plane they sit with: a storey above occludes the constraints of
+  // the one below, and hiding a storey hides theirs.
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthWrite: false }));
   sprite.renderOrder = renderOrder;
   const mPerPx = 1 / PX_PER_MM / 1000;
   sprite.scale.set(width * mPerPx, (height + 2 * halo) * mPerPx, 1);
@@ -183,7 +184,7 @@ function constraintBillboard(lines: string[]): THREE.Sprite {
   );
 }
 
-/** Red dotted spans: 4 cm wide in world units, drawn over the model, room labels and dimensions. */
+/** Red dotted spans: 4 cm wide in world units, at their storey's ceiling, occluded like its labels. */
 const constraintLineMaterial = new LineMaterial({
   color: C.constraint,
   linewidth: 0.04,
@@ -191,7 +192,6 @@ const constraintLineMaterial = new LineMaterial({
   dashed: true,
   dashSize: 0.15,
   gapSize: 0.1,
-  depthTest: false,
   depthWrite: false,
   transparent: true,
 });

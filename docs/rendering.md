@@ -106,7 +106,8 @@ openings cut, doors and glazing in place, colours applied.
   constraint is a red billboard at the midpoint of the span its measurement covers on its storey,
   reading `<id> <distance>` in millimetres, with a thick red dotted line along that span. They
   start hidden; the **Constraints** button or `?constraints=1` turns them on, independently of the
-  room labels, and snapshots leave them off.
+  room labels, and snapshots leave them off. They sit at their storey's ceiling and are occluded
+  like everything else there: a storey above hides them, and hiding their storey hides them.
 - Plan colouring, the same in every view (`applyStyle` in `main.ts`):
   - Floors are the plan's own room fills and door swings (`renderFloor` in `src/render/plan.ts`),
     cream rooms on white, one plane per shown storey at that storey's level. Each writes depth, so
