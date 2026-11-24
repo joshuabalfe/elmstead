@@ -122,8 +122,8 @@ openings cut, doors and glazing in place, colours applied.
   pick is projected onto the nearest axis through the first and adds a numbered measurement, so
   measurements are axis-aligned rather than diagonal. Each one is a teal line, endpoint markers and
   a camera-facing label with the straight-line, horizontal and vertical distances, plus a row in
-  the bottom-left measurement list. The line, markers and label are depth-tested, so a wall, floor
-  or storey above in front of them hides them instead of letting them float through the building.
+  the bottom-left measurement list. The line, markers and label draw above the model and the other
+  overlays, so a wall, floor or storey above never hides a measurement.
   - Measurements are viewer-only: they are cleared on a model change or when walk mode starts,
     survive camera and view changes, and are ignored in snapshots. Escape cancels a pending point;
     **Clear** removes all measurements.

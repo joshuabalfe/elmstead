@@ -105,19 +105,19 @@ interface Measurement {
   values: MeasurementValues;
 }
 
-/** Measurements, depth-tested so a wall or an upper storey can hide them. */
+/** Measurements, drawn above the model so a wall, floor or storey can never hide them. */
 const measureLayer = new THREE.Group();
 world.scene.three.add(measureLayer);
 const measureLineMaterial = new LineMaterial({
   color: C.measure,
   linewidth: 0.03,
   worldUnits: true,
-  depthTest: true,
+  depthTest: false,
   depthWrite: false,
   transparent: true,
 });
 const measureMarkerGeometry = new THREE.SphereGeometry(0.025, 12, 8);
-const measureMarkerMaterial = new THREE.MeshBasicMaterial({ color: C.measure, depthTest: true, depthWrite: false, transparent: true });
+const measureMarkerMaterial = new THREE.MeshBasicMaterial({ color: C.measure, depthTest: false, depthWrite: false, transparent: true });
 
 /** The loaded Fragments model, so a storey choice can update it without a reload. */
 let currentModel: FragmentsModel | null = null;
@@ -894,7 +894,7 @@ function measureBillboard(id: number, values: MeasurementValues): THREE.Sprite {
     measurementLines(id, values).map((text, i) => ({ text, size: i === 0 ? 12 : 11, bold: i === 0, dy: (i - 1) * step })),
     C.measure,
     10,
-    true,
+    false, // above the model and the other overlays, like the measurement line
   );
 }
 
