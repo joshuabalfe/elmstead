@@ -113,6 +113,52 @@ export default defineConstraints([
       distance: m(2),
     },
   ]),
+  inRoom("room-guest-north-basement", [
+    {
+      id: "guest-north-width-basement",
+      note: "Small (north) guest bedroom width from the owner (3.1 m), west to east",
+      from: roomCorner("south-west"),
+      to: roomCorner("north-east"),
+      measure: "x",
+      distance: mm(3100),
+    },
+    {
+      id: "guest-north-depth-basement",
+      note: "Small (north) guest bedroom depth from the owner (2.44 m), south to north",
+      from: roomCorner("south-west"),
+      to: roomCorner("north-east"),
+      measure: "y",
+      distance: mm(2440),
+    },
+  ]),
+  inRoom("room-guest-south-basement", [
+    {
+      id: "guest-south-window-width-basement",
+      note: "Guest Bedroom 2 window width from the owner (1.65 m)",
+      from: jamb("window-guest-south-basement", "start"),
+      to: jamb("window-guest-south-basement", "end"),
+      measure: { along: "wall-west-basement" },
+      distance: mm(1650),
+    },
+  ]),
+  inRoom("room-shower-basement", [
+    {
+      id: "shower-width-basement",
+      note: "Shower room width from the owner (1.5 m), west to east",
+      from: roomCorner("south-west"),
+      to: roomCorner("north-east"),
+      measure: "x",
+      distance: mm(1500),
+    },
+    {
+      id: "shower-depth-basement",
+      note: "Shower room depth from the owner (2.5 m), south to north",
+      from: roomCorner("south-west"),
+      to: roomCorner("north-east"),
+      measure: "y",
+      distance: mm(2500),
+    },
+  ]),
   inRoom("room-kitchen-first", [
     {
       id: "kitchen-depth",

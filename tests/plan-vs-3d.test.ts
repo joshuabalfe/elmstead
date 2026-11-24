@@ -153,7 +153,7 @@ describe("3D Top view against the plan", () => {
     // Elmstead as first traced: the hallway and lobby both ran to the diagonal lobby screen's
     // centreline, so on the plan the lobby door's gap showed room fill, in 3D a white gap.
     const m = structuredClone(await model("models/elmstead"));
-    const storey = m.storeys[0]!;
+    const storey = m.storeys.find((s) => s.id === "storey-ground")!;
     const screen = storey.walls.find((w) => w.id === "wall-lobby-screen")!;
     const hallway = storey.rooms.find((r) => r.id === "room-hallway")!;
     const lobby = storey.rooms.find((r) => r.id === "room-lobby")!;
@@ -163,7 +163,7 @@ describe("3D Top view against the plan", () => {
     await publish("test-elmstead-centreline", m);
     // Finer tiles than the default: the defect is a door gap, a band only as deep as the wall, which
     // a 500 mm tile dilutes below the comparator's 25%-comparable threshold.
-    const r = comparePlanTo3d(planPixels(m), await topView("test-elmstead-centreline", "storey-ground"), { tile: 250, step: 125 });
+    const r = comparePlanTo3d(planPixels(m, storey), await topView("test-elmstead-centreline", "storey-ground"), { tile: 250, step: 125 });
     expect(r.badTiles.length).toBeGreaterThan(0);
     // Some tile covers the screen, whose wall runs from (4.691, 6.462) to (5.484, 7.129) m.
     const over = r.badTiles.find((t) => t.x[0] < 5.484 && t.x[1] > 4.691 && t.y[0] < 7.165 && t.y[1] > 6.462);
@@ -182,15 +182,16 @@ describe("storey selection", () => {
   it("hides a storey's geometry, not just its drawings", async () => {
     // This identity is about storey geometry, so compare a stair-less copy: a stair's parts are
     // aggregated under an IfcStair and fragments does not hide them per-item with their storey, so
-    // stair visibility across storeys is a separate follow-up.
+    // stair visibility across storeys is a separate follow-up. Hide the top storey (the first floor)
+    // above the basement and ground, and compare with a model that never had it.
     const m = structuredClone(await model("models/elmstead"));
     for (const s of m.storeys) s.stairs = [];
     await publish("test-hidden-storey", m);
-    const groundOnly = structuredClone(m);
-    groundOnly.storeys = groundOnly.storeys.filter((s) => s.id === "storey-ground");
-    await publish("test-ground-only", groundOnly);
-    const hidden = await viewOf("test-hidden-storey", "view=se&snapshot=1&labels=0&style=ifc&storeys=storey-ground");
-    const absent = await viewOf("test-ground-only", "view=se&snapshot=1&labels=0&style=ifc");
+    const belowFirst = structuredClone(m);
+    belowFirst.storeys = belowFirst.storeys.filter((s) => s.id !== "storey-first-floor");
+    await publish("test-below-first", belowFirst);
+    const hidden = await viewOf("test-hidden-storey", "view=se&snapshot=1&labels=0&style=ifc&storeys=storey-basement,storey-ground");
+    const absent = await viewOf("test-below-first", "view=se&snapshot=1&labels=0&style=ifc");
     // Hiding a storey must be the same picture as a model that never had it: same framing, same
     // pixels, every one of them.
     expect(Buffer.from(hidden.data).equals(Buffer.from(absent.data))).toBe(true);
@@ -203,12 +204,12 @@ describe("storey selection", () => {
     const camera = "16,11,6,5.2,1.5,-4.2";
     const all = await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}`);
 
-    // The ground choice is the ground alone, from the camera it had before.
+    // The ground choice is the ground and the basement below it, from the camera it had before.
     await selectStorey("storey-ground");
-    expect(new URL(page.url()).searchParams.get("storeys")).toBe("storey-ground");
+    expect(new URL(page.url()).searchParams.get("storeys")).toBe("storey-basement,storey-ground");
     const ground = await canvasPixels();
     expect(samePixels(ground, all)).toBe(false);
-    const groundOnly = await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}&storeys=storey-ground`);
+    const groundOnly = await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}&storeys=storey-basement,storey-ground`);
     expect(samePixels(ground, groundOnly)).toBe(true);
 
     // The topmost choice puts the first floor back, still without moving the camera.

@@ -6,7 +6,7 @@
  * The living room and hallway sizes are the owner's measurements, not traced.
  */
 import { add, face, faceCrossing, mm, pt, sub, wall } from "../../../src/model/index.js";
-import { brickT, coreD, coreW, eastT, extEastX, extSouthY, groundFloor, northT, partT, southT, studT, westT } from "../shared.js";
+import { coreW, eastT, externalRuns, externalWall, groundFloor, partT, studT } from "../shared.js";
 
 // Walls stop at the clear ceiling. The first-floor slab sits on them, and its exposed edges are
 // the floor structure between storeys, including the band at the facade.
@@ -25,11 +25,11 @@ export const spineEastX = mm(8945); // keeps its traced overlap into the east wa
 export const spineEndX = mm(8010); // where the flights turn; the half landing's west edge
 
 // ── External walls (counter-clockwise, body on the left = inside) ────────────
-export const north = wall("wall-north", pt(extEastX, coreD), pt(mm(0), coreD), { thickness: northT, height: wallH, justification: "left" });
-export const south = wall("wall-south", pt(mm(0), mm(0)), pt(coreW, mm(0)), { thickness: southT, height: wallH, justification: "left" });
+export const north = externalWall("wall-north", externalRuns.north, wallH);
+export const south = externalWall("wall-south", externalRuns.south, wallH);
 export const southIn = face(south, "north");
 export const northIn = face(north, "south");
-export const west = wall("wall-west", pt(mm(0), northIn), pt(mm(0), southIn), { thickness: westT, height: wallH, justification: "left" });
+export const west = externalWall("wall-west", externalRuns.west, wallH);
 export const westIn = face(west, "east");
 
 const alcove = mm(700); // each side of the living room's chimney breast (owner)
@@ -37,11 +37,12 @@ export const livingBreast = { west: add(westIn, alcove), east: sub(partitionX, a
 
 // Bathroom north wall first: the core's east wall stops at its north face, level with the extension's south wall.
 export const bathNorth = wall("wall-bathroom-north", pt(sub(coreW, eastT), bathNorthY), pt(bathWestX, bathNorthY), { thickness: bathNorthT, height: wallH, justification: "right" });
-export const east = wall("wall-east", pt(coreW, southIn), pt(coreW, face(bathNorth, "north")), { thickness: eastT, height: wallH, justification: "left" });
+// The east wall stops at the bathroom north wall's face, short of the canonical run's end.
+export const east = wall("wall-east", externalRuns.east.start, pt(coreW, face(bathNorth, "north")), { thickness: eastT, height: wallH, justification: "left" });
 export const eastIn = face(east, "west");
 
-export const extEast = wall("wall-extension-east", pt(extEastX, extSouthY), pt(extEastX, northIn), { thickness: brickT, height: wallH, justification: "left" });
-export const extSouth = wall("wall-extension-south", pt(coreW, extSouthY), pt(face(extEast, "west"), extSouthY), { thickness: brickT, height: wallH, justification: "left" });
+export const extEast = externalWall("wall-extension-east", externalRuns.extEast, wallH);
+export const extSouth = externalWall("wall-extension-south", externalRuns.extSouth, wallH);
 
 // Chimney breast in the living room and the thickened wall along the bedroom, both against the south wall.
 export const breastLiving = wall("wall-breast-living", pt(livingBreast.west, southIn), pt(livingBreast.east, southIn), { thickness: breastT, height: wallH, justification: "left" });

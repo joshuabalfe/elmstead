@@ -20,7 +20,7 @@
  * living-room chimney breast are built-ins, so they are not part of the room.
  */
 import { mm, type Storey } from "../../../src/model/index.js";
-import { footprint, groundFloor } from "../shared.js";
+import { footprint, groundFloor, groundSlabT } from "../shared.js";
 import { openings } from "./openings.js";
 import { rooms } from "./rooms.js";
 import { stairs } from "./stair.js";
@@ -32,7 +32,7 @@ export const ground: Storey = {
   elevation: groundFloor.elevation,
   walls,
   openings,
-  slabs: [{ id: "slab-ground", name: "Ground floor slab", outline: footprint, thickness: mm(150), elevationOffset: mm(0) }],
+  slabs: [{ id: "slab-ground", name: "Ground floor slab", outline: footprint, thickness: groundSlabT, elevationOffset: mm(0) }],
   rooms,
   stairs,
 };
