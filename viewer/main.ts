@@ -591,24 +591,36 @@ const stairEdgeGeoms: THREE.EdgesGeometry[] = [];
 
 /**
  * Every tread top sits at an integer multiple of the stair's shared riser height, so banding the
- * upward faces by floor(worldY / riser) shades alternate treads and the steps read from above, where
- * edge outlines cannot help (each nosing is hidden by the next higher tread's leading edge).
+ * upward faces by floor(worldY / riser) alternates the floor cream with a darker cream and the steps
+ * read from above, where edge outlines cannot help (each nosing is hidden by the next higher tread's
+ * leading edge). Vertical faces take the wall colour. The base material stays the safe stair green so
+ * the viewer's classifier leaves it alone; only the shaded output is recoloured.
  */
 let stairRiser = 0; // metres, set from the model on load
+const stairCream = new THREE.Color(C.room);
+const stairCreamDark = stairCream.clone().multiplyScalar(0.8);
+const stairWall = new THREE.Color().setRGB(STYLES.wall.rgb[0], STYLES.wall.rgb[1], STYLES.wall.rgb[2], THREE.SRGBColorSpace);
 function patchStairBands(m: THREE.MeshLambertMaterial) {
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uRiser = { value: stairRiser };
+    shader.uniforms.uCream = { value: stairCream };
+    shader.uniforms.uCreamDark = { value: stairCreamDark };
+    shader.uniforms.uWall = { value: stairWall };
     shader.vertexShader = shader.vertexShader
       .replace("void main() {", "varying float vWorldY;\nvarying vec3 vWorldN;\nvoid main() {")
       .replace("#include <begin_vertex>", "#include <begin_vertex>\nvWorldY = (modelMatrix * vec4(position, 1.0)).y;\nvWorldN = normalize(mat3(modelMatrix) * normal);");
     shader.fragmentShader = shader.fragmentShader
-      .replace("void main() {", "uniform float uRiser;\nvarying float vWorldY;\nvarying vec3 vWorldN;\nvoid main() {")
+      .replace("void main() {", "uniform float uRiser;\nuniform vec3 uCream;\nuniform vec3 uCreamDark;\nuniform vec3 uWall;\nvarying float vWorldY;\nvarying vec3 vWorldN;\nvoid main() {")
       .replace(
         "#include <color_fragment>",
         `#include <color_fragment>
-        if (vWorldN.y > 0.7 && uRiser > 0.0) {
-          float band = mod(floor(vWorldY / uRiser + 0.001), 2.0);
-          diffuseColor.rgb *= mix(1.0, 0.72, band);
+        if (uRiser > 0.0) {
+          if (vWorldN.y > 0.7) {
+            float band = mod(floor(vWorldY / uRiser + 0.001), 2.0);
+            diffuseColor.rgb = mix(uCreamDark, uCream, band);
+          } else {
+            diffuseColor.rgb = uWall;
+          }
         }`,
       );
   };

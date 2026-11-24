@@ -160,13 +160,16 @@ viewer code; it renders as its own IFC geometry.
 
 From straight down a flight's tread tops are horizontal and uniformly lit and its risers are edge-on,
 so the IFC solid reads as a flat slab with no steps. Edge outlines alone cannot fix this: each nosing
-is occluded by the next higher tread's leading edge. The viewer therefore shades alternate treads by
-banding the stair material's upward faces on `floor(worldY / riser)` — every tread top sits at an
-integer multiple of the stair's shared riser, so the bands line up with the steps in both flights. It
-also attaches an `EdgesGeometry` ink outline (30° threshold) to each stair mesh, which reads the
-nosings and edges from corner views. Both are viewer-only presentation — the plan overlay and
-`renderPlan` are unchanged, and the colours stay off the wall/room/paper classes the plan-vs-3D
-comparator recognises, so the comparison is unaffected.
+is occluded by the next higher tread's leading edge. The viewer therefore recolours the stair in the
+shader: upward faces alternate the floor cream (`C.room`) with a darker cream, banded on
+`floor(worldY / riser)` — every tread top sits at an integer multiple of the stair's shared riser, so
+the bands line up with the steps in both flights — and vertical faces take the wall colour. The base
+material stays the safe stair green so `styleOf` leaves it alone; only the shaded output is
+recoloured. It also attaches an `EdgesGeometry` ink outline (30° threshold) to each stair mesh, which
+reads the nosings and edges from corner views. Both are viewer-only presentation — the plan overlay
+and `renderPlan` are unchanged. The plan-vs-3D comparison is unaffected because the plan side draws
+stairs in `C.stair`, a class the comparator ignores, so a pixel is skipped whenever either side is
+unrecognised — the recognisable cream 3D treads are never compared against it.
 
 ### Elmstead's provisional stair
 
