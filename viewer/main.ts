@@ -7,10 +7,13 @@
  * floor, and `?storeys=` shows an exact subset. Every view uses the plan's colours, with the plan's
  * walls, doors and windows laid on the wall tops, so the Top view reads like the plan. Query params:
  * ?model=<name>&view=<sw|se|ne|nw|top (default)>&snapshot=1&labels=0|1&constraints=0|1&storeys=a,b
- * &measure=1&style=plan|ifc&camera=px,py,pz,tx,ty,tz&walk=1 (snapshot hides the UI and sets
+ * &measure=1&style=plan|ifc&camera=px,py,pz,tx,ty,tz&walk=1&ids=0|1 (snapshot hides the UI and sets
  * window.__elmsteadReady once the first frame is drawn; labels and the plan style are on by
  * default and constraints start off, except in snapshots, which show the IFC alone; walk=1 enters
  * first-person walk mode and measure=1 starts the measurement tool, both ignored in snapshots).
+ * The Ids button or ?ids=1 shows each element's model id and name at the hovered point on hover, in the constraint
+ * label's style and above everything, and
+ * room labels carry the room id under name and area.
  */
 import * as OBC from "@thatopen/components";
 import { LodMode, SnappingClass, type FragmentsModel } from "@thatopen/fragments";
@@ -27,6 +30,7 @@ import { C, FONT, PX_PER_MM, ROOM_LABEL } from "../src/render/style.js";
 import type { BuildingModel, Storey } from "../src/schema/schema.js";
 import type { ResolvedConstraint } from "../src/constraints/check.js";
 import { constraintLabels } from "./constraints.js";
+import { elementLabel, type ElementLabel } from "./identify.js";
 import { SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap, type MeasurementValues, type Point3, type SnapCandidate } from "./measure.js";
 import { cameraForView, labelHeading, parseView, type View } from "./view.js";
 import { WALK_AXES, entryPosition, headingBasis, movementOffset, walkRequested, walkStep } from "./walk.js";
@@ -37,6 +41,9 @@ declare global {
     /** Increments after a storey choice has been applied and drawn; tests wait on it. */
     __elmsteadStoreyChanges?: number;
     __elmsteadMeasurements?: { id: number; from: Point3; to: Point3; values: MeasurementValues }[];
+    __elmsteadHover?: { id: string; name: string | null } | null;
+    /** The text lines of each room label, in storey order; tests read it. */
+    __elmsteadRoomLabels?: string[][];
   }
 }
 
@@ -177,6 +184,14 @@ function updateCompass() {
 }
 world.camera.controls.addEventListener("update", updateCompass);
 world.camera.controls.addEventListener("update", updateLabelOrientation);
+// A moving camera leaves any hover label naming the wrong element. Hide while it moves, then
+// re-pick once the updates settle: a trailing update would otherwise hide a pick made at load end.
+let hoverRepickTimer = 0;
+world.camera.controls.addEventListener("update", () => {
+  hideHover();
+  clearTimeout(hoverRepickTimer);
+  hoverRepickTimer = window.setTimeout(repickHover, 120);
+});
 window.addEventListener("resize", updateCompass);
 
 interface BillboardLine {
@@ -361,6 +376,7 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
   northAngle = null;
   lowestElevation = null;
   modelJson = model;
+  window.__elmsteadRoomLabels = [];
   if (!model) return; // no JSON next to the IFC: show the IFC without labels
   northAngle = model.site.northAngle ?? 0;
   const constraintsRes = await fetch(`/out/${name}.constraints.json`);
@@ -382,10 +398,12 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
     // Each room's name and area is its own plane, flat like the dimensions but yawed to the camera
     // (updateLabelOrientation), so it stays occludable without standing up through the floor above.
     for (const tag of roomTags(storey)) {
+      window.__elmsteadRoomLabels!.push([tag.name, tag.area, tag.id]);
       const label = flatLabel(
         [
           { text: tag.name, size: ROOM_LABEL.name.size, bold: true, dy: ROOM_LABEL.name.dy },
           { text: tag.area, size: ROOM_LABEL.area.size, dy: ROOM_LABEL.area.dy },
+          { text: tag.id, size: 9, dy: ROOM_LABEL.area.dy + 12 },
         ],
         C.ink,
         2, // over the dimension lines, as the room billboards were
@@ -506,6 +524,7 @@ async function chooseStorey(topId: string): Promise<void> {
   // The camera stays put: only the drawings change, so floors compare from one viewpoint.
   await fragments.core.update(true);
   updateCompass();
+  repickHover();
 }
 
 /**
@@ -807,6 +826,7 @@ const walkDirection = new THREE.Vector3();
  */
 async function enterWalk(lock: boolean) {
   if (snapshot || savedView) return;
+  hideHover();
   setMeasuring(false);
   clearMeasurements();
   const controls = world.camera.controls;
@@ -885,6 +905,7 @@ async function exitWalk() {
   await fragments.core.update(true);
   updateCompass();
   updateLabelOrientation();
+  repickHover();
 }
 
 /** The walk frame loop: heading-relative movement at the fixed eye height, through all geometry. */
@@ -1187,6 +1208,101 @@ window.addEventListener("keydown", (e) => {
 });
 updateMeasureUi();
 
+const idsButton = document.getElementById("ids") as HTMLButtonElement;
+let hoverSprite: THREE.Sprite | null = null;
+let identifying = false;
+const idsRequested = !snapshot && params.get("ids") === "1";
+/** Model id and name per fragments item, rebuilt on every load; Tags exist even without model JSON. */
+const elementLabels = new Map<number, ElementLabel>();
+let hoverQueued: { x: number; y: number } | null = null;
+let hoverPicking = false;
+let hoverEpoch = 0;
+let lastPointer: { x: number; y: number } | null = null;
+window.__elmsteadHover = null;
+
+/** A load, storey choice or walk exit can finish under a stationary cursor; re-pick its position. */
+function repickHover() {
+  if (identifying && !snapshot && !savedView && lastPointer) {
+    hoverQueued = { ...lastPointer };
+    void runHoverPicks();
+  }
+}
+
+function disposeHoverSprite() {
+  if (!hoverSprite) return;
+  world.scene.three.remove(hoverSprite);
+  hoverSprite.material.map?.dispose();
+  hoverSprite.material.dispose();
+  hoverSprite = null;
+}
+
+function hideHover() {
+  disposeHoverSprite();
+  window.__elmsteadHover = null;
+}
+
+function setIdentifying(on: boolean) {
+  identifying = on;
+  idsButton.setAttribute("aria-pressed", String(on));
+  if (!on) hideHover();
+}
+
+/** Resolve hover picks one at a time; a move during a pick waits for it, like the measure queue. */
+async function runHoverPicks() {
+  if (hoverPicking) return;
+  hoverPicking = true;
+  try {
+    while (hoverQueued) {
+      const next = hoverQueued;
+      hoverQueued = null;
+      const epoch = hoverEpoch;
+      const model = currentModel;
+      if (!identifying || snapshot || savedView || !model) continue;
+      const hit = await model.raycast({ camera: world.camera.three, mouse: new THREE.Vector2(next.x, next.y), dom: canvas });
+      if (epoch !== hoverEpoch || currentModel !== model || !identifying || savedView) continue;
+      const label = hit ? elementLabels.get(hit.localId) : undefined;
+      if (!hit || !label) {
+        hideHover();
+        continue;
+      }
+      window.__elmsteadHover = { id: label.id, name: label.name };
+      // Constraint-label styling, but depth-untested like the measurement readout: on top of everything.
+      if (!hoverSprite || hoverSprite.userData.id !== label.id) {
+        disposeHoverSprite();
+        const texts = label.name ? [label.id, label.name] : [label.id];
+        hoverSprite = billboard(
+          texts.map((text, i) => ({ text, size: 11, bold: true, dy: (i - (texts.length - 1) / 2) * 14 })),
+          C.constraint,
+          11,
+          false,
+        );
+        hoverSprite.userData.id = label.id;
+        world.scene.three.add(hoverSprite);
+      }
+      hoverSprite.position.copy(hit.point);
+    }
+  } catch (e) {
+    console.error("hover pick failed", e);
+  } finally {
+    hoverPicking = false;
+    if (hoverQueued) void runHoverPicks();
+  }
+}
+
+canvas.addEventListener("pointermove", (e) => {
+  lastPointer = { x: e.clientX, y: e.clientY };
+  // Walk mode keeps pointermove firing when pointer lock is refused, so gate on it here too.
+  if (!identifying || snapshot || savedView || e.buttons !== 0) {
+    hideHover();
+    return;
+  }
+  hoverQueued = { x: e.clientX, y: e.clientY };
+  void runHoverPicks();
+});
+canvas.addEventListener("pointerleave", hideHover);
+idsButton.setAttribute("aria-pressed", "false");
+idsButton.addEventListener("click", () => setIdentifying(!identifying));
+
 async function discardModel(model: FragmentsModel) {
   if (currentModel === model) currentModel = null;
   try {
@@ -1199,6 +1315,9 @@ async function discardModel(model: FragmentsModel) {
 async function load(name: string) {
   const epoch = ++loadEpoch;
   currentModel = null;
+  hoverEpoch++;
+  hideHover();
+  elementLabels.clear();
   clearMeasurements();
   status.textContent = `loading ${name}.ifc…`;
   disposeStairMeshes();
@@ -1242,6 +1361,14 @@ async function load(name: string) {
     await discardModel(model);
     return;
   }
+  for (const [localId, item] of await model.getItems()) {
+    const label = elementLabel(item.data);
+    if (label) elementLabels.set(localId, label);
+  }
+  if (epoch !== loadEpoch) {
+    await discardModel(model);
+    return;
+  }
   await loadLabels(name, json, epoch);
   if (epoch !== loadEpoch) {
     await discardModel(model);
@@ -1259,6 +1386,7 @@ async function load(name: string) {
   if (params.get("camera")) await setCamera(params.get("camera")!);
   if (epoch !== loadEpoch) return;
   status.textContent = `${name}.ifc${storeysNote}`;
+  repickHover();
 }
 
 const labelsButton = document.getElementById("labels") as HTMLButtonElement;
@@ -1306,6 +1434,7 @@ try {
   );
   select.value = params.get("model") ?? models[0]!;
   await load(select.value);
+  if (idsRequested) setIdentifying(true);
   // `?walk=1` and `?measure=1` apply once, at startup; a model change leaves both modes alone.
   // Walk wins when both are present.
   if (walkRequested(params, snapshot)) void enterWalk(false);

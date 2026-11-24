@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { ResolvedConstraint } from "../src/constraints/check.js";
 import { constraintLabels } from "../viewer/constraints.js";
+import { elementLabel } from "../viewer/identify.js";
 import { CLICK_SLOP_PX, SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap } from "../viewer/measure.js";
 import { confinedPath } from "../viewer/serve.js";
 import { cameraForView, labelHeading, parseView } from "../viewer/view.js";
@@ -186,5 +187,25 @@ describe("isMeasureGesture", () => {
     expect(isMeasureGesture({ x: 10, y: 10 }, { x: 8, y: 9 })).toBe(true);
     expect(isMeasureGesture({ x: 0, y: 0 }, { x: CLICK_SLOP_PX + 0.01, y: 0 })).toBe(false);
     expect(isMeasureGesture({ x: 0, y: 0 }, { x: 3, y: 4 })).toBe(false);
+  });
+});
+
+describe("elementLabel", () => {
+  it("takes the id from Tag and keeps a distinct Name", () => {
+    expect(elementLabel({ Tag: { value: "wall-south" }, Name: { value: "South wall" } })).toEqual({ id: "wall-south", name: "South wall" });
+  });
+
+  it("shows only the id when Name falls back to it", () => {
+    expect(elementLabel({ Tag: { value: "wall-south" }, Name: { value: "wall-south" } })).toEqual({ id: "wall-south", name: null });
+  });
+
+  it("takes a space's id from Name and its name from LongName", () => {
+    expect(elementLabel({ Name: { value: "room-living" }, LongName: { value: "Living room" } })).toEqual({ id: "room-living", name: "Living room" });
+    expect(elementLabel({ Tag: { value: "" }, Name: { value: "room-living" }, LongName: { value: "Living room" } })).toEqual({ id: "room-living", name: "Living room" });
+  });
+
+  it("returns null when the item names no model element", () => {
+    expect(elementLabel({})).toBeNull();
+    expect(elementLabel({ Name: { value: "" } })).toBeNull();
   });
 });

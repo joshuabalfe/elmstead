@@ -59,7 +59,8 @@ tests table below).
 | `tests/checks.test.ts` | component checks plus id, zero-length wall, opening host/fit/overlap and outline rules |
 | `tests/cli.test.ts` | `build`/`check`/`all`, failure fixtures, render-before-build and missing-Chromium warnings, exit statuses |
 | `tests/validate.test.ts` | validator bridge: non-JSON output, truncated JSON, crash status and exit 1 with findings (fake `uv`) |
-| `tests/viewer.test.ts` | path confinement, malformed encoding and `?view=` fallback; measurement maths, snap choice and click slop |
+| `tests/viewer.test.ts` | path confinement, malformed encoding and `?view=` fallback; measurement maths, snap choice and click slop; element id/name labels |
+| `tests/viewer-identify.test.ts` | the Ids toggle, hover tooltip content, drag/view/walk/storey composition, the `?ids` lifecycle, room-id labels and the snapshot exemption in headless Chromium |
 | `tests/viewer-measure.test.ts` | snapped picks, drag/tap handling, Clear/Escape, model changes and the snapshot exemption in headless Chromium |
 | `tests/snapshot.test.ts` | a viewer failure is an ERROR and the server closes |
 | `tests/toolchain.test.ts` | web-ifc and uv/IfcOpenShell are available |
