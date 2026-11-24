@@ -60,13 +60,19 @@ completes: a move that arrived mid-load is otherwise dropped and never retried, 
 camera update would hide a pick made at load end. Alternative — a three.js Raycaster over the meshes — was rejected: fragments geometry
 lives in the worker, and `model.raycast` is the supported path that already respects visibility.
 
-### HTML tooltip in client space
-A `pointer-events: none` div beside the cursor (offset a few px, clamped to the viewport), styled
-like the walk/measure hints. Text is set with `textContent`, never innerHTML, keeping the
-"names are rendered as text" guarantee. Alternative — a 3D billboard sprite — was rejected: a
-hover label should track the cursor in screen space, not sit in the scene, and HTML text is
-crisper at any zoom. Update the text only when the picked id changes; move the position on every
-pointermove.
+### Constraint-style billboard at the hovered point, above everything
+The owner asked for the constraint label's styling with the measurement readout's depth
+behaviour, so the label is a camera-facing sprite through the same `billboard()` / `labelTexture`
+path: haloed plan-font text, every line bold at the constraint size, in the constraint red,
+centred on the raycast hit point — which projects under the cursor — and drawn with
+`depthTest: false` above the model and every other overlay, like the measurement readout. It
+scales with zoom like the measure and constraint labels, not like screen-space UI. One sprite at
+a time: rebuild its texture only when the id changes, move it to each new hit point, dispose it on
+hide and on load. Text goes through canvas `fillText`, never innerHTML, keeping the "names are
+rendered as text" guarantee. Alternatives tried first: an HTML div beside the cursor (read as
+foreign next to the scene labels), then the measure teal styling (the owner preferred the
+constraint look). `window.__elmsteadHover` is the test handle for shown/hidden and content, since
+a sprite has no DOM.
 
 ### Passive overlay, not an exclusive mode
 Ids does not join the walk/measure exclusivity: it captures no input, so it coexists with measure

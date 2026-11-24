@@ -11,7 +11,8 @@
  * window.__elmsteadReady once the first frame is drawn; labels and the plan style are on by
  * default and constraints start off, except in snapshots, which show the IFC alone; walk=1 enters
  * first-person walk mode and measure=1 starts the measurement tool, both ignored in snapshots).
- * The Ids button or ?ids=1 shows each element's model id and name beside the cursor on hover, and
+ * The Ids button or ?ids=1 shows each element's model id and name at the hovered point on hover, in the constraint
+ * label's style and above everything, and
  * room labels carry the room id under name and area.
  */
 import * as OBC from "@thatopen/components";
@@ -183,7 +184,7 @@ function updateCompass() {
 }
 world.camera.controls.addEventListener("update", updateCompass);
 world.camera.controls.addEventListener("update", updateLabelOrientation);
-// A moving camera leaves any hover tooltip naming the wrong element. Hide while it moves, then
+// A moving camera leaves any hover label naming the wrong element. Hide while it moves, then
 // re-pick once the updates settle: a trailing update would otherwise hide a pick made at load end.
 let hoverRepickTimer = 0;
 world.camera.controls.addEventListener("update", () => {
@@ -1208,7 +1209,7 @@ window.addEventListener("keydown", (e) => {
 updateMeasureUi();
 
 const idsButton = document.getElementById("ids") as HTMLButtonElement;
-const hoverTip = document.getElementById("hover-tip")!;
+let hoverSprite: THREE.Sprite | null = null;
 let identifying = false;
 const idsRequested = !snapshot && params.get("ids") === "1";
 /** Model id and name per fragments item, rebuilt on every load; Tags exist even without model JSON. */
@@ -1227,8 +1228,16 @@ function repickHover() {
   }
 }
 
+function disposeHoverSprite() {
+  if (!hoverSprite) return;
+  world.scene.three.remove(hoverSprite);
+  hoverSprite.material.map?.dispose();
+  hoverSprite.material.dispose();
+  hoverSprite = null;
+}
+
 function hideHover() {
-  hoverTip.hidden = true;
+  disposeHoverSprite();
   window.__elmsteadHover = null;
 }
 
@@ -1236,13 +1245,6 @@ function setIdentifying(on: boolean) {
   identifying = on;
   idsButton.setAttribute("aria-pressed", String(on));
   if (!on) hideHover();
-}
-
-/** Beside the cursor, clamped to the viewport. */
-function placeHoverTip(x: number, y: number) {
-  const pad = 14;
-  hoverTip.style.left = `${Math.max(4, Math.min(x + pad, window.innerWidth - hoverTip.offsetWidth - 4))}px`;
-  hoverTip.style.top = `${Math.max(4, Math.min(y + pad, window.innerHeight - hoverTip.offsetHeight - 4))}px`;
 }
 
 /** Resolve hover picks one at a time; a move during a pick waits for it, like the measure queue. */
@@ -1259,15 +1261,25 @@ async function runHoverPicks() {
       const hit = await model.raycast({ camera: world.camera.three, mouse: new THREE.Vector2(next.x, next.y), dom: canvas });
       if (epoch !== hoverEpoch || currentModel !== model || !identifying || savedView) continue;
       const label = hit ? elementLabels.get(hit.localId) : undefined;
-      if (!label) {
+      if (!hit || !label) {
         hideHover();
         continue;
       }
       window.__elmsteadHover = { id: label.id, name: label.name };
-      const text = label.name ? `${label.id}\n${label.name}` : label.id;
-      if (hoverTip.textContent !== text) hoverTip.textContent = text;
-      hoverTip.hidden = false;
-      placeHoverTip(next.x, next.y);
+      // Constraint-label styling, but depth-untested like the measurement readout: on top of everything.
+      if (!hoverSprite || hoverSprite.userData.id !== label.id) {
+        disposeHoverSprite();
+        const texts = label.name ? [label.id, label.name] : [label.id];
+        hoverSprite = billboard(
+          texts.map((text, i) => ({ text, size: 11, bold: true, dy: (i - (texts.length - 1) / 2) * 14 })),
+          C.constraint,
+          11,
+          false,
+        );
+        hoverSprite.userData.id = label.id;
+        world.scene.three.add(hoverSprite);
+      }
+      hoverSprite.position.copy(hit.point);
     }
   } catch (e) {
     console.error("hover pick failed", e);

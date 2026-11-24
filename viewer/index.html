@@ -30,10 +30,6 @@
       #measure-list[hidden] { display: none; }
       #measure-list li + li { margin-top: 2px; }
       body.snapshot #measure-list { display: none; }
-      #hover-tip { position: absolute; z-index: 10; background: rgba(255,255,255,.92); padding: 4px 8px; border-radius: 6px;
-                   box-shadow: 0 1px 4px rgba(0,0,0,.15); pointer-events: none; white-space: pre-line; font-size: 12px; }
-      #hover-tip[hidden] { display: none; }
-      body.snapshot #hover-tip { display: none; }
       #compass { position: absolute; right: 16px; bottom: 16px; width: 90px; height: 90px; pointer-events: none; }
       #compass svg { display: block; width: 100%; height: 100%; }
       #compass[hidden] { display: none; }
@@ -65,7 +61,6 @@
     </svg></div>
     <div id="walk-hint" hidden>Click to look around · WASD or arrow keys to move · Esc to leave</div>
     <div id="measure-hint" hidden>Click two points on the model · the second aligns to the nearest axis · Esc cancels</div>
-    <div id="hover-tip" hidden></div>
     <ol id="measure-list" aria-label="Measurements" hidden></ol>
     <script type="module" src="./main.ts"></script>
   </body>

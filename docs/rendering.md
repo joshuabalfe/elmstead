@@ -106,12 +106,12 @@ openings cut, doors and glazing in place, colours applied.
   - With `?snapshot=1` in the URL it hides the toolbar and sets `window.__elmsteadReady` once the
     frame is drawn, which is what the snapshot driver waits for.
 - Hover identification: the **Ids** button or `?ids=1` (off by default, ignored in snapshots)
-  shows a tooltip beside the cursor with the model id and name of the element under it.
-  `viewer/identify.ts` maps each fragments item's `Tag`/`Name`/`LongName` to that label — the
-  same ids the model code and checks use — and `main.ts` raycasts on pointermove, one pick in
-  flight. It is passive: clicks still measure and drags still navigate. The tooltip hides while
-  dragging, while the camera moves and throughout walk mode, and follows the storey selector,
-  since the raycast skips hidden items.
+  shows a constraint-style haloed label at the hovered point with the model id and name of the
+  element under it, drawn above everything like the measurement readout. `viewer/identify.ts` maps each fragments item's `Tag`/`Name`/`LongName` to
+  that label — the same ids the model code and checks use — and `main.ts` raycasts on
+  pointermove, one pick in flight. It is passive: clicks still measure and drags still navigate.
+  The label hides while dragging, while the camera moves and throughout walk mode, and follows
+  the storey selector, since the raycast skips hidden items.
 - Room labels: `main.ts` also reads `out/<name>.building.json` and draws each storey's room
   labels at its ceiling, 10 mm above the top of its tallest wall (the schema has no ceiling
   height). Being above the walls, they read from every camera that can see that storey.

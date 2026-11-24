@@ -1,5 +1,5 @@
 /**
- * The viewer's hover identification: the Ids toggle, tooltip content, drag/view/walk/storey
+ * The viewer's hover identification: the Ids toggle, label content, drag/view/walk/storey
  * composition, the URL lifecycle, room-id labels and the snapshot exemption. Publishes two copies
  * of the cottage so a model change can be exercised, plus the two-storey model for hidden storeys.
  */
@@ -52,7 +52,8 @@ async function open(p: Page, name = MODEL_A, extra = "") {
 }
 
 const hover = (p: Page) => p.evaluate(() => window.__elmsteadHover ?? null);
-const tipVisible = (p: Page) => p.locator("#hover-tip").isVisible();
+// The label is a scene sprite, so the hook is the handle for shown/hidden.
+const tipVisible = (p: Page) => p.evaluate(() => window.__elmsteadHover !== null);
 
 /** Park the pointer off the model (bottom-left, clear of the bar and compass) and wait for null. */
 async function hoverOff(p: Page) {
@@ -113,7 +114,6 @@ describe("viewer hover identification", () => {
     const h = await hoverAt(page, centre.x, centre.y);
     expect(h).toEqual({ id: "slab-ground", name: "Ground floor slab" });
     expect(await tipVisible(page)).toBe(true);
-    expect(await page.locator("#hover-tip").textContent()).toBe("slab-ground\nGround floor slab");
     await page.click("#ids");
     expect(await page.locator("#ids").getAttribute("aria-pressed")).toBe("false");
     expect(await tipVisible(page)).toBe(false);
@@ -142,7 +142,7 @@ describe("viewer hover identification", () => {
     expect([...ids].some((id) => id.startsWith("wall-"))).toBe(true);
   }, 120_000);
 
-  it("hides the tooltip while dragging and restores it after", async () => {
+  it("hides the label while dragging and restores it after", async () => {
     await open(page, MODEL_A, "&ids=1");
     await hoverAt(page, centre.x, centre.y);
     await page.mouse.down();
@@ -153,7 +153,7 @@ describe("viewer hover identification", () => {
     expect(await hoverAt(page, centre.x, centre.y)).toEqual({ id: "slab-ground", name: "Ground floor slab" });
   }, 120_000);
 
-  it("hides the tooltip while the view changes and re-identifies once it settles", async () => {
+  it("hides the label while the view changes and re-identifies once it settles", async () => {
     await open(page, MODEL_A, "&ids=1");
     await hoverAt(page, centre.x, centre.y);
     await page.click('[data-view="ne"]');
@@ -188,7 +188,7 @@ describe("viewer hover identification", () => {
     }
   }, 120_000);
 
-  it("shows no tooltip while walking, even with the mouse moving, and restores after", async () => {
+  it("shows no label while walking, even with the mouse moving, and restores after", async () => {
     await open(page, MODEL_A, "&ids=1&walk=1");
     expect(await page.locator("#walk").getAttribute("aria-pressed")).toBe("true");
     for (const fx of [0.4, 0.5, 0.6]) {
@@ -202,7 +202,7 @@ describe("viewer hover identification", () => {
     expect(await hoverAt(page, centre.x, centre.y)).toEqual({ id: "slab-ground", name: "Ground floor slab" });
   }, 120_000);
 
-  it("hides the tooltip on a model change and keeps the toggle on", async () => {
+  it("hides the label on a model change and keeps the toggle on", async () => {
     await open(page, MODEL_A, "&ids=1");
     await hoverAt(page, centre.x, centre.y);
     await page.selectOption("#model", MODEL_B);

@@ -32,14 +32,16 @@ parameter.
 - **THEN** no tooltip or Ids control is shown and the snapshot is unchanged
 
 ### Requirement: Hover identification
-While hover identification is on, the viewer SHALL show a tooltip beside the cursor when the
+While hover identification is on, the viewer SHALL show a label at the hovered point when the
 pointer is over an element's geometry, stating the element's model id, and its name when it has
-one distinct from the id. The tooltip SHALL follow the pointer, name the element currently under
-it, and hide when the pointer is over no model geometry.
+one distinct from the id, in the constraint label's haloed camera-facing style, drawn above the
+model and the viewer's other overlays like the measurement readout. The label SHALL follow the
+pointer, name the element currently under it, and hide when the pointer is over no model
+geometry.
 
 #### Scenario: Hover a wall
 - **WHEN** the pointer rests over a wall with hover identification on
-- **THEN** a tooltip beside the cursor shows that wall's model id
+- **THEN** a haloed label at the hovered point shows that wall's model id
 
 #### Scenario: Element with a name
 - **WHEN** the pointer rests over an element whose name differs from its id
@@ -47,23 +49,23 @@ it, and hide when the pointer is over no model geometry.
 
 #### Scenario: Off the model
 - **WHEN** the pointer moves off all model geometry
-- **THEN** the tooltip hides
+- **THEN** the label hides
 
 #### Scenario: Moving between elements
 - **WHEN** the pointer moves from one element to another
-- **THEN** the tooltip updates to the element now under the pointer
+- **THEN** the label updates to the element now under the pointer
 
 #### Scenario: Model change
-- **WHEN** the user selects another model while a tooltip is showing
-- **THEN** the tooltip hides until the pointer identifies an element of the new model
+- **WHEN** the user selects another model while a label is showing
+- **THEN** the label hides until the pointer identifies an element of the new model
 
-#### Scenario: Drag hides the tooltip
+#### Scenario: Drag hides the label
 - **WHEN** the pointer moves with a button down while hover identification is on
-- **THEN** the tooltip hides, and returns when the pointer next rests over an element
+- **THEN** the label hides, and returns when the pointer next rests over an element
 
 #### Scenario: View change
-- **WHEN** the user chooses another camera view while a tooltip is showing
-- **THEN** the tooltip hides while the camera moves and names the element under the pointer again once it settles
+- **WHEN** the user chooses another camera view while a label is showing
+- **THEN** the label hides while the camera moves and names the element under the pointer again once it settles
 
 ### Requirement: Hover is passive
 Hover identification SHALL NOT capture clicks or change navigation. With hover identification on,
