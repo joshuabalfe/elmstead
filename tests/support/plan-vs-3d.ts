@@ -98,11 +98,42 @@ export interface CompareOptions {
 
 /** Compare the plan (as rendered to PNG) with a screenshot of the 3D Top view in plan style. */
 export function comparePlanTo3d(plan: Raster, top: Raster, { tile = 500, step = 250, tileLimit = 0.1 }: CompareOptions = {}): Comparison {
-  const pb = wallBox(plan, 120);
-  const tb = wallBox(top, 80);
+  // The two rasters antialias their outer wall edges differently, and no tolerance can make a
+  // 1-pixel gradient agree across scales, so the comparison stays a few pixels inside the wall box.
+  const inset = 3;
+  const pb0 = wallBox(plan, 120);
+  const tb0 = wallBox(top, 80);
+  const pb = { x0: pb0.x0 + inset, y0: pb0.y0 + inset, x1: pb0.x1 - inset, y1: pb0.y1 - inset };
+  const tb = { x0: tb0.x0 + inset, y0: tb0.y0 + inset, x1: tb0.x1 - inset, y1: tb0.y1 - inset };
   const sx = (tb.x1 - tb.x0) / (pb.x1 - pb.x0);
   const sy = (tb.y1 - tb.y0) / (pb.y1 - pb.y0);
   const pxPerMm = PX_PER_MM * PNG_ZOOM;
+
+  // Classify each image over its wall box once. The two images are at different scales, so their
+  // kind boundaries fall a pixel apart; a pixel next to a boundary in either image is that
+  // registration artifact, not a disagreement about the model, and is skipped.
+  const classify = (r: Raster, b: Box) => {
+    const w = b.x1 - b.x0;
+    const g = new Int8Array(w * (b.y1 - b.y0));
+    for (let y = 0; y < b.y1 - b.y0; y++) for (let x = 0; x < w; x++) g[y * w + x] = kindAt(r, b.x0 + x, b.y0 + y);
+    return g;
+  };
+  const onEdge = (g: Int8Array, w: number, h: number, x: number, y: number) => {
+    const k = g[y * w + x]!;
+    for (let dy = -2; dy <= 2; dy++) {
+      for (let dx = -2; dx <= 2; dx++) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        if (g[ny * w + nx] !== k) return true;
+      }
+    }
+    return false;
+  };
+  const pk = classify(plan, pb);
+  const tk = classify(top, tb);
+  const tw = tb.x1 - tb.x0;
+  const th = tb.y1 - tb.y0;
 
   // Per plan pixel inside the wall box: 0 = not comparable, 1 = same, 2 = different.
   const w = pb.x1 - pb.x0;
@@ -111,13 +142,14 @@ export function comparePlanTo3d(plan: Raster, top: Raster, { tile = 500, step = 
   let compared = 0;
   let different = 0;
   for (let y = 0; y < h; y++) {
-    const ty = Math.round(tb.y0 + (y + 0.5) * sy - 0.5);
+    const ty = Math.round(tb.y0 + (y + 0.5) * sy - 0.5) - tb.y0;
     for (let x = 0; x < w; x++) {
-      const tx = Math.round(tb.x0 + (x + 0.5) * sx - 0.5);
-      if (tx < 0 || ty < 0 || tx >= top.width || ty >= top.height) continue;
-      const a = kindAt(plan, pb.x0 + x, pb.y0 + y);
-      const b = kindAt(top, tx, ty);
+      const tx = Math.round(tb.x0 + (x + 0.5) * sx - 0.5) - tb.x0;
+      if (tx < 0 || ty < 0 || tx >= tw || ty >= th) continue;
+      const a = pk[y * w + x]!;
+      const b = tk[ty * tw + tx]!;
       if (a === Kind.Other || b === Kind.Other) continue;
+      if (onEdge(pk, w, h, x, y) || onEdge(tk, tw, th, tx, ty)) continue;
       compared++;
       const differs = a !== b;
       if (differs) different++;

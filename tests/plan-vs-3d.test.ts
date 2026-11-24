@@ -14,10 +14,19 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { formatJson } from "../src/cli/json-format.js";
 import { loadModel } from "../src/cli/load.js";
 import { writeIfc } from "../src/ifc/writer.js";
+import cottage from "../models/example-cottage/index.js";
+import elmstead from "../models/elmstead/index.js";
 import { renderPlan } from "../src/render/plan.js";
 import { svgToPixels } from "../src/render/png.js";
-import type { BuildingModel } from "../src/schema/schema.js";
+import { MARGIN, PNG_ZOOM } from "../src/render/style.js";
+import type { BuildingModel, Storey } from "../src/schema/schema.js";
 import { comparePlanTo3d, type Raster } from "./support/plan-vs-3d.js";
+
+declare global {
+  interface Window {
+    __elmsteadStoreyChanges?: number;
+  }
+}
 
 const VIEWPORT = { width: 1600, height: 1200 };
 
@@ -38,13 +47,8 @@ async function publish(name: string, m: BuildingModel) {
   writeFileSync(join(outDir, `${name}.ifc`), await writeIfc(m, { fileName: `${name}.ifc` }));
 }
 
-/** The viewer's Top view in plan style, labels off, as raw pixels from its WebGL canvas. */
-async function topView(name: string): Promise<Raster> {
-  const url = server!.resolvedUrls!.local[0]!;
-  await page.goto(`${url}?model=${encodeURIComponent(name)}&view=top&snapshot=1&labels=0&style=plan`);
-  await page.waitForFunction(() => window.__elmsteadReady || window.__elmsteadError, null, { timeout: 60_000 });
-  const failed = await page.evaluate(() => window.__elmsteadError);
-  if (failed) throw new Error(`viewer failed: ${failed}`);
+/** The viewer's canvas as raw pixels. */
+async function canvasPixels(): Promise<Raster> {
   const { width, height, b64 } = await page.evaluate(() => {
     const gl = document.querySelector<HTMLCanvasElement>("#container canvas")!;
     const c = document.createElement("canvas");
@@ -59,7 +63,46 @@ async function topView(name: string): Promise<Raster> {
   return { width, height, data: new Uint8Array(Buffer.from(b64, "base64")) };
 }
 
-const planPixels = (m: BuildingModel): Raster => svgToPixels(renderPlan(m, m.storeys[0]!, { ids: false }));
+/** The viewer's canvas as raw pixels, for any query string. */
+async function viewOf(name: string, query: string): Promise<Raster> {
+  const url = server!.resolvedUrls!.local[0]!;
+  await page.goto(`${url}?model=${encodeURIComponent(name)}&${query}`);
+  await page.waitForFunction(() => window.__elmsteadReady || window.__elmsteadError, null, { timeout: 60_000 });
+  const failed = await page.evaluate(() => window.__elmsteadError);
+  if (failed) throw new Error(`viewer failed: ${failed}`);
+  return canvasPixels();
+}
+
+const samePixels = (a: Raster, b: Raster) => a.width === b.width && a.height === b.height && Buffer.from(a.data).equals(Buffer.from(b.data));
+
+/** Choose a floor in the bar and wait until the viewer has applied and drawn it. */
+async function selectStorey(id: string) {
+  const before = await page.evaluate(() => window.__elmsteadStoreyChanges ?? 0);
+  await page.selectOption("#storeys", id);
+  await page.waitForFunction((n: number) => (window.__elmsteadStoreyChanges ?? 0) > n, before, { timeout: 60_000 });
+}
+
+/** The viewer's Top view in plan style, labels off, as raw pixels from its WebGL canvas. */
+async function topView(name: string, storeyId?: string): Promise<Raster> {
+  const storeys = storeyId ? `&storeys=${encodeURIComponent(storeyId)}` : "";
+  return viewOf(name, `view=top&snapshot=1&labels=0&style=plan${storeys}`);
+}
+
+/** The plan's drawing area only: the sheet furniture (title, north arrow, scale bar) is ink that
+ * antialiases through the wall grey and would inflate the comparator's wall box, which the viewer's
+ * top view has no equivalent of. Margins are in SVG px; the raster is PNG_ZOOM times that. */
+const planPixels = (m: BuildingModel, storey: Storey = m.storeys[0]!): Raster => {
+  const full = svgToPixels(renderPlan(m, storey, { ids: false }));
+  const x0 = MARGIN.left * PNG_ZOOM;
+  const y0 = MARGIN.top * PNG_ZOOM;
+  const x1 = full.width - MARGIN.right * PNG_ZOOM;
+  const y1 = full.height - MARGIN.bottom * PNG_ZOOM;
+  const w = x1 - x0;
+  const h = y1 - y0;
+  const data = new Uint8Array(w * h * 4);
+  for (let y = 0; y < h; y++) data.set(full.data.subarray(((y0 + y) * full.width + x0) * 4, ((y0 + y) * full.width + x1) * 4), y * w * 4);
+  return { width: w, height: h, data };
+};
 
 beforeAll(async () => {
   try {
@@ -84,17 +127,24 @@ afterAll(async () => {
 }, 60_000);
 
 describe("3D Top view against the plan", () => {
-  for (const path of ["models/example-cottage", "models/elmstead"]) {
-    it(`shows the same walls, rooms and openings as the plan: ${path}`, async () => {
-      const m = await model(path);
-      const name = `test-${path.replace(/\W+/g, "-")}`;
-      await publish(name, m);
-      const r = comparePlanTo3d(planPixels(m), await topView(name));
-      expect(r.aspect).toBeCloseTo(1, 2); // undistorted
-      expect(r.compared).toBeGreaterThan(100_000);
-      expect(r.badTiles, "tiles where the 3D view shows something else than the plan").toEqual([]);
-      expect(r.mismatch).toBeLessThan(0.01);
-    }, 120_000);
+  // Every storey of every model, each against the top view of that storey alone: with more than one
+  // storey shown the top view reads as the topmost storey's plan, not the one being compared.
+  for (const [path, source] of [
+    ["models/example-cottage", cottage],
+    ["models/elmstead", elmstead],
+  ] as const) {
+    for (const storey of source.storeys) {
+      it(`shows the same walls, rooms and openings as the plan: ${path} ${storey.id}`, async () => {
+        const m = structuredClone(source) as BuildingModel;
+        const name = `test-${path.replace(/\W+/g, "-")}`;
+        await publish(name, m);
+        const r = comparePlanTo3d(planPixels(m, m.storeys.find((s) => s.id === storey.id)!), await topView(name, storey.id));
+        expect(r.aspect).toBeCloseTo(1, 2); // undistorted
+        expect(r.compared).toBeGreaterThan(100_000);
+        expect(r.badTiles, "tiles where the 3D view shows something else than the plan").toEqual([]);
+        expect(r.mismatch).toBeLessThan(0.01);
+      }, 120_000);
+    }
   }
 
   it("catches a room outline that runs to a wall's centreline (the lobby door gap shows room fill on the plan only)", async () => {
@@ -109,13 +159,63 @@ describe("3D Top view against the plan", () => {
     hallway.outline.splice(1, 2, screen.start, screen.end);
     lobby.outline.splice(3, 2, screen.end, screen.start);
     await publish("test-elmstead-centreline", m);
-    const r = comparePlanTo3d(planPixels(m), await topView("test-elmstead-centreline"));
+    // Finer tiles than the default: the defect is a door gap, a band only as deep as the wall, which
+    // a 500 mm tile dilutes below the comparator's 25%-comparable threshold.
+    const r = comparePlanTo3d(planPixels(m), await topView("test-elmstead-centreline", "storey-ground"), { tile: 250, step: 125 });
     expect(r.badTiles.length).toBeGreaterThan(0);
-    // The worst tile covers the screen, which runs from (4.825, 6.575) to (5.45, 6.99) m.
-    const [worst] = r.badTiles;
-    expect(worst!.x[0]).toBeLessThan(5.45);
-    expect(worst!.x[1]).toBeGreaterThan(4.825);
-    expect(worst!.y[0]).toBeLessThan(6.99);
-    expect(worst!.y[1]).toBeGreaterThan(6.575);
+    // Some tile covers the screen, which runs from (4.825, 6.575) to (5.45, 6.99) m.
+    const over = r.badTiles.find((t) => t.x[0] < 5.45 && t.x[1] > 4.825 && t.y[0] < 6.99 && t.y[1] > 6.575);
+    expect(over, `screen tiles among ${r.badTiles.length}: ${JSON.stringify(r.badTiles.slice(0, 4))}`).toBeDefined();
+  }, 120_000);
+});
+
+describe("storey selection", () => {
+  it("notes an unknown storey id in the status line and shows everything", async () => {
+    const m = await model("models/example-cottage");
+    await publish("test-unknown-storey", m);
+    await viewOf("test-unknown-storey", "view=top&snapshot=1&labels=0&style=plan&storeys=storey-nope");
+    expect(await page.textContent("#status")).toContain('no storey "storey-nope"');
+  }, 120_000);
+
+  it("hides a storey's geometry, not just its drawings", async () => {
+    const m = await model("models/elmstead");
+    await publish("test-hidden-storey", m);
+    const groundOnly = structuredClone(m);
+    groundOnly.storeys = groundOnly.storeys.filter((s) => s.id === "storey-ground");
+    await publish("test-ground-only", groundOnly);
+    const hidden = await viewOf("test-hidden-storey", "view=se&snapshot=1&labels=0&style=ifc&storeys=storey-ground");
+    const absent = await viewOf("test-ground-only", "view=se&snapshot=1&labels=0&style=ifc");
+    // Hiding a storey must be the same picture as a model that never had it: same framing, same
+    // pixels, every one of them.
+    expect(Buffer.from(hidden.data).equals(Buffer.from(absent.data))).toBe(true);
+  }, 120_000);
+
+  it("shows the chosen floor and every storey below it, without moving the camera", async () => {
+    const m = await model("models/elmstead");
+    await publish("test-storey-selector", m);
+    // A fixed camera makes a re-frame detectable: both pictures must come from the same viewpoint.
+    const camera = "16,11,6,5.2,1.5,-4.2";
+    const all = await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}`);
+
+    // The ground choice is the ground alone, from the camera it had before.
+    await selectStorey("storey-ground");
+    expect(new URL(page.url()).searchParams.get("storeys")).toBe("storey-ground");
+    const ground = await canvasPixels();
+    expect(samePixels(ground, all)).toBe(false);
+    const groundOnly = await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}&storeys=storey-ground`);
+    expect(samePixels(ground, groundOnly)).toBe(true);
+
+    // The topmost choice puts the first floor back, still without moving the camera.
+    await selectStorey("storey-first-floor");
+    expect(new URL(page.url()).searchParams.has("storeys")).toBe(false);
+    expect(samePixels(await canvasPixels(), all)).toBe(true);
+
+    // A URL subset no single floor describes reads as custom rather than as some floor.
+    await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}&storeys=storey-first-floor`);
+    const picker = await page.evaluate(() => {
+      const s = document.getElementById("storeys") as HTMLSelectElement;
+      return { value: s.value, text: s.selectedOptions[0]?.textContent };
+    });
+    expect(picker).toEqual({ value: "", text: "Custom" });
   }, 120_000);
 });

@@ -8,7 +8,9 @@
 import { add, face, mm, pt, sub, wall } from "../../../src/model/index.js";
 import { brickT, coreD, coreW, eastT, extEastX, extSouthY, groundFloor, northT, partT, southT, studT, westT } from "../shared.js";
 
-export const wallH = groundFloor.ceilingHeight; // walls stop at the ceiling until there is an upper floor
+// Walls stop at the clear ceiling. The first-floor slab sits on them, and its exposed edges are
+// the floor structure between storeys, including the band at the facade.
+export const wallH = groundFloor.ceilingHeight;
 const breastT = mm(350); // chimney breasts and thickened masonry walls, per the owner
 const bathNorthT = mm(225); // bathroom north wall, 9-inch brick per the owner
 
