@@ -4,9 +4,11 @@ import { join } from "node:path";
 import * as WebIFC from "web-ifc";
 import { describe, expect, it } from "vitest";
 import cottage from "../models/example-cottage/index.js";
+import externalStorey from "../models/example-external-storey/index.js";
 import twoStorey from "../models/example-two-storey/index.js";
 import { mm } from "../src/model/index.js";
 import { ifcGuid } from "../src/ifc/guid.js";
+import { STYLES } from "../src/ifc/styles.js";
 import { ifcGeometry, roundTripChecks } from "../src/ifc/roundtrip.js";
 import { validateIfc } from "../src/ifc/validate.js";
 import { writeIfc } from "../src/ifc/writer.js";
@@ -24,6 +26,29 @@ const globalIds = (ifc: string) => [...ifc.matchAll(/^#\d+=IFC\w+\('([0-9A-Za-z_
 describe("IFC writer", () => {
   it("is byte-identical across runs", async () => {
     expect(await text(model)).toBe(await text(model));
+  });
+
+  it("styles a ground slab with the ground colour and leaves concrete slabs as before", async () => {
+    const ground = BuildingModelSchema.parse(JSON.parse(JSON.stringify(cottage)));
+    ground.storeys[0]!.slabs[0]!.material = "ground";
+    const groundIfc = await text(ground);
+    const style = /#(\d+)=IFCSURFACESTYLE\('ground'/.exec(groundIfc)![1];
+    const styled = groundIfc.match(new RegExp(`IFCSTYLEDITEM\\(#\\d+,\\(#${style}\\)`, "g")) ?? [];
+    expect(styled).toHaveLength(1);
+
+    const concreteIfc = await text(model);
+    expect(concreteIfc).not.toMatch(/IFCSURFACESTYLE\('ground'/);
+    expect(concreteIfc).toMatch(/IFCSURFACESTYLE\('slab'/);
+  });
+
+  it("keeps the ground colour far enough from every other style for the viewer to recognise it", () => {
+    const toLinear = (c: number) => (c < 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+    const ground = STYLES.ground.rgb.map(toLinear);
+    for (const [name, { rgb }] of Object.entries(STYLES)) {
+      if (name === "ground") continue;
+      const d = Math.hypot(...rgb.map((c, i) => toLinear(c) - ground[i]!));
+      expect(d, name).toBeGreaterThanOrEqual(0.02);
+    }
   });
 
   it("derives element GlobalIds from element ids", async () => {
@@ -345,4 +370,15 @@ describe("IfcOpenShell validator", () => {
     expect(v.issues.map((i) => i.id).sort()).toEqual(["door-front", "wall-south"]);
     expect(v.issues.find((i) => i.id === "wall-south")!.message).toMatch(/WR1/);
   }, 60_000);
+});
+
+describe("external storey", () => {
+  const external = BuildingModelSchema.parse(JSON.parse(JSON.stringify(externalStorey)));
+
+  it("writes the street storey, ground slab and front-step stair, and round-trips", async () => {
+    const ifc = await writeIfc(external, { fileName: "t.ifc" });
+    const text = new TextDecoder().decode(ifc);
+    expect(text).toMatch(/IFCSURFACESTYLE\('ground'/);
+    expect(await roundTripChecks(external, ifc)).toEqual([]);
+  });
 });

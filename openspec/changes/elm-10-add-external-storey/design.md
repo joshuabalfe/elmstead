@@ -57,21 +57,24 @@ colour must independently clear `C.wall`, `C.room` and `C.paper` to be skipped (
 colour). Alternative — making ground a compared class — would force plan/3D pixel agreement and
 churn the comparison; excluding it is simpler and consistent with stairs.
 
-**Per-stair stair banding.** The viewer currently picks one riser from the first stair and applies it
-to every stair material (`viewer/main.ts`), with a comment that no model has two stairs. Adding the
-front steps creates exactly that case and would break the existing per-stair readability
-requirement, so the banding uniform becomes per stair: each stair material carries its own riser. We
-keep the requirement and fix the implementation rather than relaxing the spec, because banding on
-the stair's own riser is what makes the treads read. Alternative: one shared riser — rejected; it
-mis-bands the front steps.
+**One shared stair riser, accepted for now.** The viewer bands every stair on a single riser taken
+from the model's first stair (`viewer/main.ts`). Splitting it per stair needs either per-stair IFC
+style variants or rendering the stairs outside Fragments, because Fragments merges all stair solids
+onto one material and a shader holds one uniform. We keep the shared riser and relax the
+`ifc-viewer` requirement to match, rather than take on that machinery for a shading detail; the
+front steps' 150 mm risers still alternate against the main stair's 190.6 mm. If the treads read
+poorly once the measured steps exist, revisit with per-stair materials. Alternative: per-stair
+banding — deferred, not rejected.
 
-**Modest ground extent.** The ground slab reaches a few metres around the building, not across the
-whole site, so snapshot cameras (which frame on the shown bounds) keep the house readable.
+**Modest ground extent, outside the footprint.** The ground slab reaches a few metres beyond the
+building, not across the whole site, and stops at the outer walls: a basement may occupy the space
+below, so nothing extends under the footprint. Snapshot cameras (which frame on the shown bounds)
+then keep the house readable.
 
-**Measurement-gated model edit.** The pipeline capability is independent of any building. elmstead's
-street elevation and riser count come from the owner's threshold-to-path drop, recorded in
-`models/elmstead/constraints.ts` with a note. The capability is exercised in tests by a synthetic
-fixture so it does not wait on that measurement.
+**Model edit.** The pipeline capability is independent of any building. The owner specified four
+front steps, so elmstead's street level is derived from four 150 mm risers — a provisional 600 mm
+drop, noted in `models/elmstead/shared.ts`; update the riser when the threshold-to-path drop is
+measured. The capability is also exercised by the `example-external-storey` fixture.
 
 ## Risks / Trade-offs
 
@@ -82,8 +85,9 @@ fixture so it does not wait on that measurement.
 - [Green ground churns the plan-versus-3D comparison] → ground classifies as neither wall, room nor
   paper and is skipped; the comparison is live and has no snapshots, so only committed snapshots
   (currently the cottage plan SVG) need review, and the cottage has no ground.
-- [A second stair mis-bands under the shared riser] → make banding per stair and test it with a
-  two-stair fixture.
+- [A second stair bands on the first stair's riser] → accepted for now; the spec states the
+  shared-riser behaviour, and the front steps' 150 mm risers still alternate against the main stair's
+  190.6 mm; revisit if the visual grates.
 - [The external storey breaks tests that assume the ground floor is lowest and every storey has
   walls] → update the elmstead floor-structure test, make the per-storey plan-vs-3D loop skip
   wall-less storeys, and update the storey-selector expectation; add `npm test` to the model edit's
@@ -107,5 +111,5 @@ default to `concrete`.
 
 - The exact ground colour and the ground slab's extent are aesthetic/model choices that can be settled
   during implementation without changing the specs or approach.
-- elmstead's street elevation and riser count await the owner's drop measurement; the pipeline
-  capability and the synthetic fixture do not depend on it.
+- elmstead's exact riser awaits the threshold-to-path drop measurement; the owner has specified
+  three steps, and the 150 mm riser is provisional.

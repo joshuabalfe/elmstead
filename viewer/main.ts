@@ -625,7 +625,7 @@ function applyStyle() {
       if (!(m instanceof THREE.MeshLambertMaterial)) continue;
       const name = styleOf(m);
       if (name === "wall") patchTops(m, 1);
-      if (name === "slab") patchTops(m, 2);
+      if (name === "slab" || name === "ground") patchTops(m, 2);
     }
   }
   applyStairPresentation();
@@ -641,9 +641,10 @@ function applyStyle() {
  * From straight down a flight's tread tops are uniformly lit and its risers are edge-on, so the steps
  * read as a flat slab. Banding the upward faces by floor(worldY / riser) alternates the floor cream
  * with a darker cream (tread tops are integer multiples of the stair's riser); vertical faces take the
- * wall colour; an EdgesGeometry outline reads the nosings from corner views. Each stair mesh gets its
- * own banded clone so stairs with different risers band correctly. The base material stays the safe
- * stair green so the viewer's classifier leaves it alone; only the shaded output is recoloured.
+ * wall colour; an EdgesGeometry outline reads the nosings from corner views. All stairs share one
+ * riser, taken from the model's first stair, because Fragments renders them under one material; a
+ * model whose stairs differ bands both on that riser (see ifc-viewer). The base material stays the
+ * safe stair green so the viewer's classifier leaves it alone; only the shaded output is recoloured.
  */
 const stairEdgeMaterial = new THREE.LineBasicMaterial({ color: C.ink });
 const stairCream = new THREE.Color(C.room);
@@ -1211,8 +1212,8 @@ async function load(name: string) {
   if (epoch !== loadEpoch) return;
   parseStoreysParam(json);
   populateStoreySelector(json);
-  // One shared riser for the banding; a model with two stairs of different risers would band the
-  // second against the first's height (no current model has two).
+  // One shared riser for the banding: Fragments renders all stairs under one material, so the
+  // shader cannot hold a riser per stair. A model whose stairs differ bands both on this one.
   stairRiser = 0;
   for (const s of json?.storeys ?? []) {
     for (const st of s.stairs ?? []) {

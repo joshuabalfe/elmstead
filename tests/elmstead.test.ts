@@ -199,9 +199,11 @@ describe("Elmstead's floor structure", () => {
     expect(fanlight.width).toBe(mm(900));
   });
 
-  for (let i = 1; i < storeys.length; i++) {
-    const lower = storeys[i - 1]!;
-    const upper = storeys[i]!;
+  // Only built storeys carry the next floor on their walls; the street level is external.
+  const built = storeys.filter((s) => s.walls.length > 0);
+  for (let i = 1; i < built.length; i++) {
+    const lower = built[i - 1]!;
+    const upper = built[i]!;
     it(`${upper.id} sits on ${lower.id}'s walls`, () => {
       expect(upper.slabs.length).toBeGreaterThan(0);
       for (const slab of upper.slabs) {

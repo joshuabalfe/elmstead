@@ -21,8 +21,8 @@ floor fill like other slabs, and the ground colour SHALL NOT disturb the plan-ve
 The viewer SHALL recolour stair solids so the steps read from above, in every mode including
 snapshots and `?style=ifc`: upward faces alternate the floor cream with a darker cream, vertical
 faces take the wall colour, and an edge outline reads the nosings. The recolour SHALL NOT change the
-base material colour. Each stair SHALL band on its own riser height, so two stairs with different
-risers band correctly side by side.
+base material colour. Banding SHALL use one riser height per model, taken from its first stair: a
+model whose stairs differ in riser height SHALL band every stair on that shared height.
 
 #### Scenario: Steps read from above
 - **WHEN** the viewer shows a stair from the Top view, in any style or snapshot
@@ -32,7 +32,7 @@ risers band correctly side by side.
 #### Scenario: Two stairs with different risers
 - **WHEN** a model has two stairs with different riser heights, such as the main stair and the front
   steps
-- **THEN** each stair bands on its own riser height, not a shared value taken from the first stair
+- **THEN** both band on the first stair's riser height, the documented shared-riser limitation
 
 #### Scenario: Snapshots keep the readability presentation
 - **WHEN** `render` writes a model's 3D snapshots

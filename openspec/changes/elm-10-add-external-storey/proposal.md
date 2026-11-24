@@ -22,12 +22,12 @@ gives a home for future external works (paths, patios, garden walls).
   schema addition; existing slabs are unchanged.
 - **Render the external ground**: a ground fill in the plan's floor layer, a distinct IFC display
   colour, and matching viewer presentation, so the steps read against the ground they stand on.
-- **Keep stair readability correct with a second stair**: band each stair on its own riser height,
-  since the front steps add a second stair with a different riser; update the storey-assuming tests
-  for the external level.
-- Model elmstead's street storey, front steps and ground slab. The street elevation and riser count
-  come from the owner's measurement of the drop from the front door threshold to the path; that
-  measurement is a dependency of the model edit, not of the pipeline capability.
+- **Relax the stair-banding requirement to one riser per model**, documenting that a second stair
+  with a different riser bands on the first stair's riser; per-stair shading is deferred. Update the
+  storey-assuming tests for the external level.
+- Model elmstead's street storey, front steps and ground slab. The owner specified four steps; the
+  150 mm riser (a 600 mm drop) is provisional until the threshold-to-path drop is measured. The
+  ground stays in front of the house, not under it: a basement will occupy that space.
 
 ## Capabilities
 
@@ -54,6 +54,6 @@ None. The external storey reuses the existing storey, stair and slab types.
 - Tests: the schema export and plan SVG snapshot regenerate; the plan-versus-3D comparison is live
   (no snapshots). Update the floor-structure, per-storey plan-vs-3D and storey-selector tests that
   assume the ground floor is lowest and every storey has walls. New scenarios cover the external
-  storey, ground material and per-stair banding.
+  storey and ground material.
 - No new dependencies and no new element type. Sloped ground (garden) and pitched roofs are out of
   scope; they are later changes that can reuse the same storey and a future sloped-surface mechanism.

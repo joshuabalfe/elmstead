@@ -17,11 +17,12 @@ import { defineBuilding, deg } from "../../src/model/index.js";
 import { components } from "./components/index.js";
 import { first } from "./first/index.js";
 import { ground } from "./ground/index.js";
+import { street } from "./street.js";
 
 export default defineBuilding({
   project: { id: "project-elmstead", name: "Elmstead" },
   site: { id: "site-default", name: "Default site", northAngle: deg(135) },
   building: { id: "building-elmstead", name: "Elmstead" },
   components,
-  storeys: [ground, first],
+  storeys: [street, ground, first],
 });

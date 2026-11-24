@@ -5,7 +5,7 @@
  * Plan origin is the outside south-west corner of the core; x east, y north, mm. "North" is
  * the top of the source drawing, which has no north arrow.
  */
-import { add, m, mm, pt } from "../../src/model/index.js";
+import { add, m, mm, pt, scale, sub } from "../../src/model/index.js";
 
 // ── Outline ──────────────────────────────────────────────────────────────────
 export const coreW = m(9.025); // living 4.2 m + bedroom 3.85 m (owner) plus the walls between and outside them
@@ -28,6 +28,16 @@ export const studT = mm(100); //  light partitions
 // ── Levels ───────────────────────────────────────────────────────────────────
 /** Ceiling height is from the owner. */
 export const groundFloor = { elevation: mm(0), ceilingHeight: m(2.9) };
+/**
+ * Front steps: the owner asked for four steps to the front door (one more than the first three).
+ * The 150 mm riser is assumed — external steps are shallower than the 190.6 mm internal risers —
+ * giving a provisional 600 mm drop to the street; update it when the threshold-to-path drop is
+ * measured.
+ */
+export const frontStepRisers = 4;
+export const frontStepRiser = mm(150);
+export const frontStepGoing = mm(300);
+export const streetFloor = { elevation: sub(groundFloor.elevation, scale(frontStepRiser, frontStepRisers)) };
 /**
  * Provisional floor structure between the ground ceiling and the first floor: joists, deck and
  * finishes. It is also the first-floor slab's thickness, so changing it moves the first floor and
