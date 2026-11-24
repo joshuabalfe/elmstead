@@ -158,23 +158,23 @@ viewer code; it renders as its own IFC geometry.
 
 ### Elmstead's provisional stair
 
-Elmstead's ground plan reserves a stairwell (x 5690–8945, y 6080–8075) with a spine wall dividing two
-910 mm flights (owner). The provisional stair is a half turn entered from the hallway: the lower
-flight north of the spine climbs east, a half landing at the east end, the upper flight south of the
-spine climbs west back over the lobby. Judgment calls, all provisional until the first-floor plan is
-traced:
+The first floor is now traced (PR #30); its stair well runs east into the extension
+(x 5875–10250, y 6075–8075) with the half landing in the extension. The stair is fitted to that well:
+a half turn entered from the hallway, the lower flight north of the spine climbing east from the
+well's west edge to the core's east wall (9025), the half landing filling the well's east end
+(9025–10250), and the upper flight south of the spine climbing west back to the first-floor landing.
+The spine divides the flights as far as its traced east end (8945); the turn lies east of it. The
+owner's 910 mm flight widths are unchanged. Judgment calls, provisional until the levels are measured:
 
-- **Riser split 9 + 9 = 18** over the 3100 mm provisional rise: riser 172.2 mm, going 293.1 mm
-  (2R + G ≈ 637, a comfortable private stair). The half landing sits at 1550 mm.
-- **The spine stops at the landing** (`spineEndX` 8035 instead of running to `spineEastX` 8945). The
-  traced spine ran the full stairwell length to the rear hall, which leaves no room for a half landing
-  at either end; the real stair probably turns on winders, which the schema does not model. Shortening
-  the spine clears the turn. The stairwell void and the owner's 910 mm flight-width constraints are
-  unchanged (they measure across the spine, not along it).
-- **Landing 910 mm deep** (one flight width) spanning the full stairwell width, thickness 150 mm.
+- **Riser split 10 + 10 = 20** over the 3100 mm provisional rise: riser 155 mm, going 350 mm. The
+  lengthened flights (3150 mm run) make the going long; revisit the split when the real floor level
+  is measured. The half landing sits at 1550 mm.
+- **Landing 1225 mm deep** (the extension's width) spanning the full well width, thickness 150 mm.
+- **Hallway entry** (lower flight north of the spine), per the user; the traced first-floor comment
+  assumed the south flight first, but either orientation arrives at the first-floor landing.
 
 A fast model test (`tests/elmstead.test.ts`) guards that every flight footprint and the landing sit
-inside the reserved stairwell and that the derived top flight lands exactly on the first floor.
+inside the traced stair well and that the derived top flight lands exactly on the first floor.
 
 ### Checks join the existing model-checks layer
 
