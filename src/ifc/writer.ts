@@ -8,10 +8,11 @@
 import * as WebIFC from "web-ifc";
 import { doorDivision } from "../geometry/door.js";
 import { isSplayed, openingProfile } from "../geometry/opening.js";
-import type { Vec } from "../geometry/vec.js";
+import { flightDirection, flightProfile, stairLevels, turnBetween, type FlightLevel } from "../geometry/stair.js";
+import { v, type Vec } from "../geometry/vec.js";
 import { faceOffsets, wallDirection, wallLength } from "../geometry/wall.js";
 import { GLAZING_BAR_DEPTH, windowDivision, type Rect } from "../geometry/window.js";
-import type { BuildingModel, Door, DoorComponent, Opening, Room, Slab, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
+import type { BuildingModel, Door, DoorComponent, Opening, Room, Slab, Stair, StairFlight, StairLanding, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
 import { ifcGuid } from "./guid.js";
 import { STYLES, type StyleName } from "./styles.js";
 
@@ -47,6 +48,21 @@ function windowPartitioning(design?: Pick<WindowComponent, "glazing">): { value:
 export interface WriteOptions {
   /** Used for FILE_NAME in the header. */
   fileName: string;
+}
+
+/**
+ * An IfcStair's PredefinedType, from the turning angle between its flights. IFC4 has no ShapeType on
+ * IfcStair; the IFC2x3 name for this is the enum's, and the enum values are the same in both.
+ */
+function stairType(flights: readonly StairFlight[]) {
+  if (flights.length === 1) return IFC4.IfcStairTypeEnum.STRAIGHT_RUN_STAIR;
+  if (flights.length === 2) {
+    const turn = Math.round(turnBetween(flights[0]!, flights[1]!));
+    if (turn === 0) return IFC4.IfcStairTypeEnum.TWO_STRAIGHT_RUN_STAIR;
+    if (turn === 90) return IFC4.IfcStairTypeEnum.QUARTER_TURN_STAIR;
+    if (turn === 180) return IFC4.IfcStairTypeEnum.HALF_TURN_STAIR;
+  }
+  return IFC4.IfcStairTypeEnum.NOTDEFINED;
 }
 
 let apiPromise: Promise<WebIFC.IfcAPI> | undefined;
@@ -210,12 +226,13 @@ class Writer {
 
     this.doorDesigns = new Map((model.components?.doors ?? []).map((c) => [c.id, c]));
     this.windowDesigns = new Map((model.components?.windows ?? []).map((c) => [c.id, c]));
-    const storeys = model.storeys.map((s) => this.storey(s, buildingPlacement));
+    const elevations = new Map(model.storeys.map((s) => [s.id, s.elevation]));
+    const storeys = model.storeys.map((s) => this.storey(s, buildingPlacement, elevations));
     this.write(new IFC4.IfcRelAggregates(guid(`${model.building.id}#aggregates`), null, null, null, building, storeys));
     this.components(model, project);
   }
 
-  private storey(s: Storey, parent: InstanceType<typeof IFC4.IfcLocalPlacement>) {
+  private storey(s: Storey, parent: InstanceType<typeof IFC4.IfcLocalPlacement>, elevations: Map<string, number>) {
     const placement = this.placement(parent, 0, 0, s.elevation);
     const storey = this.write(
       new IFC4.IfcBuildingStorey(guid(s.id), null, label(s.name), null, null, placement, null, null, IFC4.IfcElementCompositionEnum.ELEMENT, len(s.elevation)),
@@ -234,6 +251,11 @@ class Writer {
       contained.push(this.opening(o, host.wall, host.placement, host.entity));
     }
     for (const slab of s.slabs) contained.push(this.slab(slab, placement));
+    for (const stair of s.stairs ?? []) {
+      const to = elevations.get(stair.toStoreyId);
+      if (to === undefined) throw new Error(`${stair.id}: toStoreyId "${stair.toStoreyId}" is not a storey in the model`);
+      contained.push(this.stair(stair, placement, to - s.elevation));
+    }
 
     if (contained.length) {
       this.write(new IFC4.IfcRelContainedInSpatialStructure(guid(`${s.id}#contains`), null, null, null, contained, storey));
@@ -393,6 +415,74 @@ class Writer {
     const profile = new IFC4.IfcArbitraryClosedProfileDef(IFC4.IfcProfileTypeEnum.AREA, null, this.closedPolyline(s.outline));
     return this.write(
       new IFC4.IfcSlab(guid(s.id), null, label(s.name ?? s.id), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [this.body(profile, s.thickness, "slab")]), ident(s.id), IFC4.IfcSlabTypeEnum.FLOOR),
+    );
+  }
+
+  /**
+   * A stair: an IfcStair container in the storey, with its flights and landings aggregated under it.
+   * The container carries no body, so the stair's geometry is counted once, through its parts.
+   * `rise` is what it climbs, from the containing storey to the one it names.
+   */
+  private stair(s: Stair, parent: InstanceType<typeof IFC4.IfcLocalPlacement>, rise: number) {
+    const placement = this.placement(parent, 0, 0, 0);
+    const flights = s.segments.filter((seg): seg is StairFlight => seg.kind === "flight");
+    const stair = this.write(
+      new IFC4.IfcStair(guid(s.id), null, label(s.name ?? s.id), null, null, placement, null, ident(s.id), stairType(flights)),
+    );
+    const levels = stairLevels(s, rise);
+    const parts = levels.segments.map((l) =>
+      l.kind === "flight" ? this.stairFlight(l.segment, l, levels.riser, placement) : this.stairLanding(l.segment, l.level, placement),
+    );
+    this.write(new IFC4.IfcRelAggregates(guid(`${s.id}#aggregates`), null, null, null, stair, parts));
+    return stair;
+  }
+
+  /**
+   * A flight: its stepped side profile extruded across its width. The placement's X runs along the
+   * flight and its Y is up, so the profile's (along, up) lands in the placement's (X, Y) and the
+   * extrusion along the placement's Z spans the width, centred on the start→end line.
+   */
+  private stairFlight(f: StairFlight, level: FlightLevel, riser: number, parent: InstanceType<typeof IFC4.IfcLocalPlacement>) {
+    const d = flightDirection(f);
+    // The placement's Z, across the flight to the right of the run; the origin sits half a width to
+    // the left so the extrusion is centred.
+    const across = v(round9(d.y), round9(-d.x));
+    const origin = v(f.start.x - across.x * (f.width / 2), f.start.y - across.y * (f.width / 2));
+    const axis = new IFC4.IfcAxis2Placement3D(
+      this.pt3(round9(origin.x), round9(origin.y), round9(level.base)),
+      new IFC4.IfcDirection([real(across.x), real(across.y), real(0)]),
+      new IFC4.IfcDirection([real(round9(d.x)), real(round9(d.y)), real(0)]),
+    );
+    const profile = new IFC4.IfcArbitraryClosedProfileDef(
+      IFC4.IfcProfileTypeEnum.AREA,
+      null,
+      this.closedPolyline(flightProfile(f, level.going, riser).map((p) => v(round9(p.x), round9(p.y)))),
+    );
+    return this.write(
+      new IFC4.IfcStairFlight(
+        guid(f.id),
+        null,
+        label(f.id),
+        null,
+        null,
+        new IFC4.IfcLocalPlacement(parent, axis),
+        new IFC4.IfcProductDefinitionShape(null, null, [this.body(profile, f.width, "stair")]),
+        ident(f.id),
+        new IFC4.IfcInteger(f.risers),
+        new IFC4.IfcInteger(f.risers - 1),
+        posLen(round9(riser)),
+        posLen(round9(level.going)),
+        IFC4.IfcStairFlightTypeEnum.STRAIGHT,
+      ),
+    );
+  }
+
+  /** A landing: its outline swept down from its level by its thickness, as an IfcSlab LANDING. */
+  private stairLanding(l: StairLanding, level: number, parent: InstanceType<typeof IFC4.IfcLocalPlacement>) {
+    const placement = this.placement(parent, 0, 0, round9(level - l.thickness));
+    const profile = new IFC4.IfcArbitraryClosedProfileDef(IFC4.IfcProfileTypeEnum.AREA, null, this.closedPolyline(l.outline));
+    return this.write(
+      new IFC4.IfcSlab(guid(l.id), null, label(l.id), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [this.body(profile, l.thickness, "stair")]), ident(l.id), IFC4.IfcSlabTypeEnum.LANDING),
     );
   }
 

@@ -21,6 +21,8 @@ import {
   northIn,
   passageWestX,
   southIn,
+  stairArrivalX,
+  stairSouthY,
   stairWestX,
   stepSouthY,
   westIn,
@@ -61,7 +63,9 @@ export const landing: Room = {
     pt(partitionEast, kitchenSouthY),
     pt(partitionEast, bedroomNorthFaceY),
     pt(stairWestX, bedroomNorthFaceY),
-    pt(stairWestX, northIn),
+    pt(stairWestX, stairSouthY),
+    pt(stairArrivalX, stairSouthY),
+    pt(stairArrivalX, northIn),
   ],
 };
 

@@ -20,17 +20,17 @@
  * window belongs to the stair and half-landing model, not this storey.
  */
 import { mm, pt, type Polygon, type Storey } from "../../../src/model/index.js";
-import { coreD, coreW, firstFloor, firstFloorStructure } from "../shared.js";
+import { coreD, coreW, extEastX, extSouthY, firstFloor, firstFloorStructure } from "../shared.js";
 import { openings } from "./openings.js";
 import { rooms } from "./rooms.js";
-import { bayFrontNorthY, bayFrontSouthY, bayNorthY, bayOutX, baySouthY, stairEastX, stairNorthY, stairSouthY, stairWestX, walls } from "./walls.js";
+import { bayFrontNorthY, bayFrontSouthY, bayNorthY, bayOutX, baySouthY, stairArrivalX, stairEastX, stairNorthY, stairSouthY, stairWestX, walls } from "./walls.js";
 
 /** The hole in the first floor: the stair well and the half landing in the extension. */
 export const stairwellOutline: Polygon = [
-  pt(stairWestX, stairSouthY),
+  pt(stairArrivalX, stairSouthY),
   pt(stairEastX, stairSouthY),
   pt(stairEastX, stairNorthY),
-  pt(stairWestX, stairNorthY),
+  pt(stairArrivalX, stairNorthY),
 ];
 
 function slabPiece(id: string, name: string, outline: Polygon) {
@@ -41,6 +41,10 @@ const slabs = [
   slabPiece("slab-first-west", "First floor west", [
     pt(mm(0), mm(0)),
     pt(stairWestX, mm(0)),
+    pt(stairWestX, stairSouthY),
+    pt(stairArrivalX, stairSouthY),
+    pt(stairArrivalX, stairNorthY),
+    pt(stairWestX, stairNorthY),
     pt(stairWestX, coreD),
     pt(mm(0), coreD),
     pt(mm(0), bayNorthY),
@@ -53,6 +57,27 @@ const slabs = [
     pt(coreW, mm(0)),
     pt(coreW, stairSouthY),
     pt(stairWestX, stairSouthY),
+  ]),
+  // Where the stair well runs up to an external wall, the cut removes the slab band that normally
+  // joins the ground wall top to this floor's wall base, leaving a 200 mm slot between the storeys.
+  // Carry the slab over those wall thicknesses to close it; the well stays open inside the faces.
+  slabPiece("slab-first-north-band", "First floor north band", [
+    pt(stairArrivalX, stairNorthY),
+    pt(extEastX, stairNorthY),
+    pt(extEastX, coreD),
+    pt(stairArrivalX, coreD),
+  ]),
+  slabPiece("slab-first-east-band", "First floor east band", [
+    pt(stairEastX, stairSouthY),
+    pt(extEastX, stairSouthY),
+    pt(extEastX, stairNorthY),
+    pt(stairEastX, stairNorthY),
+  ]),
+  slabPiece("slab-first-south-band", "First floor south band", [
+    pt(coreW, extSouthY),
+    pt(extEastX, extSouthY),
+    pt(extEastX, stairSouthY),
+    pt(coreW, stairSouthY),
   ]),
 ];
 

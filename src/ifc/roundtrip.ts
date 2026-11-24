@@ -7,6 +7,9 @@ import * as WebIFC from "web-ifc";
 import type { Issue } from "../checks/issue.js";
 import { doorDivision } from "../geometry/door.js";
 import { revealSplay } from "../geometry/opening.js";
+import { area as polygonArea } from "../geometry/polygon.js";
+import { flightProfileArea, stairLevels } from "../geometry/stair.js";
+import { toVec } from "../geometry/vec.js";
 import { wallLength } from "../geometry/wall.js";
 import { GLAZING_BAR_DEPTH, windowDivision } from "../geometry/window.js";
 import type { BuildingModel } from "../schema/schema.js";
@@ -130,6 +133,17 @@ export async function roundTripChecks(model: BuildingModel, ifc: Uint8Array): Pr
       const area = (rs: typeof panes) => rs.reduce((a, r) => a + r.w * r.h, 0);
       const solid = [...frame, ...bars];
       expect(o.id, area(panes) * PANEL_THICKNESS + area(solid) * GLAZING_BAR_DEPTH, solid.length ? "window (frame, panes and bars)" : "window panel");
+    }
+    for (const stair of s.stairs ?? []) {
+      const to = model.storeys.find((x) => x.id === stair.toStoreyId);
+      if (!to) continue; // a missing target is a check error, which gates the build
+      const levels = stairLevels(stair, to.elevation - s.elevation);
+      for (const l of levels.segments) {
+        if (l.kind === "flight") expect(l.segment.id, flightProfileArea(l.segment, l.going, levels.riser) * l.segment.width, "stair flight");
+        else expect(l.segment.id, polygonArea(l.segment.outline.map(toVec)) * l.segment.thickness, "stair landing");
+      }
+      // The IfcStair container is deliberately left out: it has no body, so its geometry is counted
+      // once, through the flights and landings above.
     }
   }
   return issues;

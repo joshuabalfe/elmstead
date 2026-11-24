@@ -9,5 +9,9 @@ export const STYLES = {
   door: { rgb: [0.61, 0.42, 0.26], transparency: 0 },
   glazing: { rgb: [0.5, 0.7, 0.9], transparency: 0.5 },
   frame: { rgb: [0.98, 0.98, 0.97], transparency: 0 }, // glazing bars, painted white
+  // Stair flights and landings. The viewer nearest-matches materials against this table and repaints
+  // what it recognises, so a stair must stay well clear of every entry — above all `wall`, whose tops
+  // it would paint charcoal, and `slab`, whose tops it would discard (see styleOf in viewer/main.ts).
+  stair: { rgb: [0.36, 0.54, 0.33], transparency: 0 },
 } as const;
 export type StyleName = keyof typeof STYLES;

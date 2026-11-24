@@ -2,7 +2,7 @@
  * Authoring helpers for model files. These only build plain schema values; they hold no state.
  * Everything here is optional sugar: a model can always write the JSON shape out by hand.
  */
-import { SCHEMA_VERSION, type BuildingModel, type Door, type DoorComponent, type Point, type Reveal, type Room, type Swing, type Wall, type Window, type WindowComponent } from "../schema/schema.js";
+import { SCHEMA_VERSION, type BuildingModel, type Door, type DoorComponent, type Point, type Polygon, type Reveal, type Room, type Stair, type StairFlight, type StairLanding, type StairSegment, type Storey, type Swing, type Wall, type Window, type WindowComponent } from "../schema/schema.js";
 import { faceOffsets, wallDirection, wallLength } from "../geometry/wall.js";
 import { add, divRound, mm, sub, type Mm } from "../schema/units.js";
 
@@ -167,3 +167,32 @@ export function window(id: string, w: Wall, offsetAlongWall: Mm, a: WindowCompon
     ...(reveal ? { reveal } : {}),
   };
 }
+
+/** A straight run of steps, for `stair()`. Levels are derived, so only the plan geometry is given. */
+export const stairFlight = (id: string, start: Point, end: Point, opts: Pick<StairFlight, "width" | "risers">): StairFlight => ({
+  kind: "flight",
+  id,
+  start,
+  end,
+  width: opts.width,
+  risers: opts.risers,
+});
+
+/** A flat platform between flights, for `stair()`. Its level follows from the flights below it. */
+export const stairLanding = (id: string, outline: Polygon, opts: Pick<StairLanding, "thickness">): StairLanding => ({
+  kind: "landing",
+  id,
+  outline,
+  thickness: opts.thickness,
+});
+
+/**
+ * A stair climbing from its containing storey to `toStorey`, with `segments` in bottom-to-top
+ * order. Holds no elevations, riser height or going: the rise comes from the two storeys and the
+ * levels from the flights' riser counts (see src/geometry/stair.ts).
+ */
+export const stair = (id: string, toStorey: Storey, segments: StairSegment[]): Stair => ({
+  id,
+  toStoreyId: toStorey.id,
+  segments,
+});

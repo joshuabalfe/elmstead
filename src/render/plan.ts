@@ -1,9 +1,10 @@
 import { faceOffsets, wallDirection, wallLength, wallPoint, wallSegmentFootprint } from "../geometry/wall.js";
 import { jambEdges, openingOutline, openingProfile } from "../geometry/opening.js";
 import { area, bounds, centroid, spans, type Bounds } from "../geometry/polygon.js";
+import { flightFootprint, flightTreads, stairLevels } from "../geometry/stair.js";
 import { GLAZING_BAR_DEPTH, windowDivision } from "../geometry/window.js";
-import { dot, perpLeft, toVec, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";
-import type { BuildingModel, Components, Door, Opening, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
+import { dot, perpLeft, toVec, unit, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";
+import type { BuildingModel, Components, Door, Opening, Stair, StairFlight, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
 import { C, CUT_HEIGHT, FONT, MARGIN, PX_PER_MM, ROOM_LABEL } from "./style.js";
 import { el, group, line, num, polygon, polyline, text } from "./svg.js";
 
@@ -27,6 +28,7 @@ function makeView(storey: Storey): View {
     ...storey.walls.flatMap((w) => (wallLength(w) > 0 ? wallSegmentFootprint(w, 0, wallLength(w)) : [toVec(w.start)])),
     ...storey.slabs.flatMap((s) => s.outline.map(toVec)),
     ...storey.rooms.flatMap((r) => r.outline.map(toVec)),
+    ...stairPoints(storey),
   ];
   const extent = pts.length ? bounds(pts) : { minX: 0, minY: 0, maxX: 1000, maxY: 1000 };
   const toPx = (p: Vec) => v(MARGIN.left + (p.x - extent.minX) * PX_PER_MM, MARGIN.top + (extent.maxY - p.y) * PX_PER_MM);
@@ -397,6 +399,73 @@ export function renderFloor(storey: Storey, components?: Components): { svg: str
   ]);
 }
 
+/** Every plan point a stair occupies, so the drawing extent includes one outside the rooms. */
+function stairPoints(storey: Storey): Vec[] {
+  return (storey.stairs ?? []).flatMap((s) => s.segments.flatMap((seg) => (seg.kind === "landing" ? seg.outline.map(toVec) : flightFootprint(seg))));
+}
+
+/** The rise a stair climbs, or null when its target storey is missing, which the checks report. */
+function stairRise(model: BuildingModel, storey: Storey, s: Stair): number | null {
+  const to = model.storeys.find((x) => x.id === s.toStoreyId);
+  return to ? to.elevation - storey.elevation : null;
+}
+
+/** A flight's walking-direction arrow: a line up the middle with a head towards its end. */
+function flightArrow(f: StairFlight, view: View): string[] {
+  const a = toVec(f.start);
+  const d = vsub(toVec(f.end), a);
+  const at = (t: number) => view.toPx(vadd(a, vscale(d, t)));
+  const tip = at(0.82);
+  const tail = at(0.68);
+  const along = unit(vsub(tip, tail));
+  const across = perpLeft(along);
+  const head = polygon([tip, vadd(tail, vscale(across, 3.5)), vsub(tail, vscale(across, 3.5))], { fill: C.stair, stroke: "none" });
+  return [line(at(0.18), tail, { stroke: C.stair, "stroke-width": 1.2 }), head];
+}
+
+/** An element id label, in the same style as the wall and opening ones. */
+const idLabel = (p: Vec, id: string): string =>
+  text(v(p.x, p.y + 3), id, { "font-size": 8, "text-anchor": "middle", fill: C.id, stroke: C.paper, "stroke-width": 2.5, "stroke-linejoin": "round", "paint-order": "stroke" });
+
+/**
+ * Stairs, drawn in full as the last geometry layer: each flight's footprint, its tread lines and an
+ * up arrow, and each landing's outline. Only `renderPlan` draws them — `renderFloor` and
+ * `renderWallTops`, which the viewer composites into its plan-style overlay, do not, so the viewer
+ * shows a stair as its own IFC geometry.
+ */
+function drawStairs(model: BuildingModel, storey: Storey, view: View, opts: PlanOptions): string[] {
+  const out: string[] = [];
+  for (const s of storey.stairs ?? []) {
+    const rise = stairRise(model, storey, s);
+    const levels = rise === null ? null : stairLevels(s, rise).segments;
+    const parts: string[] = [];
+    s.segments.forEach((seg, i) => {
+      if (seg.kind === "landing") {
+        const pts = seg.outline.map(toVec);
+        const body = [polygon(pts.map(view.toPx), { fill: "none", stroke: C.stair, "stroke-width": 1 })];
+        if (opts.ids) body.push(idLabel(view.toPx(centroid(pts)), seg.id));
+        parts.push(group({ class: "stair-landing", "data-id": seg.id }, body));
+        return;
+      }
+      const level = levels?.[i];
+      const going = level?.kind === "flight" ? level.going : 0;
+      const body = [
+        polygon(flightFootprint(seg).map(view.toPx), { fill: "none", stroke: C.stair, "stroke-width": 1 }),
+        ...flightTreads(seg, going).map((t) => line(view.toPx(t.from), view.toPx(t.to), { stroke: C.stair, "stroke-width": 0.7 })),
+        ...flightArrow(seg, view),
+      ];
+      if (opts.ids) body.push(idLabel(view.toPx(vadd(toVec(seg.start), vscale(vsub(toVec(seg.end), toVec(seg.start)), 0.4))), seg.id));
+      parts.push(group({ class: "stair-flight", "data-id": seg.id }, body));
+    });
+    if (opts.ids) {
+      const pts = stairPoints({ ...storey, stairs: [s] });
+      if (pts.length) parts.push(idLabel(view.toPx(centroid(pts)), s.id));
+    }
+    out.push(group({ class: "stair", "data-id": s.id }, parts));
+  }
+  return out;
+}
+
 export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptions): string {
   const view = makeView(storey);
   const walls = [...storey.walls].filter((w) => wallLength(w) > 0);
@@ -421,6 +490,8 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
   }
 
   out.push(...wallsAndOpenings(storey, view, model.components));
+
+  out.push(...drawStairs(model, storey, view, opts));
 
   out.push(...roomLabels(storey, view, opts));
 
