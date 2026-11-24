@@ -9,7 +9,7 @@
 import { wallLength } from "../../../src/geometry/wall.js";
 import { centredOn, deg, door, m, mm, window, type Opening } from "../../../src/model/index.js";
 import { frontWindow, internalDoor, standardWindow } from "../components/index.js";
-import { bayFront, bayNorth, baySouth, bedroomNorth, diningNorth, east, ensuiteSouth, kitchenEast, north, westNorth } from "./walls.js";
+import { bayFront, bayNorth, baySouth, bedroomNorth, diningNorth, east, ensuiteSouth, kitchenEast, north } from "./walls.js";
 
 const doorH = m(2.1);
 const internal = { width: mm(700), height: doorH };
@@ -22,8 +22,6 @@ const bayNorthOffset = mm(Math.round((wallLength(bayNorth) - bayWindowWidth) / 2
 const baySouthOffset = mm(Math.round((wallLength(baySouth) - bayWindowWidth) / 2));
 
 export const openings: Opening[] = [
-  // West wall runs north→south; "left" is inside. The kitchen window is in its northern piece.
-  window("window-kitchen-west-first", westNorth, mm(400), standardWindow, { ...standard, width: mm(1075) }, insideReveal),
   // North wall runs east→west; "left" is inside.
   window("window-kitchen-north-first", north, mm(7250), standardWindow, lowLevel, insideReveal),
 
