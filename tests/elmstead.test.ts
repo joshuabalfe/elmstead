@@ -44,6 +44,21 @@ describe("Elmstead's floor structure", () => {
     for (const wall of first.walls) expect(wall.height, wall.id).toBe(mm(2700));
   });
 
+  it("puts the kitchen window above the front door", () => {
+    const ground = elmstead.storeys.find((s) => s.id === "storey-ground");
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!ground || !first) throw new Error("Elmstead needs ground and first floors");
+    const door = ground.openings.find((o) => o.id === "door-front");
+    const window = first.openings.find((o) => o.id === "window-kitchen-west-first");
+    if (!door || !window) throw new Error("Elmstead needs the front door and kitchen window");
+    const doorWall = ground.walls.find((w) => w.id === door.wallId);
+    const windowWall = first.walls.find((w) => w.id === window.wallId);
+    if (!doorWall || !windowWall) throw new Error("The front door and kitchen window need their walls");
+    expect(windowWall.start).toEqual(doorWall.start);
+    expect(window.offsetAlongWall).toBe(door.offsetAlongWall);
+    expect(window.height).toBe(mm(2100));
+  });
+
   for (let i = 1; i < storeys.length; i++) {
     const lower = storeys[i - 1]!;
     const upper = storeys[i]!;

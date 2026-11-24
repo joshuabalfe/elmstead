@@ -122,6 +122,14 @@ export default defineConstraints([
       measure: "y",
       distance: mm(2750),
     },
+    {
+      id: "kitchen-window-width",
+      note: "Kitchen window width from the owner (1.21 m), aligned above the front door",
+      from: jamb("window-kitchen-west-first", "start"),
+      to: jamb("window-kitchen-west-first", "end"),
+      measure: { along: "wall-west-first-north" },
+      distance: mm(1210),
+    },
   ]),
   inRoom("room-dining-first", [
     {

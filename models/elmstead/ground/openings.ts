@@ -17,7 +17,7 @@ const standard = { height: m(1.2), sillHeight: mm(900) };
 
 // Front door, with the fanlight over it and the large front window beside it: the two share a head.
 const front = { width: mm(900), height: doorH };
-const frontDoorOffset = mm(50);
+export const frontDoorOffset = mm(50);
 const frontHead = m(2.6);
 const transom = mm(100); // between the top of the door and the fanlight
 const frontWindowSize = { width: m(2.5), height: sub(frontHead, mm(500)), sillHeight: mm(500) };

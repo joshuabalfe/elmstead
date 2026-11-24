@@ -7,22 +7,25 @@
  * this floor, so the window belongs to the stair and half-landing model, not this storey.
  */
 import { wallLength } from "../../../src/geometry/wall.js";
-import { centredOn, deg, door, m, mm, window, type Opening } from "../../../src/model/index.js";
+import { centredOn, door, m, mm, window, type Opening } from "../../../src/model/index.js";
 import { frontWindow, internalDoor, standardWindow } from "../components/index.js";
+import { frontDoorOffset } from "../ground/openings.js";
 import { bayFront, bayNorth, baySouth, bedroomNorth, diningNorth, east, ensuiteSouth, kitchenEast, westNorth } from "./walls.js";
 
 const doorH = m(2.1);
 const internal = { width: mm(700), height: doorH };
 const standard = { height: m(1.2), sillHeight: mm(900) };
-const insideReveal = { face: "left", angle: deg(45) } as const;
 
 const bayWindowWidth = mm(450);
 const bayNorthOffset = mm(Math.round((wallLength(bayNorth) - bayWindowWidth) / 2));
 const baySouthOffset = mm(Math.round((wallLength(baySouth) - bayWindowWidth) / 2));
 
 export const openings: Opening[] = [
-  // West wall runs north→south; "left" is inside. The kitchen window is in its northern piece.
-  window("window-kitchen-west-first", westNorth, mm(400), standardWindow, { ...standard, width: mm(1075) }, insideReveal),
+  // West wall runs north→south; "left" is inside. The kitchen window is 1.21 × 2.1 m, starting
+  // level with the front door's north jamb close to the north-west corner. Its 500 mm sill matches
+  // the ground-floor front window's; the owner gave the size but not the sill. A square reveal
+  // keeps the frame and its cut inside the wall this close to the corner.
+  window("window-kitchen-west-first", westNorth, frontDoorOffset, standardWindow, { width: mm(1210), height: mm(2100), sillHeight: mm(500) }),
 
   // Bay window on the dining room's canted west side.
   window("window-bay-front-first", bayFront, centredOn(bayFront, mm(3390), mm(1500)), frontWindow, { width: mm(1500), height: mm(1800), sillHeight: mm(400) }),
