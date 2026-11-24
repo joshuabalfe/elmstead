@@ -68,12 +68,14 @@ describe("Elmstead's floor structure", () => {
     expect(design?.glazing).toMatchObject({ columns: [1, 1], rows: [1, 1] });
   });
 
-  it("gives the ensuite the owner's 1.91 m width", () => {
+  it("gives the ensuite the owner's size", () => {
     const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
     if (!first) throw new Error("Elmstead has no first floor");
     const ensuite = first.rooms.find((r) => r.id === "room-ensuite-first");
     if (!ensuite) throw new Error("Elmstead has no ensuite");
+    const xs = ensuite.outline.map((p) => p.x);
     const ys = ensuite.outline.map((p) => p.y);
+    expect(Math.max(...xs) - Math.min(...xs)).toBe(mm(2790));
     expect(Math.max(...ys) - Math.min(...ys)).toBe(mm(1910));
   });
 
@@ -157,7 +159,7 @@ describe("Elmstead's floor structure", () => {
     });
   }
 
-  it("keeps the stair well between the stair walls", () => {
+  it("keeps the stair well on its traced edges", () => {
     const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
     if (!first) throw new Error("Elmstead has no first floor");
     const wall = (id: string) => {
@@ -167,7 +169,7 @@ describe("Elmstead's floor structure", () => {
     };
     const xs = stairwellOutline.map((p) => p.x);
     const ys = stairwellOutline.map((p) => p.y);
-    // The landing overhang sets the well's west edge, just west of the ensuite wall's face.
+    // The landing overhang sets the well's west edge, 165 mm east of the longer ensuite's east face.
     expect(Math.min(...xs)).toBe(stairArrivalX);
     expect(Math.max(...xs)).toBe(face(wall("wall-extension-east-first"), "west"));
     expect(Math.min(...ys)).toBe(face(wall("wall-ensuite-north-first"), "north"));

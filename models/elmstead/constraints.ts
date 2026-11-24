@@ -150,6 +150,14 @@ export default defineConstraints([
       measure: "y",
       distance: mm(1910),
     },
+    {
+      id: "ensuite-length",
+      note: "Ensuite length from the owner (2.79 m), west to east",
+      from: roomCorner(0),
+      to: roomCorner(1),
+      measure: "x",
+      distance: mm(2790),
+    },
   ]),
   inRoom("room-bedroom-first", [
     {
