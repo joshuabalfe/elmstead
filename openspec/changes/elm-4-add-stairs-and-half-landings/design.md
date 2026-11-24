@@ -159,9 +159,10 @@ viewer code; it renders as its own IFC geometry.
 ### Elmstead's provisional stair
 
 Elmstead's ground plan reserves a stairwell (x 5690–8945, y 6080–8075) with a spine wall dividing two
-910 mm flights (owner). The provisional stair is a half turn: the lower flight south of the spine
-climbs east, a half landing at the east end, the upper flight north of the spine climbs west. Judgment
-calls, all provisional until the first-floor plan is traced:
+910 mm flights (owner). The provisional stair is a half turn entered from the hallway: the lower
+flight north of the spine climbs east, a half landing at the east end, the upper flight south of the
+spine climbs west back over the lobby. Judgment calls, all provisional until the first-floor plan is
+traced:
 
 - **Riser split 9 + 9 = 18** over the 3100 mm provisional rise: riser 172.2 mm, going 293.1 mm
   (2R + G ≈ 637, a comfortable private stair). The half landing sits at 1550 mm.

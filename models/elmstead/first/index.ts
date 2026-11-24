@@ -27,9 +27,10 @@ const walls: Wall[] = ground.walls
   .map((w) => ({ ...w, id: `${w.id}-first`, height: firstFloor.ceilingHeight }));
 
 // ── Stairwell, from the ground plan ─────────────────────────────────────────
-// Both flights run east–west around the spine wall, the lower south of it and the upper north of
-// it, turning at the east end. The opening follows the walls and rooms around it: the hallway's
-// east edge, the bathroom's north wall, the north wall and the rear hall's west edge.
+// Both flights run east–west around the spine wall, the lower north of it (entered from the
+// hallway) and the upper south of it, turning at the east end. The opening follows the walls and
+// rooms around it: the hallway's east edge, the bathroom's north wall, the north wall and the rear
+// hall's west edge.
 const stairWest = mm(5690); // lobby/bathroom room edge; 15 mm east of the hallway's edge
 const stairEast = spineEastX; // rear hall's west edge at the spine's end
 const stairSouth = mm(6080); // bathroom north wall's north face; lower flight 910 mm wide
