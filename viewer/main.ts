@@ -1,18 +1,19 @@
 /**
  * Local IFC viewer on That Open Engine: loads out/<model>.ifc, converts it to Fragments in the
  * browser and shows it, with each storey's room names, areas and dimensions lying at its ceiling,
- * the model's constraints as red labels and dotted spans, and a compass pointing to true north (all
- * from out/<model>.building.json and out/<model>.constraints.json). A storey selector in the bar
- * shows every storey up to the chosen floor, and `?storeys=` shows an exact subset. Every view uses
- * the plan's colours, with the plan's walls, doors and windows laid on the
- * wall tops, so the Top view reads like the plan. Query params: ?model=<name>&view=<sw|se|ne|nw|top (default)>&snapshot=1
- * &labels=0|1&constraints=0|1&style=plan|ifc&camera=px,py,pz,tx,ty,tz&walk=1 (snapshot hides the UI and sets window.__elmsteadReady once the first
- * frame is drawn; labels and the plan style are on by default and constraints start off, except in
- * snapshots, which show the IFC alone; walk=1 enters first-person walk mode, which snapshots
- * ignore).
+ * the model's constraints as red labels and dotted spans, a distance measurement tool, and a
+ * compass pointing to true north (all from out/<model>.building.json and
+ * out/<model>.constraints.json). A storey selector in the bar shows every storey up to the chosen
+ * floor, and `?storeys=` shows an exact subset. Every view uses the plan's colours, with the plan's
+ * walls, doors and windows laid on the wall tops, so the Top view reads like the plan. Query params:
+ * ?model=<name>&view=<sw|se|ne|nw|top (default)>&snapshot=1&labels=0|1&constraints=0|1&storeys=a,b
+ * &measure=1&style=plan|ifc&camera=px,py,pz,tx,ty,tz&walk=1 (snapshot hides the UI and sets
+ * window.__elmsteadReady once the first frame is drawn; labels and the plan style are on by
+ * default and constraints start off, except in snapshots, which show the IFC alone; walk=1 enters
+ * first-person walk mode and measure=1 starts the measurement tool, both ignored in snapshots).
  */
 import * as OBC from "@thatopen/components";
-import { LodMode, type FragmentsModel } from "@thatopen/fragments";
+import { LodMode, SnappingClass, type FragmentsModel } from "@thatopen/fragments";
 import workerUrl from "@thatopen/fragments/worker?url";
 import CameraControls from "camera-controls";
 import * as THREE from "three";
@@ -26,6 +27,7 @@ import { C, FONT, PX_PER_MM } from "../src/render/style.js";
 import type { BuildingModel, Storey } from "../src/schema/schema.js";
 import type { ResolvedConstraint } from "../src/constraints/check.js";
 import { constraintLabels } from "./constraints.js";
+import { SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap, type MeasurementValues, type Point3, type SnapCandidate } from "./measure.js";
 import { parseView, type View } from "./view.js";
 import { WALK_AXES, entryPosition, headingBasis, movementOffset, walkRequested, walkStep } from "./walk.js";
 declare global {
@@ -34,6 +36,7 @@ declare global {
     __elmsteadError?: string;
     /** Increments after a storey choice has been applied and drawn; tests wait on it. */
     __elmsteadStoreyChanges?: number;
+    __elmsteadMeasurements?: { id: number; from: Point3; to: Point3; values: MeasurementValues }[];
   }
 }
 
@@ -52,6 +55,7 @@ world.scene.setup();
 world.scene.three.background = new THREE.Color(0xf4f4f2);
 world.renderer = new OBC.SimpleRenderer(components, document.getElementById("container")!, { preserveDrawingBuffer: true });
 world.renderer.showLogo = false;
+const canvas = world.renderer.three.domElement;
 world.camera = new OBC.OrthoPerspectiveCamera(components);
 components.init();
 setNavigationInput();
@@ -93,14 +97,50 @@ const constraints = new THREE.Group();
 constraints.visible = params.get("constraints") === "1";
 world.scene.three.add(constraints);
 
+/** One completed measurement: its scene points and millimetre values. */
+interface Measurement {
+  id: number;
+  from: THREE.Vector3;
+  to: THREE.Vector3;
+  values: MeasurementValues;
+}
+
+/** Measurements, depth-tested so a wall or an upper storey can hide them. */
+const measureLayer = new THREE.Group();
+world.scene.three.add(measureLayer);
+const measureLineMaterial = new LineMaterial({
+  color: C.measure,
+  linewidth: 0.03,
+  worldUnits: true,
+  depthTest: true,
+  depthWrite: false,
+  transparent: true,
+});
+const measureMarkerGeometry = new THREE.SphereGeometry(0.025, 12, 8);
+const measureMarkerMaterial = new THREE.MeshBasicMaterial({ color: C.measure, depthTest: true, depthWrite: false, transparent: true });
+
+/** The loaded Fragments model, so a storey choice can update it without a reload. */
+let currentModel: FragmentsModel | null = null;
+let loadEpoch = 0;
+let measureEpoch = 0;
+let measuring = false;
+const measureRequested = !snapshot && params.get("measure") === "1";
+let pendingPoint: THREE.Vector3 | null = null;
+let nextMeasurementId = 1;
+const measurements: Measurement[] = [];
+let queuedPick: { x: number; y: number } | null = null;
+let picking = false;
+let pointerCandidate: { id: number; x: number; y: number } | null = null;
+const measurePointers = new Set<number>();
+let pendingMarker: THREE.Mesh | null = null;
+window.__elmsteadMeasurements = [];
+
 /** True north, degrees counter-clockwise from plan +y (site.northAngle); null when there is no model JSON. */
 let northAngle: number | null = null;
 /** The lowest storey's elevation in scene metres, from the model JSON; null when there is none. */
 let lowestElevation: number | null = null;
 /** The model JSON beside the IFC; null when there is none. */
 let modelJson: BuildingModel | null = null;
-/** The loaded Fragments model, so a storey choice can update it without a reload. */
-let currentModel: FragmentsModel | null = null;
 /** The storey ids `?storeys=` asked for, in the model's order; null means every storey. */
 let shownStoreys: string[] | null = null;
 /** The label and plan-layer groups drawn for each storey, so hiding it takes its drawings with it. */
@@ -147,7 +187,7 @@ interface BillboardLine {
 }
 
 /** A sprite that always faces the camera, at the plan's text scale, with a halo so it reads over the model. */
-function billboard(lines: BillboardLine[], fill: string, renderOrder: number): THREE.Sprite {
+function billboard(lines: BillboardLine[], fill: string, renderOrder: number, depthTest = false): THREE.Sprite {
   const halo = 3;
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d")!;
@@ -172,9 +212,8 @@ function billboard(lines: BillboardLine[], fill: string, renderOrder: number): T
   }
   const map = new THREE.CanvasTexture(canvas);
   map.colorSpace = THREE.SRGBColorSpace;
-  // Depth-tested, like the ceiling plane they sit with: a storey above occludes the constraints of
-  // the one below, and hiding a storey hides theirs.
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthWrite: false }));
+  // Constraints and measurements depth-test, so a wall or a storey above hides them.
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthTest, depthWrite: false }));
   sprite.renderOrder = renderOrder;
   const mPerPx = 1 / PX_PER_MM / 1000;
   sprite.scale.set(width * mPerPx, (height + 2 * halo) * mPerPx, 1);
@@ -188,6 +227,7 @@ function constraintBillboard(lines: string[]): THREE.Sprite {
     lines.map((text, i) => ({ text, size: 11, bold: true, dy: (i - (lines.length - 1) / 2) * step })),
     C.constraint,
     7,
+    true,
   );
 }
 
@@ -262,7 +302,8 @@ function updateLowestElevation() {
  * The schema has no ceiling height, so the ceiling is the top of the storey's tallest wall. Lying
  * flat, an upper storey's floor occludes a lower storey's labels, as it does its rooms.
  */
-async function loadLabels(name: string, model: BuildingModel | null) {
+async function loadLabels(name: string, model: BuildingModel | null, epoch: number) {
+  if (epoch !== loadEpoch) return;
   const dispose = (obj: THREE.Object3D) => {
     for (const child of [...obj.children]) dispose(child);
     if (obj instanceof Line2) obj.geometry.dispose(); // the line material is shared by every constraint
@@ -282,6 +323,7 @@ async function loadLabels(name: string, model: BuildingModel | null) {
   if (!model) return; // no JSON next to the IFC: show the IFC without labels
   northAngle = model.site.northAngle ?? 0;
   const constraintsRes = await fetch(`/out/${name}.constraints.json`);
+  if (epoch !== loadEpoch) return;
   const resolved = constraintsRes.ok ? ((await constraintsRes.json()) as ResolvedConstraint[]) : [];
   updateLowestElevation();
   for (const storey of model.storeys) {
@@ -293,16 +335,19 @@ async function loadLabels(name: string, model: BuildingModel | null) {
     const ceiling = Math.max(0, ...storey.walls.map((w) => w.height));
     const y = (storey.elevation + ceiling + LABEL_LIFT) / 1000;
     const annotations = await planPlane(svg, bounds, y, { transparent: true, depthWrite: false });
+    if (epoch !== loadEpoch) return;
     annotations.renderOrder = 1; // over the wall tops' layer
     labelGroup.add(annotations);
     const tops = renderWallTops(storey, model.components);
     layerGroup.add(await planPlane(tops.svg, tops.bounds, (storey.elevation + ceiling + WALL_TOP_LIFT) / 1000, { transparent: true, depthWrite: false }));
+    if (epoch !== loadEpoch) return;
     // Every storey's floor is its own room fills, at its own level, writing depth: the floor you
     // see is the topmost one, and it hides the storeys below. Cut-out (alphaTest), not blended, so
     // it stays in the opaque pass that runs before the walls. Built even while hidden, so the
     // selector can show a storey again without rebuilding it.
     const fills = renderFloor(storey);
     const fill = await planPlane(fills.svg, fills.bounds, (storey.elevation + FLOOR_LIFT) / 1000, { alphaTest: 0.5 });
+    if (epoch !== loadEpoch) return;
     fill.renderOrder = -1;
     layerGroup.add(fill);
     // Constraints live in their own per-storey group inside the constraints layer, so the
@@ -621,6 +666,8 @@ const walkDirection = new THREE.Vector3();
  */
 async function enterWalk(lock: boolean) {
   if (snapshot || savedView) return;
+  setMeasuring(false);
+  clearMeasurements();
   const controls = world.camera.controls;
   const ortho = world.camera.threeOrtho;
   savedView = {
@@ -748,31 +795,311 @@ document.addEventListener("pointerlockerror", () => {
   status.textContent = "pointer lock refused — click to retry; WASD still moves, Esc leaves";
 });
 
+const measureButton = document.getElementById("measure") as HTMLButtonElement;
+const clearButton = document.getElementById("clear") as HTMLButtonElement;
+const measureHint = document.getElementById("measure-hint")!;
+const measureList = document.getElementById("measure-list") as HTMLOListElement;
+
+function measureLine(from: THREE.Vector3, to: THREE.Vector3): Line2 {
+  const geometry = new LineGeometry();
+  geometry.setPositions([from.x, from.y, from.z, to.x, to.y, to.z]);
+  const line = new Line2(geometry, measureLineMaterial);
+  line.frustumCulled = false;
+  line.renderOrder = 8;
+  return line;
+}
+
+function measureMarker(at: THREE.Vector3): THREE.Mesh {
+  const marker = new THREE.Mesh(measureMarkerGeometry, measureMarkerMaterial);
+  marker.position.copy(at);
+  marker.renderOrder = 9;
+  return marker;
+}
+
+function measureBillboard(id: number, values: MeasurementValues): THREE.Sprite {
+  const step = 14;
+  return billboard(
+    measurementLines(id, values).map((text, i) => ({ text, size: i === 0 ? 12 : 11, bold: i === 0, dy: (i - 1) * step })),
+    C.measure,
+    10,
+    true,
+  );
+}
+
+function renderMeasurement(m: Measurement) {
+  measureLayer.add(measureLine(m.from, m.to));
+  measureLayer.add(measureMarker(m.from));
+  measureLayer.add(measureMarker(m.to));
+  const label = measureBillboard(m.id, m.values);
+  label.position.copy(m.from.clone().add(m.to).multiplyScalar(0.5));
+  measureLayer.add(label);
+}
+
+function removePendingMarker() {
+  if (pendingMarker) {
+    measureLayer.remove(pendingMarker);
+    pendingMarker = null;
+  }
+}
+
+function showPendingMarker(at: THREE.Vector3) {
+  removePendingMarker();
+  pendingMarker = measureMarker(at);
+  measureLayer.add(pendingMarker);
+}
+
+function clearMeasureLayer() {
+  for (const obj of measureLayer.children) {
+    if (obj instanceof Line2) obj.geometry.dispose();
+    else if (obj instanceof THREE.Sprite) {
+      obj.material.map?.dispose();
+      obj.material.dispose();
+    }
+  }
+  measureLayer.clear();
+  pendingMarker = null;
+}
+
+function updateMeasureHook() {
+  window.__elmsteadMeasurements = measurements.map((m) => ({
+    id: m.id,
+    from: { x: m.from.x, y: m.from.y, z: m.from.z },
+    to: { x: m.to.x, y: m.to.y, z: m.to.z },
+    values: { ...m.values },
+  }));
+}
+
+function updateMeasureList() {
+  measureList.replaceChildren(
+    ...measurements.map((m) => {
+      const row = document.createElement("li");
+      row.textContent = measurementSummary(m.id, m.values);
+      return row;
+    }),
+  );
+  measureList.hidden = measurements.length === 0;
+}
+
+function updateClearButton() {
+  clearButton.disabled = measurements.length === 0 && pendingPoint === null;
+}
+
+function updateMeasureUi() {
+  updateMeasureList();
+  updateMeasureHook();
+  updateClearButton();
+}
+
+function addPickPoint(point: THREE.Vector3) {
+  if (!measuring) return;
+  if (pendingPoint) {
+    const aligned = axisAlignedPoint(pendingPoint, point);
+    const to = new THREE.Vector3(aligned.x, aligned.y, aligned.z);
+    const measurement: Measurement = {
+      id: nextMeasurementId++,
+      from: pendingPoint,
+      to,
+      values: measurementValues(pendingPoint, to),
+    };
+    pendingPoint = null;
+    removePendingMarker();
+    measurements.push(measurement);
+    renderMeasurement(measurement);
+    updateMeasureUi();
+  } else {
+    pendingPoint = point.clone();
+    showPendingMarker(pendingPoint);
+    updateClearButton();
+  }
+}
+
+/** Cancel the unfinished first point; completed measurements stay. */
+function cancelPending() {
+  measureEpoch++;
+  queuedPick = null;
+  pendingPoint = null;
+  removePendingMarker();
+  updateClearButton();
+}
+
+function clearMeasurements() {
+  measureEpoch++;
+  queuedPick = null;
+  pendingPoint = null;
+  measurements.length = 0;
+  nextMeasurementId = 1;
+  clearMeasureLayer();
+  updateMeasureUi();
+}
+
+function setMeasuring(on: boolean) {
+  if (measuring === on) return;
+  if (!on) cancelPending();
+  measuring = on;
+  document.body.classList.toggle("measuring", on);
+  measureButton.setAttribute("aria-pressed", String(on));
+  measureHint.hidden = !on;
+}
+
+/** The snapped or face point under a client-space position, in scene metres. */
+async function pickAt(x: number, y: number): Promise<THREE.Vector3 | null> {
+  const model = currentModel;
+  if (!model) return null;
+  const camera = world.camera.three;
+  const mouse = new THREE.Vector2(x, y);
+  const results = await model.raycastWithSnapping({ camera, mouse, dom: canvas, snappingClasses: [SnappingClass.POINT, SnappingClass.LINE] });
+  const rect = canvas.getBoundingClientRect();
+  const candidates: SnapCandidate<THREE.Vector3>[] = [];
+  for (const result of results ?? []) {
+    if (result.snappingClass !== SnappingClass.POINT && result.snappingClass !== SnappingClass.LINE) continue;
+    const projected = result.point.clone().project(camera);
+    candidates.push({
+      x: rect.left + ((projected.x + 1) / 2) * rect.width,
+      y: rect.top + ((1 - projected.y) / 2) * rect.height,
+      point: result.snappingClass === SnappingClass.POINT,
+      at: result.point,
+    });
+  }
+  const snap = nearestSnap(candidates, { x, y }, SNAP_MAX_PX);
+  if (snap) return snap.at.clone();
+  const face = await model.raycast({ camera, mouse: new THREE.Vector2(x, y), dom: canvas });
+  return face ? face.point.clone() : null;
+}
+
+/** Resolve queued clicks one at a time; a click during a pick waits for it. */
+async function runPicks() {
+  if (picking) return;
+  picking = true;
+  try {
+    while (queuedPick) {
+      const next = queuedPick;
+      queuedPick = null;
+      const epoch = measureEpoch;
+      const model = currentModel;
+      if (!measuring || !model) continue;
+      const point = await pickAt(next.x, next.y);
+      if (point && epoch === measureEpoch && currentModel === model && measuring) addPickPoint(point);
+    }
+  } catch (e) {
+    console.error("measure pick failed", e);
+  } finally {
+    picking = false;
+    if (queuedPick && measuring) void runPicks();
+  }
+}
+
+function queuePick(x: number, y: number) {
+  if (!measuring || snapshot) return;
+  queuedPick = { x, y };
+  void runPicks();
+}
+
+canvas.addEventListener("pointerdown", (e) => {
+  if (!measuring || snapshot) return;
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  measurePointers.add(e.pointerId);
+  if (measurePointers.size > 1) {
+    pointerCandidate = null;
+    return;
+  }
+  pointerCandidate = { id: e.pointerId, x: e.clientX, y: e.clientY };
+});
+
+canvas.addEventListener("pointerup", (e) => {
+  const candidate = pointerCandidate;
+  measurePointers.delete(e.pointerId);
+  if (!measuring || snapshot) return;
+  if (!candidate || candidate.id !== e.pointerId) return;
+  pointerCandidate = null;
+  if (!isMeasureGesture(candidate, { x: e.clientX, y: e.clientY })) return;
+  queuePick(e.clientX, e.clientY);
+});
+
+const endMeasurePointer = (e: PointerEvent) => {
+  measurePointers.delete(e.pointerId);
+  if (pointerCandidate?.id === e.pointerId) pointerCandidate = null;
+};
+canvas.addEventListener("pointercancel", endMeasurePointer);
+window.addEventListener("blur", () => {
+  measurePointers.clear();
+  pointerCandidate = null;
+});
+
+measureButton.setAttribute("aria-pressed", "false");
+measureButton.addEventListener("click", async () => {
+  if (measuring) {
+    setMeasuring(false);
+    return;
+  }
+  await exitWalk();
+  setMeasuring(true);
+});
+clearButton.addEventListener("click", () => clearMeasurements());
+window.addEventListener("keydown", (e) => {
+  if (e.code !== "Escape" || !measuring || snapshot) return;
+  if (pendingPoint) cancelPending();
+  else setMeasuring(false);
+});
+updateMeasureUi();
+
+async function discardModel(model: FragmentsModel) {
+  if (currentModel === model) currentModel = null;
+  try {
+    await fragments.core.disposeModel(model.modelId);
+  } catch {
+    // a newer load may already have disposed it
+  }
+}
+
 async function load(name: string) {
-  status.textContent = `loading ${name}.ifc…`;
+  const epoch = ++loadEpoch;
   currentModel = null;
+  clearMeasurements();
+  status.textContent = `loading ${name}.ifc…`;
   for (const [id] of fragments.list) await fragments.core.disposeModel(id);
+  if (epoch !== loadEpoch) return;
   const buffer = new Uint8Array(await (await fetch(`/out/${name}.ifc`)).arrayBuffer());
+  if (epoch !== loadEpoch) return;
   const res = await fetch(`/out/${name}.building.json`);
   const json = res.ok ? ((await res.json()) as BuildingModel) : null;
+  if (epoch !== loadEpoch) return;
   parseStoreysParam(json);
   populateStoreySelector(json);
   const model = await ifcLoader.load(buffer, true, name);
-  currentModel = model;
+  if (epoch !== loadEpoch) {
+    await discardModel(model);
+    return;
+  }
   model.useCamera(world.camera.three);
   // Always full geometry. By default Fragments draws items it judges small on screen as lines (its
   // LOD), and glazing bars and window frames qualify even close up: they showed as thin lines you
   // could see through. Our models are small enough not to need it.
   await model.setLodMode(LodMode.ALL_VISIBLE);
+  if (epoch !== loadEpoch) {
+    await discardModel(model);
+    return;
+  }
   world.scene.three.add(model.object);
+  currentModel = model;
   await fragments.core.update(true);
-  await loadLabels(name, json);
+  if (epoch !== loadEpoch) {
+    await discardModel(model);
+    return;
+  }
+  await loadLabels(name, json, epoch);
+  if (epoch !== loadEpoch) {
+    await discardModel(model);
+    return;
+  }
   await applyStoreyVisibility(model);
+  if (epoch !== loadEpoch) return;
   applyStyle();
   box = model.box.clone();
   grid.three.position.y = box.min.y - 0.01; // under the lowest slab, so it doesn't show through floors
   await setView(parseView(params.get("view"))); // the plan view, unless the URL asks for another
+  if (epoch !== loadEpoch) return;
   if (params.get("camera")) await setCamera(params.get("camera")!);
+  if (epoch !== loadEpoch) return;
   status.textContent = `${name}.ifc${storeysNote}`;
 }
 
@@ -821,9 +1148,10 @@ try {
   );
   select.value = params.get("model") ?? models[0]!;
   await load(select.value);
-  // `?walk=1` enters walk mode once, with the click-to-look prompt instead of an immediate lock;
-  // a model change does not re-enter.
+  // `?walk=1` and `?measure=1` apply once, at startup; a model change leaves both modes alone.
+  // Walk wins when both are present.
   if (walkRequested(params, snapshot)) void enterWalk(false);
+  else if (measureRequested) setMeasuring(true);
   // Two frames so the renderer has drawn the final camera position before a snapshot.
   requestAnimationFrame(() => requestAnimationFrame(() => (window.__elmsteadReady = true)));
 } catch (e) {

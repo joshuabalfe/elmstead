@@ -12,14 +12,23 @@
       #bar button, #bar select { font: inherit; padding: 3px 8px; }
       #labels[aria-pressed="true"] { font-weight: 600; }
       #constraints[aria-pressed="true"] { font-weight: 600; }
+      #measure[aria-pressed="true"] { font-weight: 600; }
       #walk[aria-pressed="true"] { font-weight: 600; }
+      #clear:disabled { opacity: .5; }
       #status { color: #666; margin-left: 4px; }
+      body.measuring #container canvas { cursor: crosshair; }
       body.snapshot #bar { display: none; }
-      #walk-hint { position: absolute; left: 50%; bottom: 48px; transform: translateX(-50%);
+      #walk-hint, #measure-hint { position: absolute; left: 50%; bottom: 48px; transform: translateX(-50%);
                    background: rgba(255,255,255,.92); padding: 8px 14px; border-radius: 8px;
                    box-shadow: 0 1px 4px rgba(0,0,0,.15); pointer-events: none; white-space: nowrap; }
-      #walk-hint[hidden] { display: none; }
-      body.snapshot #walk-hint { display: none; }
+      #walk-hint[hidden], #measure-hint[hidden] { display: none; }
+      body.snapshot #walk-hint, body.snapshot #measure-hint { display: none; }
+      #measure-list { position: absolute; left: 16px; bottom: 16px; margin: 0; padding: 8px 12px 8px 28px;
+                      max-width: min(520px, calc(100vw - 140px)); max-height: 30vh; overflow: auto;
+                      background: rgba(255,255,255,.92); border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+      #measure-list[hidden] { display: none; }
+      #measure-list li + li { margin-top: 2px; }
+      body.snapshot #measure-list { display: none; }
       #compass { position: absolute; right: 16px; bottom: 16px; width: 90px; height: 90px; pointer-events: none; }
       #compass svg { display: block; width: 100%; height: 100%; }
       #compass[hidden] { display: none; }
@@ -37,6 +46,8 @@
       <button data-view="top">Top</button>
       <button id="labels" title="Room labels and dimensions">Labels</button>
       <button id="constraints" title="Measured constraints as red labels and dotted lines">Constraints</button>
+      <button id="measure" title="Measure between two points" aria-pressed="false">Measure</button>
+      <button id="clear" title="Remove all measurements" disabled>Clear</button>
       <button id="walk" title="First-person walk mode">Walk</button>
       <span id="status"></span>
     </div>
@@ -47,6 +58,8 @@
             stroke="#f4f4f2" stroke-width="3" paint-order="stroke">N</text>
     </svg></div>
     <div id="walk-hint" hidden>Click to look around · WASD or arrow keys to move · Esc to leave</div>
+    <div id="measure-hint" hidden>Click two points on the model · the second aligns to the nearest axis · Esc cancels</div>
+    <ol id="measure-list" aria-label="Measurements" hidden></ol>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>

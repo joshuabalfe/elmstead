@@ -142,6 +142,10 @@ walks you on the first.
 - **The frame stays sized for the old selection.** Hiding the upper floors leaves the remaining ones
   in the lower part of a frame fitted to the whole building. Deliberate: a camera that stays put is
   what makes floor-by-floor comparison possible, and a view button re-fits on request.
+- **Measurements do not follow the storey selection.** ELM-8's measurement layer is independent of
+  the storeys, so a measurement taken on a floor stays drawn when the selector hides that floor. It
+  remains depth-tested, so geometry in front still hides it. Measurements learning their storey is
+  ELM-8's work, not this change's.
 - **ELM-4 may merge after this change.** Both touch `applyStyle` and `patchTops` in `viewer/main.ts`,
   so whichever lands second resolves one small code conflict; per the decision above, ELM-4's viewer
   part should then be dropped, not re-cut. Nothing here needs ELM-4's schema, IFC or stair work.
