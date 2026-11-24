@@ -636,9 +636,8 @@ function applyStyle() {
 }
 
 /**
- * Stair readability is interactive plan-style presentation only: snapshots and IFC style must show
- * the IFC's own colours (ifc-viewer spec), so the cream banding and edge outlines are gated to
- * `style === "plan" && !snapshot`.
+ * Stair readability presentation, applied in every viewer mode including snapshots (the ifc-viewer
+ * spec allows the stair recolour in snapshots so the steps read there too).
  *
  * From straight down a flight's tread tops are uniformly lit and its risers are edge-on, so the steps
  * read as a flat slab. Banding the upward faces by floor(worldY / riser) alternates the floor cream
@@ -674,17 +673,11 @@ function patchStairBands(m: THREE.MeshLambertMaterial) {
   m.customProgramCacheKey = () => "elmstead-stair-bands";
   m.needsUpdate = true;
 }
-function unpatchStair(m: THREE.MeshLambertMaterial) {
-  m.onBeforeCompile = () => {};
-  m.customProgramCacheKey = () => "elmstead-stair-plain";
-  m.needsUpdate = true;
-}
 interface StairMesh {
   mesh: THREE.Mesh;
   edges: THREE.LineSegments;
 }
 let stairMeshes: StairMesh[] = [];
-const stairPresentation = () => style === "plan" && !snapshot;
 
 /** The riser (metres) of the stair whose flight footprint or landing contains this plan point. */
 function riserAt(json: BuildingModel | null, x: number, y: number): number {
@@ -734,13 +727,10 @@ function addStairEdges(model: FragmentsModel, json: BuildingModel | null) {
 }
 
 function applyStairPresentation() {
-  const on = stairPresentation();
   for (const m of fragments.core.models.materials.list.values()) {
-    if (!(m instanceof THREE.MeshLambertMaterial) || styleOf(m) !== "stair") continue;
-    if (on) patchStairBands(m);
-    else unpatchStair(m);
+    if (m instanceof THREE.MeshLambertMaterial && styleOf(m) === "stair") patchStairBands(m);
   }
-  for (const s of stairMeshes) s.edges.visible = on;
+  for (const s of stairMeshes) s.edges.visible = true;
 }
 
 function disposeStairMeshes() {

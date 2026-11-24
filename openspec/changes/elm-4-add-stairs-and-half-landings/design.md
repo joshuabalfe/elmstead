@@ -130,8 +130,8 @@ are also imported by `viewer/main.ts`, which composites them into the viewer's p
 so putting stair line work in one of them would silently change the viewer and the top view the
 plan-vs-3D test reads back. Drawing them only in `renderPlan` keeps the overlay as it is and leaves
 the viewer to show stairs as their own IFC solids. The overlay is unchanged; the only viewer stair
-code is the plan-only readability recolour (cream tread bands + edge outlines), gated off for
-snapshots and IFC style so those keep the IFC's own colours.
+code is the readability recolour (cream tread bands + edge outlines), applied in every mode including
+snapshots — the ifc-viewer spec allows the stair presentation there so the steps read in the PNGs too.
 
 The plan-vs-3D test classifies only wall, room and paper pixels, skipping a pixel when either side
 is something else. Two colour constraints follow:

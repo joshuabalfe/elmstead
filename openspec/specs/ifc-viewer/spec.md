@@ -50,11 +50,13 @@ path.
 
 ### Requirement: Snapshot cameras
 The snapshot cameras SHALL be perspective `sw`, `se`, `ne` and `nw`, and an orthographic `top`.
-Snapshots SHALL show the IFC's own colours with labels off.
+Snapshots SHALL show the IFC's own colours with labels off, apart from the stair readability
+presentation, which snapshots keep so the steps read there too.
 
 #### Scenario: One snapshot per camera
 - **WHEN** `render` writes a model's snapshots
-- **THEN** there are five, `sw`, `se`, `ne`, `nw` and `top`, in the IFC's colours with no room labels or dimensions
+- **THEN** there are five, `sw`, `se`, `ne`, `nw` and `top`, in the IFC's colours (stairs in their
+  readability presentation) with no room labels or dimensions
 
 ### Requirement: Annotations from the model
 When labels are on, the viewer SHALL read `out/<name>.building.json` and draw, at each storey's
@@ -436,17 +438,17 @@ interactively and in rendered snapshots, and SHALL show only when the button is 
 - **WHEN** the viewer is opened with `?snapshot=1` and no `constraints` override
 - **THEN** no constraint labels or lines are drawn
 
-### Requirement: Stair readability is plan-only presentation
-Interactively in plan style the viewer SHALL recolour stair solids so the steps read from above:
-upward faces alternate the floor cream with a darker cream, vertical faces take the wall colour, and
-an edge outline reads the nosings. Snapshots and `?style=ifc` SHALL show the IFC's own stair colour.
-The recolour SHALL NOT change the base material colour.
+### Requirement: Stair readability presentation
+The viewer SHALL recolour stair solids so the steps read from above, in every mode including
+snapshots and `?style=ifc`: upward faces alternate the floor cream with a darker cream, vertical
+faces take the wall colour, and an edge outline reads the nosings. The recolour SHALL NOT change the
+base material colour.
 
-#### Scenario: Steps read from above in plan style
-- **WHEN** the interactive viewer shows a stair in plan style from the Top view
+#### Scenario: Steps read from above
+- **WHEN** the viewer shows a stair from the Top view, in any style or snapshot
 - **THEN** alternate treads shade cream / darker cream, banded on the stair's riser height, and the
   nosings read as edges
 
-#### Scenario: Snapshots and IFC style keep the IFC stair colour
-- **WHEN** `render` writes a model's 3D snapshots, or the viewer is in `?style=ifc`
-- **THEN** the stair appears in its IFC presentation colour, not the plan-style recolour
+#### Scenario: Snapshots keep the readability presentation
+- **WHEN** `render` writes a model's 3D snapshots
+- **THEN** the stair appears in its cream readability presentation, not the base IFC colour

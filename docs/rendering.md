@@ -41,10 +41,10 @@ be inspected or queried. A stair's flights and landings are groups nested inside
 
 Stairs are drawn by `renderPlan` alone. `renderFloor`, `renderWallTops` and `renderPlanAnnotations`,
 which the viewer composites into its plan-style overlay, do not draw them. For readability the viewer
-recolours the stair solids in interactive plan style only — cream / darker-cream tread bands and an
-edge outline — while snapshots and `?style=ifc` keep the IFC's own stair colour. Stair colours stay
-clear of the wall, room and paper colours the plan-versus-3D comparison classifies
-(`src/render/style.ts`).
+recolours the stair solids in every viewer mode including snapshots — cream / darker-cream tread
+bands and an edge outline. The base IFC stair colour stays classifier-safe; the recolour is
+presentation only. Stair colours stay clear of the wall, room and paper colours the plan-versus-3D
+comparison classifies (`src/render/style.ts`).
 
 Drawing style is all in one place: `src/render/style.ts` holds the scale, colours, font and
 margins.
@@ -191,7 +191,8 @@ openings cut, doors and glazing in place, colours applied.
     refuses pointer lock, walk mode stays: the prompt remains and the keys still move.
   - Snapshots ignore walk mode: with `?snapshot=1&walk=1` the requested snapshot camera renders
     as usual, with no prompt and no walk input, so the 3D PNGs stay deterministic.
-- Snapshots (`?snapshot=1`) show the IFC's own colours, so the 3D PNGs still check what other
-  viewers will show. `?style=ifc` or `?style=plan` in the URL forces a style.
+- Snapshots (`?snapshot=1`) show the IFC's own colours apart from the stair readability presentation,
+  so the 3D PNGs still check what other viewers will show for everything but the stair recolour.
+  `?style=ifc` or `?style=plan` in the URL forces a style.
 - `npm run view` runs the same app for interactive use. It reloads the page whenever an IFC in
   `out/` changes.

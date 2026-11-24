@@ -44,7 +44,7 @@ in full rather than cut.
 Stairs SHALL be drawn by `renderPlan` alone. `renderFloor`, `renderWallTops` and
 `renderPlanAnnotations`, which `viewer/main.ts` composites into its plan-style overlay, SHALL NOT
 draw them, so the plan-style overlay is unchanged. The viewer's stair readability recolour is
-separate, plan-only presentation (see `ifc-viewer`), not part of the overlay.
+separate presentation (see `ifc-viewer`), not part of the overlay.
 
 #### Scenario: Shared renderer functions emit no stair
 - **WHEN** `renderFloor`, `renderWallTops` or `renderPlanAnnotations` runs on a storey with a stair

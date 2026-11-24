@@ -226,7 +226,7 @@ describe("storey selection", () => {
   }, 120_000);
 });
 
-describe("stair presentation is plan-only", () => {
+describe("stair readability presentation", () => {
   const near = (r: Raster, rgb: [number, number, number], tol: number): number => {
     let n = 0;
     for (let i = 0; i < r.data.length; i += 4) {
@@ -237,18 +237,19 @@ describe("stair presentation is plan-only", () => {
   const green: [number, number, number] = [92, 138, 84]; // the IFC stair colour
   const darkCream: [number, number, number] = [209, 206, 198]; // the lit darker tread band
 
-  it("shows cream bands interactively in plan style but the IFC green in snapshots and IFC style", async () => {
+  it("shows the cream tread bands in plan, IFC style and snapshots alike", async () => {
     const m = await model("models/elmstead");
     await publish("test-stair-presentation", m);
     const q = "view=top&labels=0&storeys=storey-ground";
-    const interactivePlan = await viewOf("test-stair-presentation", `${q}&style=plan`);
-    const snapshotPlan = await viewOf("test-stair-presentation", `${q}&style=plan&snapshot=1`);
-    const interactiveIfc = await viewOf("test-stair-presentation", `${q}&style=ifc`);
-    // Interactive plan recolours the stair: no IFC green, and the darker tread band is present.
-    expect(near(interactivePlan, green, 12)).toBeLessThan(50);
-    expect(near(interactivePlan, darkCream, 8)).toBeGreaterThan(1000);
-    // Snapshots and IFC style must show the IFC's own stair colour, not the presentation recolour.
-    expect(near(snapshotPlan, green, 12)).toBeGreaterThan(1000);
-    expect(near(interactiveIfc, green, 12)).toBeGreaterThan(1000);
+    const shots = [
+      await viewOf("test-stair-presentation", `${q}&style=plan`),
+      await viewOf("test-stair-presentation", `${q}&style=plan&snapshot=1`),
+      await viewOf("test-stair-presentation", `${q}&style=ifc`),
+    ];
+    for (const r of shots) {
+      // The recolour replaces the base IFC green and the darker tread band is present.
+      expect(near(r, green, 12)).toBeLessThan(50);
+      expect(near(r, darkCream, 8)).toBeGreaterThan(1000);
+    }
   }, 120_000);
 });
