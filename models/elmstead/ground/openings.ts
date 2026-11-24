@@ -7,7 +7,7 @@
  * bedroom window's sill and head, are the owner's.
  */
 import { add, centredOn, deg, divRound, door, doorway, face, m, mm, scale, sub, window, type Opening } from "../../../src/model/index.js";
-import { fanlight, frontDoor, frontWindow, internalDoor, standardWindow } from "../components/index.js";
+import { fanlight, frontDoor, frontWindow, internalDoor, smallPaneWindow, standardWindow } from "../components/index.js";
 import { living } from "./rooms.js";
 import { bathWestX, bedroomBathroom, bedroomWallY, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, lobbyScreenTuck, lobbyScreenVisibleLength, partitionEast, southIn, west } from "./walls.js";
 
@@ -61,6 +61,6 @@ export const openings: Opening[] = [
   // Screen runs from the hall corner (south-west) to the spine (north-east); "right" is the lobby.
   doorway("door-lobby", lobbyScreen, lobbyDoorwayOffset, internal),
 
-  window("window-bedroom", east, bedroomWindowOffset, standardWindow, bedroomWindowSize, insideReveal),
+  window("window-bedroom", east, bedroomWindowOffset, smallPaneWindow, bedroomWindowSize, insideReveal),
   window("window-rear-hall", extEast, mm(700), standardWindow, { ...standard, width: mm(950) }),
 ];
