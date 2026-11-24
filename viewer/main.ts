@@ -28,7 +28,7 @@ import type { BuildingModel, Storey } from "../src/schema/schema.js";
 import type { ResolvedConstraint } from "../src/constraints/check.js";
 import { constraintLabels } from "./constraints.js";
 import { SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap, type MeasurementValues, type Point3, type SnapCandidate } from "./measure.js";
-import { parseView, type View } from "./view.js";
+import { cameraForView, parseView, type View } from "./view.js";
 import { WALK_AXES, entryPosition, headingBasis, movementOffset, walkRequested, walkStep } from "./walk.js";
 declare global {
   interface Window {
@@ -580,7 +580,7 @@ function applyStyle() {
 /**
  * Map-style input: left drag or one finger pans; the wheel or a pinch zooms; the middle or right
  * button, or three fingers, orbits. OBC's projection switch rebinds the wheel and middle button, so
- * this runs again after each switch. The pinch must be a true zoom in the orthographic Top view,
+ * this runs again after each switch. The pinch must be a true zoom in the orthographic views,
  * where moving the camera closer changes nothing on screen.
  */
 function setNavigationInput() {
@@ -598,22 +598,17 @@ function setNavigationInput() {
   controls.draggingSmoothTime = 0;
 }
 
-/** Three.js is Y-up with plan north along −Z (IFC +Y). */
+/**
+ * Three.js is Y-up with plan north along −Z (IFC +Y).
+ */
 async function setView(view: View) {
   const centre = shownBox().getCenter(new THREE.Vector3());
-  const dir: Record<View, [number, number, number]> = {
-    sw: [-1, 0.7, 1],
-    se: [1, 0.7, 1],
-    ne: [1, 0.7, -1],
-    nw: [-1, 0.7, -1],
-    top: [0, 1, 0.0001],
-  };
-  // Top is a true orthographic plan view; the corner views are perspective.
-  await world.camera.projection.set(view === "top" ? "Orthographic" : "Perspective");
+  const { direction, projection } = cameraForView(view, snapshot);
+  await world.camera.projection.set(projection);
   // Start well outside the model, then fit to its bounding sphere: fitToSphere keeps the viewing
   // direction (fitToBox would snap to the nearest face).
   const sphere = shownBox().getBoundingSphere(new THREE.Sphere());
-  const d = new THREE.Vector3(...dir[view]).normalize().multiplyScalar(sphere.radius * 4);
+  const d = new THREE.Vector3(...direction).normalize().multiplyScalar(sphere.radius * 4);
   await world.camera.controls.setLookAt(centre.x + d.x, centre.y + d.y, centre.z + d.z, centre.x, centre.y, centre.z, false);
   sphere.radius *= view === "top" ? 0.78 : 0.92; // the sphere is loose around a flat box; tighten the framing
   await world.camera.controls.fitToSphere(sphere, false);

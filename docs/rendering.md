@@ -76,6 +76,10 @@ openings cut, doors and glazing in place, colours applied.
   and `add`, so an atomic IFC rename is noticed too.
 - `main.ts` loads the IFC through ThatOpen's IFC loader and sets up the camera views.
   - In the scene Y is up and plan north is −Z.
+  - The **SW**, **SE**, **NE** and **NW** buttons show true isometric views: an orthographic camera
+    from that corner, 45° round and 35.26° above the ground, so parallel edges stay parallel and
+    the building reads like a video-game diorama. The Top view is orthographic straight down.
+    Snapshots keep the perspective corner cameras (see [3D snapshots](#3d-snapshots)).
   - The loader keeps IFC coordinates as they are (`COORDINATE_TO_ORIGIN: false`), so anything
     drawn from the model lines up with the IFC.
   - Every model is drawn as full geometry (`setLodMode(LodMode.ALL_VISIBLE)`). By default
@@ -150,8 +154,8 @@ openings cut, doors and glazing in place, colours applied.
 - Navigation (`setNavigationInput` in `main.ts`), map-style in every view:
   - Left drag or one finger pans.
   - The wheel or a pinch zooms. A pinch tracks the fingers: spreading them 4× zooms about 4×. In
-    the orthographic Top view it is a true zoom, since moving an orthographic camera closer
-    changes nothing on screen.
+    the orthographic views it is a true zoom, since moving an orthographic camera closer changes
+    nothing on screen.
   - The middle or right button, or three fingers, orbits.
   - Drags follow the pointer without easing, so a fast pinch is not lost to the camera's lag.
 - The That Open Company logo overlay is hidden (`showLogo = false`).
