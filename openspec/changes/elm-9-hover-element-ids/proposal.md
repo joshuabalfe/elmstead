@@ -21,6 +21,9 @@ vague description into a precise reference: "move `wall-hall-living` 200 mm nort
 - Hover identification is passive: it works in every interactive view and style, alongside measure
   mode (clicks still measure), and follows the storey selector, since the raycast already skips
   hidden items. It is inactive in walk mode (the pointer is locked) and in snapshots.
+- Room labels gain the room's model id as a third line under name and area (viewer-only), so
+  rooms are referenceable too. Moved into scope from the plan review: a raycast probe confirmed
+  rooms have no pickable geometry, and the owner accepts that they are not hoverable.
 - Snapshots ignore the toggle and the parameter, so 3D snapshots stay deterministic.
 - Hover state is ephemeral: nothing is written to the building JSON, constraints JSON, IFC or
   snapshots.
@@ -34,13 +37,16 @@ vague description into a precise reference: "move `wall-hall-living` 200 mm nort
 ### Modified Capabilities
 
 - `ifc-viewer`: new requirements for the Ids toggle and hover identification — what the tooltip
-  shows, when it appears, and how it composes with storeys, measure mode, walk mode and snapshots.
+  shows, when it appears, and how it composes with storeys, measure mode, walk mode and snapshots —
+  plus the room-id line on room labels.
 
 ## Impact
 
 - `viewer/index.html`: the Ids button, a tooltip element and its styles.
-- `viewer/main.ts`: hover picking and tooltip wiring; a small `viewer/identify.ts` helper module
-  for the item-to-label mapping, following the `measure.ts` / `walk.ts` pattern.
+- `viewer/main.ts`: hover picking and tooltip wiring, and the room-id label line (`roomTags`
+  already returns the id); a small `viewer/identify.ts` helper module for the item-to-label
+  mapping, following the `measure.ts` / `walk.ts` pattern. The plan SVG, snapshots and the
+  plan-versus-3D test are untouched.
 - `tests/`: a headless viewer test for the toggle, tooltip content and mode composition, following
   `viewer-measure.test.ts`.
 - `docs/getting-started.md` and the `viewer/main.ts` header comment: the new control and parameter.

@@ -36,22 +36,27 @@ by parsing `models/` — was rejected: variable names are per-file, generated id
 inline elements have no stable variable, and the id is already what checks, constraints and the
 LLM reference.
 
-### Build a localId → label map in the existing getItems pass
-`applyStoreyVisibility` already fetches every item once per load. Fill a
-`Map<number, { id, name }>` in that same loop via a pure helper in a new `viewer/identify.ts`
-(`elementLabel(data)` returning null when the item names no model element), following the
-`measure.ts` / `walk.ts` split of pure helpers and DOM wiring. Hover then needs no worker
-round-trip for item data — only the raycast itself. Alternative — `getItem(localId)` per pick —
-works but repeats a lookup the load already does.
+### Build a localId → label map in load(), unconditionally
+`load()` fills a `Map<number, { id, name }>` from its own `getItems()` pass via a pure helper in a
+new `viewer/identify.ts` (`elementLabel(data)` returning null when the item names no model
+element), following the `measure.ts` / `walk.ts` split of pure helpers and DOM wiring. The map
+must NOT ride in `applyStoreyVisibility`: that function early-returns when there is no building
+JSON and skips items with no storey owner, but IFC Tags exist regardless — hover has to work for
+an IFC shown without its JSON. Hover needs no worker round-trip for item data, only the raycast.
+Alternative — `getItem(localId)` per pick — works but repeats a lookup the load already does.
 
 ### Plain raycast on pointermove, one pick in flight
 Hover needs the nearest face hit, not corner/edge snapping, so use `model.raycast` (not
 `raycastWithSnapping`). Picks are async worker calls: keep at most one in flight, remember the
 latest pointer position, and re-pick on completion if it moved — the same queue pattern as
-`runPicks`. Skip picking while any pointer button is down (`e.buttons !== 0`), so drags navigate
-without a flickering tooltip. Alternative — a three.js Raycaster over the meshes — was rejected:
-fragments geometry lives in the worker, and `model.raycast` is the supported path that already
-respects visibility.
+`runPicks`. Pass `e.clientX/e.clientY` as `mouse` — client/CSS pixels, as `pickAt` does; Fragments
+subtracts the canvas rect itself, so NDC coordinates would miss every pick. Gate the whole hover
+path on walk state (`savedView === null`), not just hide-on-entry: pointermove keeps firing when
+pointer lock is refused and walk stays active, and a completing pick would otherwise re-show the
+tooltip mid-walk. Hide the tooltip while any pointer button is down (`e.buttons !== 0`) and on
+camera-control updates (view easing), so it never names a stale element; the next pointermove
+re-picks. Alternative — a three.js Raycaster over the meshes — was rejected: fragments geometry
+lives in the worker, and `model.raycast` is the supported path that already respects visibility.
 
 ### HTML tooltip in client space
 A `pointer-events: none` div beside the cursor (offset a few px, clamped to the viewport), styled
@@ -66,8 +71,10 @@ Ids does not join the walk/measure exclusivity: it captures no input, so it coex
 (clicks still pick points) and with navigation. Walk mode locks the pointer, so `enterWalk` hides
 the tooltip and `exitWalk` restores it while the toggle state stays on. `load()` hides the tooltip
 and rebuilds the map on a model change. Snapshots ignore `?ids=` and never show the tooltip, like
-walk and measure. The button uses the same `aria-pressed` + bold-when-active pattern as the other
-toggles; the parameter is `?ids=0|1`, default off.
+walk and measure. Read `?ids=0|1` once at startup (`idsRequested`, like `measureRequested`) and
+apply it once after the initial load — never inside later model loads, which keep the toggle's
+current state. The button uses the same `aria-pressed` + bold-when-active pattern as the other
+toggles; default off.
 
 ### Test hook
 Publish `window.__elmsteadHover: { id, name } | null`, mirroring `__elmsteadMeasurements`, so
@@ -76,13 +83,19 @@ DOM's text and visibility. A new `tests/viewer-identify.test.ts` follows `viewer
 publish the cottage into a temp out dir, drive the viewer with Playwright, hover known geometry
 and assert the id against the published model.
 
+### Room ids on the room labels
+Rooms have no pickable geometry (FootPrint-only spaces produce none — confirmed by a raycast
+probe), and the owner accepts that they are not hoverable. Their labels therefore gain the room
+id as a third line under name and area, so rooms are referenceable too. Viewer-only: `roomTags`
+already returns the id, the plan SVG does not draw it, snapshots show no labels, and the
+plan-versus-3D test renders with labels off.
+
 ## Risks / Trade-offs
 
 - [Raycast cost on every pointermove] → one pick in flight, latest-position queue, no picks while
   dragging; the models are house-sized and the measure tool already raycasts interactively.
-- [Rooms (FootPrint-only spaces) may not be raycastable] → the spec's scenarios use solid
-  elements; rooms keep their labels. Verify during implementation and note it in the docs if
-  spaces turn out not to be pickable.
+- [Rooms are not raycastable (confirmed: FootPrint-only spaces produce no geometry)] → the
+  spec's scenarios use solid elements; the room-id label line makes rooms referenceable instead.
 - [Hidden-storey picking depends on fragments' visibility filter] → a dedicated test scenario
   covers it; if the library ever picks hidden items, filter the result against the storey owner
   map the viewer already builds.
@@ -96,5 +109,4 @@ viewer edits.
 
 ## Open Questions
 
-None. Whether 2D spaces are pickable is an empirical detail that does not change the contract
-(the scenarios hover solid elements).
+None — the space-pickability question was settled by a raycast probe (spaces carry no geometry).

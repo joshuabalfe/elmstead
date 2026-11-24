@@ -23,6 +23,10 @@ parameter.
 - **WHEN** the viewer is opened without `ids` in the URL
 - **THEN** hover identification is off and hovering shows no tooltip
 
+#### Scenario: Model change does not re-enable the URL parameter
+- **WHEN** the user turns hover identification off and then selects another model, with `?ids=1` in the URL
+- **THEN** hover identification stays off
+
 #### Scenario: Snapshot
 - **WHEN** the viewer is opened with `?snapshot=1&ids=1`
 - **THEN** no tooltip or Ids control is shown and the snapshot is unchanged
@@ -52,6 +56,14 @@ it, and hide when the pointer is over no model geometry.
 #### Scenario: Model change
 - **WHEN** the user selects another model while a tooltip is showing
 - **THEN** the tooltip hides until the pointer identifies an element of the new model
+
+#### Scenario: Drag hides the tooltip
+- **WHEN** the pointer moves with a button down while hover identification is on
+- **THEN** the tooltip hides, and returns when the pointer next rests over an element
+
+#### Scenario: View change
+- **WHEN** the user chooses another camera view while a tooltip is showing
+- **THEN** the tooltip hides until the pointer identifies an element again
 
 ### Requirement: Hover is passive
 Hover identification SHALL NOT capture clicks or change navigation. With hover identification on,
@@ -85,3 +97,15 @@ identification when it is on.
 #### Scenario: Leaving walk mode
 - **WHEN** the user leaves walk mode with hover identification on
 - **THEN** hovering the model shows tooltips again
+
+### Requirement: Room id in room labels
+When labels are on, each room's label SHALL include the room's model id alongside its name and
+area, so a room can be referenced by id even though rooms have no pickable geometry.
+
+#### Scenario: Room label shows the id
+- **WHEN** the viewer shows a model with labels on
+- **THEN** each room label includes the room's model id
+
+#### Scenario: Snapshot
+- **WHEN** the viewer is opened with `?snapshot=1`
+- **THEN** no room labels or ids are drawn
