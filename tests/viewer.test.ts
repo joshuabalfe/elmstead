@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { ResolvedConstraint } from "../src/constraints/check.js";
 import { constraintLabels } from "../viewer/constraints.js";
-import { CLICK_SLOP_PX, SNAP_MAX_PX, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap } from "../viewer/measure.js";
+import { CLICK_SLOP_PX, SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap } from "../viewer/measure.js";
 import { confinedPath } from "../viewer/serve.js";
 import { parseView } from "../viewer/view.js";
 
@@ -92,6 +92,24 @@ describe("measurement display", () => {
     const values = { straightMm: 3450.4, horizontalMm: 3400.5, verticalMm: 249.6 };
     expect(measurementLines(1, values)).toEqual(["M1 3450 mm", "horizontal 3401 mm", "vertical 250 mm"]);
     expect(measurementSummary(1, values)).toBe("M1 3450 mm · plan 3401 mm · rise 250 mm");
+  });
+});
+
+describe("axisAlignedPoint", () => {
+  const from = { x: 1, y: 2, z: 3 };
+
+  it("projects onto the dominant plan axis", () => {
+    expect(axisAlignedPoint(from, { x: 4, y: 2.2, z: 3.4 })).toEqual({ x: 4, y: 2, z: 3 });
+    expect(axisAlignedPoint(from, { x: 1.2, y: 2.1, z: 7 })).toEqual({ x: 1, y: 2, z: 7 });
+  });
+
+  it("projects onto a vertical line when the height change dominates", () => {
+    expect(axisAlignedPoint(from, { x: 1.5, y: 5, z: 3.4 })).toEqual({ x: 1, y: 5, z: 3 });
+  });
+
+  it("breaks ties in X, then Z, then Y order", () => {
+    expect(axisAlignedPoint({ x: 0, y: 0, z: 0 }, { x: 2, y: 2, z: 0 })).toEqual({ x: 2, y: 0, z: 0 });
+    expect(axisAlignedPoint({ x: 0, y: 0, z: 0 }, { x: 0, y: 2, z: 2 })).toEqual({ x: 0, y: 0, z: 2 });
   });
 });
 

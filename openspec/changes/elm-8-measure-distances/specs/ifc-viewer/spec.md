@@ -72,6 +72,25 @@ The viewer SHALL pick a measurement point only from a click or tap on model geom
 - **WHEN** the user clicks again before the first pick has resolved
 - **THEN** that click becomes the next point once the first pick completes
 
+### Requirement: Axis-aligned second point
+After the first point is picked, the viewer SHALL project the second pick onto the nearest axis line through the first point (scene X, Y or Z), so the measurement has exactly one non-zero component. Ties SHALL prefer X, then Z, then Y.
+
+#### Scenario: Plan span along X
+- **WHEN** the second pick is mostly east or west of the first point
+- **THEN** the measurement runs along X and its two endpoints share Y and Z
+
+#### Scenario: Plan span along Z
+- **WHEN** the second pick is mostly north or south of the first point
+- **THEN** the measurement runs along Z and its two endpoints share X and Y
+
+#### Scenario: Vertical span
+- **WHEN** the second pick is mostly above or below the first point
+- **THEN** the measurement runs vertically and its two endpoints share X and Z
+
+#### Scenario: Axis tie
+- **WHEN** two axes are equally far from the second pick
+- **THEN** X wins over Z and Z wins over Y
+
 ### Requirement: Creating and keeping measurements
 Each pair of picks SHALL create a numbered measurement and keep it in a list in pick order. A later pair SHALL add another measurement without removing earlier ones. Completed measurements SHALL stay visible after measure mode is turned off.
 

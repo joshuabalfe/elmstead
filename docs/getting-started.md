@@ -93,12 +93,13 @@ dimensions at ceiling height, the model's measured constraints as red labels and
 a compass pointing to true north. The **Labels** button hides the room text, and the
 **Constraints** button shows or hides the red constraints, which start hidden. The **Measure**
 button, or `?measure=1`, starts a click-to-measure tool: click or tap two points on the model,
-snapping to corners and edges, to add a numbered measurement showing the straight-line, horizontal
-and vertical distances in millimetres. Measurements stay in the viewer only; **Clear** removes
-them. Every view uses the plan's colours (room fills for floors, charcoal wall tops), with door
-gaps and window symbols on the wall tops and door swings on the floor, so the **Top** view reads
-like the plan. When an IFC in `out/` changes it reloads itself, so leave it open while you edit
-and re-run `build`.
+snapping to corners and edges. The second point is projected onto the nearest axis through the
+first, so measurements run along X, Y or Z rather than diagonally. Each pair adds a numbered
+measurement showing the straight-line, horizontal and vertical distances in millimetres.
+Measurements stay in the viewer only; **Clear** removes them. Every view uses the plan's colours
+(room fills for floors, charcoal wall tops), with door gaps and window symbols on the wall tops and
+door swings on the floor, so the **Top** view reads like the plan. When an IFC in `out/` changes it
+reloads itself, so leave it open while you edit and re-run `build`.
 
 Everything is served locally, so the viewer works offline. Stop it with Ctrl-C.
 

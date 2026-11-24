@@ -26,7 +26,7 @@ import { C, FONT, PX_PER_MM, ROOM_LABEL } from "../src/render/style.js";
 import type { BuildingModel } from "../src/schema/schema.js";
 import type { ResolvedConstraint } from "../src/constraints/check.js";
 import { constraintLabels } from "./constraints.js";
-import { SNAP_MAX_PX, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap, type MeasurementValues, type Point3, type SnapCandidate } from "./measure.js";
+import { SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap, type MeasurementValues, type Point3, type SnapCandidate } from "./measure.js";
 import { parseView, type View } from "./view.js";
 import { WALK_AXES, entryPosition, headingBasis, movementOffset, walkRequested, walkStep } from "./walk.js";
 declare global {
@@ -743,11 +743,13 @@ function updateMeasureUi() {
 function addPickPoint(point: THREE.Vector3) {
   if (!measuring) return;
   if (pendingPoint) {
+    const aligned = axisAlignedPoint(pendingPoint, point);
+    const to = new THREE.Vector3(aligned.x, aligned.y, aligned.z);
     const measurement: Measurement = {
       id: nextMeasurementId++,
       from: pendingPoint,
-      to: point.clone(),
-      values: measurementValues(pendingPoint, point),
+      to,
+      values: measurementValues(pendingPoint, to),
     };
     pendingPoint = null;
     removePendingMarker();

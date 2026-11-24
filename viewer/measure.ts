@@ -39,6 +39,19 @@ export function measurementValues(from: Point3, to: Point3): MeasurementValues {
   };
 }
 
+/**
+ * The picked second point projected onto the nearest axis line through the first point, so the
+ * measurement is axis-aligned instead of diagonal. Ties prefer X, then Z, then Y.
+ */
+export function axisAlignedPoint(from: Point3, to: Point3): Point3 {
+  const ax = Math.abs(to.x - from.x);
+  const ay = Math.abs(to.y - from.y);
+  const az = Math.abs(to.z - from.z);
+  if (ax >= ay && ax >= az) return { x: to.x, y: from.y, z: from.z };
+  if (az >= ay) return { x: from.x, y: from.y, z: to.z };
+  return { x: from.x, y: to.y, z: from.z };
+}
+
 /** The scene label's three lines: total, plan and rise, rounded to whole millimetres. */
 export function measurementLines(id: number, values: MeasurementValues): string[] {
   return [

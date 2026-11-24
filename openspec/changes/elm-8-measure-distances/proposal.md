@@ -17,7 +17,9 @@ model.
 - In measure mode, a click or tap on the model SHALL pick a point, snapping to the nearest corner
   or edge and falling back to the exact point on the face when no snap is close. A click that
   arrives while a pick is being resolved SHALL be kept as the next candidate, not silently lost.
-  A second pick SHALL create a numbered measurement and keep it in a list; further pairs add more.
+  A second pick SHALL be projected onto the nearest axis through the first (scene X, Y or Z) and
+  create a numbered measurement, so the line is axis-aligned rather than diagonal; further pairs
+  add more.
 - Each measurement SHALL be drawn at its measured position as a depth-tested solid line, with a
   marker at each point and a camera-facing label at the midpoint, so a wall or floor in front hides
   it like geometry rather than letting it float through the building. The label and a visible
@@ -30,8 +32,9 @@ model.
 - Measurements SHALL be in-memory viewer state only: they SHALL NOT change the building JSON, the
   JSON Schema, the IFC, the generated constraints file or 3D snapshots.
 - Out of scope: editing the model, adding or changing constraints, saving measurements across
-  reloads or in the URL, deleting or hiding a single measurement, area/angle measurement,
-  axis-locked dimensioning, and automatic label collision avoidance.
+  reloads or in the URL, deleting or hiding a single measurement, free diagonal measurements
+  (the second point is always axis-aligned), area/angle measurement, axis-locked dimensioning,
+  and automatic label collision avoidance.
 
 ## Capabilities
 

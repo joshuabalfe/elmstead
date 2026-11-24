@@ -26,6 +26,7 @@ See `proposal.md` for motivation and the `ifc-viewer` delta for the behaviour.
 **Goals:**
 - Pick snapped corners and edges, with a free-surface fallback, in both perspective and the
   orthographic Top view.
+- Minimise diagonals by projecting the second point onto the nearest axis through the first.
 - Keep measurement maths, formatting, snap-choice and gesture classification unit-testable
   without a browser.
 - Keep every valid click, including one made while an earlier pick is resolving.
@@ -36,6 +37,7 @@ See `proposal.md` for motivation and the `ifc-viewer` delta for the behaviour.
 
 **Non-Goals:**
 - Persistence, per-measurement deletion or hiding, label collision avoidance or leader lines.
+- Free diagonal measurements: the second point is always projected onto an axis.
 - Snapping to dimensions, levels, whole axes or IFC element properties.
 - Changing the schema, constraints, IFC, generated files, `build` or `render`.
 
@@ -100,6 +102,7 @@ export interface MeasurementValues {
   verticalMm: number;   // |dy|
 }
 export function measurementValues(from: Point3, to: Point3): MeasurementValues;
+export function axisAlignedPoint(from: Point3, to: Point3): Point3;
 export function measurementLines(id: number, values: MeasurementValues): string[];
 export function measurementSummary(id: number, values: MeasurementValues): string;
 export function nearestSnap(candidates: SnapCandidate[], pointer: { x: number; y: number }, maxPx: number): SnapCandidate | undefined;
@@ -119,6 +122,20 @@ point; `nearestSnap` returns the chosen candidate.
 list: `M<n> <straight> mm · plan <plan> mm · rise <rise> mm`. The leading `M<n>` associates a
 line, label and list row when several measurements are on screen. Four pixels is the click slop; a
 tap must not be so strict that normal hand tremor turns it into a pan.
+
+### Axis-aligned second points
+
+The raw second pick still goes through snapping and the face fallback. Before the measurement is
+created, `axisAlignedPoint` projects it onto the nearest axis line through the pending first point:
+scene X, Y or Z, whichever delta is largest. That leaves exactly one non-zero component, so the
+span reads like a dimension instead of a diagonal, and the horizontal and vertical figures are
+directly meaningful. Ties prefer X, then Z, then Y.
+
+The projected second endpoint can leave the model surface; the second marker shows where the
+dimension ends, while the first point stays on the picked geometry. Restricting snap candidates to
+axis lines was rejected because a wall may have no vertex on that line; projecting the snapped
+pick always produces an axis-aligned point. Leaving the line diagonal was rejected because the
+requested behaviour is to minimise diagonals.
 
 ### One depth-tested measurements group
 
@@ -156,8 +173,9 @@ The viewer keeps a small state object: `measuring`, the pending `THREE.Vector3 |
 completed list `{ id, from, to }[]`, the next number, and the pick epoch. The transitions follow
 the delta spec:
 
-- A first pick becomes pending; a second creates a measurement, increments the number, updates the
-  scene and the measurement list, and clears pending.
+- A first pick becomes pending; a second is projected onto the nearest axis through it, creates a
+  measurement, increments the number, updates the scene and the measurement list, and clears
+  pending.
 - Turning measure mode off cancels pending but leaves the completed list, its labels and the list
   panel.
 - **Clear** removes pending and all completed measurements, resets numbering to 1, empties the list
@@ -201,11 +219,11 @@ in the pipeline reads it, and snapshots never populate it.
 
 The committed browser test publishes two copies of `models/example-cottage` into a temporary output
 directory, serves the viewer as `tests/plan-vs-3d.test.ts` does, and uses the same known geometry
-for the normal and snapshot cases. It asserts that a measurement's straight-line distance is
-approximately `sqrt(horizontal² + vertical²)`, that at least one value is positive, that the same
-clicks under `?snapshot=1&measure=1` leave the list empty, and that turning measure mode off and
-switching to the second copy leaves the mode off and the list empty. The exact snapped geometry and
-the rapid-second-click queue are still checked by eye in the running viewer, because a headless
+for the normal and snapshot cases. It asserts that a measurement has exactly one non-zero delta,
+that its straight-line distance matches that delta, and that the same clicks under
+`?snapshot=1&measure=1` leave the list empty, and that turning measure mode off and switching to
+the second copy leaves the mode off and the list empty. The exact snapped geometry and the
+rapid-second-click queue are still checked by eye in the running viewer, because a headless
 assertion cannot tell whether a corner looked right or reliably lose a race with the worker
 raycast.
 
@@ -218,6 +236,8 @@ raycast.
 - [A click near a wall may hit the wall top rather than the floor] → the marker shows the actual
   picked point, and the label reports the actual measured geometry; there is no attempt to infer
   the user's intended surface.
+- [The projected second endpoint can leave the model surface] → intended for an axis-aligned
+  dimension; the second marker shows where it lands, and the first point stays on the geometry.
 - [Four-pixel slop is subjective on touch screens] → the same threshold is used for every pointer
   type; it can be tuned in the helper without changing the interaction contract.
 - [Depth-tested labels can be hidden by geometry or a floor above] → intended: measurements obey

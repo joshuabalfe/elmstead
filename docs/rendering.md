@@ -111,10 +111,11 @@ openings cut, doors and glazing in place, colours applied.
   room labels, and snapshots leave them off.
 - Measurement tool: the **Measure** button or `?measure=1` starts it. A click or tap picks the
   nearest corner or edge within snapping range, otherwise the exact point on the face; a second
-  pick adds a numbered measurement. Each one is a teal line, endpoint markers and a camera-facing
-  label with the straight-line, horizontal and vertical distances, plus a row in the bottom-left
-  measurement list. The line, markers and label are depth-tested, so a wall, floor or storey above
-  in front of them hides them instead of letting them float through the building.
+  pick is projected onto the nearest axis through the first and adds a numbered measurement, so
+  measurements are axis-aligned rather than diagonal. Each one is a teal line, endpoint markers and
+  a camera-facing label with the straight-line, horizontal and vertical distances, plus a row in
+  the bottom-left measurement list. The line, markers and label are depth-tested, so a wall, floor
+  or storey above in front of them hides them instead of letting them float through the building.
   - Measurements are viewer-only: they are cleared on a model change or when walk mode starts,
     survive camera and view changes, and are ignored in snapshots. Escape cancels a pending point;
     **Clear** removes all measurements.

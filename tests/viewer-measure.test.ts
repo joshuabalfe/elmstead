@@ -101,6 +101,12 @@ describe("viewer measurement", () => {
     expect(m!.values.straightMm).toBeCloseTo(Math.hypot(m!.values.horizontalMm, m!.values.verticalMm), 3);
     expect(m!.values.horizontalMm).toBeGreaterThanOrEqual(0);
     expect(m!.values.verticalMm).toBeGreaterThanOrEqual(0);
+    const dx = m!.to.x - m!.from.x;
+    const dy = m!.to.y - m!.from.y;
+    const dz = m!.to.z - m!.from.z;
+    const deltas = [dx, dy, dz].filter((v) => Math.abs(v) > 1e-9);
+    expect(deltas).toHaveLength(1);
+    expect(m!.values.straightMm).toBeCloseTo(Math.abs(deltas[0]!) * 1000, 3);
     expect(await page.locator("#measure-list").isVisible()).toBe(true);
     expect(await page.locator("#measure-list li").textContent()).toMatch(/^M1 \d+ mm · plan \d+ mm · rise \d+ mm$/);
   }, 120_000);
