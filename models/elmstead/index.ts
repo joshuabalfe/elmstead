@@ -2,6 +2,7 @@
  * Elmstead. 9.025 m × 8.425 m stone core with a brick extension at the rear, north-east corner.
  *
  *   shared.ts     outline, external wall runs, thicknesses and floor levels used by every floor
+ *   street.ts     external works: street level, ground slab and front steps
  *   components/   door and window designs (doors.ts, windows.ts), shared by every floor
  *   basement/     basement: traced from the owner's basement plan, stair well left open
  *   ground/       ground floor: walls, openings, rooms, traced from the owner's plan image
@@ -19,11 +20,12 @@ import { basement } from "./basement/index.js";
 import { components } from "./components/index.js";
 import { first } from "./first/index.js";
 import { ground } from "./ground/index.js";
+import { street } from "./street.js";
 
 export default defineBuilding({
   project: { id: "project-elmstead", name: "Elmstead" },
   site: { id: "site-default", name: "Default site", northAngle: deg(135) },
   building: { id: "building-elmstead", name: "Elmstead" },
   components,
-  storeys: [basement, ground, first],
+storeys: [basement, street, ground, first],
 });

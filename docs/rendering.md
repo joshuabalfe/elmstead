@@ -15,7 +15,7 @@ don't, such as a door swinging the wrong way.
 One SVG per storey, at 1 px = 10 mm in the SVG and rasterised at 2× to PNG. The plan is drawn in
 this order:
 
-1. slab fill, cream with a dashed outline
+1. slab fill, cream (the ground colour for `material: "ground"`) with a dashed outline
 2. room fills (the same cream, on top of the slab)
 3. walls at their true thickness, split around the openings. Beside a window with a splayed
    reveal the wall ends square from one face to the middle, then at the reveal's angle to the
@@ -151,7 +151,8 @@ openings cut, doors and glazing in place, colours applied.
     stay visible when measure mode is off.
 - Plan colouring, the same in every view (`applyStyle` in `main.ts`):
   - Floors are the plan's own floor fills and door swings (`renderFloor` in `src/render/plan.ts`),
-    cream slab and room fills on white, one plane per shown storey at that storey's level. The slab
+    slab fills (cream, or the ground colour for a ground slab) and room fills on white, one plane
+    per shown storey at that storey's level. The slab
     fill covers floor outside the room outlines too, such as bay windows and alcoves. Each plane
     writes depth, so the topmost shown floor hides the storeys below it: from above you see the top
     floor's rooms, not the grey slab and not the floor beneath. In plan style a slab's top is not drawn; its

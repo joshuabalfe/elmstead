@@ -82,6 +82,8 @@ export const SlabSchema = z.strictObject({
   thickness: PositiveMmSchema,
   /** Top of slab relative to the storey elevation. The slab extends downwards from here. */
   elevationOffset: MmSchema,
+  /** Surface presentation only; `ground` renders an external ground slab. Defaults to `concrete`. */
+  material: z.enum(["concrete", "ground"]).optional(),
 }).meta({ id: "Slab" });
 
 export const RoomSchema = z.strictObject({

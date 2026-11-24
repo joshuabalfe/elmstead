@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import cottage from "../models/example-cottage/index.js";
 import { deg, door, m, mm, pt, wall } from "../src/model/index.js";
-import { doorGeometry, renderPlan } from "../src/render/plan.js";
+import { doorGeometry, renderFloor, renderPlan } from "../src/render/plan.js";
 import { svgToPng } from "../src/render/png.js";
+import { C } from "../src/render/style.js";
 import { BuildingModelSchema } from "../src/schema/schema.js";
 import { splayedCottage } from "./support/reveal.js";
 
@@ -16,6 +17,16 @@ describe("plan renderer", () => {
   it("is deterministic", () => {
     expect(renderPlan(model, storey, { ids: false })).toBe(svg);
     expect(renderPlan(model, storey, { ids: true })).toBe(renderPlan(model, storey, { ids: true }));
+  });
+
+  it("fills a ground slab with the ground colour in the plan and the floor overlay", () => {
+    const ground = BuildingModelSchema.parse(JSON.parse(JSON.stringify(cottage)));
+    ground.storeys[0]!.slabs[0]!.material = "ground";
+    const groundStorey = ground.storeys[0]!;
+    expect(renderPlan(ground, groundStorey, { ids: false })).toContain(`fill="${C.ground}"`);
+    expect(renderFloor(groundStorey).svg).toContain(`fill="${C.ground}"`);
+    expect(svg).not.toContain(`fill="${C.ground}"`);
+    expect(renderFloor(storey).svg).not.toContain(`fill="${C.ground}"`);
   });
 
   it("matches the committed reference drawing (update with: npx vitest run -u)", async () => {

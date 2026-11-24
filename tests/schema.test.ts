@@ -92,6 +92,19 @@ describe("building schema", () => {
     expect(reveal.properties.angle).toMatchObject({ exclusiveMinimum: 0, exclusiveMaximum: 90 });
   });
 
+  it("allows a ground material and an omitted material", () => {
+    const d = minimal() as any;
+    expect(issues(d)).toEqual([]);
+    d.storeys[0].slabs[0].material = "ground";
+    expect(issues(d)).toEqual([]);
+  });
+
+  it("rejects an unknown slab material", () => {
+    const d = minimal() as any;
+    d.storeys[0].slabs[0].material = "timber";
+    expect(issues(d).join()).toMatch(/slabs\.0\.material/);
+  });
+
   it("rejects polygons with fewer than 3 points", () => {
     const d = minimal();
     d.storeys[0]!.rooms[0]!.outline.pop();
