@@ -72,8 +72,9 @@ export const kitchenEast = wall("wall-kitchen-east-first", pt(kitchenEastX, kitc
 export const kitchenEastLower = wall("wall-kitchen-east-lower-first", pt(kitchenEastLowerX, diningNorthY), pt(kitchenEastLowerX, kitchenStepY), { thickness: partT, height: wallH, justification: "right" });
 export const kitchenStep = wall("wall-kitchen-step-first", pt(kitchenEastLowerX, kitchenStepY), pt(kitchenEastFaceX, kitchenStepY), { thickness: partT, height: wallH, justification: "right" });
 
-// Dining/bedroom partition, on the ground floor's.
-export const diningBedroom = wall("wall-dining-bedroom-first", pt(partitionX, southIn), pt(partitionX, bedroomNorthY), { thickness: partT, height: wallH, justification: "right" });
+// Dining/bedroom partition, on the ground floor's; it runs up to the landing face so the bedroom's
+// north wall meets it along its full end.
+export const diningBedroom = wall("wall-dining-bedroom-first", pt(partitionX, southIn), pt(partitionX, bedroomNorthFaceY), { thickness: partT, height: wallH, justification: "right" });
 
 // Bedroom north wall, and the ensuite in its north-east corner.
 export const bedroomNorth = wall("wall-bedroom-north-first", pt(partitionEast, bedroomNorthY), pt(ensuiteWestX, bedroomNorthY), { thickness: partT, height: wallH, justification: "left" });

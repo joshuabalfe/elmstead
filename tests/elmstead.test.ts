@@ -193,6 +193,15 @@ describe("Elmstead's floor structure", () => {
     expect(Math.max(...ys)).toBe(face(wall("wall-north-first"), "south"));
   });
 
+  it("joins the dining/bedroom partition to the bedroom's north wall", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    const partition = first.walls.find((w) => w.id === "wall-dining-bedroom-first");
+    const bedroomNorth = first.walls.find((w) => w.id === "wall-bedroom-north-first");
+    if (!partition || !bedroomNorth) throw new Error("Elmstead needs the dining/bedroom partition and the bedroom's north wall");
+    expect(partition.end.y).toBe(face(bedroomNorth, "north"));
+  });
+
   it("gives every first-floor room a floor and leaves the stairwell open", () => {
     const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
     if (!first) throw new Error("Elmstead has no first floor");
