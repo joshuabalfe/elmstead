@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import elmstead from "../models/elmstead/index.js";
 import { stairwellOutline } from "../models/elmstead/first/index.js";
+import { stairArrivalX } from "../models/elmstead/first/walls.js";
 import { flightFootprint, stairLevels } from "../src/geometry/stair.js";
 import { face } from "../src/model/index.js";
 import type { Storey } from "../src/schema/schema.js";
@@ -61,7 +62,8 @@ describe("Elmstead's floor structure", () => {
     };
     const xs = stairwellOutline.map((p) => p.x);
     const ys = stairwellOutline.map((p) => p.y);
-    expect(Math.min(...xs)).toBe(face(wall("wall-ensuite-west-first"), "west"));
+    // The landing overhang sets the well's west edge, just west of the ensuite wall's face.
+    expect(Math.min(...xs)).toBe(stairArrivalX);
     expect(Math.max(...xs)).toBe(face(wall("wall-extension-east-first"), "west"));
     expect(Math.min(...ys)).toBe(face(wall("wall-ensuite-north-first"), "north"));
     expect(Math.max(...ys)).toBe(face(wall("wall-north-first"), "south"));
@@ -84,13 +86,16 @@ describe("Elmstead's stair", () => {
   const stair = ground.stairs?.[0];
 
   // The well is a rectangle; outset it 1 mm so corners that lie exactly on its edge count as inside.
+  // The stair bottom sits west of the well's traced edge, under the landing overhang, so include it.
   const xs = stairwellOutline.map((p) => p.x);
   const ys = stairwellOutline.map((p) => p.y);
+  const bottom = stair?.segments[0];
+  const west = Math.min(...xs, bottom?.kind === "flight" ? bottom.start.x : Infinity);
   const well = [
-    { x: Math.min(...xs) - 1, y: Math.min(...ys) - 1 },
+    { x: west - 1, y: Math.min(...ys) - 1 },
     { x: Math.max(...xs) + 1, y: Math.min(...ys) - 1 },
     { x: Math.max(...xs) + 1, y: Math.max(...ys) + 1 },
-    { x: Math.min(...xs) - 1, y: Math.max(...ys) + 1 },
+    { x: west - 1, y: Math.max(...ys) + 1 },
   ];
 
   it("climbs to the first floor inside the reserved stairwell", () => {

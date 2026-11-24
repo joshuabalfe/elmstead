@@ -22,7 +22,7 @@ export const bathWestX = mm(5690); //   west face of the lobby/bathroom wall; lo
 export const bathNorthY = mm(5855); //  south face of the bathroom's north wall; bathroom 1.6 m deep (owner)
 export const spineY = mm(6990); //      south face of the wall between the stair flights; both flights 0.91 m wide (owner)
 export const spineEastX = mm(8945); // keeps its traced overlap into the east wall; the stairwell's east edge
-export const spineEndX = mm(8435); // where the flights turn; the half landing's west edge
+export const spineEndX = mm(8010); // where the flights turn; the half landing's west edge
 
 // ── External walls (counter-clockwise, body on the left = inside) ────────────
 export const north = wall("wall-north", pt(extEastX, coreD), pt(mm(0), coreD), { thickness: northT, height: wallH, justification: "left" });

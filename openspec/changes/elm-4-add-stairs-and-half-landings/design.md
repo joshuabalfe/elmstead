@@ -169,9 +169,14 @@ owner's 910 mm flight widths are unchanged. Judgment calls, provisional until th
 - **17 risers (owner), split 9 + 8**, over the 3100 mm provisional rise: riser 182.4 mm (~180 mm,
   owner). **Going 320 mm (owner)** on every step, so the runs are going × (risers − 1): 2560 mm lower,
   2240 mm upper — the odd riser count staggers the two runs. The half landing sits at 1641 mm.
+- **The stair bottom aligns with the spine's start** by the lobby door (`spine.start.x` 5450), per the
+  user; with 320 mm goings the turn falls at `spineEndX` 8010 and the upper flight's top at
+  `stairArrivalX` 5770.
 - **The spine keeps its traced length** (to `spineEastX` 8945); the half landing wraps around that
-  end, notched over the spine strip, with its west edge at the flights' turn (`spineEndX` 8435). The
-  landing fills the well east of the turn (8435–10250) spanning the full well width, thickness 150 mm.
+  end, notched over the spine strip, with its west edge at the flights' turn (8010). The landing fills
+  the well east of the turn (8010–10250) spanning the full well width, thickness 150 mm.
+- **The first-floor landing overhangs to the arrival edge** (5770), which sets the well's west edge;
+  the stair bottom (5450) sits under that overhang, west of the well.
 - **Hallway entry** (lower flight north of the spine), per the user; the traced first-floor comment
   assumed the south flight first, but either orientation arrives at the first-floor landing.
 

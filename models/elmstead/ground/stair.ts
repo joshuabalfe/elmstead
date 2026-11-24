@@ -16,7 +16,7 @@ import { bathNorth, northIn, spine, spineEastX, spineEndX, spineY } from "./wall
 // (the extension), from the spine's end to the well's east edge.
 const xs = stairwellOutline.map((p) => p.x);
 const ys = stairwellOutline.map((p) => p.y);
-const west = mm(Math.min(...xs));
+const west = spine.start.x; // the stair bottom aligns with the spine's start, by the lobby door
 const east = mm(Math.max(...xs));
 const south = mm(Math.min(...ys));
 const north = mm(Math.max(...ys));
