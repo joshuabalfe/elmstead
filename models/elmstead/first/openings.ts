@@ -35,6 +35,9 @@ const bedroomDoorOffset = divRound(sub(mm(wallLength(bedroomNorth)), bedroomDoor
 // The kitchen door sits close to the north wall, with a 50 mm jamb.
 const kitchenDoorWidth = internal.width;
 const kitchenDoorOffset = sub(sub(mm(wallLength(kitchenEast)), kitchenDoorWidth), mm(50));
+// The dining doorway keeps a 50 mm jamb to the partition too (chosen for the join; the traced
+// offset was 3400).
+const diningDoorwayOffset = sub(sub(mm(wallLength(diningNorth)), internal.width), mm(50));
 
 export const openings: Opening[] = [
   // West wall runs north→south; "left" is inside. The kitchen window is 1.21 × 2.1 m, centred
@@ -51,7 +54,7 @@ export const openings: Opening[] = [
 
   // The dining room's doorway to the landing has no leaf and takes the same 768 mm opening as the
   // internal doors; the bedroom door opens into its room and the ensuite door opens from the bedroom.
-  doorway("door-dining-first", diningNorth, mm(3400), internal),
+  doorway("door-dining-first", diningNorth, diningDoorwayOffset, internal),
   door("door-bedroom-first", bedroomNorth, bedroomDoorOffset, internalDoor, internal, { hinge: "start", side: "right" }),
   door("door-ensuite-first", ensuiteSouth, mm(350), internalDoor, internal, { hinge: "start", side: "left" }),
   // Kitchen door sits 50 mm off the north wall; "left" is the kitchen.

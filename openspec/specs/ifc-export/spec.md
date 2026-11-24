@@ -52,9 +52,10 @@ by its plan outline extruded up its height, its splayed jambs continued 10 mm pa
 - **THEN** its `IfcOpeningElement` is still a rectangle profile, the window's width by the wall's thickness plus 10 mm each side, extruded up its height
 
 ### Requirement: Doors
-A door SHALL fill its opening with a 50 mm `IfcDoor` panel. Its `OperationType` SHALL be
+A door that is not a doorway SHALL fill its opening with a 50 mm `IfcDoor` panel. Its `OperationType` SHALL be
 `SINGLE_SWING_LEFT` or `SINGLE_SWING_RIGHT`, following the IFC4 convention of looking from the side
-it opens towards. A door without `swing` SHALL use `{ hinge: start, side: left }`.
+it opens towards. A door that is not a doorway and has no `swing` SHALL use
+`{ hinge: start, side: left }`.
 
 #### Scenario: Door handing
 - **WHEN** a door is viewed from the side it opens towards and its hinge is on the viewer's left

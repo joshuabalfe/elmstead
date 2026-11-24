@@ -7,8 +7,8 @@ import elmstead from "../models/elmstead/index.js";
 import { stairwellOutline } from "../models/elmstead/first/index.js";
 import { stairArrivalX } from "../models/elmstead/first/walls.js";
 import { flightFootprint, stairLevels } from "../src/geometry/stair.js";
-import { wallLength } from "../src/geometry/wall.js";
-import { face, mm } from "../src/model/index.js";
+import { wallDirection, wallLength } from "../src/geometry/wall.js";
+import { face, faceCrossing, mm } from "../src/model/index.js";
 import type { Storey } from "../src/schema/schema.js";
 
 type Pt = { x: number; y: number };
@@ -83,6 +83,15 @@ describe("Elmstead's floor structure", () => {
     const door = first.openings.find((o) => o.id === "door-kitchen-first");
     if (!door || door.kind !== "door") throw new Error("Elmstead has no kitchen door");
     expect(wallLength(wall("wall-kitchen-east-first")) - (door.offsetAlongWall + door.width)).toBe(mm(50));
+  });
+
+  it("leaves a 50 mm jamb between the dining doorway and the partition", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    const wall = first.walls.find((w) => w.id === "wall-dining-north-first");
+    const doorway = first.openings.find((o) => o.id === "door-dining-first");
+    if (!wall || !doorway) throw new Error("Elmstead needs the dining doorway and its wall");
+    expect(wallLength(wall) - (doorway.offsetAlongWall + doorway.width)).toBe(mm(50));
   });
 
   it("makes every internal door and both doorways 768 mm wide", () => {
@@ -238,6 +247,29 @@ describe("Elmstead's floor structure", () => {
     expect(at.y).toBe(face(spine, "north"));
   });
 
+  it("keeps the lobby doorway clear of the stair spine", () => {
+    const ground = elmstead.storeys.find((s) => s.id === "storey-ground");
+    if (!ground) throw new Error("Elmstead has no ground floor");
+    const wall = (id: string) => {
+      const w = ground.walls.find((wall) => wall.id === id);
+      if (!w) throw new Error(`Elmstead's ground floor has no ${id}`);
+      return w;
+    };
+    const screen = wall("wall-lobby-screen");
+    const spine = wall("wall-stair-spine");
+    const living = wall("wall-living-bedroom");
+    const door = ground.openings.find((o) => o.id === "door-lobby");
+    if (!door) throw new Error("Elmstead has no lobby doorway");
+    const along = (p: Pt): number => {
+      const d = wallDirection(screen);
+      return (p.x - screen.start.x) * d.x + (p.y - screen.start.y) * d.y;
+    };
+    const lobbyStart = along(faceCrossing(screen, "right", "x", face(living, "east")));
+    const spineEntry = along(faceCrossing(screen, "right", "x", spine.start.x));
+    expect(door.offsetAlongWall - lobbyStart).toBeGreaterThan(0);
+    expect(spineEntry - (door.offsetAlongWall + door.width)).toBeGreaterThan(0);
+  });
+
   it("joins the dining/bedroom partition to the bedroom's north wall", () => {
     const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
     if (!first) throw new Error("Elmstead has no first floor");
@@ -245,6 +277,15 @@ describe("Elmstead's floor structure", () => {
     const bedroomNorth = first.walls.find((w) => w.id === "wall-bedroom-north-first");
     if (!partition || !bedroomNorth) throw new Error("Elmstead needs the dining/bedroom partition and the bedroom's north wall");
     expect(partition.end.y).toBe(face(bedroomNorth, "north"));
+  });
+
+  it("keeps the landing floor off the dining/bedroom partition", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    const landing = first.rooms.find((r) => r.id === "room-landing-first");
+    const partition = first.walls.find((w) => w.id === "wall-dining-bedroom-first");
+    if (!landing || !partition) throw new Error("Elmstead needs the landing and the dining/bedroom partition");
+    expect(contains(landing.outline, { x: face(partition, "west") + 1, y: partition.end.y - 1 })).toBe(false);
   });
 
   it("gives every first-floor room a floor and leaves the stairwell open", () => {

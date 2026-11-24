@@ -37,16 +37,22 @@ describe("doorways", () => {
   });
 
   it("rejects a component or swing on a doorway", () => {
-    const m = withDoorway();
-    const o = m.storeys[0]!.openings.find((o): o is Door => o.kind === "door" && o.id === "doorway-west")!;
-    o.swing = { hinge: "start", side: "left" };
-    expect(checkOpenings(m)).toContainEqual({ level: "ERROR", id: "doorway-west", message: "a doorway has no component or swing" });
+    const swingModel = withDoorway();
+    const swing = swingModel.storeys[0]!.openings.find((o): o is Door => o.kind === "door" && o.id === "doorway-west")!;
+    swing.swing = { hinge: "start", side: "left" };
+    expect(checkOpenings(swingModel)).toContainEqual({ level: "ERROR", id: "doorway-west", message: "a doorway has no component or swing" });
+
+    const componentModel = withDoorway();
+    const component = componentModel.storeys[0]!.openings.find((o) => o.id === "doorway-west")!;
+    component.componentId = "door-type-internal";
+    expect(checkOpenings(componentModel)).toContainEqual({ level: "ERROR", id: "doorway-west", message: "a doorway has no component or swing" });
   });
 
   it("draws the opening but no leaf or swing, in the plan and the floor overlay", () => {
     const m = withDoorway();
     const storey = m.storeys[0]!;
     const plan = renderPlan(m, storey, { ids: false });
+    // The plan draws the opening's gap but no leaf or swing.
     expect(plan).not.toContain('class="door" data-id="doorway-west"');
     expect([...plan.matchAll(/class="wall" data-id="wall-west"/g)]).toHaveLength(2);
     expect(renderWallTops(storey, m.components).svg).toContain('class="door-gap" data-id="doorway-west"');
@@ -65,7 +71,9 @@ describe("doorways", () => {
     expect(count(text, /IFCDOOR\(/g)).toBe(count(base, /IFCDOOR\(/g));
     expect(count(text, /IFCRELFILLSELEMENT\(/g)).toBe(count(base, /IFCRELFILLSELEMENT\(/g));
     expect(text).toContain(`('${ifcGuid("doorway-west")}'`);
-    expect(text.split("\n").find((l) => l.includes("IFCOPENINGELEMENT(") && l.includes("'doorway-west'"))).toBeDefined();
+    const openingLine = text.split("\n").find((l) => l.includes("IFCOPENINGELEMENT(") && l.includes("'doorway-west'"));
+    // The Name also contains the id; only the tag immediately before .OPENING. proves the Tag is set.
+    expect(openingLine ?? "").toMatch(/,'doorway-west',\.OPENING\.\);\r?$/);
   });
 });
 

@@ -3,13 +3,13 @@
  * size, and which way doors swing.
  *
  * The drawing gives widths only. Door heights are a typical 2.1 m; the bathroom door's drawn gap
- * (about 440 mm) is taken as 700. The front window, fanlight, front door opening and frame, and the
- * bedroom window's sill and head, are the owner's.
+ * (about 440 mm) uses the owner's 768 mm internal-door width. The front window, fanlight, front door
+ * opening and frame, and the bedroom window's sill and head, are the owner's.
  */
 import { add, centredOn, deg, divRound, door, doorway, face, m, mm, scale, sub, window, type Opening } from "../../../src/model/index.js";
 import { fanlight, frontDoor, frontWindow, internalDoor, smallPaneWindow, standardWindow } from "../components/index.js";
 import { living } from "./rooms.js";
-import { bathWestX, bedroomBathroom, bedroomWallY, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, lobbyScreenTuck, lobbyScreenVisibleLength, partitionEast, southIn, west } from "./walls.js";
+import { bathWestX, bedroomBathroom, bedroomWallY, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, lobbyScreenLobbyStart, lobbyScreenLobbyVisibleLength, partitionEast, southIn, west } from "./walls.js";
 
 const doorH = m(2.1);
 const internal = { width: mm(768), height: doorH };
@@ -32,8 +32,8 @@ const frontWindowCentreY = mm(Math.round((living.outline[1]!.y + living.outline[
 const bathroomDoorOffset = mm(135);
 const bathroomDoorY = add(face(bedroomBathroom, "north"), bathroomDoorOffset); // the living-room door sits opposite it
 const lobbyCentreX = mm(Math.round((partitionEast + bathWestX) / 2));
-// The lobby doorway is centred on the visible screen, with a jamb each side.
-const lobbyDoorwayOffset = add(lobbyScreenTuck, divRound(sub(lobbyScreenVisibleLength, internal.width), 2));
+// The lobby doorway is centred on the screen's lobby-side face, with a jamb each side.
+const lobbyDoorwayOffset = add(lobbyScreenLobbyStart, divRound(sub(lobbyScreenLobbyVisibleLength, internal.width), 2));
 // Window returns splay out at about 45° on the inside. The frame is taken as sitting in the middle
 // of the wall, where the splay starts.
 const insideReveal = { face: "left", angle: deg(45) } as const;

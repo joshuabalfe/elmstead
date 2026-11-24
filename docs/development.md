@@ -37,7 +37,8 @@ output is written and the command exits 1. The rules are:
   within 1 mm
 
 Add new rules to the matching `check*` function, keep them pure (no writes or exits), and report
-them as an `Issue` against the element id. Add a fixture test to `tests/checks.test.ts`.
+them as an `Issue` against the element id. Add a fixture test to the matching test file (see the
+tests table below).
 
 ## Tests
 
