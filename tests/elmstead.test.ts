@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import elmstead from "../models/elmstead/index.js";
 import { stairwellOutline } from "../models/elmstead/first/index.js";
+import { wallLength } from "../src/geometry/wall.js";
 import { face, mm } from "../src/model/index.js";
 import type { Storey } from "../src/schema/schema.js";
 
@@ -38,10 +39,11 @@ const wallTop = (s: Storey): number => s.elevation + Math.max(0, ...s.walls.map(
 describe("Elmstead's floor structure", () => {
   const storeys = [...elmstead.storeys].sort((a, b) => a.elevation - b.elevation);
 
-  it("uses the owner's 2.7 m first-floor ceiling", () => {
+  it("uses the owner's 2.7 m first-floor ceiling and a 150 mm lower bay", () => {
     const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
     if (!first) throw new Error("Elmstead has no first floor");
-    for (const wall of first.walls) expect(wall.height, wall.id).toBe(mm(2700));
+    const bay = new Set(["wall-bay-north-first", "wall-bay-front-first", "wall-bay-south-first"]);
+    for (const wall of first.walls) expect(wall.height, wall.id).toBe(bay.has(wall.id) ? mm(2550) : mm(2700));
   });
 
   it("puts the kitchen window above the front door", () => {
@@ -71,13 +73,16 @@ describe("Elmstead's floor structure", () => {
     const middle = bay("window-bay-front-first");
     const north = bay("window-bay-north-first");
     const south = bay("window-bay-south-first");
+    const walls = new Map(first.walls.map((w) => [w.id, w]));
     for (const o of [middle, north, south]) {
       expect(o.height).toBe(mm(2100));
       expect(o.sillHeight).toBe(mm(450));
+      const wall = walls.get(o.wallId);
+      if (!wall) throw new Error(`${o.id} has no wall`);
+      expect(o.offsetAlongWall, o.id).toBe(0);
+      expect(o.width, o.id).toBe(Math.floor(wallLength(wall)));
+      expect(o.sillHeight + o.height, o.id).toBe(wall.height);
     }
-    expect(middle.width).toBe(mm(1500));
-    expect(north.width).toBe(mm(450));
-    expect(south.width).toBe(mm(450));
     const designs = new Map((elmstead.components?.windows ?? []).map((c) => [c.id, c]));
     expect(designs.get(middle.componentId!)?.glazing).toMatchObject({ columns: [1, 1], rows: [1, 1] });
     expect(designs.get(north.componentId!)?.glazing).toMatchObject({ columns: [1], rows: [1, 1] });

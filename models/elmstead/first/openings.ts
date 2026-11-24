@@ -7,7 +7,7 @@
  * this floor, so the window belongs to the stair and half-landing model, not this storey.
  */
 import { wallLength } from "../../../src/geometry/wall.js";
-import { add, centredOn, divRound, door, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
+import { add, divRound, door, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
 import { bayWindow, crossBarWindow, internalDoor, standardWindow } from "../components/index.js";
 import { frontDoorOffset, frontDoorWidth } from "../ground/openings.js";
 import { bayFront, bayNorth, baySouth, bedroomNorth, diningNorth, east, ensuiteSouth, kitchenEast, westNorth } from "./walls.js";
@@ -16,10 +16,10 @@ const doorH = m(2.1);
 const internal = { width: mm(700), height: doorH };
 const standard = { height: m(1.2), sillHeight: mm(900) };
 
-const bayWindowWidth = mm(450);
 const bayWindowSize = { height: mm(2100), sillHeight: mm(450) };
-const bayNorthOffset = mm(Math.round((wallLength(bayNorth) - bayWindowWidth) / 2));
-const baySouthOffset = mm(Math.round((wallLength(baySouth) - bayWindowWidth) / 2));
+// Each light fills its wall segment, so only the window frames meet at the corners.
+const bayFrontWidth = mm(Math.floor(wallLength(bayFront)));
+const baySideWidth = mm(Math.floor(wallLength(bayNorth)));
 
 // Centred over the 1 m front door, which keeps this wider window close to the north-west corner.
 const kitchenWindowWidth = mm(1210);
@@ -31,11 +31,12 @@ export const openings: Opening[] = [
   // square reveal keeps the frame and its cut inside the wall this close to the corner.
   window("window-kitchen-west-first", westNorth, kitchenWindowOffset, crossBarWindow, { width: kitchenWindowWidth, height: mm(2100), sillHeight: mm(450) }),
 
-  // Bay windows on the dining room's canted west side: all three share a 450 mm sill and 2.1 m
-  // head. The middle light has one vertical and one horizontal bar; the sides only the horizontal.
-  window("window-bay-front-first", bayFront, centredOn(bayFront, mm(3390), mm(1500)), bayWindow, { width: mm(1500), ...bayWindowSize }),
-  window("window-bay-north-first", bayNorth, bayNorthOffset, crossBarWindow, { ...bayWindowSize, width: bayWindowWidth }),
-  window("window-bay-south-first", baySouth, baySouthOffset, crossBarWindow, { ...bayWindowSize, width: bayWindowWidth }),
+  // Bay windows on the dining room's canted west side: all three share a 450 mm sill and reach
+  // the bay ceiling at 2.55 m. Each fills its wall, so only the frames meet at the corners. The
+  // middle light has one vertical and one horizontal bar; the sides only the horizontal.
+  window("window-bay-front-first", bayFront, mm(0), bayWindow, { width: bayFrontWidth, ...bayWindowSize }),
+  window("window-bay-north-first", bayNorth, mm(0), crossBarWindow, { ...bayWindowSize, width: baySideWidth }),
+  window("window-bay-south-first", baySouth, mm(0), crossBarWindow, { ...bayWindowSize, width: baySideWidth }),
 
   // Doors. Dining and bedroom doors open into their rooms; the ensuite door opens from the bedroom.
   door("door-dining-first", diningNorth, mm(3400), internalDoor, internal, { hinge: "end", side: "right" }),
