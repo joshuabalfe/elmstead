@@ -141,6 +141,34 @@ export default defineConstraints([
       distance: mm(4550),
     },
   ]),
+  inRoom("room-ensuite-first", [
+    {
+      id: "ensuite-width",
+      note: "Ensuite width from the owner (1.91 m), across the room to the extension's south wall",
+      from: roomCorner(0),
+      to: roomCorner(2),
+      measure: "y",
+      distance: mm(1910),
+    },
+    {
+      id: "ensuite-length",
+      note: "Ensuite length from the owner (2.79 m), west to east",
+      from: roomCorner(0),
+      to: roomCorner(1),
+      measure: "x",
+      distance: mm(2790),
+    },
+  ]),
+  inRoom("room-bedroom-first", [
+    {
+      id: "rear-bedroom-window-width",
+      note: "Rear bedroom window width from the owner: 1.1 m wide, 1.95 m tall above a 500 mm sill",
+      from: jamb("window-bedroom-first", "start"),
+      to: jamb("window-bedroom-first", "end"),
+      measure: { along: "wall-east-first" },
+      distance: mm(1100),
+    },
+  ]),
   inStorey("storey-ground", [
     {
       id: "stair-flight-width",

@@ -33,7 +33,7 @@ The plan SHALL draw, in order:
 
 ### Requirement: Plan annotations
 Over the geometry the plan SHALL draw, in order:
-1. room labels (name and area in m²) and room dimensions: the longest clear wall-to-wall span east–west and north–south;
+1. room labels (name and area in m²) and room dimensions: the longest clear wall-to-wall span east–west and north–south of the room's `dimensionOutline` when it has one, otherwise its `outline`;
 2. element ids in red, only with `--ids`;
 3. overall dimensions;
 4. a title, a north arrow and a 5 m scale bar.
@@ -41,6 +41,10 @@ Over the geometry the plan SHALL draw, in order:
 #### Scenario: Ids flag
 - **WHEN** render runs with `--ids`
 - **THEN** every element's id is drawn on the plan in red, and without the flag none are
+
+#### Scenario: Room with a dimension outline
+- **WHEN** a room has a `dimensionOutline`
+- **THEN** its dimension figures measure that outline, while its label and area use `outline`
 
 ### Requirement: Queryable SVG
 Every element SHALL be an SVG group with a `class` (`wall`, `door`, `window`, `room`,

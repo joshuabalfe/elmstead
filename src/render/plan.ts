@@ -302,7 +302,8 @@ function roomLabels(storey: Storey, view: View, opts: PlanOptions, names = true)
     // Rough label extent (px) from character counts; DejaVu Sans averages about 0.6 em per character.
     // Dimensions keep clear of it even when the label is drawn elsewhere (the 3D viewer's billboards).
     const halfW = Math.max(r.name.length * name.size * 0.62, 7 * areaFont.size * 0.6) / 2;
-    out.push(...roomDimensions(r.id, pts, { minX: c.x - halfW, maxX: c.x + halfW, minY: c.y - 17, maxY: c.y + (opts.ids ? 29 : 16) }, view));
+    const dims = (r.dimensionOutline ?? r.outline).map(toVec);
+    out.push(...roomDimensions(r.id, dims, { minX: c.x - halfW, maxX: c.x + halfW, minY: c.y - 17, maxY: c.y + (opts.ids ? 29 : 16) }, view));
     if (opts.ids) out.push(text(v(c.x, c.y + 26), r.id, { "font-size": 8, "text-anchor": "middle", fill: C.id }));
   }
   return out;

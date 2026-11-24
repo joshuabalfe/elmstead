@@ -120,6 +120,10 @@ export function checkOutlines(model: BuildingModel): Issue[] {
     for (const element of outlined(storey)) {
       for (const problem of polygonProblems(element.outline)) issues.push({ level: "ERROR", id: element.id, message: problem });
     }
+    for (const room of storey.rooms) {
+      if (!room.dimensionOutline) continue;
+      for (const problem of polygonProblems(room.dimensionOutline)) issues.push({ level: "ERROR", id: room.id, message: `dimension outline: ${problem}` });
+    }
   }
   return issues;
 }

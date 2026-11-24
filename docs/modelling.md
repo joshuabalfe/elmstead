@@ -98,7 +98,7 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
 | **Door** | `wallId`, `offsetAlongWall`, `width`, `height`, `sillHeight`, `swing?` | `kind: "door"` |
 | **Window** | `wallId`, `offsetAlongWall`, `width`, `height`, `sillHeight`, `reveal?` | `kind: "window"` |
 | **Slab** | `outline`, `thickness`, `elevationOffset` | top of slab is at storey elevation + `elevationOffset`; the slab extends downwards from there |
-| **Room** | `name`, `outline` | 2D outline only, for now |
+| **Room** | `name`, `outline`, `dimensionOutline?` | 2D outline only, for now; `dimensionOutline` optionally gives the part the plan measures, while the label, area and IFC space keep `outline` |
 | **Stair** | `toStoreyId`, `segments` | a storey element climbing to the next storey up; `segments` run bottom to top |
 | **Stair flight** | `start`, `end`, `width`, `risers` | `kind: "flight"`; a straight run, centred on its start→end line, of at least 2 risers |
 | **Stair landing** | `outline`, `thickness` | `kind: "landing"`; a flat platform, its level derived from the flights below it |

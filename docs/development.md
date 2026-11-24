@@ -28,8 +28,9 @@ output is written and the command exits 1. The rules are:
 - walls have non-zero length
 - openings name a wall on their storey, fit within its length and height, and do not overlap
   another opening on the same wall in both directions
-- room, slab and stair landing outlines are simple polygons: at least three distinct points, no
-  repeated first or adjacent points, non-zero area and no self-intersection
+- room, slab and stair landing outlines, and a room's optional dimension outline, are simple
+  polygons: at least three distinct points, no repeated first or adjacent points, non-zero area
+  and no self-intersection
 - a stair names the next storey up, alternates flight and landing starting and ending with a
   flight, runs somewhere on every flight, and each landing meets the flights either side of it
   within 1 mm

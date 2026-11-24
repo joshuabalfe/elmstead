@@ -37,10 +37,21 @@ describe("plan renderer", () => {
     for (const r of storey.rooms) {
       const g = svg.match(new RegExp(`<g class="room-dimensions" data-id="${r.id}">([\\s\\S]*?)</g>`))?.[1] ?? "";
       const figures = [...g.matchAll(/>(\d+)<\/text>/g)].map((x) => Number(x[1]));
-      const xs = r.outline.map((p) => p.x);
-      const ys = r.outline.map((p) => p.y);
+      const pts = r.dimensionOutline ?? r.outline;
+      const xs = pts.map((p) => p.x);
+      const ys = pts.map((p) => p.y);
       expect(figures, r.id).toEqual([Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)]);
     }
+  });
+
+  it("measures a room's dimension outline when it has one", () => {
+    const outlined = structuredClone(model);
+    const living = outlined.storeys[0]!.rooms.find((r) => r.id === "room-living")!;
+    living.dimensionOutline = [pt(mm(900), mm(900)), pt(mm(3000), mm(900)), pt(mm(3000), mm(2500)), pt(mm(900), mm(2500))];
+    const out = renderPlan(outlined, outlined.storeys[0]!, { ids: false });
+    const g = out.match(/<g class="room-dimensions" data-id="room-living">([\s\S]*?)<\/g>/)?.[1] ?? "";
+    const figures = [...g.matchAll(/>(\d+)<\/text>/g)].map((x) => Number(x[1]));
+    expect(figures).toEqual([2100, 1600]);
   });
 
   it("turns the north arrow to site.northAngle and keeps the N upright beyond its tip", () => {

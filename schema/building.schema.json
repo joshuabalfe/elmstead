@@ -542,6 +542,13 @@
           "items": {
             "$ref": "#/$defs/Point"
           }
+        },
+        "dimensionOutline": {
+          "minItems": 3,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Point"
+          }
         }
       },
       "required": [

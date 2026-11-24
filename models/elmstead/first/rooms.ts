@@ -89,6 +89,15 @@ export const bedroom: Room = {
     pt(ensuiteWestX, bedroomNorthY),
     pt(partitionEast, bedroomNorthY),
   ],
+  // The plan measures the main room; the entrance strip beside the ensuite is not part of it.
+  dimensionOutline: [
+    pt(partitionEast, southIn),
+    pt(bedroomBreastWestX, southIn),
+    pt(bedroomBreastWestX, breastNorthY),
+    pt(eastIn, breastNorthY),
+    pt(eastIn, ensuiteSouthY),
+    pt(partitionEast, ensuiteSouthY),
+  ],
 };
 
 export const rooms: Room[] = [kitchen, dining, landing, ensuite, bedroom];

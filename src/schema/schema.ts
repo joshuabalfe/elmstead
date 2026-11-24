@@ -86,6 +86,8 @@ export const RoomSchema = z.strictObject({
   id: IdSchema,
   name: z.string().min(1),
   outline: PolygonSchema,
+  /** The part of the room the plan's dimensions measure, when that is not the whole room. Defaults to `outline`. */
+  dimensionOutline: PolygonSchema.optional(),
 }).meta({ id: "Room" });
 
 /**

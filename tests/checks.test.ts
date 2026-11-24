@@ -154,6 +154,12 @@ describe("checkOutlines", () => {
     expect(checkOutlines(m)).toContainEqual({ level: "ERROR", id: "room-living", message: "outline crosses itself" });
   });
 
+  it("reports a self-intersecting dimension outline", () => {
+    const m = model();
+    m.storeys[0]!.rooms[0]!.dimensionOutline = [pt(mm(0), mm(0)), pt(mm(1000), mm(1000)), pt(mm(1000), mm(0)), pt(mm(0), mm(1000))];
+    expect(checkOutlines(m)).toContainEqual({ level: "ERROR", id: "room-living", message: "dimension outline: outline crosses itself" });
+  });
+
   it("reports a slab that repeats its first point", () => {
     const m = model();
     const slab = m.storeys[0]!.slabs[0]!;
