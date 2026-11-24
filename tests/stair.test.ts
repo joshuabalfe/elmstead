@@ -122,20 +122,22 @@ describe("derived stair geometry", () => {
     expect(stairLevels(s, 3050).segments[0]).toMatchObject({ kind: "flight", run: 1800, going: 1800 / 7 });
   });
 
-  it("gives a flight's profile the area of the triangle its steps approximate", () => {
+  it("gives a flight's profile the stepped area less the tapered soffit", () => {
     const levels = stairLevels(stairOf(model()), 3050);
     const lower = levels.segments[0]!;
     expect(lower.kind).toBe("flight");
     if (lower.kind !== "flight") return;
-    const expected = (lower.run * (lower.top - lower.base)) / 2;
+    const rise = lower.top - lower.base;
+    const topFar = rise - levels.riser; // the last riser belongs to the segment above
+    const expected = (lower.run * rise) / 2 - (lower.run * (topFar - 150)) / 2;
     expect(flightProfileArea(lower.segment, lower.going, levels.riser)).toBeCloseTo(expected, 6);
   });
 
-  it("steps a profile up one riser at a time and closes it along the base", () => {
+  it("steps a profile up one riser at a time and closes it along a tapered soffit", () => {
     const f = stairFlight("f", pt(mm(0), mm(0)), pt(mm(20), mm(0)), { width: mm(800), risers: 3 });
-    // run 20, 2 treads of 10, risers of 5
-    expect(flightProfile(f, 10, 5)).toEqual([
-      { x: 20, y: 0 },
+    // run 20, 2 treads of 10, risers of 5, waist 2
+    expect(flightProfile(f, 10, 5, 2)).toEqual([
+      { x: 20, y: 8 },
       { x: 20, y: 10 },
       { x: 10, y: 10 },
       { x: 10, y: 5 },

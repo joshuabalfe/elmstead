@@ -101,24 +101,23 @@ export function flightTreads(f: StairFlight, going: number): { from: Vec; to: Ve
 
 /**
  * The flight's side profile in (along, up) millimetres from its base: the stepped top the treads
- * make, then straight down at the far end, so the mass is solid to the flight's base. The final
- * riser is a vertical face rather than a step, because the segment above it — a landing or the
+ * make, then a flat tapered soffit back to the base at the near end, so the flight is a hollow waist
+ * rather than a solid block. `waist` is the soffit's vertical depth below the top at the far end. The
+ * final riser is a vertical face rather than a step, because the segment above it — a landing or the
  * storey — provides the surface you step onto. Counter-clockwise, like every other profile.
- *
- * Its area is run × (risers × riser) / 2, the triangle the steps approximate.
  */
-export function flightProfile(f: StairFlight, going: number, riser: number): Vec[] {
+export function flightProfile(f: StairFlight, going: number, riser: number, waist = 150): Vec[] {
   const pts: Vec[] = [v(0, 0)];
   for (let k = 1; k < f.risers; k++) {
     pts.push(v((k - 1) * going, k * riser));
     pts.push(v(k * going, k * riser));
   }
-  pts.push(v((f.risers - 1) * going, 0));
+  pts.push(v((f.risers - 1) * going, (f.risers - 1) * riser - waist));
   return pts.reverse();
 }
 
 /** Profile area in mm², for the round-trip's expected flight volume. */
-export const flightProfileArea = (f: StairFlight, going: number, riser: number): number => area(flightProfile(f, going, riser));
+export const flightProfileArea = (f: StairFlight, going: number, riser: number, waist = 150): number => area(flightProfile(f, going, riser, waist));
 
 /** The turning angle, in degrees, between two consecutive flights' plan directions. */
 export function turnBetween(a: StairFlight, b: StairFlight): number {

@@ -83,13 +83,13 @@ out.
 
 ### Flight geometry is one stepped profile extruded across the width
 
-Each flight body is a single closed profile in the vertical plane along the run: a stepped top,
-with the mass continuing down to the flight's base, extruded horizontally across the flight width.
-One solid gives an exact volume and avoids overlapping step boxes. The writer needs a small helper
-for a profile extruded horizontally; the profile area is shared with the round-trip check.
-
-A sloped soffit or waist is more realistic and can replace the solid-to-base profile later without
-changing the schema or IFC entity choices.
+Each flight body is a single closed profile in the vertical plane along the run: a stepped top over
+a flat tapered soffit, extruded horizontally across the flight width — a hollow waist rather than a
+solid block to the base. The soffit runs from the base at the near end to `waist` (150 mm) below the
+top at the far end. One solid gives an exact volume and avoids overlapping step boxes. The writer
+needs a small helper for a profile extruded horizontally; the profile area is shared with the
+round-trip check. The waist is a profile parameter, so the schema and IFC entity choices are
+unchanged.
 
 ### IFC mapping separates the container from its parts
 
@@ -215,11 +215,10 @@ would imply an incompatibility that does not exist.
 - **Derived riser and going are fractional** → Keep authored lengths integer; carry derived lengths
   as plain `number` millimetres, never through `mm()`, `div()` or `divRound()`; write them as IFC
   reals; round SVG output to one decimal; compare volumes with tolerance.
-- **Solid-to-base flights look heavy** → Acceptable for a massing model; replace with a sloped
-  soffit later without changing the JSON contract or IFC entities. Walk mode makes this more
-  visible than the snapshots did: the camera passes through the stairwell at 1.6 m, so it spends
-  time inside the flight mass, and what that looks like depends on back-face culling of the
-  extrusion. Check it in the browser before accepting the fixture's stair.
+- **Flights are a hollow waist, not a solid block** → The tapered soffit reads lighter and gives a
+  realistic underside. Walk mode still passes through the stairwell at 1.6 m (ELM-3 has no geometry
+  query), so the camera can enter the waist; what that looks like depends on back-face culling of the
+  extrusion. Check it in the browser before accepting the stair.
 - **`IfcStair` has no body** → The round-trip explicitly exempts container elements; tests cover
   both the container and its parts.
 - **IFC decomposition validity** → IfcOpenShell validation runs on the fixture; web-ifc supports
@@ -274,5 +273,5 @@ untouched.
   is traced. They do not change the schema or the approach.
 - Whether to draw the arriving stair on the destination storey plan, with a down arrow, is deferred
   until that storey exists.
-- The flight underside profile can be refined from a solid-to-base mass to a sloped soffit without
-  changing the schema or IFC entity choice.
+- The flight underside is now a flat tapered soffit (150 mm waist); a constant-thickness waist or a
+  curved soffit could refine it further without changing the schema or IFC entity choice.

@@ -271,8 +271,9 @@ describe("a stair in IFC", () => {
     const ifc = await write(stairModel);
     expect(await roundTripChecks(stairModel, ifc)).toEqual([]);
     const geom = await ifcGeometry(ifc);
-    // Flight: stepped profile area × width = (run × the flight's rise / 2) × width.
-    expect(geom.get("stair-flight-lower")!.volume).toBeCloseTo(((1800 * 1525) / 2) * 800, 0);
+    // Flight: stepped area less the tapered soffit, × width. run 1800, rise 1525, riser 190.625,
+    // waist 150: (run×rise/2 − run×(rise−riser−waist)/2) × width.
+    expect(geom.get("stair-flight-lower")!.volume).toBeCloseTo(((1800 * 1525) / 2 - (1800 * (1525 - 190.625 - 150)) / 2) * 800, 0);
     // Landing: 800 × 1600 outline × 150 thick.
     expect(geom.get("stair-landing-half")!.volume).toBeCloseTo(800 * 1600 * 150, 0);
     expect(geom.has("stair-main")).toBe(false); // the container has no body, and is not expected to
