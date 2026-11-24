@@ -8,7 +8,7 @@
 import * as WebIFC from "web-ifc";
 import { doorDivision } from "../geometry/door.js";
 import { isSplayed, openingProfile } from "../geometry/opening.js";
-import { flightDirection, flightProfile, stairLevels, turnBetween, type FlightLevel } from "../geometry/stair.js";
+import { flightDirection, flightProfile, flightRun, stairLevels, turnBetween, type FlightLevel } from "../geometry/stair.js";
 import { v, type Vec } from "../geometry/vec.js";
 import { faceOffsets, wallDirection, wallLength } from "../geometry/wall.js";
 import { GLAZING_BAR_DEPTH, windowDivision, type Rect } from "../geometry/window.js";
@@ -57,10 +57,10 @@ export interface WriteOptions {
 function stairType(flights: readonly StairFlight[]) {
   if (flights.length === 1) return IFC4.IfcStairTypeEnum.STRAIGHT_RUN_STAIR;
   if (flights.length === 2) {
-    const turn = Math.round(turnBetween(flights[0]!, flights[1]!));
-    if (turn === 0) return IFC4.IfcStairTypeEnum.TWO_STRAIGHT_RUN_STAIR;
-    if (turn === 90) return IFC4.IfcStairTypeEnum.QUARTER_TURN_STAIR;
-    if (turn === 180) return IFC4.IfcStairTypeEnum.HALF_TURN_STAIR;
+    const turn = turnBetween(flights[0]!, flights[1]!);
+    if (Math.abs(turn) < 1e-6) return IFC4.IfcStairTypeEnum.TWO_STRAIGHT_RUN_STAIR;
+    if (Math.abs(turn - 90) < 1e-6) return IFC4.IfcStairTypeEnum.QUARTER_TURN_STAIR;
+    if (Math.abs(turn - 180) < 1e-6) return IFC4.IfcStairTypeEnum.HALF_TURN_STAIR;
   }
   return IFC4.IfcStairTypeEnum.NOTDEFINED;
 }
@@ -443,6 +443,7 @@ class Writer {
    * extrusion along the placement's Z spans the width, centred on the start→end line.
    */
   private stairFlight(f: StairFlight, level: FlightLevel, riser: number, parent: InstanceType<typeof IFC4.IfcLocalPlacement>) {
+    if (flightRun(f) === 0) throw new Error(`${f.id}: zero-run flight cannot be written to IFC`);
     const d = flightDirection(f);
     // The placement's Z, across the flight to the right of the run; the origin sits half a width to
     // the left so the extrusion is centred.
