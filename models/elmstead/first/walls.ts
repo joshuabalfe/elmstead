@@ -8,7 +8,7 @@
  * belong to the stair change.
  */
 import { add, face, mm, pt, sub, wall } from "../../../src/model/index.js";
-import { brickT, coreD, coreW, eastT, extEastX, extSouthY, firstFloor, northT, partT, southT, studT, westT } from "../shared.js";
+import { brickT, coreW, extEastX, extSouthY, externalRuns, externalWall, firstFloor, partT, studT, westT } from "../shared.js";
 import { livingBreast, partitionEast, partitionX } from "../ground/walls.js";
 
 export const wallH = firstFloor.ceilingHeight;
@@ -41,21 +41,21 @@ export const ensuiteSouthY = mm(3815); // bedroom face of the ensuite's south wa
 export const ensuiteSouthFaceY = add(ensuiteSouthY, partT);
 
 // ── External walls, on the ground floor's walls below ───────────────────────
-export const north = wall("wall-north-first", pt(extEastX, coreD), pt(mm(0), coreD), { thickness: northT, height: wallH, justification: "left" });
-export const south = wall("wall-south-first", pt(mm(0), mm(0)), pt(coreW, mm(0)), { thickness: southT, height: wallH, justification: "left" });
+export const north = externalWall("wall-north-first", externalRuns.north, wallH);
+export const south = externalWall("wall-south-first", externalRuns.south, wallH);
 export const southIn = face(south, "north");
 export const northIn = face(north, "south");
 export const breastNorthY = add(southIn, breastDepth);
 export const bedroomBreastWestX = mm(7850);
 
-export const westNorth = wall("wall-west-first-north", pt(mm(0), northIn), pt(mm(0), bayNorthY), { thickness: westT, height: wallH, justification: "left" });
-export const westSouth = wall("wall-west-first-south", pt(mm(0), baySouthY), pt(mm(0), southIn), { thickness: westT, height: wallH, justification: "left" });
+export const westNorth = wall("wall-west-first-north", externalRuns.west.start, pt(mm(0), bayNorthY), { thickness: westT, height: wallH, justification: "left" });
+export const westSouth = wall("wall-west-first-south", pt(mm(0), baySouthY), externalRuns.west.end, { thickness: westT, height: wallH, justification: "left" });
 export const westIn = face(westNorth, "east");
 
-export const east = wall("wall-east-first", pt(coreW, southIn), pt(coreW, extSouthY), { thickness: eastT, height: wallH, justification: "left" });
+export const east = externalWall("wall-east-first", externalRuns.east, wallH);
 export const eastIn = face(east, "west");
-export const extEast = wall("wall-extension-east-first", pt(extEastX, extSouthY), pt(extEastX, northIn), { thickness: brickT, height: wallH, justification: "left" });
-export const extSouth = wall("wall-extension-south-first", pt(coreW, extSouthY), pt(face(extEast, "west"), extSouthY), { thickness: brickT, height: wallH, justification: "left" });
+export const extEast = externalWall("wall-extension-east-first", externalRuns.extEast, wallH);
+export const extSouth = externalWall("wall-extension-south-first", externalRuns.extSouth, wallH);
 
 // ── Bay window, west side of the dining room ────────────────────────────────
 // Lines are the bay's outer edge; its sides meet the west wall's outer face. Its ceiling is
