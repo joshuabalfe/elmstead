@@ -54,9 +54,10 @@ None.
 - `src/render/plan.ts`, `src/render/style.ts`
 - `src/checks/` and `src/checks/model.ts`
 - Tests, docs, a two-storey fixture, and `models/elmstead/` (its provisional stair)
-- Stairs need no viewer work: they are drawn by `renderPlan` alone, so the plan-style overlay the
-  viewer composites from `renderFloor`, `renderWallTops` and `renderPlanAnnotations` is untouched,
-  and the IFC geometry renders as it is. This change first added an interim plan-style fix for the
+- Stairs need no plan-overlay work: they are drawn by `renderPlan` alone, so the overlay the viewer
+  composites from `renderFloor`, `renderWallTops` and `renderPlanAnnotations` is untouched. The viewer
+  does outline the stair solids' edges, because from above the uniformly lit tread tops and edge-on
+  risers otherwise read as a flat slab. This change first added an interim plan-style fix for the
   see-through upper floor the first two-storey model exposed (discard slab tops only in the Top
   view); ELM-6 superseded it with occlusive per-storey floor planes, and merging main dropped the
   interim fix, its test and its `ifc-viewer` delta. `models/elmstead/` now has ELM-6's provisional

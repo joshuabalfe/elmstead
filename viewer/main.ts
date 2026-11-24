@@ -579,6 +579,24 @@ function applyStyle() {
 }
 
 /**
+ * From straight down a flight's tread tops are uniformly lit and its risers are edge-on, so the
+ * steps read as a flat slab. Outline the stair solids' edges: the tread nosings then show as lines
+ * from any angle, including the Top view.
+ */
+const stairEdgeMaterial = new THREE.LineBasicMaterial({ color: C.ink });
+const stairEdgeGeoms: THREE.EdgesGeometry[] = [];
+function addStairEdges(model: FragmentsModel) {
+  model.object.traverse((obj) => {
+    if (!(obj instanceof THREE.Mesh)) return;
+    const m = obj.material;
+    if (!(m instanceof THREE.MeshLambertMaterial) || styleOf(m) !== "stair") return;
+    const g = new THREE.EdgesGeometry(obj.geometry, 30);
+    stairEdgeGeoms.push(g);
+    obj.add(new THREE.LineSegments(g, stairEdgeMaterial));
+  });
+}
+
+/**
  * Map-style input: left drag or one finger pans; the wheel or a pinch zooms; the middle or right
  * button, or three fingers, orbits. OBC's projection switch rebinds the wheel and middle button, so
  * this runs again after each switch. The pinch must be a true zoom in the orthographic views,
@@ -1052,6 +1070,8 @@ async function load(name: string) {
   currentModel = null;
   clearMeasurements();
   status.textContent = `loading ${name}.ifc…`;
+  for (const g of stairEdgeGeoms) g.dispose();
+  stairEdgeGeoms.length = 0;
   for (const [id] of fragments.list) await fragments.core.disposeModel(id);
   if (epoch !== loadEpoch) return;
   const buffer = new Uint8Array(await (await fetch(`/out/${name}.ifc`)).arrayBuffer());
@@ -1090,6 +1110,7 @@ async function load(name: string) {
   await applyStoreyVisibility(model);
   if (epoch !== loadEpoch) return;
   applyStyle();
+  addStairEdges(model);
   box = model.box.clone();
   grid.three.position.y = box.min.y - 0.01; // under the lowest slab, so it doesn't show through floors
   await setView(parseView(params.get("view"))); // the plan view, unless the URL asks for another
