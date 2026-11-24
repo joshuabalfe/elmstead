@@ -32,9 +32,9 @@ const bedroomWindowOffset = sub(sub(ensuiteSouth.start.y, east.start.y), bedroom
 const bedroomDoorWidth = mm(800);
 const bedroomDoorOffset = divRound(sub(mm(wallLength(bedroomNorth)), bedroomDoorWidth), 2);
 
-// The kitchen door sits at the north end, against the outer wall.
+// The kitchen door sits close to the north wall, with a 50 mm jamb.
 const kitchenDoorWidth = internal.width;
-const kitchenDoorOffset = sub(mm(wallLength(kitchenEast)), kitchenDoorWidth);
+const kitchenDoorOffset = sub(sub(mm(wallLength(kitchenEast)), kitchenDoorWidth), mm(50));
 
 export const openings: Opening[] = [
   // West wall runs north→south; "left" is inside. The kitchen window is 1.21 × 2.1 m, centred
@@ -53,7 +53,7 @@ export const openings: Opening[] = [
   door("door-dining-first", diningNorth, mm(3400), internalDoor, internal, { hinge: "end", side: "right" }),
   door("door-bedroom-first", bedroomNorth, bedroomDoorOffset, internalDoor, { width: bedroomDoorWidth, height: doorH }, { hinge: "start", side: "right" }),
   door("door-ensuite-first", ensuiteSouth, mm(350), internalDoor, { width: mm(800), height: doorH }, { hinge: "start", side: "left" }),
-  // Kitchen door sits against the north wall; "left" is the kitchen.
+  // Kitchen door sits 50 mm off the north wall; "left" is the kitchen.
   door("door-kitchen-first", kitchenEast, kitchenDoorOffset, internalDoor, { width: kitchenDoorWidth, height: doorH }, { hinge: "end", side: "left" }),
 
   // East wall runs south→north. The rear bedroom window is 1.1 × 1.95 m with a 500 mm sill (owner),

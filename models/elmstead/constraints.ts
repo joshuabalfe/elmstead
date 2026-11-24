@@ -146,6 +146,14 @@ export default defineConstraints([
       measure: "x",
       distance: mm(1100),
     },
+    {
+      id: "kitchen-door-offset",
+      note: "Kitchen door sits 50 mm off the north wall (owner)",
+      from: jamb("door-kitchen-first", "end"),
+      to: wallEnd("wall-kitchen-east-first", "end"),
+      measure: { along: "wall-kitchen-east-first" },
+      distance: mm(50),
+    },
   ]),
   inRoom("room-dining-first", [
     {

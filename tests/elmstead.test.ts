@@ -82,7 +82,7 @@ describe("Elmstead's floor structure", () => {
     expect(step.start.y - face(wall("wall-dining-north-first"), "north")).toBe(mm(1250));
     const door = first.openings.find((o) => o.id === "door-kitchen-first");
     if (!door || door.kind !== "door") throw new Error("Elmstead has no kitchen door");
-    expect(door.offsetAlongWall + door.width).toBe(wallLength(wall("wall-kitchen-east-first")));
+    expect(wallLength(wall("wall-kitchen-east-first")) - (door.offsetAlongWall + door.width)).toBe(mm(50));
   });
 
   it("gives the ensuite the owner's size", () => {
