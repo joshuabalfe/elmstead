@@ -55,7 +55,7 @@ describe("Elmstead's floor structure", () => {
     const windowWall = first.walls.find((w) => w.id === window.wallId);
     if (!doorWall || !windowWall) throw new Error("The front door and kitchen window need their walls");
     expect(windowWall.start).toEqual(doorWall.start);
-    expect(window.offsetAlongWall).toBe(door.offsetAlongWall);
+    expect(window.offsetAlongWall + window.width / 2).toBe(door.offsetAlongWall + door.width / 2);
     expect(window.height).toBe(mm(2100));
     expect(window.sillHeight).toBe(mm(450));
   });

@@ -20,7 +20,8 @@ const standard = { height: m(1.2), sillHeight: mm(900) };
 // The owner's 1 m opening takes a 50 mm frame, leaving a 900 mm leaf; the fanlight sits between
 // the frame's jambs.
 const frontDoorFrame = mm(50);
-const front = { width: mm(1000), height: doorH };
+export const frontDoorWidth = mm(1000);
+const front = { width: frontDoorWidth, height: doorH };
 export const frontDoorOffset = mm(150); // from the north end of the west wall (owner)
 const frontHead = m(2.6);
 const transom = mm(100); // between the top of the door and the fanlight
