@@ -77,7 +77,8 @@ describe("Elmstead's floor structure", () => {
       return w;
     };
     const step = wall("wall-kitchen-step-first");
-    expect(wallLength(step)).toBe(mm(1100));
+    expect(wallLength(step)).toBe(mm(1275));
+    expect(step.end.x - face(wall("wall-kitchen-east-lower-first"), "east")).toBe(mm(1100));
     expect(step.start.y - face(wall("wall-dining-north-first"), "north")).toBe(mm(1250));
     const door = first.openings.find((o) => o.id === "door-kitchen-first");
     if (!door || door.kind !== "door") throw new Error("Elmstead has no kitchen door");

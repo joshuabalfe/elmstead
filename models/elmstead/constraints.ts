@@ -140,10 +140,10 @@ export default defineConstraints([
     },
     {
       id: "kitchen-return",
-      note: "Kitchen's return wall towards the landing from the owner (1.1 m)",
-      from: wallEnd("wall-kitchen-step-first", "start"),
+      note: "Kitchen's return wall towards the landing from the owner (1.1 m internal; the whole wall adds its thickness)",
+      from: corner({ wall: "wall-kitchen-east-lower-first", face: "east" }, { wall: "wall-kitchen-step-first", face: "south" }),
       to: wallEnd("wall-kitchen-step-first", "end"),
-      measure: { along: "wall-kitchen-step-first" },
+      measure: "x",
       distance: mm(1100),
     },
   ]),
