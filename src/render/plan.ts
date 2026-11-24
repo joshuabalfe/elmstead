@@ -376,9 +376,14 @@ export function renderWallTops(storey: Storey, components?: Components): { svg: 
   return overlay(storey, (view) => wallsAndOpenings(storey, view, components, "gap"));
 }
 
-/** The plan's room fills and door swings alone, on a transparent background, for the 3D viewer's floor. */
+/**
+ * The plan's floor fills (slab and rooms) and door swings alone, on a transparent background, for
+ * the 3D viewer's floor. The slab fills the floor outside the room outlines too: bay windows and
+ * alcoves are floor even where they are not part of the room's dimensions.
+ */
 export function renderFloor(storey: Storey): { svg: string; bounds: Bounds } {
   return overlay(storey, (view) => [
+    ...storey.slabs.map((s) => polygon(s.outline.map((p) => view.toPx(toVec(p))), { fill: C.room, stroke: "none" })),
     ...storey.rooms.map((r) => polygon(r.outline.map((p) => view.toPx(toVec(p))), { fill: C.room, stroke: "none" })),
     ...doorSwings(storey, view),
   ]);
@@ -457,9 +462,16 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
   const wallById = new Map(walls.map((w) => [w.id, w]));
   const out: string[] = [];
 
-  // Slabs: dashed outline only, beneath everything.
+  // Slabs: fill the floor, with a dashed outline beneath everything. Room fills sit on top.
   for (const s of storey.slabs) {
-    out.push(polygon(s.outline.map((p) => view.toPx(toVec(p))), { class: "slab", "data-id": s.id, fill: "none", stroke: C.slab, "stroke-width": 0.8, "stroke-dasharray": "6 3" }));
+    out.push(polygon(s.outline.map((p) => view.toPx(toVec(p))), { class: "slab", "data-id": s.id, fill: C.room, stroke: C.slab, "stroke-width": 0.8, "stroke-dasharray": "6 3" }));
+  }
+
+  // Cut door openings show paper over the slab fill, as the viewer's wall tops do. Drawn before the
+// rooms so a room outline that runs into an opening still covers it, as the plan-vs-3D test checks.
+  for (const o of storey.openings) {
+    const w = wallById.get(o.wallId);
+    if (w && o.kind === "door" && isCut(o) && wallLength(w) > 0) out.push(drawDoorGap(w, o, view));
   }
 
   // Rooms: tinted fill; labels are drawn later so walls never cover them.

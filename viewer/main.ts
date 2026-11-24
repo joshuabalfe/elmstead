@@ -273,8 +273,9 @@ async function planPlane(svg: string, bounds: { minX: number; minY: number; maxX
 }
 
 /**
- * Plan colouring's layers (see applyStyle): the plan's room fills and door swings standing in for
- * the slab's top face, and the plan's walls, door gaps and windows laid over the wall tops.
+ * Plan colouring's layers (see applyStyle): the plan's floor fills (slab and rooms) and door swings
+ * standing in for the slab's top face, and the plan's walls, door gaps and windows laid over the
+ * wall tops.
  */
 const planLayers = new THREE.Group();
 planLayers.visible = false;
@@ -341,7 +342,7 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
     const tops = renderWallTops(storey, model.components);
     layerGroup.add(await planPlane(tops.svg, tops.bounds, (storey.elevation + ceiling + WALL_TOP_LIFT) / 1000, { transparent: true, depthWrite: false }));
     if (epoch !== loadEpoch) return;
-    // Every storey's floor is its own room fills, at its own level, writing depth: the floor you
+    // Every storey's floor is its own slab and room fills, at its own level, writing depth: the floor you
     // see is the topmost one, and it hides the storeys below. Cut-out (alphaTest), not blended, so
     // it stays in the opaque pass that runs before the walls. Built even while hidden, so the
     // selector can show a storey again without rebuilding it.
@@ -509,8 +510,8 @@ function shownBox(): THREE.Box3 {
 /**
  * Plan colouring, in every view except snapshots (which show the IFC's own colours):
  *
- * - Floors: the slab's top face is not drawn; the plan's own room fills and door swings are drawn
- *   first, without depth, so the model always covers them. (A wall's underside lies exactly on the slab's top
+ * - Floors: the slab's top face is not drawn; the plan's own floor fills (slab and rooms) and door
+ *   swings are drawn first, without depth, so the model always covers them. (A wall's underside lies exactly on the slab's top
  *   face, and on real GPUs the two fight for depth.) The slab's edges still show.
  * - Walls keep their IFC colour and lighting, except faces that look upwards (wall tops, window
  *   sills), which are the plan's charcoal, unlit. A small shader patch picks those out by their

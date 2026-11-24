@@ -1,6 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="970" height="790" viewBox="0 0 970 790" font-family="DejaVu Sans">
 <rect x="0" y="0" width="970" height="790" fill="#ffffff"/>
-<polygon points="60,670 860,670 860,70 60,70" class="slab" data-id="slab-ground" fill="none" stroke="#9a9a9a" stroke-width="0.8" stroke-dasharray="6 3"/>
+<polygon points="60,670 860,670 860,70 60,70" class="slab" data-id="slab-ground" fill="#f3efe6" stroke="#9a9a9a" stroke-width="0.8" stroke-dasharray="6 3"/>
+<g class="door-gap" data-id="door-front">
+<polygon points="455,670 545,670 545,650 455,650" fill="#ffffff" stroke="none"/>
+</g>
+<g class="door-gap" data-id="door-back">
+<polygon points="545,70 455,70 455,90 545,90" fill="#ffffff" stroke="none"/>
+</g>
+<g class="door-gap" data-id="door-living">
+<polygon points="445,532.5 445,452.5 435,452.5 435,532.5" fill="#ffffff" stroke="none"/>
+</g>
+<g class="door-gap" data-id="door-kitchen">
+<polygon points="445,247.5 445,167.5 435,167.5 435,247.5" fill="#ffffff" stroke="none"/>
+</g>
+<g class="door-gap" data-id="door-bedroom">
+<polygon points="565,512.5 565,432.5 555,432.5 555,512.5" fill="#ffffff" stroke="none"/>
+</g>
+<g class="door-gap" data-id="door-bathroom">
+<polygon points="565,227.5 565,147.5 555,147.5 555,227.5" fill="#ffffff" stroke="none"/>
+</g>
 <polygon points="80,650 435,650 435,335 80,335" class="room" data-id="room-living" fill="#f3efe6" stroke="none"/>
 <polygon points="445,650 555,650 555,90 445,90" class="room" data-id="room-hall" fill="#f3efe6" stroke="none"/>
 <polygon points="80,325 435,325 435,90 80,90" class="room" data-id="room-kitchen" fill="#f3efe6" stroke="none"/>

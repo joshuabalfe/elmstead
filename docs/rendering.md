@@ -15,8 +15,8 @@ don't, such as a door swinging the wrong way.
 One SVG per storey, at 1 px = 10 mm in the SVG and rasterised at 2× to PNG. The plan is drawn in
 this order:
 
-1. slab outline, dashed
-2. room fills
+1. slab fill, cream with a dashed outline
+2. room fills (the same cream, on top of the slab)
 3. walls at their true thickness, split around the openings. Beside a window with a splayed
    reveal the wall ends square from one face to the middle, then at the reveal's angle to the
    splayed face (`src/geometry/opening.ts`)
@@ -134,10 +134,11 @@ openings cut, doors and glazing in place, colours applied.
   - The measure layer is independent of **Labels** and **Constraints**; completed measurements
     stay visible when measure mode is off.
 - Plan colouring, the same in every view (`applyStyle` in `main.ts`):
-  - Floors are the plan's own room fills and door swings (`renderFloor` in `src/render/plan.ts`),
-    cream rooms on white, one plane per shown storey at that storey's level. Each writes depth, so
-    the topmost shown floor hides the storeys below it: from above you see the top floor's rooms,
-    not the grey slab and not the floor beneath. In plan style a slab's top is not drawn; its
+  - Floors are the plan's own floor fills and door swings (`renderFloor` in `src/render/plan.ts`),
+    cream slab and room fills on white, one plane per shown storey at that storey's level. The slab
+    fill covers floor outside the room outlines too, such as bay windows and alcoves. Each plane
+    writes depth, so the topmost shown floor hides the storeys below it: from above you see the top
+    floor's rooms, not the grey slab and not the floor beneath. In plan style a slab's top is not drawn; its
     underside is the ceiling below, and its exposed edges show the floor structure's thickness. The
     lower storey's walls stop at the slab's underside, so the slab sits on them and its 200 mm edge
     is the structure band between storeys; in `?style=ifc` the slab renders whole.
