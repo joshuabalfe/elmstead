@@ -108,6 +108,19 @@ reported in metres from the outer walls' south-west corner.
 - **WHEN** a model's storeys have different wall layouts
 - **THEN** each storey's plan is compared against the top view of that storey alone, and both pass
 
+### Requirement: Ground presentation
+The viewer SHALL recognise a ground slab's material as ground, not as a wall or concrete slab, and
+present it in the ground colour in both plan style and 3D. In plan style the ground SHALL read as a
+floor fill like other slabs, and the ground colour SHALL NOT disturb the plan-versus-3D comparison.
+
+#### Scenario: Ground in 3D
+- **WHEN** the viewer shows a ground slab in 3D or `?style=ifc`
+- **THEN** its top face appears in the ground colour
+
+#### Scenario: Ground in plan style
+- **WHEN** the viewer shows a ground slab in plan style
+- **THEN** the ground reads as a floor fill and the plan-versus-3D comparison is unchanged
+
 ### Requirement: Custom camera
 `?camera=px,py,pz,tx,ty,tz` SHALL place a perspective camera at p looking at t, in scene metres.
 
@@ -462,12 +475,18 @@ interactively and in rendered snapshots, and SHALL show only when the button is 
 The viewer SHALL recolour stair solids so the steps read from above, in every mode including
 snapshots and `?style=ifc`: upward faces alternate the floor cream with a darker cream, vertical
 faces take the wall colour, and an edge outline reads the nosings. The recolour SHALL NOT change the
-base material colour.
+base material colour. Banding SHALL use one riser height per model, taken from the stair with the
+largest riser: a model whose stairs differ in riser height SHALL band every stair on that height.
 
 #### Scenario: Steps read from above
 - **WHEN** the viewer shows a stair from the Top view, in any style or snapshot
-- **THEN** alternate treads shade cream / darker cream, banded on the stair's riser height, and the
+- **THEN** alternate treads shade cream / darker cream, banded on the shared riser height, and the
   nosings read as edges
+
+#### Scenario: Two stairs with different risers
+- **WHEN** a model has two stairs with different riser heights, such as the main stair and the front
+  steps
+- **THEN** both band on the largest riser height, the documented shared-riser limitation
 
 #### Scenario: Snapshots keep the readability presentation
 - **WHEN** `render` writes a model's 3D snapshots
