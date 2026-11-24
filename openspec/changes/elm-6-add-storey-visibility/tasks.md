@@ -41,6 +41,7 @@
 - [x] 7.1 Put the provisional first floor one floor structure (its 200 mm slab) above the ground ceiling and stop the ground walls at the ceiling, so the slab sits on them and its edge is the structure band between storeys; verify `build` reports 0 errors and the plan-versus-3D comparisons still pass, and a stair's rise is ceiling + joist depth, not the ceiling alone
 - [x] 7.2 Draw a slab's exposed edges in plan style while suppressing only its top; the slab covers the footprint and sits on the walls, so its edges show the 200 mm structure at the facade and around the stairwell
 - [x] 7.3 Align the stairwell opening with the ground plan's room and wall edges (hallway east edge, bathroom north wall, north wall, rear hall west edge) and simplify the slab to three pieces; verify every first-floor room centroid falls on a slab and none inside the opening
+- [x] 7.4 Encode the convention in `tests/elmstead.test.ts`: every upper slab's underside equals the lower storey's wall top, and every first-floor room centroid sits on a slab outside the stairwell
 
 ## Workflow follow-up
 
