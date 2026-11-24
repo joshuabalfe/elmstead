@@ -22,13 +22,13 @@ import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { STYLES } from "../src/ifc/styles.js";
-import { renderFloor, renderPlanAnnotations, renderWallTops } from "../src/render/plan.js";
-import { C, FONT, PX_PER_MM } from "../src/render/style.js";
+import { renderFloor, renderPlanAnnotations, renderWallTops, roomTags } from "../src/render/plan.js";
+import { C, FONT, PX_PER_MM, ROOM_LABEL } from "../src/render/style.js";
 import type { BuildingModel, Storey } from "../src/schema/schema.js";
 import type { ResolvedConstraint } from "../src/constraints/check.js";
 import { constraintLabels } from "./constraints.js";
 import { SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap, type MeasurementValues, type Point3, type SnapCandidate } from "./measure.js";
-import { cameraForView, parseView, type View } from "./view.js";
+import { cameraForView, labelHeading, parseView, type View } from "./view.js";
 import { WALK_AXES, entryPosition, headingBasis, movementOffset, walkRequested, walkStep } from "./walk.js";
 declare global {
   interface Window {
@@ -105,19 +105,19 @@ interface Measurement {
   values: MeasurementValues;
 }
 
-/** Measurements, depth-tested so a wall or an upper storey can hide them. */
+/** Measurements, drawn above the model so a wall, floor or storey can never hide them. */
 const measureLayer = new THREE.Group();
 world.scene.three.add(measureLayer);
 const measureLineMaterial = new LineMaterial({
   color: C.measure,
   linewidth: 0.03,
   worldUnits: true,
-  depthTest: true,
+  depthTest: false,
   depthWrite: false,
   transparent: true,
 });
 const measureMarkerGeometry = new THREE.SphereGeometry(0.025, 12, 8);
-const measureMarkerMaterial = new THREE.MeshBasicMaterial({ color: C.measure, depthTest: true, depthWrite: false, transparent: true });
+const measureMarkerMaterial = new THREE.MeshBasicMaterial({ color: C.measure, depthTest: false, depthWrite: false, transparent: true });
 
 /** The loaded Fragments model, so a storey choice can update it without a reload. */
 let currentModel: FragmentsModel | null = null;
@@ -176,24 +176,25 @@ function updateCompass() {
   compassN.setAttribute("y", String(-33 * Math.cos(turn) + 5));
 }
 world.camera.controls.addEventListener("update", updateCompass);
+world.camera.controls.addEventListener("update", updateLabelOrientation);
 window.addEventListener("resize", updateCompass);
 
 interface BillboardLine {
   text: string;
   size: number;
   bold?: boolean;
-  /** Baseline offset from the sprite's centre, in canvas px. */
+  /** Baseline offset from the label's centre, in canvas px. */
   dy: number;
 }
 
-/** A sprite that always faces the camera, at the plan's text scale, with a halo so it reads over the model. */
-function billboard(lines: BillboardLine[], fill: string, renderOrder: number, depthTest = false): THREE.Sprite {
+/** A label's haloed canvas, at the plan's text scale; width and height are in canvas px. */
+function labelTexture(lines: BillboardLine[], fill: string): { map: THREE.CanvasTexture; width: number; height: number } {
   const halo = 3;
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d")!;
   const font = (l: BillboardLine) => `${l.bold ? "bold " : ""}${l.size}px "${FONT}", sans-serif`;
   const width = Math.max(...lines.map((l) => ((ctx.font = font(l)), ctx.measureText(l.text).width))) + 2 * halo;
-  // Lay the baselines out around the centre, so the sprite centres on its anchor.
+  // Lay the baselines out around the centre, so the texture centres on its anchor.
   const top = Math.min(...lines.map((l) => l.dy - l.size));
   const bottom = Math.max(...lines.map((l) => l.dy + 4));
   const height = bottom - top;
@@ -212,12 +213,50 @@ function billboard(lines: BillboardLine[], fill: string, renderOrder: number, de
   }
   const map = new THREE.CanvasTexture(canvas);
   map.colorSpace = THREE.SRGBColorSpace;
+  return { map, width, height: height + 2 * halo };
+}
+
+/** A sprite that always faces the camera, at the plan's text scale, with a halo so it reads over the model. */
+function billboard(lines: BillboardLine[], fill: string, renderOrder: number, depthTest = false): THREE.Sprite {
+  const { map, width, height } = labelTexture(lines, fill);
   // Constraints and measurements depth-test, so a wall or a storey above hides them.
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthTest, depthWrite: false }));
   sprite.renderOrder = renderOrder;
   const mPerPx = 1 / PX_PER_MM / 1000;
-  sprite.scale.set(width * mPerPx, (height + 2 * halo) * mPerPx, 1);
+  sprite.scale.set(width * mPerPx, height * mPerPx, 1);
   return sprite;
+}
+
+/** Lays a flat label's texture up along plan north, on the floor plane before any heading yaw. */
+const FLAT_LABEL_BASE = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+const labelYaw = new THREE.Quaternion();
+const WORLD_UP = new THREE.Vector3(0, 1, 0);
+
+/**
+ * A label lying flat on a ceiling, at the plan's text scale, so an upper storey's floor can hide
+ * it. `updateLabelOrientation` yaws it about its anchor so it reads across the screen.
+ */
+function flatLabel(lines: BillboardLine[], fill: string, renderOrder: number): THREE.Mesh {
+  const { map, width, height } = labelTexture(lines, fill);
+  map.anisotropy = world.renderer!.three.capabilities.getMaxAnisotropy();
+  const mPerPx = 1 / PX_PER_MM / 1000;
+  const mesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(width * mPerPx, height * mPerPx),
+    new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false }),
+  );
+  mesh.quaternion.copy(FLAT_LABEL_BASE);
+  mesh.renderOrder = renderOrder;
+  mesh.userData.flatLabel = true; // updateLabelOrientation rotates these
+  return mesh;
+}
+
+/** Turn every flat room label within its plane so its text reads left-to-right from the camera. */
+function updateLabelOrientation() {
+  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(world.camera.three.quaternion);
+  labelYaw.setFromAxisAngle(WORLD_UP, labelHeading(right));
+  labels.traverse((obj) => {
+    if (obj.userData.flatLabel) obj.quaternion.copy(labelYaw).multiply(FLAT_LABEL_BASE);
+  });
 }
 
 /** Constraint labels draw above everything, including their dotted spans. */
@@ -298,10 +337,11 @@ function updateLowestElevation() {
 }
 
 /**
- * The plan's room names, areas and dimensions for each storey, as one transparent texture on a
- * plane at its ceiling, and that storey's constraints as red labels and dotted spans beside them.
- * The schema has no ceiling height, so the ceiling is the top of the storey's tallest wall. Lying
- * flat, an upper storey's floor occludes a lower storey's labels, as it does its rooms.
+ * The plan's dimensions for each storey on one transparent texture at its ceiling, each room's
+ * name and area on its own flat label there, and that storey's constraints as red labels and
+ * dotted spans beside them. The schema has no ceiling height, so the ceiling is the top of the
+ * storey's tallest wall. Lying flat, an upper storey's floor occludes a lower storey's labels, as
+ * it does its rooms; the room labels yaw with the camera to stay readable.
  */
 async function loadLabels(name: string, model: BuildingModel | null, epoch: number) {
   if (epoch !== loadEpoch) return;
@@ -330,15 +370,29 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
   for (const storey of model.storeys) {
     const labelGroup = new THREE.Group();
     const layerGroup = new THREE.Group();
-    // Names and dimensions in one flat plane at the ceiling: lying flat is what lets an upper
-    // storey's floor occlude them, which a camera-facing billboard could never be.
-    const { svg, bounds } = renderPlanAnnotations(storey);
+    // Dimensions on one flat plane at the ceiling: lying flat is what lets an upper storey's floor
+    // occlude them, which a camera-facing billboard could never be.
+    const { svg, bounds } = renderPlanAnnotations(storey, { names: false });
     const ceiling = Math.max(0, ...storey.walls.map((w) => w.height));
     const y = (storey.elevation + ceiling + LABEL_LIFT) / 1000;
     const annotations = await planPlane(svg, bounds, y, { transparent: true, depthWrite: false });
     if (epoch !== loadEpoch) return;
     annotations.renderOrder = 1; // over the wall tops' layer
     labelGroup.add(annotations);
+    // Each room's name and area is its own plane, flat like the dimensions but yawed to the camera
+    // (updateLabelOrientation), so it stays occludable without standing up through the floor above.
+    for (const tag of roomTags(storey)) {
+      const label = flatLabel(
+        [
+          { text: tag.name, size: ROOM_LABEL.name.size, bold: true, dy: ROOM_LABEL.name.dy },
+          { text: tag.area, size: ROOM_LABEL.area.size, dy: ROOM_LABEL.area.dy },
+        ],
+        C.ink,
+        2, // over the dimension lines, as the room billboards were
+      );
+      label.position.set(tag.at.x / 1000, y, -tag.at.y / 1000);
+      labelGroup.add(label);
+    }
     const tops = renderWallTops(storey, model.components);
     layerGroup.add(await planPlane(tops.svg, tops.bounds, (storey.elevation + ceiling + WALL_TOP_LIFT) / 1000, { transparent: true, depthWrite: false }));
     if (epoch !== loadEpoch) return;
@@ -370,6 +424,7 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
     planLayers.add(layerGroup);
     storeyLayers.set(storey.id, [labelGroup, layerGroup, constraintGroup]);
   }
+  updateLabelOrientation();
 }
 
 let box = new THREE.Box3();
@@ -630,6 +685,7 @@ async function setView(view: View) {
   await world.camera.controls.fitToSphere(sphere, false);
   await fragments.core.update(true);
   updateCompass();
+  updateLabelOrientation();
 }
 
 /**
@@ -643,6 +699,7 @@ async function setCamera(spec: string) {
   await world.camera.controls.setLookAt(v[0]!, v[1]!, v[2]!, v[3]!, v[4]!, v[5]!, false);
   await fragments.core.update(true);
   updateCompass();
+  updateLabelOrientation();
 }
 
 /** The camera state walk mode saves on entry and restores on exit; non-null while walking. */
@@ -721,6 +778,7 @@ async function enterWalk(lock: boolean) {
   if (lock) pointerLockControls.lock();
   await fragments.core.update(true);
   updateCompass();
+  updateLabelOrientation();
 }
 
 /** Leave walk mode, restoring the saved projection, pose and orthographic framing exactly. */
@@ -753,6 +811,7 @@ async function exitWalk() {
   world.camera.controls.enabled = true;
   await fragments.core.update(true);
   updateCompass();
+  updateLabelOrientation();
 }
 
 /** The walk frame loop: heading-relative movement at the fixed eye height, through all geometry. */
@@ -768,6 +827,8 @@ function walkFrame(now: number) {
     void fragments.core.update();
     updateCompass();
   }
+  // The heading changes as the walker looks around, not only when the position moves.
+  updateLabelOrientation();
   walkLast = now;
   walkRaf = requestAnimationFrame(walkFrame);
 }
@@ -833,7 +894,7 @@ function measureBillboard(id: number, values: MeasurementValues): THREE.Sprite {
     measurementLines(id, values).map((text, i) => ({ text, size: i === 0 ? 12 : 11, bold: i === 0, dy: (i - 1) * step })),
     C.measure,
     10,
-    true,
+    false, // above the model and the other overlays, like the measurement line
   );
 }
 
