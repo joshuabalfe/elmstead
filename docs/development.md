@@ -55,7 +55,8 @@ them as an `Issue` against the element id. Add a fixture test to `tests/checks.t
 | `tests/checks.test.ts` | component checks plus id, zero-length wall, opening host/fit/overlap and outline rules |
 | `tests/cli.test.ts` | `build`/`check`/`all`, failure fixtures, render-before-build and missing-Chromium warnings, exit statuses |
 | `tests/validate.test.ts` | validator bridge: non-JSON output, truncated JSON, crash status and exit 1 with findings (fake `uv`) |
-| `tests/viewer.test.ts` | path confinement, malformed encoding and `?view=` fallback |
+| `tests/viewer.test.ts` | path confinement, malformed encoding and `?view=` fallback; measurement maths, snap choice and click slop |
+| `tests/viewer-measure.test.ts` | snapped picks, drag/tap handling, Clear/Escape, model changes and the snapshot exemption in headless Chromium |
 | `tests/snapshot.test.ts` | a viewer failure is an ERROR and the server closes |
 | `tests/toolchain.test.ts` | web-ifc and uv/IfcOpenShell are available |
 
@@ -90,6 +91,7 @@ The actions are pinned by commit SHA, matching the repo's exact-version rule.
 | File | Regenerate with | Notes |
 |---|---|---|
 | `out/**` | `npm run build` / `npm run render` | git-ignored; never edit |
+| `out/<name>.constraints.json` | `npm run build` | resolved constraints for the viewer's red labels; written only when the model has a constraints file |
 | `schema/building.schema.json` | `npm run schema` | committed; `tests/schema.test.ts` fails if it is stale |
 | `validator/validate.py.lock` | `uv lock --script validator/validate.py` | run after changing the script's dependencies |
 | `tests/__snapshots__/*.svg` | `npx vitest run -u` | review the diff before committing |

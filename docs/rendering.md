@@ -85,6 +85,10 @@ openings cut, doors and glazing in place, colours applied.
   and `add`, so an atomic IFC rename is noticed too.
 - `main.ts` loads the IFC through ThatOpen's IFC loader and sets up the camera views.
   - In the scene Y is up and plan north is −Z.
+  - The **SW**, **SE**, **NE** and **NW** buttons show true isometric views: an orthographic camera
+    from that corner, 45° round and 35.26° above the ground, so parallel edges stay parallel and
+    the building reads like a video-game diorama. The Top view is orthographic straight down.
+    Snapshots keep the perspective corner cameras (see [3D snapshots](#3d-snapshots)).
   - The loader keeps IFC coordinates as they are (`COORDINATE_TO_ORIGIN: false`), so anything
     drawn from the model lines up with the IFC.
   - Every model is drawn as full geometry (`setLodMode(LodMode.ALL_VISIBLE)`). By default
@@ -99,13 +103,11 @@ openings cut, doors and glazing in place, colours applied.
     frame is drawn, which is what the snapshot driver waits for.
 - Room labels: `main.ts` also reads `out/<name>.building.json` and draws each storey's room
   labels at its ceiling, 10 mm above the top of its tallest wall (the schema has no ceiling
-  height). Being above the walls, they read from every camera.
-  - Dimension lines lie flat, as if drawn on a glass ceiling: the plan's own room and overall
-    dimensions (`renderPlanAnnotations(storey, { names: false })` in `src/render/plan.ts`) drawn
-    to a texture at 2.5 mm per pixel.
-  - Room names and areas are billboards (sprites) that turn to face the camera, at the room's
-    centroid and the plan's text size (`roomTags` and `ROOM_LABEL` in `src/render/style.ts`).
-    They are drawn over the model so the wall tops don't cut them.
+  height). Being above the walls, they read from every camera that can see that storey.
+  - Dimension lines, room names and areas all lie flat on that one plane, as if drawn on a glass
+    ceiling: the plan's own room and overall dimensions and labels
+    (`renderPlanAnnotations` in `src/render/plan.ts`) drawn to a texture at 2.5 mm per pixel. Lying
+    flat is what lets a storey above occlude them; camera-facing billboards painted through floors.
   - All of it has a white halo so it reads over the model.
   - A compass in the bottom-right corner points to true north (`site.northAngle`) as it appears on
     screen. It projects a north-pointing line on the ground, so it is right in perspective views
@@ -113,16 +115,32 @@ openings cut, doors and glazing in place, colours applied.
   - They come from the model JSON, not the IFC, because the IFC has no room dimensions.
   - The **Labels** button toggles them. `?labels=0` or `?labels=1` in the URL sets them.
   - They are on by default, but off in snapshots (`?snapshot=1`), so the 3D PNGs show only the IFC.
+- Constraint labels: when `build` has written `out/<name>.constraints.json`, each measured
+  constraint is a red billboard at the midpoint of the span its measurement covers on its storey,
+  reading `<id> <distance>` in millimetres, with a thick red dotted line along that span. They
+  start hidden; the **Constraints** button or `?constraints=1` turns them on, independently of the
+  room labels, and snapshots leave them off. They sit at their storey's ceiling and are occluded
+  like everything else there: a storey above hides them, and hiding their storey hides them.
+- Measurement tool: the **Measure** button or `?measure=1` starts it. A click or tap picks the
+  nearest corner or edge within snapping range, otherwise the exact point on the face; a second
+  pick is projected onto the nearest axis through the first and adds a numbered measurement, so
+  measurements are axis-aligned rather than diagonal. Each one is a teal line, endpoint markers and
+  a camera-facing label with the straight-line, horizontal and vertical distances, plus a row in
+  the bottom-left measurement list. The line, markers and label are depth-tested, so a wall, floor
+  or storey above in front of them hides them instead of letting them float through the building.
+  - Measurements are viewer-only: they are cleared on a model change or when walk mode starts,
+    survive camera and view changes, and are ignored in snapshots. Escape cancels a pending point;
+    **Clear** removes all measurements.
+  - The measure layer is independent of **Labels** and **Constraints**; completed measurements
+    stay visible when measure mode is off.
 - Plan colouring, the same in every view (`applyStyle` in `main.ts`):
   - Floors are the plan's own room fills and door swings (`renderFloor` in `src/render/plan.ts`),
-    cream rooms on white, drawn first and without depth so the model always covers them. A slab's
-    top face is not drawn, so those fills show in its place; its edges still show. (A wall's
-    underside lies exactly on the slab's top face, and on real GPUs the two fight for depth.) Only
-    the lowest storey gets a floor, so slab tops are dropped **only while the camera looks straight
-    down** — the Top view's pose — and come back the moment it tilts, orbiting included: anywhere
-    else an upper storey's slab would be a hole straight through to the storey below. A shared
-    shader uniform (`discardSlabTops` in `main.ts`) flips it, so no recompile and no per-storey
-    materials. Walk mode looks up at slab undersides, which the patch never touched.
+    cream rooms on white, one plane per shown storey at that storey's level. Each writes depth, so
+    the topmost shown floor hides the storeys below it: from above you see the top floor's rooms,
+    not the grey slab and not the floor beneath. In plan style a slab's top is not drawn; its
+    underside is the ceiling below, and its exposed edges show the floor structure's thickness. The
+    lower storey's walls stop at the slab's underside, so the slab sits on them and its 200 mm edge
+    is the structure band between storeys; in `?style=ifc` the slab renders whole.
   - Walls keep their IFC colour and lighting, except faces that look upwards (wall tops, window
     sills), which are the plan's charcoal, unlit. A small shader patch picks those out by their
     world-space normal, so the material itself is unchanged.
@@ -131,17 +149,28 @@ openings cut, doors and glazing in place, colours applied.
     shows what is in the walls below, as the plan does. From above, the Top view reads like the
     plan without cutting the model.
   - White background, no grid.
+- The **Up to:** selector lists the model's storeys lowest first; choosing one shows that storey and
+  every storey below it, hiding those above, and the topmost choice shows everything. A choice
+  updates the loaded model in place without moving the camera, so floors compare from one viewpoint;
+  the compass follows the shown footprint, and the view buttons re-frame on request. The choice is
+  written to `?storeys=` so the URL shares it. A `?storeys=` set that is not one floor's prefix
+  shows a disabled **Custom** value until a floor is chosen. The selector is hidden for a
+  single-storey model.
+- `?storeys=a,b` shows only those storeys: everything the IFC contains or aggregates in the others is
+  hidden, with their labels and floor planes. An id that names no storey is noted in the status line
+  and ignored; omitting the parameter shows every storey. With one storey shown, the Top view is
+  that storey's plan view, whichever storey it is.
 - Navigation (`setNavigationInput` in `main.ts`), map-style in every view:
   - Left drag or one finger pans.
   - The wheel or a pinch zooms. A pinch tracks the fingers: spreading them 4× zooms about 4×. In
-    the orthographic Top view it is a true zoom, since moving an orthographic camera closer
-    changes nothing on screen.
+    the orthographic views it is a true zoom, since moving an orthographic camera closer changes
+    nothing on screen.
   - The middle or right button, or three fingers, orbits.
   - Drags follow the pointer without easing, so a fast pinch is not lost to the camera's lag.
 - The That Open Company logo overlay is hidden (`showLogo = false`).
 - Walk mode: the **Walk** button, or `?walk=1`, enters a first-person walkthrough.
-  - The camera starts at the footprint centre of the model on its lowest storey, at a fixed
-    1.6 m eye height, facing plan north. With no building JSON it starts 1.6 m above the IFC's
+  - The camera starts at the footprint centre of the shown storeys on the lowest shown storey, at a
+    fixed 1.6 m eye height, facing plan north. With no building JSON it starts 1.6 m above the IFC's
     lowest point.
   - The mouse looks around through pointer lock; W/A/S/D and the arrow keys move at 3 m/s
     relative to the heading you face. `?walk=1` shows a click-to-look prompt — browsers only

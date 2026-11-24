@@ -89,11 +89,17 @@ npm run view
 This opens a local [ThatOpen](https://github.com/ThatOpen) viewer (Vite dev server, normally
 http://localhost:5173) that loads the IFC files in `out/`. It has a model picker and
 SW/SE/NE/NW/Top camera buttons, and opens in the Top view. It shows the plan's room labels and
-dimensions at ceiling height and a compass pointing to true north; the **Labels** button hides
-them. Every view uses the plan's colours (room fills for floors, charcoal wall tops), with door
-gaps and window symbols on the wall tops and door swings on the floor, so the **Top** view reads
-like the plan. When an IFC in `out/` changes it reloads itself, so leave it open while you edit
-and re-run `build`.
+dimensions at ceiling height, the model's measured constraints as red labels and dotted spans, and
+a compass pointing to true north. The **Labels** button hides the room text, and the
+**Constraints** button shows or hides the red constraints, which start hidden. The **Measure**
+button, or `?measure=1`, starts a click-to-measure tool: click or tap two points on the model,
+snapping to corners and edges. The second point is projected onto the nearest axis through the
+first, so measurements run along X, Y or Z rather than diagonally. Each pair adds a numbered
+measurement showing the straight-line, horizontal and vertical distances in millimetres.
+Measurements stay in the viewer only; **Clear** removes them. Every view uses the plan's colours
+(room fills for floors, charcoal wall tops), with door gaps and window symbols on the wall tops and
+door swings on the floor, so the **Top** view reads like the plan. When an IFC in `out/` changes it
+reloads itself, so leave it open while you edit and re-run `build`.
 
 Everything is served locally, so the viewer works offline. Stop it with Ctrl-C.
 

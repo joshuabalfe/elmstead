@@ -70,6 +70,12 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
   cottage puts the origin at the outside south-west corner.
 - Heights are measured up from the storey's `elevation`, which is the finished floor level above
   the building's zero.
+- The floor structure that carries a storey belongs to that storey, as its slab: the slab's top is
+  at the storey elevation and it extends downwards. Above another storey, set the elevation one
+  structure thickness above the lower storey's clear ceiling. Stop the lower storey's walls at the
+  clear ceiling, so the slab sits on them and its exposed edge is the 200 mm structure band between
+  storeys. The lower storey's clear ceiling is then the slab's underside, and a stair rises the
+  floor-to-floor distance — ceiling plus structure — not the clear ceiling alone.
 - `site.northAngle` (optional) is the angle of true north, counter-clockwise from plan +y. Leave
   it out if north is straight up the plan.
 
@@ -298,6 +304,11 @@ ERROR   living-corner-to-window: is 1200 mm, should be 1175 ±10 mm (room-living
 **When a constraint fails, fix the model, not the constraint.** Change or add a constraint only
 for a new measurement, and say where it came from in its `note`. Don't record positions traced
 from a drawing as constraints.
+
+The **Constraints** button (off by default) shows each constraint in red at the midpoint of its
+measured span, labelled with its id and required distance, with a thick red dotted line along the
+span. `build` resolves the points into `out/<name>.constraints.json` for the viewer; that file is
+generated, so don't edit it.
 
 ### Where they live
 
