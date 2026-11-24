@@ -4,7 +4,7 @@ import type { ResolvedConstraint } from "../src/constraints/check.js";
 import { constraintLabels } from "../viewer/constraints.js";
 import { CLICK_SLOP_PX, SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap } from "../viewer/measure.js";
 import { confinedPath } from "../viewer/serve.js";
-import { parseView } from "../viewer/view.js";
+import { cameraForView, parseView } from "../viewer/view.js";
 
 const dir = "/tmp/elmstead-out";
 
@@ -30,6 +30,25 @@ describe("parseView", () => {
     for (const view of ["sw", "se", "ne", "nw", "top"] as const) expect(parseView(view)).toBe(view);
     expect(parseView("sideways")).toBe("top");
     expect(parseView(null)).toBe("top");
+  });
+});
+
+describe("cameraForView", () => {
+  it("uses a true isometric orthographic camera for interactive corner views", () => {
+    for (const view of ["sw", "se", "ne", "nw"] as const) {
+      const { direction, projection } = cameraForView(view, false);
+      expect(projection).toBe("Orthographic");
+      expect(Math.abs(direction[0])).toBe(Math.abs(direction[1]));
+      expect(Math.abs(direction[1])).toBe(Math.abs(direction[2]));
+    }
+    expect(cameraForView("sw", false).direction).toEqual([-1, 1, 1]);
+    expect(cameraForView("ne", false).direction).toEqual([1, 1, -1]);
+  });
+
+  it("keeps the snapshot corner cameras perspective and the top view orthographic", () => {
+    expect(cameraForView("sw", true)).toEqual({ direction: [-1, 0.7, 1], projection: "Perspective" });
+    expect(cameraForView("top", true)).toEqual({ direction: [0, 1, 0.0001], projection: "Orthographic" });
+    expect(cameraForView("top", false)).toEqual({ direction: [0, 1, 0.0001], projection: "Orthographic" });
   });
 });
 
