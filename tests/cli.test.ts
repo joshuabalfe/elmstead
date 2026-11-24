@@ -3,7 +3,11 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+// These tests spawn tsx subprocesses; under the full suite's WebGL tests they can exceed the
+// 5 s default even though the subprocess itself has a 120 s limit.
+vi.setConfig({ testTimeout: 120_000 });
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const CLI = join(ROOT, "src/cli/index.ts");

@@ -16,6 +16,7 @@ export const C = {
   dim: "#5a5a5a",
   id: "#c0392b",
   constraint: "#c0392b",
+  measure: "#00897b",
 };
 
 /** Room label font sizes (px) and baselines relative to the room's centroid. */

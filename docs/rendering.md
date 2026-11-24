@@ -109,6 +109,18 @@ openings cut, doors and glazing in place, colours applied.
   reading `<id> <distance>` in millimetres, with a thick red dotted line along that span. They
   start hidden; the **Constraints** button or `?constraints=1` turns them on, independently of the
   room labels, and snapshots leave them off.
+- Measurement tool: the **Measure** button or `?measure=1` starts it. A click or tap picks the
+  nearest corner or edge within snapping range, otherwise the exact point on the face; a second
+  pick is projected onto the nearest axis through the first and adds a numbered measurement, so
+  measurements are axis-aligned rather than diagonal. Each one is a teal line, endpoint markers and
+  a camera-facing label with the straight-line, horizontal and vertical distances, plus a row in
+  the bottom-left measurement list. The line, markers and label are depth-tested, so a wall, floor
+  or storey above in front of them hides them instead of letting them float through the building.
+  - Measurements are viewer-only: they are cleared on a model change or when walk mode starts,
+    survive camera and view changes, and are ignored in snapshots. Escape cancels a pending point;
+    **Clear** removes all measurements.
+  - The measure layer is independent of **Labels** and **Constraints**; completed measurements
+    stay visible when measure mode is off.
 - Plan colouring, the same in every view (`applyStyle` in `main.ts`):
   - Floors are the plan's own room fills and door swings (`renderFloor` in `src/render/plan.ts`),
     cream rooms on white, drawn first and without depth so the model always covers them. The slab's top face
