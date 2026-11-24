@@ -4,7 +4,7 @@ import { join } from "node:path";
 import * as WebIFC from "web-ifc";
 import { describe, expect, it } from "vitest";
 import cottage from "../models/example-cottage/index.js";
-import externalStorey from "../models/example-external-storey/index.js";
+import elmstead from "../models/elmstead/index.js";
 import twoStorey from "../models/example-two-storey/index.js";
 import { mm } from "../src/model/index.js";
 import { ifcGuid } from "../src/ifc/guid.js";
@@ -372,13 +372,13 @@ describe("IfcOpenShell validator", () => {
   }, 60_000);
 });
 
-describe("external storey", () => {
-  const external = BuildingModelSchema.parse(JSON.parse(JSON.stringify(externalStorey)));
+describe("elmstead external storey", () => {
+  const elmsteadModel = BuildingModelSchema.parse(JSON.parse(JSON.stringify(elmstead)));
 
   it("writes the street storey, ground slab and front-step stair, and round-trips", async () => {
-    const ifc = await writeIfc(external, { fileName: "t.ifc" });
+    const ifc = await writeIfc(elmsteadModel, { fileName: "t.ifc" });
     const text = new TextDecoder().decode(ifc);
     expect(text).toMatch(/IFCSURFACESTYLE\('ground'/);
-    expect(await roundTripChecks(external, ifc)).toEqual([]);
+    expect(await roundTripChecks(elmsteadModel, ifc)).toEqual([]);
   });
 });

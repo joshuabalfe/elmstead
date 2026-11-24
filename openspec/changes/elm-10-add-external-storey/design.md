@@ -74,7 +74,7 @@ then keep the house readable.
 **Model edit.** The pipeline capability is independent of any building. The owner specified four
 front steps, so elmstead's street level is derived from four 150 mm risers — a provisional 600 mm
 drop, noted in `models/elmstead/shared.ts`; update the riser when the threshold-to-path drop is
-measured. The capability is also exercised by the `example-external-storey` fixture.
+measured. The capability is exercised by elmstead and the schema, render and IFC tests.
 
 ## Risks / Trade-offs
 

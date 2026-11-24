@@ -40,13 +40,12 @@
   limitation (one riser per model, taken from the first stair). Verify the existing stair
   readability test still passes: `npx vitest run tests/plan-vs-3d.test.ts -t "stair readability"`.
 
-## 5. Synthetic fixture and integration
+## 5. Integration on elmstead
 
-- [x] 5.1 Add a synthetic test model with a below-grade street storey, a front-steps stair to the
-  ground storey and a ground slab. Verify it builds, passes the model checks, renders plans and 3D
-  snapshots, and round-trips through IFC.
-- [x] 5.2 With the fixture present, verify walk-mode entry stands at street level and snapshots
-  still frame the house; eye-check the snapshots and the viewer URL.
+- [x] 5.1 Exercise the external storey on elmstead itself (the synthetic example was removed): it
+  builds, passes the model checks, renders plans and 3D snapshots, and round-trips through IFC.
+- [x] 5.2 Verify walk-mode entry and snapshot framing on elmstead; eye-check the snapshots and the
+  viewer URL. The basement is the lowest storey, so walk mode enters there.
 - [x] 5.3 Run `npm test` and `npm run typecheck`; verify both pass, and regenerate any committed
   snapshot that changed, reviewing it rather than updating blind.
 

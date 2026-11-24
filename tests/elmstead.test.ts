@@ -6,9 +6,12 @@ import { describe, expect, it } from "vitest";
 import elmstead from "../models/elmstead/index.js";
 import { stairwellOutline } from "../models/elmstead/first/index.js";
 import { stairArrivalX } from "../models/elmstead/first/walls.js";
+import { checkModel } from "../src/checks/model.js";
 import { flightFootprint, stairLevels } from "../src/geometry/stair.js";
 import { wallDirection, wallLength } from "../src/geometry/wall.js";
 import { face, faceCrossing, mm } from "../src/model/index.js";
+import { renderFloor, renderPlan } from "../src/render/plan.js";
+import { C } from "../src/render/style.js";
 import type { Storey } from "../src/schema/schema.js";
 
 type Pt = { x: number; y: number };
@@ -355,5 +358,20 @@ describe("Elmstead's front steps", () => {
     if (!flight || flight.kind !== "flight") throw new Error("The front steps should be one flight");
     expect(flight.risers).toBe(4);
     expect(ground.elevation - street.elevation).toBe(mm(600));
+  });
+});
+
+describe("Elmstead's external works", () => {
+  it("passes the model checks", () => {
+    expect(checkModel(elmstead)).toEqual([]);
+  });
+
+  it("renders the street plan with the ground fill and the front steps", () => {
+    const street = elmstead.storeys.find((s) => s.id === "storey-street");
+    if (!street) throw new Error("Elmstead needs the street storey");
+    const plan = renderPlan(elmstead, street, { ids: false });
+    expect(plan).toContain(`fill="${C.ground}"`);
+    expect(plan).toContain('class="stair-flight" data-id="stair-flight-front"');
+    expect(renderFloor(street).svg).toContain(`fill="${C.ground}"`);
   });
 });
