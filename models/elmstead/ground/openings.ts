@@ -3,8 +3,8 @@
  * size, and which way doors swing.
  *
  * The drawing gives widths only. Door heights are a typical 2.1 m; the bathroom door's drawn gap
- * (about 440 mm) is taken as 700. The front window, fanlight, and front door opening and frame
- * sizes are the owner's.
+ * (about 440 mm) is taken as 700. The front window, fanlight, front door opening and frame, and the
+ * bedroom window's sill and head, are the owner's.
  */
 import { add, centredOn, deg, divRound, door, doorway, face, m, mm, scale, sub, window, type Opening } from "../../../src/model/index.js";
 import { fanlight, frontDoor, frontWindow, internalDoor, standardWindow } from "../components/index.js";
@@ -41,6 +41,10 @@ const insideReveal = { face: "left", angle: deg(45) } as const;
 const bedroomWindowGap = mm(200);
 const bedroomWindowWidth = mm(1200);
 const bedroomWindowOffset = sub(sub(bedroomWallY, bedroomWindowGap), add(southIn, bedroomWindowWidth));
+// The bedroom window's sill is 500 mm off the floor and its head is at 2650 mm (owner).
+const bedroomWindowSill = mm(500);
+const bedroomWindowHead = mm(2650);
+const bedroomWindowSize = { width: bedroomWindowWidth, height: sub(bedroomWindowHead, bedroomWindowSill), sillHeight: bedroomWindowSill };
 
 export const openings: Opening[] = [
   // West wall runs north→south, so "start" is the north end and "left" is inside.
@@ -57,6 +61,6 @@ export const openings: Opening[] = [
   // Screen runs from the hall corner (south-west) to the spine (north-east); "right" is the lobby.
   doorway("door-lobby", lobbyScreen, lobbyDoorwayOffset, internal),
 
-  window("window-bedroom", east, bedroomWindowOffset, standardWindow, { ...standard, width: bedroomWindowWidth }, insideReveal),
+  window("window-bedroom", east, bedroomWindowOffset, standardWindow, bedroomWindowSize, insideReveal),
   window("window-rear-hall", extEast, mm(700), standardWindow, { ...standard, width: mm(950) }),
 ];

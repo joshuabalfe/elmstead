@@ -117,6 +117,17 @@ describe("Elmstead's floor structure", () => {
     expect(Math.max(...ys) - Math.min(...ys)).toBe(mm(3565));
   });
 
+  it("gives the ground-floor bedroom window the owner's height", () => {
+    const ground = elmstead.storeys.find((s) => s.id === "storey-ground");
+    if (!ground) throw new Error("Elmstead has no ground floor");
+    const window = ground.openings.find((o) => o.id === "window-bedroom");
+    if (!window || window.kind !== "window") throw new Error("Elmstead has no bedroom window");
+    expect(window.width).toBe(mm(1200));
+    expect(window.sillHeight).toBe(mm(500));
+    expect(window.height).toBe(mm(2150));
+    expect(window.sillHeight + window.height).toBe(mm(2650));
+  });
+
   it("gives the rear bedroom window the owner's size and corner", () => {
     const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
     if (!first) throw new Error("Elmstead has no first floor");
