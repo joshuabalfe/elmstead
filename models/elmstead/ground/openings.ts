@@ -12,7 +12,7 @@ import { living } from "./rooms.js";
 import { bathWestX, bedroomBathroom, bedroomWallY, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, lobbyScreenTuck, lobbyScreenVisibleLength, partitionEast, southIn, west } from "./walls.js";
 
 const doorH = m(2.1);
-const internal = { width: mm(700), height: doorH };
+const internal = { width: mm(768), height: doorH };
 const standard = { height: m(1.2), sillHeight: mm(900) };
 
 // Front door, with the fanlight over it and the large front window beside it: the two share a head.
