@@ -13,42 +13,30 @@
  *   |              |  |   Bedroom   |
  *   +--------------+--+-------------+   south
  *
- * The slab is seven rectangles around the stairwell, because a slab outline is a simple polygon and
+ * The slab is three rectangles around the stairwell, because a slab outline is a simple polygon and
  * the stairwell is a hole in the middle of the floor.
  */
 import { add, divRound, mm, pt, sub, type Mm, type Storey, type Wall } from "../../../src/model/index.js";
 import { brickT, coreD, coreW, eastT, extEastX, extSouthY, firstFloor, firstFloorStructure, northT, southT, westT } from "../shared.js";
 import { ground } from "../ground/index.js";
+import { spineEastX } from "../ground/walls.js";
 
 /** The ground floor's walls, re-id'd and re-heighted; the stair spine divides flights, not rooms. */
 const walls: Wall[] = ground.walls
   .filter((w) => w.id !== "wall-stair-spine")
   .map((w) => ({ ...w, id: `${w.id}-first`, height: firstFloor.ceilingHeight }));
 
-// ── Stairwell, from the ground floor's traced positions ─────────────────────
-const stairWest = mm(5050); // where the stair footprint starts, north of the spine
-const lobbyEast = mm(5205); // the lobby's east face, the lower flight's west edge
-const spineSouth = mm(6025); // the spine wall's faces
-const spineNorth = mm(6200);
-const spineEast = mm(7920); // where the spine stops and the flights turn
-const rearHallEast = mm(8975); // east face of the rear hall, where it meets the extension
-const voidEast = mm(9225); // east edge of the stairwell turn
-const voidSouth = mm(5175); // south edge of the stairwell void
-const voidNorth = mm(7050); // north edge of the stairwell void
+// ── Stairwell, from the ground plan ─────────────────────────────────────────
+// Both flights run east–west around the spine wall, the lower south of it and the upper north of
+// it, turning at the east end. The opening follows the walls and rooms around it: the hallway's
+// east edge, the bathroom's north wall, the north wall and the rear hall's west edge.
+const stairWest = mm(5690); // lobby/bathroom room edge; 15 mm east of the hallway's edge
+const stairEast = spineEastX; // rear hall's west edge at the spine's end
+const stairSouth = mm(6080); // bathroom north wall's north face; lower flight 910 mm wide
+const stairNorth = sub(coreD, northT); // north wall's inner face; upper flight 910 mm wide
 
 /** The hole in the first floor: both flights and the turn at their east end. */
-const stairwell = [
-  pt(stairWest, voidNorth),
-  pt(spineEast, voidNorth),
-  pt(spineEast, spineNorth),
-  pt(rearHallEast, spineNorth),
-  pt(rearHallEast, voidNorth),
-  pt(voidEast, voidNorth),
-  pt(voidEast, voidSouth),
-  pt(lobbyEast, voidSouth),
-  pt(lobbyEast, spineSouth),
-  pt(stairWest, spineSouth),
-];
+const stairwell = [pt(stairWest, stairNorth), pt(stairEast, stairNorth), pt(stairEast, stairSouth), pt(stairWest, stairSouth)];
 
 // The slab reaches half a wall into the external walls, so its edges are buried and never cross
 // the facade. Edges exposed inside — around the stairwell — show the floor structure's thickness.
@@ -69,12 +57,8 @@ function slabPiece(id: string, west: Mm, south: Mm, east: Mm, north: Mm) {
 
 const slabs = [
   slabPiece("slab-first-west", westBuried, southBuried, stairWest, northBuried),
-  slabPiece("slab-first-south", stairWest, southBuried, coreEastBuried, voidSouth),
-  slabPiece("slab-first-lobby", stairWest, voidSouth, lobbyEast, spineSouth),
-  slabPiece("slab-first-rear-hall", spineEast, spineNorth, rearHallEast, northBuried),
-  slabPiece("slab-first-north", stairWest, voidNorth, spineEast, northBuried),
-  slabPiece("slab-first-north-east", rearHallEast, voidNorth, voidEast, northBuried),
-  slabPiece("slab-first-east", voidEast, extSouthBuried, extEastBuried, northBuried),
+  slabPiece("slab-first-south", stairWest, southBuried, coreEastBuried, stairSouth),
+  slabPiece("slab-first-east", stairEast, extSouthBuried, extEastBuried, northBuried),
 ];
 
 export const first: Storey = {

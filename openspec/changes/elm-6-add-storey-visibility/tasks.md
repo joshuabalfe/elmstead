@@ -38,8 +38,9 @@
 
 ## 7. Elmstead floor structure
 
-- [x] 7.1 Put the provisional first floor one floor structure (its 200 mm slab) above the ground ceiling, carry the ground walls up through that zone so the facade stays continuous, and verify `build` reports 0 errors and the plan-versus-3D comparisons still pass; a stair's rise is then ceiling + joist depth, not the ceiling alone
+- [x] 7.1 Put the provisional first floor one floor structure (its 200 mm slab) above the ground ceiling, carry the external walls up through that zone so the facade stays continuous (internal walls stop at the ceiling, so the slab sits on them), and verify `build` reports 0 errors and the plan-versus-3D comparisons still pass; a stair's rise is then ceiling + joist depth, not the ceiling alone
 - [x] 7.2 Draw a slab's exposed edges in plan style while suppressing only its top, and bury the first-floor slab's outer edges half a wall into the external walls (also removing its overhang outside the footprint); verify the stairwell edge shows 200 mm and no grey band crosses the facade
+- [x] 7.3 Align the stairwell opening with the ground plan's room and wall edges (hallway east edge, bathroom north wall, north wall, rear hall west edge) and simplify the slab to three pieces; verify every first-floor room centroid falls on a slab and none inside the opening
 
 ## Workflow follow-up
 

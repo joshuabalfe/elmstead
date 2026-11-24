@@ -8,9 +8,11 @@
 import { add, face, mm, pt, sub, wall } from "../../../src/model/index.js";
 import { brickT, coreD, coreW, eastT, extEastX, extSouthY, firstFloor, groundFloor, northT, partT, southT, studT, westT } from "../shared.js";
 
-// Run to the first floor, through the joist zone, so the facade stays continuous; the first-floor
-// slab's underside is the ground ceiling.
-export const wallH = sub(firstFloor.elevation, groundFloor.elevation);
+// External walls run to the first floor, through the joist zone, so the facade stays continuous.
+// Internal walls stop at the clear ceiling; the first-floor slab sits on them, so its exposed
+// edges at the stairwell rise from the wall tops.
+export const externalWallH = sub(firstFloor.elevation, groundFloor.elevation);
+export const wallH = groundFloor.ceilingHeight;
 const breastT = mm(350); // chimney breasts and thickened masonry walls, per the owner
 const bathNorthT = mm(225); // bathroom north wall, 9-inch brick per the owner
 
@@ -24,11 +26,11 @@ export const spineY = mm(6990); //      south face of the wall between the stair
 export const spineEastX = mm(8945); // keeps its traced overlap into the east wall
 
 // ── External walls (counter-clockwise, body on the left = inside) ────────────
-export const north = wall("wall-north", pt(extEastX, coreD), pt(mm(0), coreD), { thickness: northT, height: wallH, justification: "left" });
-export const south = wall("wall-south", pt(mm(0), mm(0)), pt(coreW, mm(0)), { thickness: southT, height: wallH, justification: "left" });
+export const north = wall("wall-north", pt(extEastX, coreD), pt(mm(0), coreD), { thickness: northT, height: externalWallH, justification: "left" });
+export const south = wall("wall-south", pt(mm(0), mm(0)), pt(coreW, mm(0)), { thickness: southT, height: externalWallH, justification: "left" });
 export const southIn = face(south, "north");
 export const northIn = face(north, "south");
-export const west = wall("wall-west", pt(mm(0), northIn), pt(mm(0), southIn), { thickness: westT, height: wallH, justification: "left" });
+export const west = wall("wall-west", pt(mm(0), northIn), pt(mm(0), southIn), { thickness: westT, height: externalWallH, justification: "left" });
 export const westIn = face(west, "east");
 
 const alcove = mm(700); // each side of the living room's chimney breast (owner)
@@ -36,11 +38,11 @@ export const livingBreast = { west: add(westIn, alcove), east: sub(partitionX, a
 
 // Bathroom north wall first: the core's east wall stops at its north face, level with the extension's south wall.
 export const bathNorth = wall("wall-bathroom-north", pt(sub(coreW, eastT), bathNorthY), pt(bathWestX, bathNorthY), { thickness: bathNorthT, height: wallH, justification: "right" });
-export const east = wall("wall-east", pt(coreW, southIn), pt(coreW, face(bathNorth, "north")), { thickness: eastT, height: wallH, justification: "left" });
+export const east = wall("wall-east", pt(coreW, southIn), pt(coreW, face(bathNorth, "north")), { thickness: eastT, height: externalWallH, justification: "left" });
 export const eastIn = face(east, "west");
 
-export const extEast = wall("wall-extension-east", pt(extEastX, extSouthY), pt(extEastX, northIn), { thickness: brickT, height: wallH, justification: "left" });
-export const extSouth = wall("wall-extension-south", pt(coreW, extSouthY), pt(face(extEast, "west"), extSouthY), { thickness: brickT, height: wallH, justification: "left" });
+export const extEast = wall("wall-extension-east", pt(extEastX, extSouthY), pt(extEastX, northIn), { thickness: brickT, height: externalWallH, justification: "left" });
+export const extSouth = wall("wall-extension-south", pt(coreW, extSouthY), pt(face(extEast, "west"), extSouthY), { thickness: brickT, height: externalWallH, justification: "left" });
 
 // Chimney breast in the living room and the thickened wall along the bedroom, both against the south wall.
 export const breastLiving = wall("wall-breast-living", pt(livingBreast.west, southIn), pt(livingBreast.east, southIn), { thickness: breastT, height: wallH, justification: "left" });

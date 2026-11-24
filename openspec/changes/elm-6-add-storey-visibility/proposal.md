@@ -63,9 +63,10 @@ None.
 - `docs/rendering.md` and `docs/modelling.md`: the viewer section, and the floor-structure
   convention the provisional Elmstead first floor now follows.
 - `models/elmstead`: the provisional first floor sits one structure thickness above the ground
-  ceiling, with the ground walls carried up through it; a stair's rise is ceiling plus joists. Its
-  slab stops inside the external walls rather than overhanging the footprint, so its edges are hidden
-  at the facade and visible around the stairwell.
+  ceiling, with the external walls carried up through it and internal walls stopping at the ceiling;
+  a stair's rise is ceiling plus joists. Its slab stops inside the external walls rather than
+  overhanging the footprint, so its edges are hidden at the facade and visible around the stairwell.
+  The stairwell opening follows the ground plan's room and wall edges.
 - No dependency on any other open change. The two-storey case the tests need is synthesised in the
   test from an existing single-storey model — a cloned second storey at a higher elevation with a
   different wall layout — because the viewer test publishes JSON and IFC from an in-memory model and
