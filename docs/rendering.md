@@ -96,10 +96,14 @@ openings cut, doors and glazing in place, colours applied.
 - Room labels: `main.ts` also reads `out/<name>.building.json` and draws each storey's room
   labels at its ceiling, 10 mm above the top of its tallest wall (the schema has no ceiling
   height). Being above the walls, they read from every camera that can see that storey.
-  - Dimension lines, room names and areas all lie flat on that one plane, as if drawn on a glass
-    ceiling: the plan's own room and overall dimensions and labels
-    (`renderPlanAnnotations` in `src/render/plan.ts`) drawn to a texture at 2.5 mm per pixel. Lying
-    flat is what lets a storey above occlude them; camera-facing billboards painted through floors.
+  - The plan's own room and overall dimension lines (`renderPlanAnnotations` in
+    `src/render/plan.ts`) are drawn to one texture at 2.5 mm per pixel, as if on a glass ceiling.
+    Lying flat is what lets a storey above occlude them; camera-facing billboards painted through
+    floors.
+  - Room names and areas sit on small flat planes at the same ceiling, one per room, and each
+    yaws about its room's centre to follow the camera (`updateLabelOrientation` in
+    `viewer/main.ts`), so the text reads left-to-right across the screen from any view while
+    still lying flat enough to be occluded by an upper floor.
   - All of it has a white halo so it reads over the model.
   - A compass in the bottom-right corner points to true north (`site.northAngle`) as it appears on
     screen. It projects a north-pointing line on the ground, so it is right in perspective views
