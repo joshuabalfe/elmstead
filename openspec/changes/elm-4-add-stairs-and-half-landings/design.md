@@ -156,13 +156,16 @@ grey slab never shows. Merging main dropped the direction-keyed discard (`syncSl
 `discardSlabTops`), its room-fill pixel test and the `ifc-viewer` delta. The stair itself needs no
 viewer code; it renders as its own IFC geometry.
 
-### The viewer outlines stair edges so the steps read from above
+### The viewer makes the steps read from above
 
 From straight down a flight's tread tops are horizontal and uniformly lit and its risers are edge-on,
-so the IFC solid reads as a flat slab with no steps. The viewer therefore attaches an `EdgesGeometry`
-line outline (30° threshold, ink colour) to each stair mesh, in both styles: the tread nosings show as
-lines from any angle, including the Top view. This is viewer-only presentation — the plan overlay and
-`renderPlan` are unchanged, and the outline colour is off the wall/room/paper classes the plan-vs-3D
+so the IFC solid reads as a flat slab with no steps. Edge outlines alone cannot fix this: each nosing
+is occluded by the next higher tread's leading edge. The viewer therefore shades alternate treads by
+banding the stair material's upward faces on `floor(worldY / riser)` — every tread top sits at an
+integer multiple of the stair's shared riser, so the bands line up with the steps in both flights. It
+also attaches an `EdgesGeometry` ink outline (30° threshold) to each stair mesh, which reads the
+nosings and edges from corner views. Both are viewer-only presentation — the plan overlay and
+`renderPlan` are unchanged, and the colours stay off the wall/room/paper classes the plan-vs-3D
 comparator recognises, so the comparison is unaffected.
 
 ### Elmstead's provisional stair

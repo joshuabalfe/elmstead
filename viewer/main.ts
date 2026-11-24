@@ -573,6 +573,9 @@ function applyStyle() {
       if (name === "slab") patchTops(m, 2);
     }
   }
+  for (const m of fragments.core.models.materials.list.values()) {
+    if (m instanceof THREE.MeshLambertMaterial && styleOf(m) === "stair") patchStairBands(m);
+  }
   world.scene.three.background = new THREE.Color(plan ? C.paper : 0xf4f4f2);
   grid.three.visible = !plan;
   planLayers.visible = plan;
@@ -585,6 +588,33 @@ function applyStyle() {
  */
 const stairEdgeMaterial = new THREE.LineBasicMaterial({ color: C.ink });
 const stairEdgeGeoms: THREE.EdgesGeometry[] = [];
+
+/**
+ * Every tread top sits at an integer multiple of the stair's shared riser height, so banding the
+ * upward faces by floor(worldY / riser) shades alternate treads and the steps read from above, where
+ * edge outlines cannot help (each nosing is hidden by the next higher tread's leading edge).
+ */
+let stairRiser = 0; // metres, set from the model on load
+function patchStairBands(m: THREE.MeshLambertMaterial) {
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.uRiser = { value: stairRiser };
+    shader.vertexShader = shader.vertexShader
+      .replace("void main() {", "varying float vWorldY;\nvarying vec3 vWorldN;\nvoid main() {")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvWorldY = (modelMatrix * vec4(position, 1.0)).y;\nvWorldN = normalize(mat3(modelMatrix) * normal);");
+    shader.fragmentShader = shader.fragmentShader
+      .replace("void main() {", "uniform float uRiser;\nvarying float vWorldY;\nvarying vec3 vWorldN;\nvoid main() {")
+      .replace(
+        "#include <color_fragment>",
+        `#include <color_fragment>
+        if (vWorldN.y > 0.7 && uRiser > 0.0) {
+          float band = mod(floor(vWorldY / uRiser + 0.001), 2.0);
+          diffuseColor.rgb *= mix(1.0, 0.72, band);
+        }`,
+      );
+  };
+  m.customProgramCacheKey = () => "elmstead-stair-bands";
+  m.needsUpdate = true;
+}
 function addStairEdges(model: FragmentsModel) {
   model.object.traverse((obj) => {
     if (!(obj instanceof THREE.Mesh)) return;
@@ -1081,6 +1111,14 @@ async function load(name: string) {
   if (epoch !== loadEpoch) return;
   parseStoreysParam(json);
   populateStoreySelector(json);
+  stairRiser = 0;
+  for (const s of json?.storeys ?? []) {
+    for (const st of s.stairs ?? []) {
+      const to = json!.storeys.find((x) => x.id === st.toStoreyId);
+      const total = st.segments.reduce((n, g) => (g.kind === "flight" ? n + g.risers : n), 0);
+      if (to && total > 0) stairRiser = (to.elevation - s.elevation) / total / 1000;
+    }
+  }
   const model = await ifcLoader.load(buffer, true, name);
   if (epoch !== loadEpoch) {
     await discardModel(model);
