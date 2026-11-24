@@ -124,9 +124,10 @@ openings cut, doors and glazing in place, colours applied.
   - Floors are the plan's own room fills and door swings (`renderFloor` in `src/render/plan.ts`),
     cream rooms on white, one plane per shown storey at that storey's level. Each writes depth, so
     the topmost shown floor hides the storeys below it: from above you see the top floor's rooms,
-    not the grey slab and not the floor beneath. A slab in plan style renders only its underside —
-    the ceiling of the storey below — so neither its top nor its edges show; in `?style=ifc` it
-    renders whole.
+    not the grey slab and not the floor beneath. In plan style a slab's top is not drawn; its
+    underside is the ceiling below, and its exposed edges show the floor structure's thickness, for
+    example around a stairwell. At the outer walls the first-floor slab stops inside the wall body,
+    so no grey slab band crosses the facade; in `?style=ifc` the slab renders whole.
   - Walls keep their IFC colour and lighting, except faces that look upwards (wall tops, window
     sills), which are the plan's charcoal, unlit. A small shader patch picks those out by their
     world-space normal, so the material itself is unchanged.

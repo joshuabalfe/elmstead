@@ -553,7 +553,7 @@ function patchTops(m: THREE.MeshLambertMaterial, mode: 1 | 2) {
       .replace(
         "#include <opaque_fragment>",
         `float planTopNy = (normal * mat3(viewMatrix)).y;
-        ${mode === 1 ? "if (planTopNy > 0.7) { outgoingLight = planTopColour; }" : "if (planTopNy > -0.7) discard;"}
+        ${mode === 1 ? "if (planTopNy > 0.7) { outgoingLight = planTopColour; }" : "if (planTopNy > 0.7) discard;"}
         #include <opaque_fragment>`,
       );
   };

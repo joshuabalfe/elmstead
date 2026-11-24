@@ -83,6 +83,12 @@ floors fight; writing depth is what makes a stack of them a building instead of 
 The fills are cut out with `alphaTest` rather than blended, so they stay in the opaque pass and occlude
 like geometry.
 
+Only the slab's top is suppressed. Its underside stays the ceiling below, and its exposed edges
+stay drawn, so the floor reads as its structure's thickness at a stairwell instead of a single
+plane. At the outer walls the first-floor slab stops half a wall into the wall body: its edges are
+buried, the facade stays continuous, and the earlier grey band does not return. That inset also
+removes a provisional slab overhang outside the footprint.
+
 Alternatives considered: rendering multi-storey views in the IFC's colours with no fills (rejected on
 review — the grey slab reads as a missing floor; the cream rooms are what make a storey legible);
 cutting everything above a chosen storey (a section feature, and still not occlusive); per-storey

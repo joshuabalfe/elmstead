@@ -50,9 +50,10 @@ model.
 
 ### Requirement: Floors stack occlusively
 In plan style each shown storey's floor SHALL be its own room fills and door swings, at that
-storey's level, drawn so that it hides everything below it. A slab SHALL render only its downward
-face: its underside, the ceiling of the storey below. Its top and its edges SHALL NOT be drawn, so
-the fills are the floor and no grey band crosses the facade.
+storey's level, drawn so that it hides everything below it. A slab's top SHALL NOT be drawn; its
+underside SHALL be the ceiling of the storey below, and its exposed edges SHALL be drawn so a floor
+reads as the structure's thickness. At the outer walls a slab's edges SHALL sit inside the wall, so
+no grey slab band crosses the facade.
 
 #### Scenario: Whole building from a corner
 - **WHEN** every storey of a two-storey model is shown in a corner view
@@ -65,6 +66,10 @@ the fills are the floor and no grey band crosses the facade.
 #### Scenario: Slab edges from outside
 - **WHEN** a two-storey model is shown in plan style from outside, at any height
 - **THEN** no grey slab edge crosses the facade; the walls read continuous from the ground to the top
+
+#### Scenario: Exposed floor edge
+- **WHEN** a storey's floor is shown in plan style around an open stairwell
+- **THEN** the slab's exposed edge shows the floor structure's thickness, not a paper-thin plane
 
 #### Scenario: Looking up from inside
 - **WHEN** walk mode stands on the ground floor of a two-storey model
