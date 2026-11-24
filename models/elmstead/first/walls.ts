@@ -18,11 +18,11 @@ export const breastDepth = mm(350); // chimney breasts, as on the ground floor
 // Kitchen, north-west; its east wall steps east above the dining-room wall.
 export const kitchenSouthY = mm(5325); // kitchen face of the kitchen/dining wall; 2.75 m below the north wall (owner)
 export const diningNorthY = mm(5150); //  dining face of the kitchen/dining wall; 4.55 m above the chimney breast (owner)
-export const kitchenEastX = mm(4150); // west face of the kitchen's east wall, above the step
-export const kitchenEastFaceX = add(kitchenEastX, partT);
 export const kitchenEastLowerX = mm(3400); // west face of its return below the step
 export const passageWestX = add(kitchenEastLowerX, partT);
-export const kitchenStepY = mm(6475); // kitchen face of the step wall
+export const kitchenEastFaceX = add(kitchenEastLowerX, mm(1100)); // east face above the step; the return wall is 1.1 m (owner)
+export const kitchenEastX = sub(kitchenEastFaceX, partT); // west face of the kitchen's east wall, above the step
+export const kitchenStepY = add(kitchenSouthY, mm(1250)); // kitchen face of the step wall, 1.25 m into the kitchen (owner)
 export const stepSouthY = sub(kitchenStepY, partT); // landing face of the step wall
 
 // Dining room, south-west, with a canted bay window in the west wall.

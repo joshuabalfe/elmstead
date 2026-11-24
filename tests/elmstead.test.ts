@@ -68,6 +68,22 @@ describe("Elmstead's floor structure", () => {
     expect(design?.glazing).toMatchObject({ columns: [1, 1], rows: [1, 1] });
   });
 
+  it("gives the kitchen the owner's step and door position", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    const wall = (id: string) => {
+      const w = first.walls.find((wall) => wall.id === id);
+      if (!w) throw new Error(`Elmstead's first floor has no ${id}`);
+      return w;
+    };
+    const step = wall("wall-kitchen-step-first");
+    expect(wallLength(step)).toBe(mm(1100));
+    expect(step.start.y - face(wall("wall-dining-north-first"), "north")).toBe(mm(1250));
+    const door = first.openings.find((o) => o.id === "door-kitchen-first");
+    if (!door || door.kind !== "door") throw new Error("Elmstead has no kitchen door");
+    expect(door.offsetAlongWall + door.width).toBe(wallLength(wall("wall-kitchen-east-first")));
+  });
+
   it("gives the ensuite the owner's size", () => {
     const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
     if (!first) throw new Error("Elmstead has no first floor");
