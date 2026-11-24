@@ -24,7 +24,7 @@
 - [x] 4.1 Include stair points in the plan extent and draw flight footprints, tread lines, landing outlines and walking-direction arrows with `stair`/`stair-flight`/`stair-landing` groups and ids, in `renderPlan` only; verify renderer tests cover a half-turn stair, `--ids`, a stair outside the room outlines, and that neither `renderFloor` nor `renderWallTops` — which `viewer/main.ts` composites into its plan-style overlay — emits any stair group
 - [x] 4.2 Pick stair colours that survive the plan-vs-3D comparison: on the plan, off `C.wall`, `C.room` and `C.paper` so stair pixels classify as other and are skipped; in `STYLES`, at least 0.02 RGB distance from every existing entry so the viewer's `styleOf` does not patch stair tops as walls or discard them as slabs; verify the comparison test still passes with the stair fixture and a unit test asserts both distances
 - [x] 4.3 Update the SVG snapshot if the renderer changes existing output and document stair symbols in `docs/rendering.md`; verify the reviewed snapshot and the documented symbols match the output
-- [x] 4.4 Limit plan style's slab-top discarding to the orthographic Top view, so an upper storey's slab is solid in corner views, walk mode and any perspective camera; verify the plan-versus-3D test still passes and a new test counts room-fill pixels from directly above in both projections
+- [x] 4.4 (Superseded by ELM-6) Originally limited plan style's slab-top discarding to the orthographic Top view. ELM-6's occlusive per-storey floor planes replaced that approach; merging main dropped the direction-keyed discard, its room-fill pixel test and the `ifc-viewer` delta. The stair fixture's plan-vs-3D coverage now runs in ELM-6's per-storey harness
 
 ## 5. Model checks
 
@@ -37,6 +37,13 @@
 - [x] 6.1 Add the folder model `models/example-two-storey/index.ts`: two storeys, a half-turn stair and a 3050 mm rise — a folder like every model the tests import, under `models/` rather than `tests/fixtures/`, which holds only invalid models, and with no constraints file, which is optional; verify `npm run build` and `npm run render` complete and the plan and 3D PNGs show the stair
 - [x] 6.2 Add the fixture to the IFC, renderer, checks and plan-vs-3D integration coverage, including the model list in `tests/plan-vs-3d.test.ts`; verify the full suite includes it without changing `example-cottage.storey-ground.plan.svg`
 - [x] 6.3 Run `npm test`, `npm run typecheck`, `npm run schema` and `npx openspec validate --all`; verify all pass and generated files are committed
+
+## 7. Elmstead's provisional stair
+
+- [x] 7.1 Declare a half-turn stair in `models/elmstead/` from the ground storey to the provisional first floor: a lower flight south of the spine climbing east, a half landing at the east end, and an upper flight north of the spine climbing west, using the reserved stairwell and the owner-measured 910 mm flight widths; verify `npm run check models/elmstead` reports no errors and the flights and landing sit within `stairwellOutline`
+- [x] 7.2 Choose a provisional riser split for the 3100 mm rise and record it as a judgment call; verify the derived riser and going are reasonable and the top flight lands on the first floor
+- [x] 7.3 Update the ground floor's "Left out for now: the stairs" note and the first-floor stairwell comment; verify no model comment still says Elmstead has no stair
+- [x] 7.4 Build and render Elmstead and add a fast model test guarding the stair against the reserved stairwell; verify the plan and 3D snapshots show the stair and the test passes in `test:fast`
 
 ## Workflow follow-up
 

@@ -4,9 +4,9 @@
 
 See `proposal.md` for motivation. The schema currently has walls, openings, slabs and rooms on a
 storey; the checks layer now has a `checkModel` aggregator from ELM-1. `models/elmstead/` reserves a
-half-turn stair in its ground-floor plan but has no upper storey yet, so this change adds the
-pipeline capability and exercises it with a two-storey fixture rather than inventing an upper floor
-for Elmstead.
+half-turn stair in its ground-floor plan and now has ELM-6's provisional first floor with a stairwell
+void, so this change adds the pipeline capability, exercises it with a two-storey fixture, and adds
+Elmstead's provisional stair against the reserved stairwell.
 
 ## Goals / Non-Goals
 
@@ -20,11 +20,11 @@ for Elmstead.
 **Non-Goals:**
 - Winders, curved or spiral stairs, railings, front steps, or upper-floor slab openings.
 - Headroom, building-code or collision checks.
-- The Elmstead first-floor layout or its stair dimensions.
+- The Elmstead first-floor layout, traced from the owner's plan; its stair is provisional, derived
+  from ELM-6's provisional floor level rather than measured.
 - Drawing an arriving stair on the destination storey's plan.
 - Viewer work for stairs. The viewer renders the stair's IFC geometry as it is, and its plan-style
-  overlay is unchanged because stairs are drawn only in `renderPlan`. The one viewer fix here is not
-  about stairs: it is the plan-style slab-top bug the first two-storey model exposed.
+  overlay is unchanged because stairs are drawn only in `renderPlan`.
 
 ## Decisions
 
@@ -42,7 +42,7 @@ stair container).
 
 Consequence: a stair can only be added when its destination storey exists, and the checks require
 that destination to be the next storey up rather than any higher one. The fixture supplies that;
-Elmstead's stair waits for its first floor to be traced.
+Elmstead's provisional first floor (ELM-6) now supplies it too.
 
 ### Ordered segments carry the stair's sequence
 
@@ -146,29 +146,34 @@ is something else. Two colour constraints follow:
   the stair invisible from above. An unrecognised stair material is left alone, which is what we
   want.
 
-### Plan style discards slab tops only in the Top view
+### Plan style's slab-top discard (superseded by ELM-6)
 
-Plan colouring patches every material it recognises as a slab so its upward-facing fragments are
-discarded, letting the plan's own room fills — drawn once, for the lowest storey only — stand in for
-the floor. That is what makes the Top view read like the drawing, and the plan-versus-3D test
-depends on it.
+This change first fixed the see-through upper floor the first two-storey model exposed by keying the
+slab-top discard on the camera direction: straight down discards, anything tilted does not. ELM-6
+superseded that whole approach with occlusive per-storey floor planes — each shown storey's room
+fills draw at its own level and write depth, so the topmost floor hides the storeys below and the
+grey slab never shows. Merging main dropped the direction-keyed discard (`syncSlabTops` /
+`discardSlabTops`), its room-fill pixel test and the `ifc-viewer` delta. The stair itself needs no
+viewer code; it renders as its own IFC geometry.
 
-With one storey it is invisible. With two, every slab top goes, including the first floor's, and
-nothing is drawn behind it: from above or from a corner you look straight through the upper floor to
-the ground floor's cream fills. Walk mode hid the bug because it views slabs from underneath, where
-the normal points down and the patch leaves it alone.
+### Elmstead's provisional stair
 
-The fix keys the discard on the camera direction rather than the storey: straight down, within a
-couple of degrees, discards; anything tilted does not. Keying on the projection would not have
-worked — orbiting out of the Top view keeps the orthographic projection, and that orbit is exactly
-where the hole shows. A shared shader uniform flips it, so no per-storey materials are needed, which
-the single shared `IfcSurfaceStyle` per element kind would otherwise force. The Top view — and so
-the plan-versus-3D test — behaves exactly as before. Measured on the fixture from directly above:
-401,756 room-fill pixels seen through the first floor before the fix, 0 after.
+Elmstead's ground plan reserves a stairwell (x 5690–8945, y 6080–8075) with a spine wall dividing two
+910 mm flights (owner). The provisional stair is a half turn: the lower flight south of the spine
+climbs east, a half landing at the east end, the upper flight north of the spine climbs west. Judgment
+calls, all provisional until the first-floor plan is traced:
 
-Residue, stated plainly: a perspective camera pointed straight down (`?camera=`) also reads like the
-plan, and orbiting back to exactly vertical re-opens the see-through. Both are the same rule doing
-its job; neither is a pose anyone holds by accident.
+- **Riser split 9 + 9 = 18** over the 3100 mm provisional rise: riser 172.2 mm, going 293.1 mm
+  (2R + G ≈ 637, a comfortable private stair). The half landing sits at 1550 mm.
+- **The spine stops at the landing** (`spineEndX` 8035 instead of running to `spineEastX` 8945). The
+  traced spine ran the full stairwell length to the rear hall, which leaves no room for a half landing
+  at either end; the real stair probably turns on winders, which the schema does not model. Shortening
+  the spine clears the turn. The stairwell void and the owner's 910 mm flight-width constraints are
+  unchanged (they measure across the spine, not along it).
+- **Landing 910 mm deep** (one flight width) spanning the full stairwell width, thickness 150 mm.
+
+A fast model test (`tests/elmstead.test.ts`) guards that every flight footprint and the landing sit
+inside the reserved stairwell and that the derived top flight lands exactly on the first floor.
 
 ### Checks join the existing model-checks layer
 
@@ -202,9 +207,9 @@ would imply an incompatibility that does not exist.
 
 ## Risks / Trade-offs
 
-- **The stair requires a destination storey** → Use a two-storey fixture now; add Elmstead's stair
-  when its first-floor plan is traced. Changing the target elevation automatically updates the
-  stair.
+- **The stair requires a destination storey** → Use a two-storey fixture and Elmstead's provisional
+  first floor (ELM-6). Changing the target elevation automatically re-derives the stair, so tracing
+  the real first floor later updates it.
 - **Derived riser and going are fractional** → Keep authored lengths integer; carry derived lengths
   as plain `number` millimetres, never through `mm()`, `div()` or `divRound()`; write them as IFC
   reals; round SVG output to one decimal; compare volumes with tolerance.
@@ -235,6 +240,12 @@ would imply an incompatibility that does not exist.
   stairwell void first, so it is a separate change.
 - **Landing adjacency is geometric** → Check with a 1 mm tolerance; authored points are integer
   millimetres and derived points are exact until SVG rounding.
+- **A stair does not hide with its storey** → The viewer maps a stair's ids to its containing storey
+  and calls fragments' `setVisible`, but the flights and landing are aggregated under an `IfcStair`
+  and fragments does not hide aggregated children per-item: hiding the ground leaves the stair on
+  show. Accept for now; making stairs hide with their storey (or with either of their two storeys) is
+  a follow-up. The plan-vs-3D hiding identity therefore compares a stair-less copy of Elmstead, so it
+  still guards storey geometry hiding without depending on stair visibility.
 - **Upper-floor slab void is not modelled** → Out of scope; the first-floor plan and slab openings
   come with the upper-floor change.
 - **Front steps, winders and railings do not fit this model** → Separate changes; do not approximate
@@ -257,7 +268,8 @@ untouched.
 ## Open Questions
 
 - The Elmstead flight lengths, landing depth, riser split and first-floor finished level are
-  deferred until its first-floor plan is traced; they do not change the schema or the approach.
+  provisional, derived from ELM-6's provisional floor level; refine them when the first-floor plan
+  is traced. They do not change the schema or the approach.
 - Whether to draw the arriving stair on the destination storey plan, with a down arrow, is deferred
   until that storey exists.
 - The flight underside profile can be refined from a solid-to-base mass to a sloped soffit without

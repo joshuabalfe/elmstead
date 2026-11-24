@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import elmstead from "../models/elmstead/index.js";
 import { stairwellOutline } from "../models/elmstead/first/index.js";
+import { flightFootprint, stairLevels } from "../src/geometry/stair.js";
 import type { Storey } from "../src/schema/schema.js";
 
 type Pt = { x: number; y: number };
@@ -57,5 +58,42 @@ describe("Elmstead's floor structure", () => {
       expect(first.slabs.some((s) => contains(s.outline, at)), `${room.id}'s centroid is not on a slab`).toBe(true);
       expect(contains(stairwellOutline, at), `${room.id}'s centroid is inside the stairwell`).toBe(false);
     }
+  });
+});
+
+describe("Elmstead's stair", () => {
+  const ground = elmstead.storeys.find((s) => s.id === "storey-ground")!;
+  const first = elmstead.storeys.find((s) => s.id === "storey-first-floor")!;
+  const stair = ground.stairs?.[0];
+
+  // The well is a rectangle; outset it 1 mm so corners that lie exactly on its edge count as inside.
+  const xs = stairwellOutline.map((p) => p.x);
+  const ys = stairwellOutline.map((p) => p.y);
+  const well = [
+    { x: Math.min(...xs) - 1, y: Math.min(...ys) - 1 },
+    { x: Math.max(...xs) + 1, y: Math.min(...ys) - 1 },
+    { x: Math.max(...xs) + 1, y: Math.max(...ys) + 1 },
+    { x: Math.min(...xs) - 1, y: Math.max(...ys) + 1 },
+  ];
+
+  it("climbs to the first floor inside the reserved stairwell", () => {
+    expect(stair).toBeDefined();
+    expect(stair!.toStoreyId).toBe(first.id);
+    for (const seg of stair!.segments) {
+      const poly = seg.kind === "flight" ? flightFootprint(seg) : seg.outline;
+      for (const p of poly) {
+        expect(contains(well, p), `${seg.id} corner (${p.x}, ${p.y}) is outside the stairwell`).toBe(true);
+      }
+    }
+  });
+
+  it("derives a top flight that lands exactly on the first floor", () => {
+    const rise = first.elevation - ground.elevation;
+    const levels = stairLevels(stair!, rise);
+    const top = levels.segments[levels.segments.length - 1]!;
+    expect(top.kind).toBe("flight");
+    expect(top.kind === "flight" ? top.top : top.level).toBe(rise);
+    expect(levels.riser).toBeGreaterThan(150);
+    expect(levels.riser).toBeLessThan(220);
   });
 });

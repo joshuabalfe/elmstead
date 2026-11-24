@@ -22,7 +22,11 @@ produce no stair semantics in IFC, and leave the plan without a stair symbol or 
 - Add model checks for the target storey (which must be the next one up), segment order, positive
   flight runs, landing outlines and flight/landing adjacency.
 - Add a two-storey model fixture with a half-turn stair to exercise schema, IFC, rendering and
-  checks. Elmstead's own stair waits for the first-floor plan.
+  checks.
+- Add Elmstead's own provisional half-turn stair between its ground and first floor, using the
+  stairwell the ground plan already reserves. The first floor is ELM-6's provisional one; the
+  stair's dimensions derive from its provisional level and are refined when the owner's first-floor
+  plan is traced.
 - Keep `schemaVersion: 1`: `stairs` is optional, so existing models remain valid.
 
 ## Capabilities
@@ -48,15 +52,14 @@ None.
 - `src/geometry/` (stair profile and derived dimensions)
 - `src/ifc/writer.ts`, `src/ifc/roundtrip.ts`, `src/ifc/styles.ts`
 - `src/render/plan.ts`, `src/render/style.ts`
-- `viewer/main.ts`, for the plan-style slab-top fix
 - `src/checks/` and `src/checks/model.ts`
-- Tests, docs, and a two-storey fixture
+- Tests, docs, a two-storey fixture, and `models/elmstead/` (its provisional stair)
 - Stairs need no viewer work: they are drawn by `renderPlan` alone, so the plan-style overlay the
   viewer composites from `renderFloor`, `renderWallTops` and `renderPlanAnnotations` is untouched,
-  and the IFC geometry renders as it is. But this is the project's first two-storey model, and it
-  exposed a plan-style bug: slab top faces were discarded in every view, so an upper floor was a
-  hole you saw straight through. Discarding is now limited to the orthographic Top view, where the
-  plan's room fills stand in for the floor. `models/elmstead/` is not changed until its first floor
-  is traced.
+  and the IFC geometry renders as it is. This change first added an interim plan-style fix for the
+  see-through upper floor the first two-storey model exposed (discard slab tops only in the Top
+  view); ELM-6 superseded it with occlusive per-storey floor planes, and merging main dropped the
+  interim fix, its test and its `ifc-viewer` delta. `models/elmstead/` now has ELM-6's provisional
+  first floor, so this change adds its provisional stair rather than waiting for the traced plan.
 - Out of scope: winders, curved or spiral stairs, railings, front steps, upper-floor slab openings,
   headroom and building-code checks, and the Elmstead first-floor layout.
