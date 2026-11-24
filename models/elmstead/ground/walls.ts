@@ -59,18 +59,20 @@ export const lobbyBathroom = wall("wall-lobby-bathroom", pt(bathWestX, face(bedr
 // West end 175 mm short of its traced position, to leave room by the lobby door. East end runs to
 // its traced length (spineEastX); the half landing wraps around that end rather than cutting it short.
 export const spine = wall("wall-stair-spine", pt(mm(5450), spineY), pt(spineEastX, spineY), { ...inner, justification: "left" });
-// Diagonal screen from the hall wall's corner to the end of the stair spine, holding the lobby door.
-// Both ends tuck a wall thickness into the walls they meet, so the angled corners close instead of
-// leaving wedges of floor between the screen and the wall faces.
+// Diagonal screen from the hall wall's corner to the stair spine's north-west corner, holding the
+// lobby door. Its lower end tucks into the hall wall to close that corner; the upper end meets the
+// spine at the corner.
 const screenStart = pt(partitionEast, face(hallLiving, "north"));
-const screenEnd = spine.start;
+const screenEnd = pt(spine.start.x, face(spine, "north"));
 const screenLength = Math.hypot(screenEnd.x - screenStart.x, screenEnd.y - screenStart.y);
 const screenTuckX = mm(Math.round(((screenEnd.x - screenStart.x) * partT) / screenLength));
 const screenTuckY = mm(Math.round(((screenEnd.y - screenStart.y) * partT) / screenLength));
+export const lobbyScreenTuck = mm(Math.round(Math.hypot(screenTuckX, screenTuckY)));
+export const lobbyScreenVisibleLength = mm(Math.round(screenLength));
 export const lobbyScreen = wall(
   "wall-lobby-screen",
   pt(sub(screenStart.x, screenTuckX), sub(screenStart.y, screenTuckY)),
-  pt(add(screenEnd.x, screenTuckX), add(screenEnd.y, screenTuckY)),
+  screenEnd,
   { thickness: studT, height: wallH, justification: "centre" },
 );
 

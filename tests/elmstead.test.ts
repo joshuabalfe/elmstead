@@ -193,7 +193,7 @@ describe("Elmstead's floor structure", () => {
     expect(Math.max(...ys)).toBe(face(wall("wall-north-first"), "south"));
   });
 
-  it("tucks the lobby screen into the walls it joins", () => {
+  it("angles the lobby screen to the spine's north corner", () => {
     const ground = elmstead.storeys.find((s) => s.id === "storey-ground");
     if (!ground) throw new Error("Elmstead has no ground floor");
     const wall = (id: string) => {
@@ -202,10 +202,12 @@ describe("Elmstead's floor structure", () => {
       return w;
     };
     const screen = wall("wall-lobby-screen");
-    expect(screen.start.y).toBeGreaterThan(face(wall("wall-hall-living"), "south"));
-    expect(screen.start.y).toBeLessThan(face(wall("wall-hall-living"), "north"));
-    expect(screen.end.y).toBeGreaterThan(face(wall("wall-stair-spine"), "south"));
-    expect(screen.end.y).toBeLessThan(face(wall("wall-stair-spine"), "north"));
+    const hall = wall("wall-hall-living");
+    const spine = wall("wall-stair-spine");
+    expect(screen.start.y).toBeGreaterThan(face(hall, "south"));
+    expect(screen.start.y).toBeLessThan(face(hall, "north"));
+    expect(screen.end.x).toBe(spine.start.x);
+    expect(screen.end.y).toBe(face(spine, "north"));
   });
 
   it("joins the dining/bedroom partition to the bedroom's north wall", () => {

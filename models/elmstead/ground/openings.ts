@@ -6,11 +6,10 @@
  * (about 440 mm) is taken as 700. The front window, fanlight, and front door opening and frame
  * sizes are the owner's.
  */
-import { wallLength } from "../../../src/geometry/wall.js";
-import { add, centredOn, deg, door, face, m, mm, scale, sub, window, type Opening } from "../../../src/model/index.js";
+import { add, centredOn, deg, divRound, door, face, m, mm, scale, sub, window, type Opening } from "../../../src/model/index.js";
 import { fanlight, frontDoor, frontWindow, internalDoor, standardWindow } from "../components/index.js";
 import { living } from "./rooms.js";
-import { bathWestX, bedroomBathroom, bedroomWallY, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, partitionEast, southIn, west } from "./walls.js";
+import { bathWestX, bedroomBathroom, bedroomWallY, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, lobbyScreenTuck, lobbyScreenVisibleLength, partitionEast, southIn, west } from "./walls.js";
 
 const doorH = m(2.1);
 const internal = { width: mm(700), height: doorH };
@@ -34,6 +33,7 @@ const bathroomDoorOffset = mm(135);
 const bathroomDoorY = add(face(bedroomBathroom, "north"), bathroomDoorOffset); // the living-room door sits opposite it
 const lobbyCentreX = mm(Math.round((partitionEast + bathWestX) / 2));
 const lobbyDoor = { width: mm(550), height: doorH }; // narrower than the others, to fit the screen
+const lobbyDoorOffset = add(lobbyScreenTuck, divRound(sub(lobbyScreenVisibleLength, lobbyDoor.width), 2));
 // Window returns splay out at about 45° on the inside. The frame is taken as sitting in the middle
 // of the wall, where the splay starts.
 const insideReveal = { face: "left", angle: deg(45) } as const;
@@ -55,7 +55,7 @@ export const openings: Opening[] = [
   // Lobby/bathroom wall runs south→north; "right" is the bathroom.
   door("door-bathroom", lobbyBathroom, bathroomDoorOffset, internalDoor, internal, { hinge: "start", side: "right" }),
   // Screen runs from the hall corner (south-west) to the spine (north-east); "right" is the lobby.
-  door("door-lobby", lobbyScreen, mm(Math.round((wallLength(lobbyScreen) - lobbyDoor.width) / 2)), internalDoor, lobbyDoor, { hinge: "start", side: "right" }),
+  door("door-lobby", lobbyScreen, lobbyDoorOffset, internalDoor, lobbyDoor, { hinge: "start", side: "right" }),
 
   window("window-bedroom", east, bedroomWindowOffset, standardWindow, { ...standard, width: bedroomWindowWidth }, insideReveal),
   window("window-rear-hall", extEast, mm(700), standardWindow, { ...standard, width: mm(950) }),
