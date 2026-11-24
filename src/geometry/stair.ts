@@ -112,7 +112,9 @@ export function flightProfile(f: StairFlight, going: number, riser: number, wais
     pts.push(v((k - 1) * going, k * riser));
     pts.push(v(k * going, k * riser));
   }
-  pts.push(v((f.risers - 1) * going, (f.risers - 1) * riser - waist));
+  // Never let the soffit sink below the flight's base on a short rise.
+  const w = Math.min(waist, (f.risers - 1) * riser);
+  pts.push(v((f.risers - 1) * going, (f.risers - 1) * riser - w));
   return pts.reverse();
 }
 

@@ -23,7 +23,7 @@ this order:
 4. door leaves with swing arcs (inset by the door's frame), and window symbols (outline, two
    glazing lines, and a small block for each frame piece or glazing bar the cut passes through:
    jambs and vertical bars). A splayed window's outline, and the dashed outline of one the cut
-   misses, follow its reveal
+   misses, follow its reveal. A doorway has no leaf or swing: its wall pieces leave the opening.
 5. stairs, drawn in full rather than cut: each flight's footprint, a tread line per tread and a
    walking-direction arrow, and each landing's outline. The cut height only decides which openings
    are cut, so a half landing above it is drawn like any other geometry
@@ -40,9 +40,11 @@ Every element is an SVG group with `class` (`wall`, `door`, `window`, `room`, `r
 be inspected or queried. A stair's flights and landings are groups nested inside the stair's.
 
 Stairs are drawn by `renderPlan` alone. `renderFloor`, `renderWallTops` and `renderPlanAnnotations`,
-which the viewer composites into its plan-style overlay, do not draw them, so the viewer shows a
-stair as its own IFC geometry and needs no stair-specific code. Stair colours stay clear of the
-wall, room and paper colours the plan-versus-3D comparison classifies (`src/render/style.ts`).
+which the viewer composites into its plan-style overlay, do not draw them. For readability the viewer
+recolours the stair solids in every viewer mode including snapshots — cream / darker-cream tread
+bands and an edge outline. The base IFC stair colour stays classifier-safe; the recolour is
+presentation only. Stair colours stay clear of the wall, room and paper colours the plan-versus-3D
+comparison classifies (`src/render/style.ts`).
 
 Drawing style is all in one place: `src/render/style.ts` holds the scale, colours, font and
 margins.
@@ -189,7 +191,8 @@ openings cut, doors and glazing in place, colours applied.
     refuses pointer lock, walk mode stays: the prompt remains and the keys still move.
   - Snapshots ignore walk mode: with `?snapshot=1&walk=1` the requested snapshot camera renders
     as usual, with no prompt and no walk input, so the 3D PNGs stay deterministic.
-- Snapshots (`?snapshot=1`) show the IFC's own colours, so the 3D PNGs still check what other
-  viewers will show. `?style=ifc` or `?style=plan` in the URL forces a style.
+- Snapshots (`?snapshot=1`) show the IFC's own colours apart from the stair readability presentation,
+  so the 3D PNGs still check what other viewers will show for everything but the stair recolour.
+  `?style=ifc` or `?style=plan` in the URL forces a style.
 - `npm run view` runs the same app for interactive use. It reloads the page whenever an IFC in
   `out/` changes.

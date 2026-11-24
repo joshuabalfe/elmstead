@@ -8,7 +8,7 @@
 import * as WebIFC from "web-ifc";
 import { doorDivision } from "../geometry/door.js";
 import { isSplayed, openingProfile } from "../geometry/opening.js";
-import { flightDirection, flightProfile, stairLevels, turnBetween, type FlightLevel } from "../geometry/stair.js";
+import { flightDirection, flightProfile, flightRun, stairLevels, turnBetween, type FlightLevel } from "../geometry/stair.js";
 import { v, type Vec } from "../geometry/vec.js";
 import { faceOffsets, wallDirection, wallLength } from "../geometry/wall.js";
 import { GLAZING_BAR_DEPTH, windowDivision, type Rect } from "../geometry/window.js";
@@ -57,10 +57,10 @@ export interface WriteOptions {
 function stairType(flights: readonly StairFlight[]) {
   if (flights.length === 1) return IFC4.IfcStairTypeEnum.STRAIGHT_RUN_STAIR;
   if (flights.length === 2) {
-    const turn = Math.round(turnBetween(flights[0]!, flights[1]!));
-    if (turn === 0) return IFC4.IfcStairTypeEnum.TWO_STRAIGHT_RUN_STAIR;
-    if (turn === 90) return IFC4.IfcStairTypeEnum.QUARTER_TURN_STAIR;
-    if (turn === 180) return IFC4.IfcStairTypeEnum.HALF_TURN_STAIR;
+    const turn = turnBetween(flights[0]!, flights[1]!);
+    if (Math.abs(turn) < 1e-6) return IFC4.IfcStairTypeEnum.TWO_STRAIGHT_RUN_STAIR;
+    if (Math.abs(turn - 90) < 1e-6) return IFC4.IfcStairTypeEnum.QUARTER_TURN_STAIR;
+    if (Math.abs(turn - 180) < 1e-6) return IFC4.IfcStairTypeEnum.HALF_TURN_STAIR;
   }
   return IFC4.IfcStairTypeEnum.NOTDEFINED;
 }
@@ -248,7 +248,8 @@ class Writer {
     for (const o of s.openings) {
       const host = written.get(o.wallId);
       if (!host) throw new Error(`${o.id}: wallId "${o.wallId}" is not a wall on ${s.id}`);
-      contained.push(this.opening(o, host.wall, host.placement, host.entity));
+      const filling = this.opening(o, host.wall, host.placement, host.entity);
+      if (filling) contained.push(filling);
     }
     for (const slab of s.slabs) contained.push(this.slab(slab, placement));
     for (const stair of s.stairs ?? []) {
@@ -289,7 +290,7 @@ class Writer {
    * The opening is placed in wall coordinates at (offsetAlongWall, 0, sillHeight). A box, or for a
    * window with a reveal its splayed plan outline (src/geometry/opening.ts) extruded up its height.
    */
-  private opening(o: Opening, w: Wall, wallPlacement: InstanceType<typeof IFC4.IfcLocalPlacement>, wallEntity: InstanceType<typeof IFC4.IfcElement>) {
+  private opening(o: Opening, w: Wall, wallPlacement: InstanceType<typeof IFC4.IfcLocalPlacement>, wallEntity: InstanceType<typeof IFC4.IfcElement>): InstanceType<typeof IFC4.IfcDoor> | InstanceType<typeof IFC4.IfcWindow> | undefined {
     const { left, right } = faceOffsets(w);
     const mid = (left + right) / 2;
     const placement = this.placement(wallPlacement, o.offsetAlongWall, 0, o.sillHeight);
@@ -297,10 +298,22 @@ class Writer {
       ? new IFC4.IfcArbitraryClosedProfileDef(IFC4.IfcProfileTypeEnum.AREA, null, this.closedPolyline(openingProfile(w, o, OPENING_CLEARANCE).map((p) => ({ x: round9(p.x - o.offsetAlongWall), y: round9(p.y) }))))
       : this.rectangle(o.width / 2, mid, o.width, w.thickness + 2 * OPENING_CLEARANCE);
     const body = this.body(profile, o.height);
+    const doorway = o.kind === "door" && o.doorway === true;
     const opening = this.write(
-      new IFC4.IfcOpeningElement(guid(`${o.id}#opening`), null, label(`${o.id} opening`), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [body]), null, IFC4.IfcOpeningElementTypeEnum.OPENING),
+      new IFC4.IfcOpeningElement(
+        doorway ? guid(o.id) : guid(`${o.id}#opening`),
+        null,
+        doorway ? label(o.name ?? o.id) : label(`${o.id} opening`),
+        null,
+        null,
+        placement,
+        new IFC4.IfcProductDefinitionShape(null, null, [body]),
+        doorway ? ident(o.id) : null,
+        IFC4.IfcOpeningElementTypeEnum.OPENING,
+      ),
     );
     this.write(new IFC4.IfcRelVoidsElement(guid(`${o.id}#voids`), null, null, null, wallEntity, opening));
+    if (doorway) return undefined;
     const filling = o.kind === "door" ? this.door(o, mid, placement) : this.window(o, mid, placement);
     if (o.componentId) this.instances.set(o.componentId, [...(this.instances.get(o.componentId) ?? []), filling]);
     this.write(new IFC4.IfcRelFillsElement(guid(`${o.id}#fills`), null, null, null, opening, filling));
@@ -443,6 +456,7 @@ class Writer {
    * extrusion along the placement's Z spans the width, centred on the start→end line.
    */
   private stairFlight(f: StairFlight, level: FlightLevel, riser: number, parent: InstanceType<typeof IFC4.IfcLocalPlacement>) {
+    if (flightRun(f) === 0) throw new Error(`${f.id}: zero-run flight cannot be written to IFC`);
     const d = flightDirection(f);
     // The placement's Z, across the flight to the right of the run; the origin sits half a width to
     // the left so the extrusion is centred.

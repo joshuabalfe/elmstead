@@ -362,7 +362,9 @@ function wallsAndOpenings(storey: Storey, view: View, components: Components | u
     if (!w) continue; // reported by checks
     if (!isCut(o)) out.push(drawUncut(w, o, view));
     else if (o.kind === "window") out.push(drawWindow(w, o, view, o.componentId ? windowDesigns.get(o.componentId) : undefined));
-    else out.push(doors === "swing" ? drawDoor(w, o, view, frameWidth(o)) : drawDoorGap(w, o, view));
+    else if (o.doorway) {
+      if (doors === "gap") out.push(drawDoorGap(w, o, view));
+    } else out.push(doors === "swing" ? drawDoor(w, o, view, frameWidth(o)) : drawDoorGap(w, o, view));
   }
   return out;
 }
@@ -374,7 +376,7 @@ function doorSwings(storey: Storey, view: View, components: Components | undefin
   return storey.openings.flatMap((o) => {
     const w = wallById.get(o.wallId);
     const frame = o.kind === "door" && o.componentId ? doorDesigns.get(o.componentId)?.frame?.width ?? 0 : 0;
-    return w && o.kind === "door" && isCut(o) && wallLength(w) > 0 ? [drawDoor(w, o, view, frame)] : [];
+    return w && o.kind === "door" && !o.doorway && isCut(o) && wallLength(w) > 0 ? [drawDoor(w, o, view, frame)] : [];
   });
 }
 

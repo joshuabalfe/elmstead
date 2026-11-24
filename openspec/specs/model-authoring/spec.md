@@ -73,12 +73,17 @@ angle crosses a given x or y, and `rectRoom` a rectangular room.
 ### Requirement: Opening and component helpers
 `door` and `window` SHALL make openings on a wall, linked to a component if given one. `door` SHALL
 set `sillHeight: 0`. `window` SHALL take an optional reveal last, as `door` takes a swing.
+`doorway` SHALL make a plain door opening with `doorway: true`, no component and no swing.
 `doorComponent` and `windowComponent` SHALL make designs. `centredOn` SHALL give the offset that
 centres an opening on a plan coordinate.
 
 #### Scenario: Door with a component
 - **WHEN** `door("door-living", wall, offset, internalDoor, size)` is called
 - **THEN** the door's `componentId` is `internalDoor.id` and its `sillHeight` is 0
+
+#### Scenario: Doorway
+- **WHEN** `doorway("doorway-hall", wall, offset, size)` is called
+- **THEN** the opening has `kind: "door"`, `doorway: true`, `sillHeight: 0`, and no component or swing
 
 #### Scenario: Centred window
 - **WHEN** `centredOn(wall, at, width)` is used as a window's offset
@@ -100,3 +105,36 @@ defaulting to 0.
 #### Scenario: North angle omitted
 - **WHEN** `site.northAngle` is left out
 - **THEN** true north is taken as plan +y
+
+### Requirement: Stair helpers
+`stairFlight(id, start, end, { width, risers })`, `stairLanding(id, outline, { thickness })` and
+`stair(id, toStorey, segments)` SHALL build plain stair values. `stair` SHALL take the destination
+`Storey` and record its id as `toStoreyId`. The helpers SHALL NOT compute elevations; the model
+supplies plan geometry and riser counts only.
+
+#### Scenario: Assembling a half-turn stair
+- **WHEN** a model passes a lower flight, a half landing and an upper flight to `stair("stair-main", firstFloor, …)`
+- **THEN** the stair's `toStoreyId` is `firstFloor.id` and its segments are in the given order
+
+#### Scenario: Flight values
+- **WHEN** `stairFlight("stair-flight-lower", start, end, { width: mm(825), risers: 8 })` is called
+- **THEN** it returns a flight with those points, width and riser count
+
+#### Scenario: Landing values
+- **WHEN** `stairLanding("stair-landing-half", outline, { thickness: mm(150) })` is called
+- **THEN** it returns a landing with that outline and thickness
+
+### Requirement: Derived stair dimensions are plain numbers
+Derived stair dimensions — the riser height, each flight's going and every segment's level — SHALL be
+plain `number` millimetres, not the branded `Mm`. `Mm` is an integer brand, so `mm()` and `div()`
+throw on a fraction and `divRound()` would round a 3050 / 16 riser to 191 mm, making sixteen risers
+reach 3056 mm and miss the target storey. The IFC writer's `len` and `posLen` already take a plain
+number, so nothing converts on the way out.
+
+#### Scenario: Fractional riser height
+- **WHEN** a stair geometry helper divides a 3050 mm rise into 16 risers
+- **THEN** it returns 190.625 as a `number`, without passing it through `mm()`
+
+#### Scenario: Division that must not round
+- **WHEN** the helper divides a rise by a riser count
+- **THEN** it uses plain division, because `div(mm(3050), 16)` throws and `divRound(mm(3050), 16)` gives 191
