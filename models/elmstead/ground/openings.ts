@@ -21,7 +21,7 @@ const standard = { height: m(1.2), sillHeight: mm(900) };
 // the frame's jambs.
 const frontDoorFrame = mm(50);
 const front = { width: mm(1000), height: doorH };
-export const frontDoorOffset = mm(50);
+export const frontDoorOffset = mm(150); // from the north end of the west wall (owner)
 const frontHead = m(2.6);
 const transom = mm(100); // between the top of the door and the fanlight
 const frontWindowSize = { width: m(2.5), height: sub(frontHead, mm(500)), sillHeight: mm(500) };

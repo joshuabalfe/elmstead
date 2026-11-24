@@ -169,6 +169,14 @@ export default defineConstraints([
       distance: m(1.5),
     },
     {
+      id: "front-door-offset",
+      note: "Front door opening starts 150 mm from the north end of the west wall (owner)",
+      from: wallEnd("wall-west", "start"),
+      to: jamb("door-front", "start"),
+      measure: { along: "wall-west" },
+      distance: mm(150),
+    },
+    {
       id: "front-door-width",
       note: "Front door opening width from the owner (1 m), with a 50 mm frame",
       from: jamb("door-front", "start"),
