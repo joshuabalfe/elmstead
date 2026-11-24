@@ -21,8 +21,8 @@ which `npm install` downloads (see [Getting started](getting-started.md#prerequi
 runs them before `build` writes anything and before `render` writes a plan; an ERROR means no
 output is written and the command exits 1. The rules are:
 
-- component ids are unique, each `componentId` names a component of its own kind, and a window's
-  frame and glazing bars leave room for glass
+- component ids are unique, each `componentId` names a component of its own kind, a door's frame
+  leaves room for a leaf, and a window's frame and glazing bars leave room for glass
 - every id-bearing node has a model-unique id (project, site, building, storeys, walls, openings,
   slabs, rooms and components)
 - walls have non-zero length

@@ -118,11 +118,28 @@
         "name": {
           "type": "string",
           "minLength": 1
+        },
+        "frame": {
+          "$ref": "#/$defs/Frame"
         }
       },
       "required": [
         "id",
         "name"
+      ],
+      "additionalProperties": false
+    },
+    "Frame": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "width"
       ],
       "additionalProperties": false
     },
@@ -138,7 +155,7 @@
           "minLength": 1
         },
         "frame": {
-          "$ref": "#/$defs/WindowFrame"
+          "$ref": "#/$defs/Frame"
         },
         "glazing": {
           "$ref": "#/$defs/Glazing"
@@ -147,20 +164,6 @@
       "required": [
         "id",
         "name"
-      ],
-      "additionalProperties": false
-    },
-    "WindowFrame": {
-      "type": "object",
-      "properties": {
-        "width": {
-          "type": "integer",
-          "exclusiveMinimum": 0,
-          "maximum": 9007199254740991
-        }
-      },
-      "required": [
-        "width"
       ],
       "additionalProperties": false
     },

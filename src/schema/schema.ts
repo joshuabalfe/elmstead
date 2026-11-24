@@ -109,7 +109,15 @@ const componentBase = {
   id: IdSchema,
   name: z.string().min(1),
 };
-export const DoorComponentSchema = z.strictObject(componentBase).meta({ id: "DoorComponent" });
+
+/** A frame around the inside of the opening, the same width all round. */
+export const FrameSchema = z.strictObject({ width: PositiveMmSchema }).meta({ id: "Frame" });
+
+export const DoorComponentSchema = z.strictObject({
+  ...componentBase,
+  /** Frame around the jambs and head; without one the leaf fills the opening. */
+  frame: FrameSchema.optional(),
+}).meta({ id: "DoorComponent" });
 
 const ratios = z.array(z.number().positive()).min(1);
 
@@ -123,13 +131,10 @@ export const GlazingSchema = z.strictObject({
   barWidth: PositiveMmSchema,
 }).meta({ id: "Glazing" });
 
-/** A frame around the inside of the opening, the same width all round. */
-export const WindowFrameSchema = z.strictObject({ width: PositiveMmSchema }).meta({ id: "WindowFrame" });
-
 export const WindowComponentSchema = z.strictObject({
   ...componentBase,
   /** Frame; without one the glass fills the opening. */
-  frame: WindowFrameSchema.optional(),
+  frame: FrameSchema.optional(),
   /** Glazing bars, dividing what is inside the frame; without them the window is a single pane. */
   glazing: GlazingSchema.optional(),
 }).meta({ id: "WindowComponent" });

@@ -7,30 +7,36 @@
  * this floor, so the window belongs to the stair and half-landing model, not this storey.
  */
 import { wallLength } from "../../../src/geometry/wall.js";
-import { centredOn, deg, door, m, mm, window, type Opening } from "../../../src/model/index.js";
-import { frontWindow, internalDoor, standardWindow } from "../components/index.js";
-import { bayFront, bayNorth, baySouth, bedroomNorth, diningNorth, east, ensuiteSouth, kitchenEast, north, westNorth } from "./walls.js";
+import { add, divRound, door, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
+import { bayWindow, crossBarWindow, internalDoor, standardWindow } from "../components/index.js";
+import { frontDoorOffset, frontDoorWidth } from "../ground/openings.js";
+import { bayFront, bayNorth, baySouth, bedroomNorth, diningNorth, east, ensuiteSouth, kitchenEast, westNorth } from "./walls.js";
 
 const doorH = m(2.1);
 const internal = { width: mm(700), height: doorH };
 const standard = { height: m(1.2), sillHeight: mm(900) };
-const lowLevel = { width: mm(700), height: mm(900), sillHeight: mm(500) };
-const insideReveal = { face: "left", angle: deg(45) } as const;
 
-const bayWindowWidth = mm(450);
-const bayNorthOffset = mm(Math.round((wallLength(bayNorth) - bayWindowWidth) / 2));
-const baySouthOffset = mm(Math.round((wallLength(baySouth) - bayWindowWidth) / 2));
+const bayWindowSize = { height: mm(2100), sillHeight: mm(450) };
+// Each light fills its wall segment, so only the window frames meet at the corners.
+const bayFrontWidth = mm(Math.floor(wallLength(bayFront)));
+const baySideWidth = mm(Math.floor(wallLength(bayNorth)));
+
+// Centred over the 1 m front door, which keeps this wider window close to the north-west corner.
+const kitchenWindowWidth = mm(1210);
+const kitchenWindowOffset = add(frontDoorOffset, divRound(sub(frontDoorWidth, kitchenWindowWidth), 2));
 
 export const openings: Opening[] = [
-  // West wall runs north→south; "left" is inside. The kitchen window is in its northern piece.
-  window("window-kitchen-west-first", westNorth, mm(400), standardWindow, { ...standard, width: mm(1075) }, insideReveal),
-  // North wall runs east→west; "left" is inside.
-  window("window-kitchen-north-first", north, mm(7250), standardWindow, lowLevel, insideReveal),
+  // West wall runs north→south; "left" is inside. The kitchen window is 1.21 × 2.1 m, centred
+  // over the front door and close to the north-west corner. Its 450 mm sill is the owner's. A
+  // square reveal keeps the frame and its cut inside the wall this close to the corner.
+  window("window-kitchen-west-first", westNorth, kitchenWindowOffset, crossBarWindow, { width: kitchenWindowWidth, height: mm(2100), sillHeight: mm(450) }),
 
-  // Bay window on the dining room's canted west side.
-  window("window-bay-front-first", bayFront, centredOn(bayFront, mm(3390), mm(1500)), frontWindow, { width: mm(1500), height: mm(1800), sillHeight: mm(400) }),
-  window("window-bay-north-first", bayNorth, bayNorthOffset, standardWindow, { ...standard, width: bayWindowWidth }),
-  window("window-bay-south-first", baySouth, baySouthOffset, standardWindow, { ...standard, width: bayWindowWidth }),
+  // Bay windows on the dining room's canted west side: all three share a 450 mm sill and reach
+  // the bay ceiling at 2.55 m. Each fills its wall, so only the frames meet at the corners. The
+  // middle light has one vertical and one horizontal bar; the sides only the horizontal.
+  window("window-bay-front-first", bayFront, mm(0), bayWindow, { width: bayFrontWidth, ...bayWindowSize }),
+  window("window-bay-north-first", bayNorth, mm(0), crossBarWindow, { ...bayWindowSize, width: baySideWidth }),
+  window("window-bay-south-first", baySouth, mm(0), crossBarWindow, { ...bayWindowSize, width: baySideWidth }),
 
   // Doors. Dining and bedroom doors open into their rooms; the ensuite door opens from the bedroom.
   door("door-dining-first", diningNorth, mm(3400), internalDoor, internal, { hinge: "end", side: "right" }),

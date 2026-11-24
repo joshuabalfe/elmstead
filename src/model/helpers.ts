@@ -120,8 +120,8 @@ export function centredOn(w: Wall, at: Mm, width: Mm): Mm {
 
 type OpeningSize = Pick<Door, "width" | "height">;
 
-/** A door design (see `components` in the schema), for `door()`. */
-export const doorComponent = (id: string, name: string): DoorComponent => ({ id, name });
+/** A door design (see `components` in the schema), for `door()`, optionally with a frame. */
+export const doorComponent = (id: string, name: string, detail: Omit<DoorComponent, "id" | "name"> = {}): DoorComponent => ({ id, name, ...detail });
 /** A window design (see `components` in the schema), for `window()`, optionally with glazing bars. */
 export const windowComponent = (id: string, name: string, detail: Omit<WindowComponent, "id" | "name"> = {}): WindowComponent => ({ id, name, ...detail });
 
