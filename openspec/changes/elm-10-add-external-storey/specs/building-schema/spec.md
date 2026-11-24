@@ -25,7 +25,7 @@ material SHALL only select the slab's presentation colour and SHALL NOT change i
 
 #### Scenario: Material omitted
 - **WHEN** a slab omits `material`
-- **THEN** schema validation passes and the slab defaults to `concrete`
+- **THEN** schema validation passes and consumers treat the slab as `concrete`
 
 #### Scenario: Unknown material rejected
 - **WHEN** a slab has `material: "timber"`

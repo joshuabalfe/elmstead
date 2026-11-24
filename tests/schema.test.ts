@@ -92,7 +92,7 @@ describe("building schema", () => {
     expect(reveal.properties.angle).toMatchObject({ exclusiveMinimum: 0, exclusiveMaximum: 90 });
   });
 
-  it("allows a ground slab material and treats an omitted material as concrete", () => {
+  it("allows a ground material and an omitted material", () => {
     const d = minimal() as any;
     expect(issues(d)).toEqual([]);
     d.storeys[0].slabs[0].material = "ground";

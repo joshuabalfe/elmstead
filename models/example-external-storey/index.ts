@@ -1,6 +1,7 @@
 /**
- * A minimal external-storey example: a house on a 450 mm plinth, with front steps climbing from the
- * street level to the front door, and the external ground drawn as a ground slab.
+ * A minimal external-storey example: a house with three front steps from the street level to the
+ * front door, and the external ground drawn as a ground slab. The walls start at the ground floor,
+ * so the example has no basement or plinth closing the face below it.
  */
 import { centredOn, defineBuilding, door, m, mm, pt, rectWalls, stair, stairFlight } from "../../src/model/index.js";
 import type { Storey } from "../../src/schema/schema.js";
@@ -43,7 +44,7 @@ const street: Storey = {
   ],
   rooms: [],
   // 450 mm over 3 risers: 150 mm each, a 300 mm going, landing at the front door threshold.
-  stairs: [stair("stair-front", ground, [stairFlight("stair-flight-front", pt(mm(4000), mm(-800)), pt(mm(4000), mm(-200)), { width: mm(1200), risers: 3 })])],
+  stairs: [stair("stair-front", ground, [stairFlight("stair-flight-front", pt(mm(4000), mm(-600)), pt(mm(4000), mm(0)), { width: mm(1200), risers: 3 })])],
 };
 
 export default defineBuilding({

@@ -58,11 +58,11 @@ colour). Alternative — making ground a compared class — would force plan/3D 
 churn the comparison; excluding it is simpler and consistent with stairs.
 
 **One shared stair riser, accepted for now.** The viewer bands every stair on a single riser taken
-from the model's first stair (`viewer/main.ts`). Splitting it per stair needs either per-stair IFC
+from the stair with the largest riser (`viewer/main.ts`). Splitting it per stair needs either per-stair IFC
 style variants or rendering the stairs outside Fragments, because Fragments merges all stair solids
 onto one material and a shader holds one uniform. We keep the shared riser and relax the
 `ifc-viewer` requirement to match, rather than take on that machinery for a shading detail; the
-front steps' 150 mm risers still alternate against the main stair's 190.6 mm. If the treads read
+front steps' 150 mm risers still alternate against the main stair's 182.35 mm. If the treads read
 poorly once the measured steps exist, revisit with per-stair materials. Alternative: per-stair
 banding — deferred, not rejected.
 
@@ -85,9 +85,9 @@ measured. The capability is also exercised by the `example-external-storey` fixt
 - [Green ground churns the plan-versus-3D comparison] → ground classifies as neither wall, room nor
   paper and is skipped; the comparison is live and has no snapshots, so only committed snapshots
   (currently the cottage plan SVG) need review, and the cottage has no ground.
-- [A second stair bands on the first stair's riser] → accepted for now; the spec states the
-  shared-riser behaviour, and the front steps' 150 mm risers still alternate against the main stair's
-  190.6 mm; revisit if the visual grates.
+- [A second stair bands on the shared riser] → accepted for now; the shared riser is the largest
+  (the main stair's 182.35 mm), the front steps' 150 mm risers alternate under it, and the spec
+  states the behaviour; revisit if the visual grates.
 - [The external storey breaks tests that assume the ground floor is lowest and every storey has
   walls] → update the elmstead floor-structure test, make the per-storey plan-vs-3D loop skip
   wall-less storeys, and update the storey-selector expectation; add `npm test` to the model edit's
@@ -112,4 +112,4 @@ default to `concrete`.
 - The exact ground colour and the ground slab's extent are aesthetic/model choices that can be settled
   during implementation without changing the specs or approach.
 - elmstead's exact riser awaits the threshold-to-path drop measurement; the owner has specified
-  three steps, and the 150 mm riser is provisional.
+  four steps, and the 150 mm riser is provisional.

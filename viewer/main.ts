@@ -661,8 +661,8 @@ function applyStyle() {
  * read as a flat slab. Banding the upward faces by floor(worldY / riser) alternates the floor cream
  * with a darker cream (tread tops are integer multiples of the stair's riser); vertical faces take the
  * wall colour; an EdgesGeometry outline reads the nosings from corner views. All stairs share one
- * riser, taken from the model's first stair, because Fragments renders them under one material; a
- * model whose stairs differ bands both on that riser (see ifc-viewer). The base material stays the
+ * riser, taken from the stair with the largest riser, because Fragments renders them under one
+ * material; a model whose stairs differ bands them all on that riser (see ifc-viewer). The material stays the
  * safe stair green so the viewer's classifier leaves it alone; only the shaded output is recoloured.
  */
 const stairEdgeMaterial = new THREE.LineBasicMaterial({ color: C.ink });
@@ -1332,13 +1332,14 @@ async function load(name: string) {
   parseStoreysParam(json);
   populateStoreySelector(json);
   // One shared riser for the banding: Fragments renders all stairs under one material, so the
-  // shader cannot hold a riser per stair. A model whose stairs differ bands both on this one.
+  // shader cannot hold a riser per stair. Take the largest so the stair with the most steps reads
+  // correctly; other stairs band on it too.
   stairRiser = 0;
   for (const s of json?.storeys ?? []) {
     for (const st of s.stairs ?? []) {
       const to = json!.storeys.find((x) => x.id === st.toStoreyId);
       const total = st.segments.reduce((n, g) => (g.kind === "flight" ? n + g.risers : n), 0);
-      if (to && total > 0 && stairRiser === 0) stairRiser = (to.elevation - s.elevation) / total / 1000;
+      if (to && total > 0) stairRiser = Math.max(stairRiser, (to.elevation - s.elevation) / total / 1000);
     }
   }
   const model = await ifcLoader.load(buffer, true, name);

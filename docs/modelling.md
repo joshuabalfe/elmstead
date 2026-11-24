@@ -9,9 +9,10 @@ A larger model splits across more files in its folder, as in
 
 ```
 models/elmstead/
-  index.ts          defineBuilding(...): components, storeys: [ground, ...]
+  index.ts          defineBuilding(...): components, storeys: [basement, street, ground, first]
   constraints.ts    real measurements the model must keep (see Constraints)
   shared.ts         dimensions every floor uses: outline, external wall thicknesses, floor levels
+  street.ts         external works: street level, ground slab and front steps
   components/       door and window designs, shared by every floor
     doors.ts        front door, internal door
     windows.ts      front window, fanlight, standard window
@@ -288,8 +289,9 @@ const streetLevel: Storey = {
 
 The stair derives its rise and risers from the two storeys, so the steps follow if the street level
 changes. Keep the ground slab a few metres beyond the building — and outside the footprint when a
-basement is planned, because it cannot extend underneath. Snapshots frame on everything shown, and a
-site-wide slab shrinks the house in the picture.
+basement is planned, because it cannot extend underneath. Walls start at their storey's floor, so
+the wall base needs a basement storey (as elmstead has) or a plinth to close the face below it.
+Snapshots frame on everything shown, and a site-wide slab shrinks the house in the picture.
 
 ## Helpers
 

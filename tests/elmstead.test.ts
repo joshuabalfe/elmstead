@@ -345,3 +345,15 @@ describe("Elmstead's stair", () => {
     }
   });
 });
+
+describe("Elmstead's front steps", () => {
+  it("has the owner's four steps from the street to the front door", () => {
+    const street = elmstead.storeys.find((s) => s.id === "storey-street");
+    const ground = elmstead.storeys.find((s) => s.id === "storey-ground");
+    if (!street || !ground) throw new Error("Elmstead needs the street and ground storeys");
+    const flight = street.stairs?.[0]?.segments[0];
+    if (!flight || flight.kind !== "flight") throw new Error("The front steps should be one flight");
+    expect(flight.risers).toBe(4);
+    expect(ground.elevation - street.elevation).toBe(mm(600));
+  });
+});

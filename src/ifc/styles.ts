@@ -6,8 +6,8 @@
 export const STYLES = {
   wall: { rgb: [0.91, 0.89, 0.85], transparency: 0 },
   slab: { rgb: [0.55, 0.55, 0.55], transparency: 0 },
-  // External ground slabs. Distinct from `slab` so the viewer paints a ground top rather than
-  // discarding it as a concrete slab's.
+  // External ground slabs. Distinct from `slab` so the viewer can paint ground in 3D and use the
+  // ground floor fill in plan style.
   ground: { rgb: [0.47, 0.56, 0.38], transparency: 0 },
   door: { rgb: [0.61, 0.42, 0.26], transparency: 0 },
   glazing: { rgb: [0.5, 0.7, 0.9], transparency: 0.5 },

@@ -56,7 +56,7 @@
   the model in `models/elmstead/shared.ts`, with a note; constraints hold distances, not step counts.
   Verify `npm run check models/elmstead` passes.
 - [x] 6.2 Add the street storey, front-steps stair and ground slab to `models/elmstead` using four
-  risers, with the ground only in front of the house (no slab under the future basement). Verify
+  risers, with the ground only in front of the house (no slab under the basement). Verify
   `npm run check models/elmstead` and `npm run all models/elmstead` pass.
 - [x] 6.3 Update the tests that assume the ground floor is lowest and every storey has walls: the
   floor-structure loop (`tests/elmstead.test.ts`), the per-storey plan-vs-3D loop and the centreline

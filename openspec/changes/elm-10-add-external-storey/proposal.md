@@ -27,7 +27,7 @@ gives a home for future external works (paths, patios, garden walls).
   storey-assuming tests for the external level.
 - Model elmstead's street storey, front steps and ground slab. The owner specified four steps; the
   150 mm riser (a 600 mm drop) is provisional until the threshold-to-path drop is measured. The
-  ground stays in front of the house, not under it: a basement will occupy that space.
+  ground stays in front of the house, not under it: a basement occupies that space.
 
 ## Capabilities
 

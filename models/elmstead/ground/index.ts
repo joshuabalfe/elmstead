@@ -16,7 +16,7 @@
  *   rooms.ts      room outlines along the wall faces
  *   stair.ts      the provisional half-turn stair to the first floor
  *
- * Left out for now: front steps, hearths, radiators and rainwater pipes. The alcoves beside the
+ * Left out for now: hearths, radiators and rainwater pipes. The alcoves beside the
  * living-room chimney breast are built-ins, so they are not part of the room.
  */
 import { mm, type Storey } from "../../../src/model/index.js";
