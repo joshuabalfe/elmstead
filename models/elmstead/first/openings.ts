@@ -8,7 +8,7 @@
  */
 import { wallLength } from "../../../src/geometry/wall.js";
 import { centredOn, door, m, mm, window, type Opening } from "../../../src/model/index.js";
-import { frontWindow, internalDoor, standardWindow } from "../components/index.js";
+import { crossBarWindow, frontWindow, internalDoor, standardWindow } from "../components/index.js";
 import { frontDoorOffset } from "../ground/openings.js";
 import { bayFront, bayNorth, baySouth, bedroomNorth, diningNorth, east, ensuiteSouth, kitchenEast, westNorth } from "./walls.js";
 
@@ -25,7 +25,7 @@ export const openings: Opening[] = [
   // level with the front door's north jamb close to the north-west corner. Its 500 mm sill matches
   // the ground-floor front window's; the owner gave the size but not the sill. A square reveal
   // keeps the frame and its cut inside the wall this close to the corner.
-  window("window-kitchen-west-first", westNorth, frontDoorOffset, standardWindow, { width: mm(1210), height: mm(2100), sillHeight: mm(500) }),
+  window("window-kitchen-west-first", westNorth, frontDoorOffset, crossBarWindow, { width: mm(1210), height: mm(2100), sillHeight: mm(500) }),
 
   // Bay window on the dining room's canted west side.
   window("window-bay-front-first", bayFront, centredOn(bayFront, mm(3390), mm(1500)), frontWindow, { width: mm(1500), height: mm(1800), sillHeight: mm(400) }),

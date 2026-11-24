@@ -12,5 +12,13 @@ export const frontWindow = windowComponent("window-type-front", "Front window", 
 });
 /** The glazed panel over the front door: a different construction from the front window. */
 export const fanlight = windowComponent("window-type-fanlight", "Fanlight");
+/**
+ * The first-floor kitchen window: the front window's 100 mm frame, but a single horizontal bar
+ * and no vertical bars, so two panes. Bar width is the front window's typical 60 mm.
+ */
+export const crossBarWindow = windowComponent("window-type-cross-bar", "Cross-bar window", {
+  frame: { width: mm(100) },
+  glazing: { columns: [1], rows: [1, 1], barWidth: mm(60) },
+});
 /** The bedroom and rear-hall windows. */
 export const standardWindow = windowComponent("window-type-standard", "Standard window");
