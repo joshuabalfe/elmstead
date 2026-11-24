@@ -9,7 +9,7 @@
  */
 import { add, face, mm, pt, sub, wall } from "../../../src/model/index.js";
 import { brickT, coreD, coreW, eastT, extEastX, extSouthY, firstFloor, northT, partT, southT, studT, westT } from "../shared.js";
-import { livingBreast, partitionEast, partitionX } from "../ground/walls.js";
+import { bathNorth, livingBreast, partitionEast, partitionX, spineY } from "../ground/walls.js";
 
 export const wallH = firstFloor.ceilingHeight;
 export const breastDepth = mm(350); // chimney breasts, as on the ground floor
@@ -86,6 +86,13 @@ export const stairWestX = ensuiteWestX;
 export const stairEastX = sub(extEastX, brickT);
 export const stairSouthY = add(extSouthY, brickT);
 export const stairNorthY = northIn;
+
+// The upper flight is one going shorter (17 risers split 9 + 8), so its top riser lands east of the
+// well's west edge. The landing sticks out to meet it across the south flight's band, leaving no
+// gap to step into.
+export const stairArrivalX = mm(6195);
+export const stairArrivalSouthY = face(bathNorth, "north");
+export const stairArrivalNorthY = spineY;
 
 // Chimney breasts on the south wall: the dining-room one stacks on the living room's.
 export const breastDining = wall("wall-breast-dining-first", pt(livingBreast.west, southIn), pt(livingBreast.east, southIn), { thickness: breastDepth, height: wallH, justification: "left" });

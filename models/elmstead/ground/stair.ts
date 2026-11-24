@@ -7,8 +7,9 @@
  * upper flight south of the spine climbs west back to the first-floor landing. No elevations are
  * stored: measuring the levels later re-derives the riser height.
  */
-import { face, mm, pt, stairFlight, stairLanding, sub, type Mm, type Stair } from "../../../src/model/index.js";
+import { face, mm, pt, stairFlight, stairLanding, type Mm, type Stair } from "../../../src/model/index.js";
 import { stairwellOutline } from "../first/index.js";
+import { stairArrivalX } from "../first/walls.js";
 import { bathNorth, northIn, spine, spineEndX, spineY } from "./walls.js";
 
 // The traced first-floor well bounds the flights and landing; the half landing fills its east end
@@ -26,7 +27,6 @@ const mid = (a: Mm, b: Mm): Mm => mm((a + b) / 2);
 const southY = mid(face(bathNorth, "north"), spineY); // 6535: centreline south of the spine
 const northY = mid(spineNorth, northIn); //              7620: centreline north of the spine
 const width = mm(910); // both flights, from the owner
-const going = mm(320); // step depth, from the owner
 const lowerRisers = 9;
 const upperRisers = 8; // 17 total, from the owner
 
@@ -39,7 +39,7 @@ const halfLanding = stairLanding(
   [pt(landingWest, south), pt(east, south), pt(east, north), pt(landingWest, north)],
   { thickness: mm(150) },
 );
-const upper = stairFlight("stair-flight-upper", pt(landingWest, southY), pt(sub(landingWest, mm(going * (upperRisers - 1))), southY), { width, risers: upperRisers });
+const upper = stairFlight("stair-flight-upper", pt(landingWest, southY), pt(stairArrivalX, southY), { width, risers: upperRisers });
 
 export const stairs: Stair[] = [
   { id: "stair-main", name: "Main stair", toStoreyId: "storey-first-floor", segments: [lower, halfLanding, upper] },

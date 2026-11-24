@@ -23,7 +23,7 @@ import { mm, pt, type Polygon, type Storey } from "../../../src/model/index.js";
 import { coreD, coreW, firstFloor, firstFloorStructure } from "../shared.js";
 import { openings } from "./openings.js";
 import { rooms } from "./rooms.js";
-import { bayFrontNorthY, bayFrontSouthY, bayNorthY, bayOutX, baySouthY, stairEastX, stairNorthY, stairSouthY, stairWestX, walls } from "./walls.js";
+import { bayFrontNorthY, bayFrontSouthY, bayNorthY, bayOutX, baySouthY, stairArrivalNorthY, stairArrivalSouthY, stairArrivalX, stairEastX, stairNorthY, stairSouthY, stairWestX, walls } from "./walls.js";
 
 /** The hole in the first floor: the stair well and the half landing in the extension. */
 export const stairwellOutline: Polygon = [
@@ -31,6 +31,10 @@ export const stairwellOutline: Polygon = [
   pt(stairEastX, stairSouthY),
   pt(stairEastX, stairNorthY),
   pt(stairWestX, stairNorthY),
+  pt(stairWestX, stairArrivalNorthY),
+  pt(stairArrivalX, stairArrivalNorthY),
+  pt(stairArrivalX, stairArrivalSouthY),
+  pt(stairWestX, stairArrivalSouthY),
 ];
 
 function slabPiece(id: string, name: string, outline: Polygon) {
@@ -41,6 +45,10 @@ const slabs = [
   slabPiece("slab-first-west", "First floor west", [
     pt(mm(0), mm(0)),
     pt(stairWestX, mm(0)),
+    pt(stairWestX, stairArrivalSouthY),
+    pt(stairArrivalX, stairArrivalSouthY),
+    pt(stairArrivalX, stairArrivalNorthY),
+    pt(stairWestX, stairArrivalNorthY),
     pt(stairWestX, coreD),
     pt(mm(0), coreD),
     pt(mm(0), bayNorthY),
