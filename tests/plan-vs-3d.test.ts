@@ -20,8 +20,9 @@ import twoStorey from "../models/example-two-storey/index.js";
 import { renderPlan } from "../src/render/plan.js";
 import { svgToPixels } from "../src/render/png.js";
 import { MARGIN, PNG_ZOOM } from "../src/render/style.js";
+import { C } from "../src/render/style.js";
 import type { BuildingModel, Storey } from "../src/schema/schema.js";
-import { comparePlanTo3d, type Raster } from "./support/plan-vs-3d.js";
+import { comparePlanTo3d, isIgnoredColour, type Raster } from "./support/plan-vs-3d.js";
 
 declare global {
   interface Window {
@@ -127,15 +128,22 @@ afterAll(async () => {
   // Closing Chromium after three swiftshader WebGL pages can exceed the default 10 s on CI.
 }, 60_000);
 
+describe("plan colours", () => {
+  it("ignores ground pixels in the plan-versus-3D comparison", () => {
+    expect(isIgnoredColour(C.ground)).toBe(true);
+  });
+});
+
 describe("3D Top view against the plan", () => {
-  // Every storey of every model, each against the top view of that storey alone: with more than one
-  // storey shown the top view reads as the topmost storey's plan, not the one being compared.
+  // Every walled storey of every model, each against the top view of that storey alone: with more
+  // than one storey shown the top view reads as the topmost storey's plan, not the one compared.
+  // Wall-less external storeys (the street level) are covered by the ground-presentation test.
   for (const [path, source] of [
     ["models/example-cottage", cottage],
     ["models/elmstead", elmstead],
     ["models/example-two-storey", twoStorey],
   ] as const) {
-    for (const storey of source.storeys) {
+    for (const storey of source.storeys.filter((s) => s.walls.length > 0)) {
       it(`shows the same walls, rooms and openings as the plan: ${path} ${storey.id}`, async () => {
         const m = structuredClone(source) as BuildingModel;
         const name = `test-${path.replace(/\W+/g, "-")}`;
@@ -187,10 +195,10 @@ describe("storey selection", () => {
     const m = structuredClone(await model("models/elmstead"));
     for (const s of m.storeys) s.stairs = [];
     await publish("test-hidden-storey", m);
-    const belowFirst = structuredClone(m);
+const belowFirst = structuredClone(m);
     belowFirst.storeys = belowFirst.storeys.filter((s) => s.id !== "storey-first-floor");
     await publish("test-below-first", belowFirst);
-    const hidden = await viewOf("test-hidden-storey", "view=se&snapshot=1&labels=0&style=ifc&storeys=storey-basement,storey-ground");
+    const hidden = await viewOf("test-hidden-storey", "view=se&snapshot=1&labels=0&style=ifc&storeys=storey-basement,storey-street,storey-ground");
     const absent = await viewOf("test-below-first", "view=se&snapshot=1&labels=0&style=ifc");
     // Hiding a storey must be the same picture as a model that never had it: same framing, same
     // pixels, every one of them.
@@ -204,12 +212,12 @@ describe("storey selection", () => {
     const camera = "16,11,6,5.2,1.5,-4.2";
     const all = await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}`);
 
-    // The ground choice is the ground and the basement below it, from the camera it had before.
+// The ground choice is the basement, street and ground together, from the camera it had before.
     await selectStorey("storey-ground");
-    expect(new URL(page.url()).searchParams.get("storeys")).toBe("storey-basement,storey-ground");
+    expect(new URL(page.url()).searchParams.get("storeys")).toBe("storey-basement,storey-street,storey-ground");
     const ground = await canvasPixels();
     expect(samePixels(ground, all)).toBe(false);
-    const groundOnly = await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}&storeys=storey-basement,storey-ground`);
+    const groundOnly = await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}&storeys=storey-basement,storey-street,storey-ground`);
     expect(samePixels(ground, groundOnly)).toBe(true);
 
     // The topmost choice puts the first floor back, still without moving the camera.
@@ -253,5 +261,35 @@ describe("stair readability presentation", () => {
       expect(near(withStair, green, 12)).toBeLessThan(50);
       expect(near(withStair, darkCream, 8) - near(without, darkCream, 8)).toBeGreaterThan(1000);
     }
+  }, 120_000);
+});
+
+describe("ground presentation", () => {
+  const near = (r: Raster, rgb: [number, number, number], tol: number): number => {
+    let n = 0;
+    for (let i = 0; i < r.data.length; i += 4) {
+      if (Math.abs(r.data[i]! - rgb[0]) <= tol && Math.abs(r.data[i + 1]! - rgb[1]) <= tol && Math.abs(r.data[i + 2]! - rgb[2]) <= tol) n++;
+    }
+    return n;
+  };
+  const ground: [number, number, number] = [120, 143, 97]; // STYLES.ground, sRGB
+
+  it("shows a ground slab in the ground colour and not as concrete", async () => {
+    const m = await model("models/example-cottage");
+    m.storeys[0]!.slabs[0]!.material = "ground";
+    m.storeys[0]!.rooms = []; // expose the slab's fill in the plan-style floor
+    await publish("test-ground-presentation", m);
+    const plain = await model("models/example-cottage");
+    plain.storeys[0]!.rooms = [];
+    await publish("test-ground-concrete", plain);
+
+    // The plan-style floor fill is unlit, so the ground colour is exact.
+    const plan = await viewOf("test-ground-presentation", "view=top&labels=0&style=plan");
+    expect(near(plan, [125, 143, 95], 6)).toBeGreaterThan(1000);
+
+    // In IFC style the slab top is lit, so compare the ground model against a concrete copy.
+    const withGround = await viewOf("test-ground-presentation", "view=top&labels=0&style=ifc");
+    const concrete = await viewOf("test-ground-concrete", "view=top&labels=0&style=ifc");
+    expect(near(withGround, ground, 30)).toBeGreaterThan(near(concrete, ground, 30) + 1000);
   }, 120_000);
 });

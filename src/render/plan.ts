@@ -396,7 +396,7 @@ export function renderWallTops(storey: Storey, components?: Components): { svg: 
  */
 export function renderFloor(storey: Storey, components?: Components): { svg: string; bounds: Bounds } {
   return overlay(storey, (view) => [
-    ...storey.slabs.map((s) => polygon(s.outline.map((p) => view.toPx(toVec(p))), { fill: C.room, stroke: "none" })),
+    ...storey.slabs.map((s) => polygon(s.outline.map((p) => view.toPx(toVec(p))), { fill: s.material === "ground" ? C.ground : C.room, stroke: "none" })),
     ...storey.rooms.map((r) => polygon(r.outline.map((p) => view.toPx(toVec(p))), { fill: C.room, stroke: "none" })),
     ...doorSwings(storey, view, components),
   ]);
@@ -477,7 +477,7 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
 
   // Slabs: fill the floor, with a dashed outline beneath everything. Room fills sit on top.
   for (const s of storey.slabs) {
-    out.push(polygon(s.outline.map((p) => view.toPx(toVec(p))), { class: "slab", "data-id": s.id, fill: C.room, stroke: C.slab, "stroke-width": 0.8, "stroke-dasharray": "6 3" }));
+    out.push(polygon(s.outline.map((p) => view.toPx(toVec(p))), { class: "slab", "data-id": s.id, fill: s.material === "ground" ? C.ground : C.room, stroke: C.slab, "stroke-width": 0.8, "stroke-dasharray": "6 3" }));
   }
 
   // Cut door openings show paper over the slab fill, as the viewer's wall tops do. Drawn before the

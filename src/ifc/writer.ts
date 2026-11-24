@@ -427,7 +427,7 @@ class Writer {
     const placement = this.placement(parent, 0, 0, s.elevationOffset - s.thickness);
     const profile = new IFC4.IfcArbitraryClosedProfileDef(IFC4.IfcProfileTypeEnum.AREA, null, this.closedPolyline(s.outline));
     return this.write(
-      new IFC4.IfcSlab(guid(s.id), null, label(s.name ?? s.id), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [this.body(profile, s.thickness, "slab")]), ident(s.id), IFC4.IfcSlabTypeEnum.FLOOR),
+      new IFC4.IfcSlab(guid(s.id), null, label(s.name ?? s.id), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [this.body(profile, s.thickness, s.material === "ground" ? "ground" : "slab")]), ident(s.id), IFC4.IfcSlabTypeEnum.FLOOR),
     );
   }
 

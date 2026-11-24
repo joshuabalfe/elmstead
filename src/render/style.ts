@@ -11,6 +11,7 @@ export const C = {
   wall: "#2b2b2b",
   room: "#f3efe6",
   slab: "#9a9a9a",
+  ground: "#7d8f5f", // external ground; clear of wall, room and paper so the comparison skips it
   opening: "#1a1a1a",
   glass: "#3a7bd5",
   dim: "#5a5a5a",

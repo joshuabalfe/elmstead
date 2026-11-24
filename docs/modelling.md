@@ -9,9 +9,10 @@ A larger model splits across more files in its folder, as in
 
 ```
 models/elmstead/
-  index.ts          defineBuilding(...): components, storeys: [ground, ...]
+  index.ts          defineBuilding(...): components, storeys: [basement, street, ground, first]
   constraints.ts    real measurements the model must keep (see Constraints)
   shared.ts         dimensions every floor uses: outline, external wall thicknesses, floor levels
+  street.ts         external works: street level, ground slab and front steps
   components/       door and window designs, shared by every floor
     doors.ts        front door, internal door
     windows.ts      front window, fanlight, standard window
@@ -97,7 +98,7 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
 | **Wall** | `start`, `end`, `thickness`, `height`, `justification` | straight; `justification` is `centre`, `left` or `right` |
 | **Door** | `wallId`, `offsetAlongWall`, `width`, `height`, `sillHeight`, `swing?`, `doorway?` | `kind: "door"`; a doorway has no leaf, component or swing |
 | **Window** | `wallId`, `offsetAlongWall`, `width`, `height`, `sillHeight`, `reveal?` | `kind: "window"` |
-| **Slab** | `outline`, `thickness`, `elevationOffset` | top of slab is at storey elevation + `elevationOffset`; the slab extends downwards from there |
+| **Slab** | `outline`, `thickness`, `elevationOffset`, `material?` | top of slab is at storey elevation + `elevationOffset`; the slab extends downwards from there; `material: "ground"` renders an external ground slab (default `concrete`) |
 | **Room** | `name`, `outline`, `dimensionOutline?` | 2D outline only, for now; `dimensionOutline` optionally gives the part the plan measures, while the label, area and IFC space keep `outline` |
 | **Stair** | `toStoreyId`, `segments` | a storey element climbing to the next storey up; `segments` run bottom to top |
 | **Stair flight** | `start`, `end`, `width`, `risers` | `kind: "flight"`; a straight run, centred on its start→end line, of at least 2 risers |
@@ -264,8 +265,33 @@ const ground: Storey = {
 
 The two flights turn through 180°, so the IFC calls the stair `HALF_TURN_STAIR`. Its landing is an
 ordinary polygon, so an irregular one — a rear hall wrapping around it, say — needs no special case.
-Not modelled yet: winders, curved and spiral stairs, railings, front steps, headroom, and openings
-cut in an upper floor's slab (shape the slab's outline around the stairwell instead).
+Not modelled yet: winders, curved and spiral stairs, railings, headroom, and openings cut in an
+upper floor's slab (shape the slab's outline around the stairwell instead).
+
+## External works
+
+External ground is a storey below the building's ground floor: give it a negative `elevation`, no
+rooms, and a stair climbing to the ground storey. Front steps are then an ordinary stair, and the
+ground itself is a wide, thin slab with `material: "ground"`.
+
+```ts
+const streetLevel: Storey = {
+  id: "storey-street",
+  name: "Street level",
+  elevation: mm(-450),
+  walls: [],
+  openings: [],
+  slabs: [{ id: "slab-ground-external", name: "External ground", outline, thickness: mm(50), elevationOffset: mm(0), material: "ground" }],
+  rooms: [],
+  stairs: [stair("stair-front", ground, [stairFlight("stair-flight-front", bottom, top, { width: m(1.2), risers: 3 })])],
+};
+```
+
+The stair derives its rise and risers from the two storeys, so the steps follow if the street level
+changes. Keep the ground slab a few metres beyond the building — and outside the footprint when a
+basement is planned, because it cannot extend underneath. Walls start at their storey's floor, so
+the wall base needs a basement storey (as elmstead has) or a plinth to close the face below it.
+Snapshots frame on everything shown, and a site-wide slab shrinks the house in the picture.
 
 ## Helpers
 

@@ -40,6 +40,12 @@ function kindAt(r: Raster, x: number, y: number): Kind {
   return Kind.Other;
 }
 
+/** Whether the comparison ignores this opaque colour, as it does stair and ground pixels. */
+export function isIgnoredColour(hex: string): boolean {
+  const [r, g, b] = rgb(hex);
+  return kindAt({ width: 1, height: 1, data: new Uint8Array([r, g, b, 255]) }, 0, 0) === Kind.Other;
+}
+
 interface Box {
   x0: number;
   y0: number;
