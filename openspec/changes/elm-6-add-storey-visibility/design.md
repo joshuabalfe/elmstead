@@ -84,13 +84,12 @@ The fills are cut out with `alphaTest` rather than blended, so they stay in the 
 like geometry.
 
 Only the slab's top is suppressed. Its underside stays the ceiling below, and its exposed edges
-stay drawn, so the floor reads as its structure's thickness at a stairwell instead of a single
-plane. At the outer walls the first-floor slab stops half a wall into the wall body: its edges are
-buried, the facade stays continuous, and the earlier grey band does not return. That inset also
-removes a provisional slab overhang outside the footprint. The stairwell opening follows the ground
-plan's room and wall edges, not a loose rectangle, and external walls carry up through the
-structure while internal walls stop at its underside, so the slab sits on them and its edge rises
-from the wall tops.
+stay drawn, so the floor reads as its structure's thickness at a stairwell and at the facade instead
+of a single plane. The lower storey's walls stop at the slab's underside, so the slab sits on them:
+its edge is the 200 mm floor-structure band between storeys. This supersedes an earlier no-band rule
+that came from a slab embedded in the walls and reading as a floating plane; with the walls
+stopping at the ceiling, the band is the structure. The stairwell opening follows the ground plan's
+room and wall edges, not a loose rectangle.
 
 Alternatives considered: rendering multi-storey views in the IFC's colours with no fills (rejected on
 review — the grey slab reads as a missing floor; the cream rooms are what make a storey legible);

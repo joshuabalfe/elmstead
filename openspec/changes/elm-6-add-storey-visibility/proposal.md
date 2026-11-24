@@ -32,8 +32,8 @@ the chosen one.
   that storey's level, writing depth: the floor you see is the topmost one, and it hides the storeys
   below instead of the grey slab showing through. Slab tops stay discarded in plan style, at every
   storey, so the fills are the floor. Exposed slab edges stay drawn, so a floor shows its structure's
-  thickness at a stairwell; the first-floor slab stops inside the external walls, so no grey band
-  crosses the facade.
+  thickness; the lower storey's walls stop at the slab's underside, so the slab sits on them and its
+  edge is the floor-structure band between storeys.
 - Room names and areas join the dimensions on the plane at each storey's ceiling, instead of
   camera-facing billboards. A billboard stands up through the floor above it and can never be
   occluded; a plane at the ceiling is occluded exactly like the rooms it names.
@@ -63,10 +63,9 @@ None.
 - `docs/rendering.md` and `docs/modelling.md`: the viewer section, and the floor-structure
   convention the provisional Elmstead first floor now follows.
 - `models/elmstead`: the provisional first floor sits one structure thickness above the ground
-  ceiling, with the external walls carried up through it and internal walls stopping at the ceiling;
-  a stair's rise is ceiling plus joists. Its slab stops inside the external walls rather than
-  overhanging the footprint, so its edges are hidden at the facade and visible around the stairwell.
-  The stairwell opening follows the ground plan's room and wall edges.
+  ceiling, with the ground walls stopping at the ceiling so the slab sits on them; its edge is the
+  structure band between storeys, and a stair's rise is ceiling plus joists. The stairwell opening
+  follows the ground plan's room and wall edges.
 - No dependency on any other open change. The two-storey case the tests need is synthesised in the
   test from an existing single-storey model — a cloned second storey at a higher elevation with a
   different wall layout — because the viewer test publishes JSON and IFC from an in-memory model and

@@ -129,9 +129,9 @@ openings cut, doors and glazing in place, colours applied.
     cream rooms on white, one plane per shown storey at that storey's level. Each writes depth, so
     the topmost shown floor hides the storeys below it: from above you see the top floor's rooms,
     not the grey slab and not the floor beneath. In plan style a slab's top is not drawn; its
-    underside is the ceiling below, and its exposed edges show the floor structure's thickness, for
-    example around a stairwell. At the outer walls the first-floor slab stops inside the wall body,
-    so no grey slab band crosses the facade; in `?style=ifc` the slab renders whole.
+    underside is the ceiling below, and its exposed edges show the floor structure's thickness. The
+    lower storey's walls stop at the slab's underside, so the slab sits on them and its 200 mm edge
+    is the structure band between storeys; in `?style=ifc` the slab renders whole.
   - Walls keep their IFC colour and lighting, except faces that look upwards (wall tops, window
     sills), which are the plan's charcoal, unlit. A small shader patch picks those out by their
     world-space normal, so the material itself is unchanged.

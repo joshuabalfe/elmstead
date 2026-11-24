@@ -72,11 +72,10 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
   the building's zero.
 - The floor structure that carries a storey belongs to that storey, as its slab: the slab's top is
   at the storey elevation and it extends downwards. Above another storey, set the elevation one
-  structure thickness above the lower storey's clear ceiling. Carry the lower storey's external walls
-  up through that structure so the facade stays continuous; internal walls stop at the clear ceiling,
-  so the slab sits on them and its exposed edge reads as structure. The lower storey's clear ceiling
-  is then the slab's underside, and a stair rises the floor-to-floor distance — ceiling plus
-  structure — not the clear ceiling alone.
+  structure thickness above the lower storey's clear ceiling. Stop the lower storey's walls at the
+  clear ceiling, so the slab sits on them and its exposed edge is the 200 mm structure band between
+  storeys. The lower storey's clear ceiling is then the slab's underside, and a stair rises the
+  floor-to-floor distance — ceiling plus structure — not the clear ceiling alone.
 - `site.northAngle` (optional) is the angle of true north, counter-clockwise from plan +y. Leave
   it out if north is straight up the plan.
 

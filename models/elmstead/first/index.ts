@@ -13,11 +13,11 @@
  *   |              |  |   Bedroom   |
  *   +--------------+--+-------------+   south
  *
- * The slab is three rectangles around the stairwell, because a slab outline is a simple polygon and
+ * The slab is five rectangles around the stairwell, because a slab outline is a simple polygon and
  * the stairwell is a hole in the middle of the floor.
  */
-import { add, divRound, mm, pt, sub, type Mm, type Storey, type Wall } from "../../../src/model/index.js";
-import { brickT, coreD, coreW, eastT, extEastX, extSouthY, firstFloor, firstFloorStructure, northT, southT, westT } from "../shared.js";
+import { mm, pt, sub, type Mm, type Storey, type Wall } from "../../../src/model/index.js";
+import { coreD, coreW, extEastX, extSouthY, firstFloor, firstFloorStructure, northT } from "../shared.js";
 import { ground } from "../ground/index.js";
 import { spineEastX } from "../ground/walls.js";
 
@@ -38,15 +38,6 @@ const stairNorth = sub(coreD, northT); // north wall's inner face; upper flight 
 /** The hole in the first floor: both flights and the turn at their east end. */
 const stairwell = [pt(stairWest, stairNorth), pt(stairEast, stairNorth), pt(stairEast, stairSouth), pt(stairWest, stairSouth)];
 
-// The slab reaches half a wall into the external walls, so its edges are buried and never cross
-// the facade. Edges exposed inside — around the stairwell — show the floor structure's thickness.
-const westBuried = divRound(westT, 2);
-const southBuried = divRound(southT, 2);
-const northBuried = sub(coreD, divRound(northT, 2));
-const coreEastBuried = sub(coreW, divRound(eastT, 2));
-const extEastBuried = sub(extEastX, divRound(brickT, 2));
-const extSouthBuried = add(extSouthY, divRound(brickT, 2));
-
 /**
  * One rectangular piece of the first floor, top at the storey's elevation. Its thickness is the
  * floor structure between the ground ceiling and this floor.
@@ -56,9 +47,11 @@ function slabPiece(id: string, west: Mm, south: Mm, east: Mm, north: Mm) {
 }
 
 const slabs = [
-  slabPiece("slab-first-west", westBuried, southBuried, stairWest, northBuried),
-  slabPiece("slab-first-south", stairWest, southBuried, coreEastBuried, stairSouth),
-  slabPiece("slab-first-east", stairEast, extSouthBuried, extEastBuried, northBuried),
+  slabPiece("slab-first-west", mm(0), mm(0), stairWest, coreD),
+  slabPiece("slab-first-south", stairWest, mm(0), coreW, stairSouth),
+  slabPiece("slab-first-north", stairWest, stairNorth, coreW, coreD),
+  slabPiece("slab-first-rear", stairEast, stairSouth, coreW, stairNorth),
+  slabPiece("slab-first-east", coreW, extSouthY, extEastX, coreD),
 ];
 
 export const first: Storey = {

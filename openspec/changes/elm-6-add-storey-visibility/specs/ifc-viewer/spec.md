@@ -52,8 +52,8 @@ model.
 In plan style each shown storey's floor SHALL be its own room fills and door swings, at that
 storey's level, drawn so that it hides everything below it. A slab's top SHALL NOT be drawn; its
 underside SHALL be the ceiling of the storey below, and its exposed edges SHALL be drawn so a floor
-reads as the structure's thickness. At the outer walls a slab's edges SHALL sit inside the wall, so
-no grey slab band crosses the facade.
+reads as the structure's thickness. The lower storey's walls SHALL stop at the slab's underside, so
+the slab sits on them and its edge forms the floor-structure band at the facade.
 
 #### Scenario: Whole building from a corner
 - **WHEN** every storey of a two-storey model is shown in a corner view
@@ -64,8 +64,8 @@ no grey slab band crosses the facade.
 - **THEN** the topmost storey's room fills are the floor, and no lower storey shows through them
 
 #### Scenario: Slab edges from outside
-- **WHEN** a two-storey model is shown in plan style from outside, at any height
-- **THEN** no grey slab edge crosses the facade; the walls read continuous from the ground to the top
+- **WHEN** a two-storey model is shown in plan style from outside
+- **THEN** the slab's exposed edge reads as the floor-structure band between storeys, with walls above and below it
 
 #### Scenario: Exposed floor edge
 - **WHEN** a storey's floor is shown in plan style around an open stairwell
