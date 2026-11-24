@@ -9,12 +9,11 @@
 import { wallLength } from "../../../src/geometry/wall.js";
 import { centredOn, deg, door, m, mm, window, type Opening } from "../../../src/model/index.js";
 import { frontWindow, internalDoor, standardWindow } from "../components/index.js";
-import { bayFront, bayNorth, baySouth, bedroomNorth, diningNorth, east, ensuiteSouth, kitchenEast, north, westNorth } from "./walls.js";
+import { bayFront, bayNorth, baySouth, bedroomNorth, diningNorth, east, ensuiteSouth, kitchenEast, westNorth } from "./walls.js";
 
 const doorH = m(2.1);
 const internal = { width: mm(700), height: doorH };
 const standard = { height: m(1.2), sillHeight: mm(900) };
-const lowLevel = { width: mm(700), height: mm(900), sillHeight: mm(500) };
 const insideReveal = { face: "left", angle: deg(45) } as const;
 
 const bayWindowWidth = mm(450);
@@ -24,8 +23,6 @@ const baySouthOffset = mm(Math.round((wallLength(baySouth) - bayWindowWidth) / 2
 export const openings: Opening[] = [
   // West wall runs north→south; "left" is inside. The kitchen window is in its northern piece.
   window("window-kitchen-west-first", westNorth, mm(400), standardWindow, { ...standard, width: mm(1075) }, insideReveal),
-  // North wall runs east→west; "left" is inside.
-  window("window-kitchen-north-first", north, mm(7250), standardWindow, lowLevel, insideReveal),
 
   // Bay window on the dining room's canted west side.
   window("window-bay-front-first", bayFront, centredOn(bayFront, mm(3390), mm(1500)), frontWindow, { width: mm(1500), height: mm(1800), sillHeight: mm(400) }),
