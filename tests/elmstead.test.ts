@@ -62,6 +62,10 @@ describe("Elmstead's floor structure", () => {
     expect(window.offsetAlongWall + window.width / 2).toBe(door.offsetAlongWall + door.width / 2);
     expect(window.height).toBe(mm(2100));
     expect(window.sillHeight).toBe(mm(450));
+    expect(window.componentId).toBe("window-type-cross");
+    const design = elmstead.components?.windows.find((c) => c.id === window.componentId);
+    expect(design?.frame?.width).toBe(mm(100));
+    expect(design?.glazing).toMatchObject({ columns: [1, 1], rows: [1, 1] });
   });
 
   it("gives the ensuite the owner's 1.91 m width", () => {

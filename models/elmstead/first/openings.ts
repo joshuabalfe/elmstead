@@ -8,7 +8,7 @@
  */
 import { wallLength } from "../../../src/geometry/wall.js";
 import { add, divRound, door, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
-import { bayWindow, crossBarWindow, internalDoor } from "../components/index.js";
+import { bayWindow, crossBarWindow, crossWindow, internalDoor } from "../components/index.js";
 import { frontDoorOffset, frontDoorWidth } from "../ground/openings.js";
 import { bayFront, bayNorth, baySouth, bedroomNorth, diningNorth, east, ensuiteSouth, kitchenEast, westNorth } from "./walls.js";
 
@@ -32,7 +32,7 @@ export const openings: Opening[] = [
   // West wall runs north→south; "left" is inside. The kitchen window is 1.21 × 2.1 m, centred
   // over the front door and close to the north-west corner. Its 450 mm sill is the owner's. A
   // square reveal keeps the frame and its cut inside the wall this close to the corner.
-  window("window-kitchen-west-first", westNorth, kitchenWindowOffset, crossBarWindow, { width: kitchenWindowWidth, height: mm(2100), sillHeight: mm(450) }),
+  window("window-kitchen-west-first", westNorth, kitchenWindowOffset, crossWindow, { width: kitchenWindowWidth, height: mm(2100), sillHeight: mm(450) }),
 
   // Bay windows on the dining room's canted west side: all three share a 450 mm sill and reach
   // the bay ceiling at 2.55 m. Each fills its wall, so only the frames meet at the corners. The
