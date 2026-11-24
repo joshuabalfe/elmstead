@@ -105,6 +105,13 @@ openings cut, doors and glazing in place, colours applied.
     metres (Y up, IFC +Y along −Z), for close-ups such as one window.
   - With `?snapshot=1` in the URL it hides the toolbar and sets `window.__elmsteadReady` once the
     frame is drawn, which is what the snapshot driver waits for.
+- Hover identification: the **Ids** button or `?ids=1` (off by default, ignored in snapshots)
+  shows a constraint-style haloed label at the hovered point with the model id and name of the
+  element under it, drawn above everything like the measurement readout. `viewer/identify.ts` maps each fragments item's `Tag`/`Name`/`LongName` to
+  that label — the same ids the model code and checks use — and `main.ts` raycasts on
+  pointermove, one pick in flight. It is passive: clicks still measure and drags still navigate.
+  The label hides while dragging, while the camera moves and throughout walk mode, and follows
+  the storey selector, since the raycast skips hidden items.
 - Room labels: `main.ts` also reads `out/<name>.building.json` and draws each storey's room
   labels at its ceiling, 10 mm above the top of its tallest wall (the schema has no ceiling
   height). Being above the walls, they read from every camera that can see that storey.
@@ -112,10 +119,11 @@ openings cut, doors and glazing in place, colours applied.
     `src/render/plan.ts`) are drawn to one texture at 2.5 mm per pixel, as if on a glass ceiling.
     Lying flat is what lets a storey above occlude them; camera-facing billboards painted through
     floors.
-  - Room names and areas sit on small flat planes at the same ceiling, one per room, and each
+  - Room names, areas and ids sit on small flat planes at the same ceiling, one per room, and each
     yaws about its room's centre to follow the camera (`updateLabelOrientation` in
     `viewer/main.ts`), so the text reads left-to-right across the screen from any view while
-    still lying flat enough to be occluded by an upper floor.
+    still lying flat enough to be occluded by an upper floor. The id line makes rooms
+    referenceable even though their 2D outlines carry no pickable geometry.
   - All of it has a white halo so it reads over the model.
   - A compass in the bottom-right corner points to true north (`site.northAngle`) as it appears on
     screen. It projects a north-pointing line on the ground, so it is right in perspective views
