@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import elmstead from "../models/elmstead/index.js";
 import { stairwellOutline } from "../models/elmstead/first/index.js";
-import { face } from "../src/model/index.js";
+import { face, mm } from "../src/model/index.js";
 import type { Storey } from "../src/schema/schema.js";
 
 type Pt = { x: number; y: number };
@@ -37,6 +37,12 @@ const wallTop = (s: Storey): number => s.elevation + Math.max(0, ...s.walls.map(
 
 describe("Elmstead's floor structure", () => {
   const storeys = [...elmstead.storeys].sort((a, b) => a.elevation - b.elevation);
+
+  it("uses the owner's 2.7 m first-floor ceiling", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    for (const wall of first.walls) expect(wall.height, wall.id).toBe(mm(2700));
+  });
 
   for (let i = 1; i < storeys.length; i++) {
     const lower = storeys[i - 1]!;
