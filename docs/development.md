@@ -28,6 +28,7 @@ output is written and the command exits 1. The rules are:
 - walls have non-zero length
 - openings name a wall on their storey, fit within its length and height, and do not overlap
   another opening on the same wall in both directions
+- a doorway has no component or swing
 - room, slab and stair landing outlines, and a room's optional dimension outline, are simple
   polygons: at least three distinct points, no repeated first or adjacent points, non-zero area
   and no self-intersection
@@ -36,7 +37,8 @@ output is written and the command exits 1. The rules are:
   within 1 mm
 
 Add new rules to the matching `check*` function, keep them pure (no writes or exits), and report
-them as an `Issue` against the element id. Add a fixture test to `tests/checks.test.ts`.
+them as an `Issue` against the element id. Add a fixture test to the matching test file (see the
+tests table below).
 
 ## Tests
 
@@ -48,6 +50,7 @@ them as an `Issue` against the element id. Add a fixture test to `tests/checks.t
 | `tests/polygon.test.ts` | `spans()`, and `polygonProblems()` for repeated points, zero area, crossings, touching and collinear overlaps |
 | `tests/load.test.ts` | loading a model file; schema errors attributed to element ids; JSON formatting |
 | `tests/render.test.ts` | plan determinism, SVG snapshot, wall splitting, door and window symbols, labels, PNG size, door geometry |
+| `tests/door.test.ts` | door frames; doorways: no component/swing, plan gap without leaf/swing, opening-only IFC |
 | `tests/guid.test.ts` | UUIDv5 and IFC GUID compression against reference vectors; fixed GlobalIds for known ids |
 | `tests/io.test.ts` | atomic writes leave the previous file and no temp file after a failure |
 | `tests/ifc.test.ts` | byte-identical IFC, GlobalId stability, door and window types, window partitioning, round-trip volumes, validator pass and fail cases |

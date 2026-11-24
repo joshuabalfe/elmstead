@@ -157,7 +157,7 @@ describe("3D Top view against the plan", () => {
     const screen = storey.walls.find((w) => w.id === "wall-lobby-screen")!;
     const hallway = storey.rooms.find((r) => r.id === "room-hallway")!;
     const lobby = storey.rooms.find((r) => r.id === "room-lobby")!;
-    expect([hallway.outline.length, lobby.outline.length]).toEqual([7, 5]);
+    expect([hallway.outline.length, lobby.outline.length]).toEqual([6, 5]);
     hallway.outline.splice(1, 2, screen.start, screen.end);
     lobby.outline.splice(3, 2, screen.end, screen.start);
     await publish("test-elmstead-centreline", m);
@@ -165,8 +165,8 @@ describe("3D Top view against the plan", () => {
     // a 500 mm tile dilutes below the comparator's 25%-comparable threshold.
     const r = comparePlanTo3d(planPixels(m), await topView("test-elmstead-centreline", "storey-ground"), { tile: 250, step: 125 });
     expect(r.badTiles.length).toBeGreaterThan(0);
-    // Some tile covers the screen, which runs from (4.825, 6.575) to (5.45, 6.99) m.
-    const over = r.badTiles.find((t) => t.x[0] < 5.45 && t.x[1] > 4.825 && t.y[0] < 6.99 && t.y[1] > 6.575);
+    // Some tile covers the screen, whose wall runs from (4.691, 6.462) to (5.484, 7.129) m.
+    const over = r.badTiles.find((t) => t.x[0] < 5.484 && t.x[1] > 4.691 && t.y[0] < 7.165 && t.y[1] > 6.462);
     expect(over, `screen tiles among ${r.badTiles.length}: ${JSON.stringify(r.badTiles.slice(0, 4))}`).toBeDefined();
   }, 120_000);
 });

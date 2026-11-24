@@ -7,8 +7,8 @@ import elmstead from "../models/elmstead/index.js";
 import { stairwellOutline } from "../models/elmstead/first/index.js";
 import { stairArrivalX } from "../models/elmstead/first/walls.js";
 import { flightFootprint, stairLevels } from "../src/geometry/stair.js";
-import { wallLength } from "../src/geometry/wall.js";
-import { face, mm } from "../src/model/index.js";
+import { wallDirection, wallLength } from "../src/geometry/wall.js";
+import { face, faceCrossing, mm } from "../src/model/index.js";
 import type { Storey } from "../src/schema/schema.js";
 
 type Pt = { x: number; y: number };
@@ -68,6 +68,42 @@ describe("Elmstead's floor structure", () => {
     expect(design?.glazing).toMatchObject({ columns: [1, 1], rows: [1, 1] });
   });
 
+  it("gives the kitchen the owner's step and door position", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    const wall = (id: string) => {
+      const w = first.walls.find((wall) => wall.id === id);
+      if (!w) throw new Error(`Elmstead's first floor has no ${id}`);
+      return w;
+    };
+    const step = wall("wall-kitchen-step-first");
+    expect(wallLength(step)).toBe(mm(1275));
+    expect(step.end.x - face(wall("wall-kitchen-east-lower-first"), "east")).toBe(mm(1100));
+    expect(step.start.y - face(wall("wall-dining-north-first"), "north")).toBe(mm(1250));
+    const door = first.openings.find((o) => o.id === "door-kitchen-first");
+    if (!door || door.kind !== "door") throw new Error("Elmstead has no kitchen door");
+    expect(wallLength(wall("wall-kitchen-east-first")) - (door.offsetAlongWall + door.width)).toBe(mm(50));
+  });
+
+  it("leaves a 50 mm jamb between the dining doorway and the partition", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    const wall = first.walls.find((w) => w.id === "wall-dining-north-first");
+    const doorway = first.openings.find((o) => o.id === "door-dining-first");
+    if (!wall || !doorway) throw new Error("Elmstead needs the dining doorway and its wall");
+    expect(wallLength(wall) - (doorway.offsetAlongWall + doorway.width)).toBe(mm(50));
+  });
+
+  it("makes every internal door and both doorways 768 mm wide", () => {
+    const openings = elmstead.storeys.flatMap((s) => s.openings);
+    const doors = openings.filter((o) => o.kind === "door" && !o.doorway && o.componentId === "door-type-internal");
+    expect(doors).toHaveLength(6);
+    for (const door of doors) expect(door.width, door.id).toBe(mm(768));
+    for (const id of ["door-dining-first", "door-lobby"]) {
+      expect(openings.find((o) => o.id === id)).toMatchObject({ kind: "door", doorway: true, width: 768 });
+    }
+  });
+
   it("gives the ensuite the owner's size", () => {
     const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
     if (!first) throw new Error("Elmstead has no first floor");
@@ -88,6 +124,22 @@ describe("Elmstead's floor structure", () => {
     const ys = bedroom.dimensionOutline.map((p) => p.y);
     expect(Math.max(...xs) - Math.min(...xs)).toBe(mm(3850));
     expect(Math.max(...ys) - Math.min(...ys)).toBe(mm(3565));
+  });
+
+  it("gives the ground-floor bedroom window the owner's size and twelve panes", () => {
+    const ground = elmstead.storeys.find((s) => s.id === "storey-ground");
+    if (!ground) throw new Error("Elmstead has no ground floor");
+    const window = ground.openings.find((o) => o.id === "window-bedroom");
+    if (!window || window.kind !== "window") throw new Error("Elmstead has no bedroom window");
+    expect(window.width).toBe(mm(1200));
+    expect(window.sillHeight).toBe(mm(500));
+    expect(window.height).toBe(mm(2150));
+    expect(window.sillHeight + window.height).toBe(mm(2650));
+    expect(window.componentId).toBe("window-type-small-pane");
+    const design = elmstead.components?.windows.find((c) => c.id === window.componentId);
+    expect(design?.frame?.width).toBe(mm(100));
+    expect(design?.glazing).toMatchObject({ columns: [1, 1, 1], rows: [1, 1, 1, 1], barWidth: mm(30) });
+    expect(design!.glazing!.columns.length * design!.glazing!.rows.length).toBe(12);
   });
 
   it("gives the rear bedroom window the owner's size and corner", () => {
@@ -174,6 +226,66 @@ describe("Elmstead's floor structure", () => {
     expect(Math.max(...xs)).toBe(face(wall("wall-extension-east-first"), "west"));
     expect(Math.min(...ys)).toBe(face(wall("wall-ensuite-north-first"), "north"));
     expect(Math.max(...ys)).toBe(face(wall("wall-north-first"), "south"));
+  });
+
+  it("angles the lobby screen to the spine's north corner", () => {
+    const ground = elmstead.storeys.find((s) => s.id === "storey-ground");
+    if (!ground) throw new Error("Elmstead has no ground floor");
+    const wall = (id: string) => {
+      const w = ground.walls.find((wall) => wall.id === id);
+      if (!w) throw new Error(`Elmstead's ground floor has no ${id}`);
+      return w;
+    };
+    const screen = wall("wall-lobby-screen");
+    const hall = wall("wall-hall-living");
+    const spine = wall("wall-stair-spine");
+    expect(screen.start.y).toBeGreaterThan(face(hall, "south"));
+    expect(screen.start.y).toBeLessThan(face(hall, "north"));
+    // The hallway-side face, not the centreline, meets the spine's north-west corner.
+    const at = ground.rooms.find((r) => r.id === "room-hallway")!.outline[2]!;
+    expect(Math.abs(at.x - spine.start.x)).toBeLessThanOrEqual(1);
+    expect(at.y).toBe(face(spine, "north"));
+  });
+
+  it("keeps the lobby doorway clear of the stair spine", () => {
+    const ground = elmstead.storeys.find((s) => s.id === "storey-ground");
+    if (!ground) throw new Error("Elmstead has no ground floor");
+    const wall = (id: string) => {
+      const w = ground.walls.find((wall) => wall.id === id);
+      if (!w) throw new Error(`Elmstead's ground floor has no ${id}`);
+      return w;
+    };
+    const screen = wall("wall-lobby-screen");
+    const spine = wall("wall-stair-spine");
+    const living = wall("wall-living-bedroom");
+    const door = ground.openings.find((o) => o.id === "door-lobby");
+    if (!door) throw new Error("Elmstead has no lobby doorway");
+    const along = (p: Pt): number => {
+      const d = wallDirection(screen);
+      return (p.x - screen.start.x) * d.x + (p.y - screen.start.y) * d.y;
+    };
+    const lobbyStart = along(faceCrossing(screen, "right", "x", face(living, "east")));
+    const spineEntry = along(faceCrossing(screen, "right", "x", spine.start.x));
+    expect(door.offsetAlongWall - lobbyStart).toBeGreaterThan(0);
+    expect(spineEntry - (door.offsetAlongWall + door.width)).toBeGreaterThan(0);
+  });
+
+  it("joins the dining/bedroom partition to the bedroom's north wall", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    const partition = first.walls.find((w) => w.id === "wall-dining-bedroom-first");
+    const bedroomNorth = first.walls.find((w) => w.id === "wall-bedroom-north-first");
+    if (!partition || !bedroomNorth) throw new Error("Elmstead needs the dining/bedroom partition and the bedroom's north wall");
+    expect(partition.end.y).toBe(face(bedroomNorth, "north"));
+  });
+
+  it("keeps the landing floor off the dining/bedroom partition", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    const landing = first.rooms.find((r) => r.id === "room-landing-first");
+    const partition = first.walls.find((w) => w.id === "wall-dining-bedroom-first");
+    if (!landing || !partition) throw new Error("Elmstead needs the landing and the dining/bedroom partition");
+    expect(contains(landing.outline, { x: face(partition, "west") + 1, y: partition.end.y - 1 })).toBe(false);
   });
 
   it("gives every first-floor room a floor and leaves the stairwell open", () => {

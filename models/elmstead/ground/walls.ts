@@ -5,7 +5,7 @@
  * Measured from the owner's plan image at 8 m = 1689 px (about 4.74 mm per px), rounded to 25 mm.
  * The living room and hallway sizes are the owner's measurements, not traced.
  */
-import { add, face, mm, pt, sub, wall } from "../../../src/model/index.js";
+import { add, face, faceCrossing, mm, pt, sub, wall } from "../../../src/model/index.js";
 import { brickT, coreD, coreW, eastT, extEastX, extSouthY, groundFloor, northT, partT, southT, studT, westT } from "../shared.js";
 
 // Walls stop at the clear ceiling. The first-floor slab sits on them, and its exposed edges are
@@ -59,7 +59,35 @@ export const lobbyBathroom = wall("wall-lobby-bathroom", pt(bathWestX, face(bedr
 // West end 175 mm short of its traced position, to leave room by the lobby door. East end runs to
 // its traced length (spineEastX); the half landing wraps around that end rather than cutting it short.
 export const spine = wall("wall-stair-spine", pt(mm(5450), spineY), pt(spineEastX, spineY), { ...inner, justification: "left" });
-// Diagonal screen from the hall wall's corner to the end of the stair spine, holding the lobby door.
-export const lobbyScreen = wall("wall-lobby-screen", pt(partitionEast, face(hallLiving, "north")), spine.start, { thickness: studT, height: wallH, justification: "centre" });
+// Diagonal screen from the hall wall's corner towards the stair spine's north-west corner, holding
+// the lobby door. Its lower end tucks into the hall wall; its centreline stops half a thickness
+// inside the spine, so the hallway-side face meets the spine's corner and lines up with its face.
+const screenStart = pt(partitionEast, face(hallLiving, "north"));
+const screenCorner = pt(spine.start.x, face(spine, "north"));
+const screenRun = Math.hypot(screenCorner.x - screenStart.x, screenCorner.y - screenStart.y);
+const screenHalf = studT / 2;
+const screenEnd = pt(
+  add(screenCorner.x, mm(Math.round((screenHalf * (screenCorner.y - screenStart.y)) / screenRun))),
+  sub(screenCorner.y, mm(Math.round((screenHalf * (screenCorner.x - screenStart.x)) / screenRun))),
+);
+const screenLength = Math.hypot(screenEnd.x - screenStart.x, screenEnd.y - screenStart.y);
+const screenTuckX = mm(Math.round(((screenEnd.x - screenStart.x) * partT) / screenLength));
+const screenTuckY = mm(Math.round(((screenEnd.y - screenStart.y) * partT) / screenLength));
+export const lobbyScreen = wall(
+  "wall-lobby-screen",
+  pt(sub(screenStart.x, screenTuckX), sub(screenStart.y, screenTuckY)),
+  screenEnd,
+  { thickness: studT, height: wallH, justification: "centre" },
+);
+
+// The lobby-side face leaves the hall wall at its east end and runs into the spine's west end. It is
+// shorter than the centreline, so the lobby doorway must be centred on this face: on the centreline
+// its far jamb would sit inside the spine.
+const lobbyUnit = { x: (screenEnd.x - screenStart.x) / screenLength, y: (screenEnd.y - screenStart.y) / screenLength };
+const alongLobbyScreen = (p: { x: number; y: number }) => (p.x - lobbyScreen.start.x) * lobbyUnit.x + (p.y - lobbyScreen.start.y) * lobbyUnit.y;
+const lobbyVisibleStart = alongLobbyScreen(faceCrossing(lobbyScreen, "right", "x", partitionEast));
+const lobbyVisibleEnd = alongLobbyScreen(faceCrossing(lobbyScreen, "right", "x", spine.start.x));
+export const lobbyScreenLobbyStart = mm(Math.round(lobbyVisibleStart));
+export const lobbyScreenLobbyVisibleLength = mm(Math.round(lobbyVisibleEnd - lobbyVisibleStart));
 
 export const walls = [north, south, west, east, extEast, extSouth, breastLiving, breastBedroom, hallLiving, livingBedroom, bedroomBathroom, lobbyBathroom, bathNorth, spine, lobbyScreen];

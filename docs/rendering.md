@@ -23,7 +23,7 @@ this order:
 4. door leaves with swing arcs (inset by the door's frame), and window symbols (outline, two
    glazing lines, and a small block for each frame piece or glazing bar the cut passes through:
    jambs and vertical bars). A splayed window's outline, and the dashed outline of one the cut
-   misses, follow its reveal
+   misses, follow its reveal. A doorway has no leaf or swing: its wall pieces leave the opening.
 5. stairs, drawn in full rather than cut: each flight's footprint, a tread line per tread and a
    walking-direction arrow, and each landing's outline. The cut height only decides which openings
    are cut, so a half landing above it is drawn like any other geometry

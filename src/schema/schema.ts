@@ -53,6 +53,8 @@ export const DoorSchema = z.strictObject({
   ...openingBase,
   /** Defaults to { hinge: "start", side: "left" }. */
   swing: SwingSchema.optional(),
+  /** A doorway: the opening only, with no door leaf, frame or swing. */
+  doorway: z.boolean().optional(),
 }).meta({ id: "Door" });
 
 /**

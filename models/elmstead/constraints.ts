@@ -130,6 +130,30 @@ export default defineConstraints([
       measure: { along: "wall-west-first-north" },
       distance: mm(1210),
     },
+    {
+      id: "kitchen-protrusion",
+      note: "Kitchen's lower east wall protrudes into the kitchen 1.25 m from the dining wall (owner)",
+      from: corner({ wall: "wall-kitchen-east-lower-first", face: "west" }, { wall: "wall-dining-north-first", face: "north" }),
+      to: corner({ wall: "wall-kitchen-east-lower-first", face: "west" }, { wall: "wall-kitchen-step-first", face: "north" }),
+      measure: "y",
+      distance: mm(1250),
+    },
+    {
+      id: "kitchen-return",
+      note: "Kitchen's return wall towards the landing from the owner (1.1 m internal; the whole wall adds its thickness)",
+      from: corner({ wall: "wall-kitchen-east-lower-first", face: "east" }, { wall: "wall-kitchen-step-first", face: "south" }),
+      to: wallEnd("wall-kitchen-step-first", "end"),
+      measure: "x",
+      distance: mm(1100),
+    },
+    {
+      id: "kitchen-door-offset",
+      note: "Kitchen door sits 50 mm off the north wall (owner)",
+      from: jamb("door-kitchen-first", "end"),
+      to: wallEnd("wall-kitchen-east-first", "end"),
+      measure: { along: "wall-kitchen-east-first" },
+      distance: mm(50),
+    },
   ]),
   inRoom("room-dining-first", [
     {

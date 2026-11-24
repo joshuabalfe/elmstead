@@ -67,6 +67,9 @@ export function checkOpenings(model: BuildingModel): Issue[] {
     const walls = new Map(storey.walls.map((w) => [w.id, w]));
     const hosted = new Map<string, { opening: Opening; wall: Wall; faces: [number, number][] }>();
     for (const opening of storey.openings) {
+      if (opening.kind === "door" && opening.doorway && (opening.componentId || opening.swing)) {
+        issues.push({ level: "ERROR", id: opening.id, message: "a doorway has no component or swing" });
+      }
       const wall = walls.get(opening.wallId);
       if (!wall) {
         issues.push({ level: "ERROR", id: opening.id, message: `wallId ${opening.wallId} is not a wall on this storey` });

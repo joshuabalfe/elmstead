@@ -95,7 +95,7 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
 | Element | Key fields | Notes |
 |---|---|---|
 | **Wall** | `start`, `end`, `thickness`, `height`, `justification` | straight; `justification` is `centre`, `left` or `right` |
-| **Door** | `wallId`, `offsetAlongWall`, `width`, `height`, `sillHeight`, `swing?` | `kind: "door"` |
+| **Door** | `wallId`, `offsetAlongWall`, `width`, `height`, `sillHeight`, `swing?`, `doorway?` | `kind: "door"`; a doorway has no leaf, component or swing |
 | **Window** | `wallId`, `offsetAlongWall`, `width`, `height`, `sillHeight`, `reveal?` | `kind: "window"` |
 | **Slab** | `outline`, `thickness`, `elevationOffset` | top of slab is at storey elevation + `elevationOffset`; the slab extends downwards from there |
 | **Room** | `name`, `outline`, `dimensionOutline?` | 2D outline only, for now; `dimensionOutline` optionally gives the part the plan measures, while the label, area and IFC space keep `outline` |
@@ -127,6 +127,7 @@ east and west walls fit between them, so the corners neither overlap nor leave g
 
 - `offsetAlongWall` is measured along the wall from its `start` to the near edge of the opening.
 - `sillHeight` is measured from the storey floor. Doors have `sillHeight: 0`.
+- A doorway is a door with `doorway: true`: it opens the wall with no leaf, component or swing. Use the `doorway()` helper.
 - An opening must fit inside its wall: `offsetAlongWall + width` may not exceed the wall length,
   and `sillHeight + height` may not exceed the wall height. Two openings on one wall may touch at
   an edge but may not overlap in both directions. The checks report violations before anything is
@@ -282,6 +283,7 @@ build plain values, so a model can always write the JSON shape out directly inst
 | `centredOn(wall, at, width)` | the `offsetAlongWall` that centres an opening of `width` on plan coordinate `at` |
 | `doorComponent(id, name, { frame? })`, `windowComponent(id, name, { frame?, glazing? })` | a door or window design for `components` |
 | `door(id, wall, offset, component?, { width, height }, swing?)` | a door, with `sillHeight` 0, linked to the component if given one |
+| `doorway(id, wall, offset, { width, height })` | a plain doorway: no leaf, frame or swing |
 | `window(id, wall, offset, component?, { width, height, sillHeight }, reveal?)` | a window, linked to the component if given one, with splayed jambs if given a reveal |
 | `faceCrossing(wall, "left" \| "right", "x" \| "y", at)` | where a face of a wall at any angle crosses the line x = `at` or y = `at`: room corners against diagonal walls |
 | `stairFlight(id, start, end, { width, risers })` | a straight flight of steps, for `stair()` |

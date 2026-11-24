@@ -146,6 +146,11 @@ export function door(id: string, w: Wall, offsetAlongWall: Mm, a: DoorComponent 
   };
 }
 
+/** A doorway: a wall opening with no door leaf, frame or swing. */
+export function doorway(id: string, w: Wall, offsetAlongWall: Mm, size: OpeningSize): Door {
+  return { kind: "door", id, wallId: w.id, offsetAlongWall, width: size.width, height: size.height, sillHeight: mm(0), doorway: true };
+}
+
 /**
  * A window: `window(id, wall, offset, component, { width, height, sillHeight })`, linked to the
  * component, or `window(id, wall, offset, { width, height, sillHeight })` without one. A last

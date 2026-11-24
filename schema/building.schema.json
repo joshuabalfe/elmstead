@@ -373,6 +373,9 @@
         },
         "swing": {
           "$ref": "#/$defs/Swing"
+        },
+        "doorway": {
+          "type": "boolean"
         }
       },
       "required": [

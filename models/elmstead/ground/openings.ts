@@ -3,17 +3,16 @@
  * size, and which way doors swing.
  *
  * The drawing gives widths only. Door heights are a typical 2.1 m; the bathroom door's drawn gap
- * (about 440 mm) is taken as 700. The front window, fanlight, and front door opening and frame
- * sizes are the owner's.
+ * (about 440 mm) uses the owner's 768 mm internal-door width. The front window, fanlight, front door
+ * opening and frame, and the bedroom window's sill and head, are the owner's.
  */
-import { wallLength } from "../../../src/geometry/wall.js";
-import { add, centredOn, deg, door, face, m, mm, scale, sub, window, type Opening } from "../../../src/model/index.js";
-import { fanlight, frontDoor, frontWindow, internalDoor, standardWindow } from "../components/index.js";
+import { add, centredOn, deg, divRound, door, doorway, face, m, mm, scale, sub, window, type Opening } from "../../../src/model/index.js";
+import { fanlight, frontDoor, frontWindow, internalDoor, smallPaneWindow, standardWindow } from "../components/index.js";
 import { living } from "./rooms.js";
-import { bathWestX, bedroomBathroom, bedroomWallY, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, partitionEast, southIn, west } from "./walls.js";
+import { bathWestX, bedroomBathroom, bedroomWallY, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, lobbyScreenLobbyStart, lobbyScreenLobbyVisibleLength, partitionEast, southIn, west } from "./walls.js";
 
 const doorH = m(2.1);
-const internal = { width: mm(700), height: doorH };
+const internal = { width: mm(768), height: doorH };
 const standard = { height: m(1.2), sillHeight: mm(900) };
 
 // Front door, with the fanlight over it and the large front window beside it: the two share a head.
@@ -33,7 +32,8 @@ const frontWindowCentreY = mm(Math.round((living.outline[1]!.y + living.outline[
 const bathroomDoorOffset = mm(135);
 const bathroomDoorY = add(face(bedroomBathroom, "north"), bathroomDoorOffset); // the living-room door sits opposite it
 const lobbyCentreX = mm(Math.round((partitionEast + bathWestX) / 2));
-const lobbyDoor = { width: mm(550), height: doorH }; // narrower than the others, to fit the screen
+// The lobby doorway is centred on the screen's lobby-side face, with a jamb each side.
+const lobbyDoorwayOffset = add(lobbyScreenLobbyStart, divRound(sub(lobbyScreenLobbyVisibleLength, internal.width), 2));
 // Window returns splay out at about 45° on the inside. The frame is taken as sitting in the middle
 // of the wall, where the splay starts.
 const insideReveal = { face: "left", angle: deg(45) } as const;
@@ -41,6 +41,10 @@ const insideReveal = { face: "left", angle: deg(45) } as const;
 const bedroomWindowGap = mm(200);
 const bedroomWindowWidth = mm(1200);
 const bedroomWindowOffset = sub(sub(bedroomWallY, bedroomWindowGap), add(southIn, bedroomWindowWidth));
+// The bedroom window's sill is 500 mm off the floor and its head is at 2650 mm (owner).
+const bedroomWindowSill = mm(500);
+const bedroomWindowHead = mm(2650);
+const bedroomWindowSize = { width: bedroomWindowWidth, height: sub(bedroomWindowHead, bedroomWindowSill), sillHeight: bedroomWindowSill };
 
 export const openings: Opening[] = [
   // West wall runs north→south, so "start" is the north end and "left" is inside.
@@ -55,8 +59,8 @@ export const openings: Opening[] = [
   // Lobby/bathroom wall runs south→north; "right" is the bathroom.
   door("door-bathroom", lobbyBathroom, bathroomDoorOffset, internalDoor, internal, { hinge: "start", side: "right" }),
   // Screen runs from the hall corner (south-west) to the spine (north-east); "right" is the lobby.
-  door("door-lobby", lobbyScreen, mm(Math.round((wallLength(lobbyScreen) - lobbyDoor.width) / 2)), internalDoor, lobbyDoor, { hinge: "start", side: "right" }),
+  doorway("door-lobby", lobbyScreen, lobbyDoorwayOffset, internal),
 
-  window("window-bedroom", east, bedroomWindowOffset, standardWindow, { ...standard, width: bedroomWindowWidth }, insideReveal),
+  window("window-bedroom", east, bedroomWindowOffset, smallPaneWindow, bedroomWindowSize, insideReveal),
   window("window-rear-hall", extEast, mm(700), standardWindow, { ...standard, width: mm(950) }),
 ];

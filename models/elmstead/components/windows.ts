@@ -35,3 +35,11 @@ export const crossWindow = windowComponent("window-type-cross", "Cross window", 
 });
 /** The bedroom and rear-hall windows. */
 export const standardWindow = windowComponent("window-type-standard", "Standard window");
+/**
+ * The ground-floor bedroom window: the other windows' 100 mm frame, with twelve small panes in a
+ * 3 x 4 grid. Its bars are slimmer than the other windows' 60 mm, at 30 mm.
+ */
+export const smallPaneWindow = windowComponent("window-type-small-pane", "Small-pane window", {
+  frame: { width: mm(100) },
+  glazing: { columns: [1, 1, 1], rows: [1, 1, 1, 1], barWidth: mm(30) },
+});

@@ -38,12 +38,11 @@ export const rooms: Room[] = [
   {
     id: "room-hallway",
     name: "Hallway",
-    // Along the lobby screen's hall-side face (its left), from the hall wall to the spine's end.
+    // Along the lobby screen's hall-side face (its left), from the hall wall to the spine's north corner.
     outline: [
       pt(westIn, hallNorthFace),
       faceCrossing(lobbyScreen, "left", "y", hallNorthFace),
-      faceCrossing(lobbyScreen, "left", "x", spine.start.x),
-      pt(spine.start.x, spineNorth),
+      faceCrossing(lobbyScreen, "left", "y", spineNorth),
       pt(stairWestX, spineNorth),
       pt(stairWestX, northIn),
       pt(westIn, northIn),

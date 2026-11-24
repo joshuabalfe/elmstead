@@ -7,13 +7,13 @@
  * this floor, so the window belongs to the stair and half-landing model, not this storey.
  */
 import { wallLength } from "../../../src/geometry/wall.js";
-import { add, divRound, door, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
+import { add, divRound, door, doorway, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
 import { bayWindow, crossBarWindow, crossWindow, internalDoor } from "../components/index.js";
 import { frontDoorOffset, frontDoorWidth } from "../ground/openings.js";
 import { bayFront, bayNorth, baySouth, bedroomNorth, diningNorth, east, ensuiteSouth, kitchenEast, westNorth } from "./walls.js";
 
 const doorH = m(2.1);
-const internal = { width: mm(700), height: doorH };
+const internal = { width: mm(768), height: doorH };
 
 const bayWindowSize = { height: mm(2100), sillHeight: mm(450) };
 // Each light fills its wall segment, so only the window frames meet at the corners.
@@ -29,8 +29,15 @@ const bedroomWindowWidth = mm(1100);
 const bedroomWindowOffset = sub(sub(ensuiteSouth.start.y, east.start.y), bedroomWindowWidth);
 
 // The ensuite's longer west wall leaves an 885 mm entrance strip, so the bedroom door is centred.
-const bedroomDoorWidth = mm(800);
+const bedroomDoorWidth = internal.width;
 const bedroomDoorOffset = divRound(sub(mm(wallLength(bedroomNorth)), bedroomDoorWidth), 2);
+
+// The kitchen door sits close to the north wall, with a 50 mm jamb.
+const kitchenDoorWidth = internal.width;
+const kitchenDoorOffset = sub(sub(mm(wallLength(kitchenEast)), kitchenDoorWidth), mm(50));
+// The dining doorway keeps a 50 mm jamb to the partition too (chosen for the join; the traced
+// offset was 3400).
+const diningDoorwayOffset = sub(sub(mm(wallLength(diningNorth)), internal.width), mm(50));
 
 export const openings: Opening[] = [
   // West wall runs north→south; "left" is inside. The kitchen window is 1.21 × 2.1 m, centred
@@ -45,12 +52,13 @@ export const openings: Opening[] = [
   window("window-bay-north-first", bayNorth, mm(0), crossBarWindow, { ...bayWindowSize, width: baySideWidth }),
   window("window-bay-south-first", baySouth, mm(0), crossBarWindow, { ...bayWindowSize, width: baySideWidth }),
 
-  // Doors. Dining and bedroom doors open into their rooms; the ensuite door opens from the bedroom.
-  door("door-dining-first", diningNorth, mm(3400), internalDoor, internal, { hinge: "end", side: "right" }),
-  door("door-bedroom-first", bedroomNorth, bedroomDoorOffset, internalDoor, { width: bedroomDoorWidth, height: doorH }, { hinge: "start", side: "right" }),
-  door("door-ensuite-first", ensuiteSouth, mm(350), internalDoor, { width: mm(800), height: doorH }, { hinge: "start", side: "left" }),
-  // Kitchen door sits just below the north wall; "left" is the kitchen.
-  door("door-kitchen-first", kitchenEast, mm(700), internalDoor, internal, { hinge: "end", side: "left" }),
+  // The dining room's doorway to the landing has no leaf and takes the same 768 mm opening as the
+  // internal doors; the bedroom door opens into its room and the ensuite door opens from the bedroom.
+  doorway("door-dining-first", diningNorth, diningDoorwayOffset, internal),
+  door("door-bedroom-first", bedroomNorth, bedroomDoorOffset, internalDoor, internal, { hinge: "start", side: "right" }),
+  door("door-ensuite-first", ensuiteSouth, mm(350), internalDoor, internal, { hinge: "start", side: "left" }),
+  // Kitchen door sits 50 mm off the north wall; "left" is the kitchen.
+  door("door-kitchen-first", kitchenEast, kitchenDoorOffset, internalDoor, { width: kitchenDoorWidth, height: doorH }, { hinge: "end", side: "left" }),
 
   // East wall runs south→north. The rear bedroom window is 1.1 × 1.95 m with a 500 mm sill (owner),
   // a cross-bar frame like the other windows, and its north jamb tight against the ensuite's south
