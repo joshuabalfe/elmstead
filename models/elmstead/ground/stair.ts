@@ -10,7 +10,7 @@
 import { face, mm, pt, stairFlight, stairLanding, type Mm, type Stair } from "../../../src/model/index.js";
 import { stairwellOutline } from "../first/index.js";
 import { stairArrivalX } from "../first/walls.js";
-import { bathNorth, northIn, spine, spineEndX, spineY } from "./walls.js";
+import { bathNorth, northIn, spine, spineEastX, spineEndX, spineY } from "./walls.js";
 
 // The traced first-floor well bounds the flights and landing; the half landing fills its east end
 // (the extension), from the spine's end to the well's east edge.
@@ -34,9 +34,20 @@ const upperRisers = 8; // 17 total, from the owner
 // in the extension, then climb west south of it to the first-floor landing. Runs are going ×
 // (risers − 1) so every step is 320 mm deep; the odd riser count staggers the two runs.
 const lower = stairFlight("stair-flight-lower", pt(west, northY), pt(landingWest, northY), { width, risers: lowerRisers });
+// The half landing wraps around the spine's traced east end: the spine strip is notched out of its
+// west part so the wall keeps its full length without passing through the landing.
 const halfLanding = stairLanding(
   "stair-landing-half",
-  [pt(landingWest, south), pt(east, south), pt(east, north), pt(landingWest, north)],
+  [
+    pt(landingWest, south),
+    pt(east, south),
+    pt(east, north),
+    pt(landingWest, north),
+    pt(landingWest, spineNorth),
+    pt(spineEastX, spineNorth),
+    pt(spineEastX, spineY),
+    pt(landingWest, spineY),
+  ],
   { thickness: mm(150) },
 );
 const upper = stairFlight("stair-flight-upper", pt(landingWest, southY), pt(stairArrivalX, southY), { width, risers: upperRisers });
