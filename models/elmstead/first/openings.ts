@@ -22,10 +22,9 @@ const baySouthOffset = mm(Math.round((wallLength(baySouth) - bayWindowWidth) / 2
 
 export const openings: Opening[] = [
   // West wall runs north→south; "left" is inside. The kitchen window is 1.21 × 2.1 m, starting
-  // level with the front door's north jamb close to the north-west corner. Its 500 mm sill matches
-  // the ground-floor front window's; the owner gave the size but not the sill. A square reveal
-  // keeps the frame and its cut inside the wall this close to the corner.
-  window("window-kitchen-west-first", westNorth, frontDoorOffset, crossBarWindow, { width: mm(1210), height: mm(2100), sillHeight: mm(500) }),
+  // level with the front door's north jamb close to the north-west corner. Its 450 mm sill is the
+  // owner's. A square reveal keeps the frame and its cut inside the wall this close to the corner.
+  window("window-kitchen-west-first", westNorth, frontDoorOffset, crossBarWindow, { width: mm(1210), height: mm(2100), sillHeight: mm(450) }),
 
   // Bay window on the dining room's canted west side.
   window("window-bay-front-first", bayFront, centredOn(bayFront, mm(3390), mm(1500)), frontWindow, { width: mm(1500), height: mm(1800), sillHeight: mm(400) }),

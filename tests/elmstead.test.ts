@@ -57,6 +57,7 @@ describe("Elmstead's floor structure", () => {
     expect(windowWall.start).toEqual(doorWall.start);
     expect(window.offsetAlongWall).toBe(door.offsetAlongWall);
     expect(window.height).toBe(mm(2100));
+    expect(window.sillHeight).toBe(mm(450));
   });
 
   for (let i = 1; i < storeys.length; i++) {
