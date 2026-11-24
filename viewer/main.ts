@@ -623,9 +623,10 @@ async function setView(view: View) {
   const sphere = frame.getBoundingSphere(new THREE.Sphere());
   const d = new THREE.Vector3(...direction).normalize().multiplyScalar(sphere.radius * 4);
   await world.camera.controls.setLookAt(centre.x + d.x, centre.y + d.y, centre.z + d.z, centre.x, centre.y, centre.z, false);
-  // Top looks straight down the height, so its sphere stays loose and keeps the tight factor; the
+  // Top looks straight down the height, so its sphere is loose and takes a tighter factor; the
   // corner views fit the whole sphere plus a little air, so no corner of the building is cropped.
-  sphere.radius *= view === "top" ? 0.78 : snapshot ? 0.92 : 1.05;
+  // Interactive views sit a touch looser than the snapshots the PNGs were rendered with.
+  sphere.radius *= view === "top" ? (snapshot ? 0.78 : 0.84) : snapshot ? 0.92 : 1.1;
   await world.camera.controls.fitToSphere(sphere, false);
   await fragments.core.update(true);
   updateCompass();
