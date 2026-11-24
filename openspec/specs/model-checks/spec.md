@@ -2,7 +2,7 @@
 
 ## Purpose
 Cross-element rules that the schema cannot express, run on the validated model before any output is
-written (`src/checks/`). So far these cover door and window components.
+written (`src/checks/`). So far these cover door and window components, and doorways.
 
 ## Requirements
 
@@ -17,6 +17,13 @@ components and windows name window components. Openings without a `componentId` 
 #### Scenario: Wrong kind
 - **WHEN** a door's `componentId` names a window component
 - **THEN** an ERROR "componentId … is a window component" is reported against the door
+
+### Requirement: A doorway has no leaf
+A door with `doorway: true` SHALL NOT have a `componentId` or a `swing`, because it has no leaf or handing.
+
+#### Scenario: Doorway with a swing
+- **WHEN** a door has `doorway: true` and a `swing`
+- **THEN** an ERROR "a doorway has no component or swing" is reported against the door
 
 ### Requirement: Windows leave room for glass
 For each window with a design, twice the frame width plus the glazing bars SHALL be less than the

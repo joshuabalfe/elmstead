@@ -73,12 +73,17 @@ angle crosses a given x or y, and `rectRoom` a rectangular room.
 ### Requirement: Opening and component helpers
 `door` and `window` SHALL make openings on a wall, linked to a component if given one. `door` SHALL
 set `sillHeight: 0`. `window` SHALL take an optional reveal last, as `door` takes a swing.
+`doorway` SHALL make a plain door opening with `doorway: true`, no component and no swing.
 `doorComponent` and `windowComponent` SHALL make designs. `centredOn` SHALL give the offset that
 centres an opening on a plan coordinate.
 
 #### Scenario: Door with a component
 - **WHEN** `door("door-living", wall, offset, internalDoor, size)` is called
 - **THEN** the door's `componentId` is `internalDoor.id` and its `sillHeight` is 0
+
+#### Scenario: Doorway
+- **WHEN** `doorway("doorway-hall", wall, offset, size)` is called
+- **THEN** the opening has `kind: "door"`, `doorway: true`, `sillHeight: 0`, and no component or swing
 
 #### Scenario: Centred window
 - **WHEN** `centredOn(wall, at, width)` is used as a window's offset

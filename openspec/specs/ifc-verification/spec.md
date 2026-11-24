@@ -26,7 +26,7 @@ missing.
 The round-trip SHALL expect:
 - wall: length × thickness × height, minus each opening's plan area within the wall × its height;
 - slab: outline area × thickness;
-- door: width × height × 50 mm;
+- door: width × height × 50 mm, except a doorway, which has no filling;
 - window: pane area × 50 mm plus frame and bar area × 70 mm.
 
 An opening's plan area SHALL be width × thickness, plus splay × thickness / 2 for a window with a

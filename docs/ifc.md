@@ -26,6 +26,7 @@ Units: millimetres for length, m² for area, m³ for volume and radians for plan
 | Wall | `IfcWall` (`NOTDEFINED`) | `Axis` polyline and `Body` extruded rectangle. Local X runs along the wall and the origin is at the wall start, offset by its justification |
 | Opening | `IfcOpeningElement` + `IfcRelVoidsElement` | box the size of the opening, extended 10 mm past each face of the wall so the cut is clean. A window with a `reveal` is an `IfcArbitraryClosedProfileDef` of its plan outline instead, square from one face to the middle of the wall and splayed to the other, its splayed jambs carried on 10 mm past the face |
 | Door | `IfcDoor` + `IfcRelFillsElement` | 50 mm leaf in the opening; with its component's frame, three 70 mm deep `frame`-coloured pieces (jambs and head) and the leaf shrunk to fit inside them. `OperationType` is `SINGLE_SWING_LEFT` or `SINGLE_SWING_RIGHT` from `swing` |
+| Doorway | `IfcOpeningElement` + `IfcRelVoidsElement` only | no `IfcDoor` or `IfcRelFillsElement`; the opening's `Tag` is the doorway id and its `Name` the doorway's name |
 | Window | `IfcWindow` + `IfcRelFillsElement` | 50 mm glazing panel at the sill height; with its component's frame and glazing bars, one panel per pane and a 70 mm deep `frame`-coloured box per frame piece and bar, none overlapping (`src/geometry/window.ts`) |
 | Slab | `IfcSlab` (`FLOOR`) | outline extruded up to `elevationOffset`, `thickness` deep |
 | Stair | `IfcStair`, `PredefinedType` from its flights' turn | none. A container only, so its geometry is counted once, through its flights and landings, which are aggregated under it by one `IfcRelAggregates` |
@@ -67,6 +68,7 @@ The key is the element id for elements. Things that have no id of their own get 
 | Entity | Key |
 |---|---|
 | opening element for `door-front` | `door-front#opening` |
+| doorway opening element | the doorway id, e.g. `doorway-west` (there is no door entity) |
 | voids / fills relationships | `<id>#voids`, `<id>#fills` |
 | storey containment / space aggregation | `<storey>#contains`, `<storey>#spaces` |
 | other aggregations, including a stair's flights and landing under their stair | `<parent>#aggregates`, e.g. `stair-main#aggregates` |
@@ -97,7 +99,7 @@ the model:
   thickness / 2 × height for a splayed reveal (the two triangles at its jambs, splay being
   thickness / 2 × tan(angle)). So a void that is square when the model says splayed fails here.
 - **Slab:** outline area × thickness.
-- **Door or window panel:** width × height × 50 mm.
+- **Door or window panel:** width × height × 50 mm. A doorway has no fill, so it has no panel volume; its opening still cuts the wall.
 
 The tolerance is 0.1% relative. A mismatch is an ERROR against the element id.
 

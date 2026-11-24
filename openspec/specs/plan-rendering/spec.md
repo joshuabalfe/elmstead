@@ -27,6 +27,10 @@ The plan SHALL draw, in order:
 - **WHEN** a wall has a door
 - **THEN** the wall is drawn in pieces either side of the opening and the door shows a leaf and swing arc on the side it opens to
 
+#### Scenario: Doorway
+- **WHEN** a wall has a door with `doorway: true`
+- **THEN** the wall is drawn in pieces either side of the opening and no leaf or swing is drawn
+
 #### Scenario: Window with a reveal
 - **WHEN** a window the cut passes through has a reveal on its wall's left face
 - **THEN** the wall pieces either side end square from the right face to the middle and angled from the middle to the left face, and the window's outline fills the splayed gap

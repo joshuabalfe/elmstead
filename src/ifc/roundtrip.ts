@@ -127,6 +127,7 @@ export async function roundTripChecks(model: BuildingModel, ifc: Uint8Array): Pr
     const windowDesigns = new Map((model.components?.windows ?? []).map((c) => [c.id, c]));
     for (const o of s.openings) {
       if (o.kind === "door") {
+        if (o.doorway) continue;
         const { leaf, frame } = doorDivision(o, o.componentId ? doorDesigns.get(o.componentId) : undefined);
         const area = (rs: typeof frame) => rs.reduce((a, r) => a + r.w * r.h, 0);
         expect(o.id, leaf.w * leaf.h * PANEL_THICKNESS + area(frame) * GLAZING_BAR_DEPTH, frame.length ? "door (frame and leaf)" : "door panel");

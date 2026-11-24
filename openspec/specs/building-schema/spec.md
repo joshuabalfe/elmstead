@@ -73,6 +73,7 @@ A wall SHALL be straight, from `start` to `end`, with a `justification` of `cent
 An opening SHALL be a `door` or a `window`, discriminated by `kind`. It SHALL name its host wall by
 `wallId` and MAY name its design by `componentId`. It SHALL have an `offsetAlongWall`, `width`,
 `height` and `sillHeight`. A door MAY have a `swing` of `{ hinge: start|end, side: left|right }`.
+A door MAY have `doorway: true`, meaning an opening with no leaf, component or swing.
 A window MAY have a `reveal` of `{ face: left|right, angle }`.
 
 #### Scenario: Unknown opening kind
@@ -82,6 +83,10 @@ A window MAY have a `reveal` of `{ face: left|right, angle }`.
 #### Scenario: Window with a reveal
 - **WHEN** a window has `reveal: { face: "left", angle: 45 }`
 - **THEN** schema validation passes
+
+#### Scenario: Doorway
+- **WHEN** a door has `doorway: true`
+- **THEN** schema validation passes; the model checks reject a component or swing on it
 
 #### Scenario: Door with a reveal
 - **WHEN** a door has a `reveal`

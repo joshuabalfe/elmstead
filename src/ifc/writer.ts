@@ -248,7 +248,8 @@ class Writer {
     for (const o of s.openings) {
       const host = written.get(o.wallId);
       if (!host) throw new Error(`${o.id}: wallId "${o.wallId}" is not a wall on ${s.id}`);
-      contained.push(this.opening(o, host.wall, host.placement, host.entity));
+      const filling = this.opening(o, host.wall, host.placement, host.entity);
+      if (filling) contained.push(filling);
     }
     for (const slab of s.slabs) contained.push(this.slab(slab, placement));
     for (const stair of s.stairs ?? []) {
@@ -289,7 +290,7 @@ class Writer {
    * The opening is placed in wall coordinates at (offsetAlongWall, 0, sillHeight). A box, or for a
    * window with a reveal its splayed plan outline (src/geometry/opening.ts) extruded up its height.
    */
-  private opening(o: Opening, w: Wall, wallPlacement: InstanceType<typeof IFC4.IfcLocalPlacement>, wallEntity: InstanceType<typeof IFC4.IfcElement>) {
+  private opening(o: Opening, w: Wall, wallPlacement: InstanceType<typeof IFC4.IfcLocalPlacement>, wallEntity: InstanceType<typeof IFC4.IfcElement>): InstanceType<typeof IFC4.IfcDoor> | InstanceType<typeof IFC4.IfcWindow> | undefined {
     const { left, right } = faceOffsets(w);
     const mid = (left + right) / 2;
     const placement = this.placement(wallPlacement, o.offsetAlongWall, 0, o.sillHeight);
@@ -297,10 +298,22 @@ class Writer {
       ? new IFC4.IfcArbitraryClosedProfileDef(IFC4.IfcProfileTypeEnum.AREA, null, this.closedPolyline(openingProfile(w, o, OPENING_CLEARANCE).map((p) => ({ x: round9(p.x - o.offsetAlongWall), y: round9(p.y) }))))
       : this.rectangle(o.width / 2, mid, o.width, w.thickness + 2 * OPENING_CLEARANCE);
     const body = this.body(profile, o.height);
+    const doorway = o.kind === "door" && o.doorway === true;
     const opening = this.write(
-      new IFC4.IfcOpeningElement(guid(`${o.id}#opening`), null, label(`${o.id} opening`), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [body]), null, IFC4.IfcOpeningElementTypeEnum.OPENING),
+      new IFC4.IfcOpeningElement(
+        doorway ? guid(o.id) : guid(`${o.id}#opening`),
+        null,
+        doorway ? label(o.name ?? o.id) : label(`${o.id} opening`),
+        null,
+        null,
+        placement,
+        new IFC4.IfcProductDefinitionShape(null, null, [body]),
+        doorway ? ident(o.id) : null,
+        IFC4.IfcOpeningElementTypeEnum.OPENING,
+      ),
     );
     this.write(new IFC4.IfcRelVoidsElement(guid(`${o.id}#voids`), null, null, null, wallEntity, opening));
+    if (doorway) return undefined;
     const filling = o.kind === "door" ? this.door(o, mid, placement) : this.window(o, mid, placement);
     if (o.componentId) this.instances.set(o.componentId, [...(this.instances.get(o.componentId) ?? []), filling]);
     this.write(new IFC4.IfcRelFillsElement(guid(`${o.id}#fills`), null, null, null, opening, filling));

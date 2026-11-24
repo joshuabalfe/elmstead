@@ -60,6 +60,15 @@ it opens towards. A door without `swing` SHALL use `{ hinge: start, side: left }
 - **WHEN** a door is viewed from the side it opens towards and its hinge is on the viewer's left
 - **THEN** it is written as `SINGLE_SWING_LEFT`
 
+### Requirement: Doorways
+A doorway (`doorway: true`) SHALL NOT have a filling: only the `IfcOpeningElement` and
+`IfcRelVoidsElement` are written, with no `IfcDoor` or `IfcRelFillsElement`. The opening SHALL
+carry the doorway's id as `Tag` and its name as `Name`.
+
+#### Scenario: Doorway
+- **WHEN** a door has `doorway: true`
+- **THEN** its wall is voided and no IfcDoor or IfcRelFillsElement is written
+
 ### Requirement: Windows
 A window SHALL fill its opening with an `IfcWindow`: one 50 mm glass panel per pane, plus a 70 mm
 deep box for each frame piece and glazing bar. These pieces SHALL NOT overlap.
