@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import elmstead from "../models/elmstead/index.js";
 import { stairwellOutline } from "../models/elmstead/first/index.js";
+import { face } from "../src/model/index.js";
 import type { Storey } from "../src/schema/schema.js";
 
 type Pt = { x: number; y: number };
@@ -48,6 +49,22 @@ describe("Elmstead's floor structure", () => {
       }
     });
   }
+
+  it("keeps the stair well between the stair walls", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    const wall = (id: string) => {
+      const w = first.walls.find((wall) => wall.id === id);
+      if (!w) throw new Error(`Elmstead's first floor has no ${id}`);
+      return w;
+    };
+    const xs = stairwellOutline.map((p) => p.x);
+    const ys = stairwellOutline.map((p) => p.y);
+    expect(Math.min(...xs)).toBe(face(wall("wall-ensuite-west-first"), "west"));
+    expect(Math.max(...xs)).toBe(face(wall("wall-extension-east-first"), "west"));
+    expect(Math.min(...ys)).toBe(face(wall("wall-ensuite-north-first"), "north"));
+    expect(Math.max(...ys)).toBe(face(wall("wall-north-first"), "south"));
+  });
 
   it("gives every first-floor room a floor and leaves the stairwell open", () => {
     const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");

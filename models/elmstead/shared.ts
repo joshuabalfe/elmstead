@@ -35,8 +35,8 @@ export const groundFloor = { elevation: mm(0), ceilingHeight: m(2.9) };
  */
 export const firstFloorStructure = mm(200);
 /**
- * Provisional: the levels are not measured yet. The first floor sits one structure thickness above
- * the ground ceiling, so a stair rises the clear ceiling plus the joist depth; revisit both when
- * the owner's first-floor plan is traced.
+ * The first-floor plan is traced, but the levels are not measured yet. The first floor sits one
+ * structure thickness above the ground ceiling, so a stair rises the clear ceiling plus the joist
+ * depth. Revisit both when the levels are measured.
  */
 export const firstFloor = { elevation: add(groundFloor.ceilingHeight, firstFloorStructure), ceilingHeight: m(2.4) };

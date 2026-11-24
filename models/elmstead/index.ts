@@ -4,10 +4,10 @@
  *   shared.ts     outline, external wall thicknesses and floor levels used by every floor
  *   components/   door and window designs (doors.ts, windows.ts), shared by every floor
  *   ground/       ground floor: walls, openings, rooms, traced from the owner's plan image
- *   first/        first floor: provisional, the ground layout re-id'd with a stairwell void
+ *   first/        first floor: traced from the owner's first-floor plan, with the stair well open
  *
- * The first floor is a placeholder for looking at a two-storey Elmstead; trace it properly when the
- * owner's first-floor plan arrives.
+ * The half landing and the stair flights still wait for the stair change; the stair well and half
+ * landing are already left open in the first-floor slab.
  *
  * Plan axes follow the traced drawing: "north" in element ids (wall-north etc.) means the top of
  * the drawing. True north is roughly towards the plan's south-west corner, the one nearest the
