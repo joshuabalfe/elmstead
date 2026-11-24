@@ -28,8 +28,9 @@ this order:
    walking-direction arrow, and each landing's outline. The cut height only decides which openings
    are cut, so a half landing above it is drawn like any other geometry
 6. room labels (name and area in m²) and room dimensions: the longest clear wall-to-wall span
-   east–west and north–south, in mm, drawn as dimension lines inside the room and kept clear of
-   the label where the room is wide enough
+   east–west and north–south of the room's `dimensionOutline` when it has one (otherwise its
+   `outline`), in mm, drawn as dimension lines inside the room and kept clear of the label where
+   the room is wide enough
 7. element ids in red, only with `--ids`
 8. overall dimensions
 9. title, north arrow and a 5 m scale bar

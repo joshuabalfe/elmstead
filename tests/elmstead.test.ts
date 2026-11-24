@@ -77,6 +77,17 @@ describe("Elmstead's floor structure", () => {
     expect(Math.max(...ys) - Math.min(...ys)).toBe(mm(1910));
   });
 
+  it("measures the bedroom's main room, not the entrance strip", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    const bedroom = first.rooms.find((r) => r.id === "room-bedroom-first");
+    if (!bedroom?.dimensionOutline) throw new Error("The bedroom needs a dimension outline");
+    const xs = bedroom.dimensionOutline.map((p) => p.x);
+    const ys = bedroom.dimensionOutline.map((p) => p.y);
+    expect(Math.max(...xs) - Math.min(...xs)).toBe(mm(3850));
+    expect(Math.max(...ys) - Math.min(...ys)).toBe(mm(3565));
+  });
+
   it("gives the rear bedroom window the owner's size and corner", () => {
     const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
     if (!first) throw new Error("Elmstead has no first floor");
