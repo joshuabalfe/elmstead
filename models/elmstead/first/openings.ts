@@ -8,13 +8,12 @@
  */
 import { wallLength } from "../../../src/geometry/wall.js";
 import { add, divRound, door, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
-import { bayWindow, crossBarWindow, internalDoor, standardWindow } from "../components/index.js";
+import { bayWindow, crossBarWindow, internalDoor } from "../components/index.js";
 import { frontDoorOffset, frontDoorWidth } from "../ground/openings.js";
 import { bayFront, bayNorth, baySouth, bedroomNorth, diningNorth, east, ensuiteSouth, kitchenEast, westNorth } from "./walls.js";
 
 const doorH = m(2.1);
 const internal = { width: mm(700), height: doorH };
-const standard = { height: m(1.2), sillHeight: mm(900) };
 
 const bayWindowSize = { height: mm(2100), sillHeight: mm(450) };
 // Each light fills its wall segment, so only the window frames meet at the corners.
@@ -24,6 +23,10 @@ const baySideWidth = mm(Math.floor(wallLength(bayNorth)));
 // Centred over the 1 m front door, which keeps this wider window close to the north-west corner.
 const kitchenWindowWidth = mm(1210);
 const kitchenWindowOffset = add(frontDoorOffset, divRound(sub(frontDoorWidth, kitchenWindowWidth), 2));
+
+// The rear bedroom window's north jamb runs into the corner against the ensuite's south wall.
+const bedroomWindowWidth = mm(1100);
+const bedroomWindowOffset = sub(sub(ensuiteSouth.start.y, east.start.y), bedroomWindowWidth);
 
 export const openings: Opening[] = [
   // West wall runs north→south; "left" is inside. The kitchen window is 1.21 × 2.1 m, centred
@@ -45,6 +48,8 @@ export const openings: Opening[] = [
   // Kitchen door sits just below the north wall; "left" is the kitchen.
   door("door-kitchen-first", kitchenEast, mm(700), internalDoor, internal, { hinge: "end", side: "left" }),
 
-  // East wall runs south→north; the window sits south of the ensuite wall, so no splayed reveal.
-  window("window-bedroom-first", east, mm(2275), standardWindow, { ...standard, width: mm(1200) }),
+  // East wall runs south→north. The rear bedroom window is 1.1 × 1.95 m with a 500 mm sill (owner),
+  // a cross-bar frame like the other windows, and its north jamb tight against the ensuite's south
+  // wall. A square reveal lets the opening run into the corner.
+  window("window-bedroom-first", east, bedroomWindowOffset, crossBarWindow, { width: bedroomWindowWidth, height: mm(1950), sillHeight: mm(500) }),
 ];

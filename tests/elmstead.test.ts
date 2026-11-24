@@ -64,6 +64,33 @@ describe("Elmstead's floor structure", () => {
     expect(window.sillHeight).toBe(mm(450));
   });
 
+  it("gives the ensuite the owner's 1.91 m width", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    const ensuite = first.rooms.find((r) => r.id === "room-ensuite-first");
+    if (!ensuite) throw new Error("Elmstead has no ensuite");
+    const ys = ensuite.outline.map((p) => p.y);
+    expect(Math.max(...ys) - Math.min(...ys)).toBe(mm(1910));
+  });
+
+  it("gives the rear bedroom window the owner's size and corner", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    const window = first.openings.find((o) => o.id === "window-bedroom-first");
+    if (!window || window.kind !== "window") throw new Error("Elmstead has no rear bedroom window");
+    expect(window.width).toBe(mm(1100));
+    expect(window.height).toBe(mm(1950));
+    expect(window.sillHeight).toBe(mm(500));
+    expect(window.componentId).toBe("window-type-cross-bar");
+    const design = elmstead.components?.windows.find((c) => c.id === window.componentId);
+    expect(design?.frame?.width).toBe(mm(100));
+    expect(design?.glazing).toMatchObject({ columns: [1], rows: [1, 1] });
+    const east = first.walls.find((w) => w.id === "wall-east-first");
+    const ensuiteSouth = first.walls.find((w) => w.id === "wall-ensuite-south-first");
+    if (!east || !ensuiteSouth) throw new Error("The rear bedroom window needs its wall and the ensuite's");
+    expect(east.start.y + window.offsetAlongWall + window.width).toBe(ensuiteSouth.start.y);
+  });
+
   it("gives the bay windows the owner's size and bars", () => {
     const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
     if (!first) throw new Error("Elmstead has no first floor");

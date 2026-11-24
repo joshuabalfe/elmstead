@@ -37,7 +37,7 @@ export const bedroomNorthY = mm(5375); // bedroom face of its north wall
 export const bedroomNorthFaceY = add(bedroomNorthY, partT);
 export const ensuiteWestX = mm(5875);
 export const ensuiteWestFaceX = add(ensuiteWestX, partT);
-export const ensuiteSouthY = mm(3850); // bedroom face of the ensuite's south wall
+export const ensuiteSouthY = mm(3815); // bedroom face of the ensuite's south wall; the room is 1.91 m wide to the extension wall (owner)
 export const ensuiteSouthFaceY = add(ensuiteSouthY, partT);
 
 // ── External walls, on the ground floor's walls below ───────────────────────
