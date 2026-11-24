@@ -626,7 +626,7 @@ async function setView(view: View) {
   // Top looks straight down the height, so its sphere is loose and takes a tighter factor; the
   // corner views fit the whole sphere plus a little air, so no corner of the building is cropped.
   // Interactive views sit a touch looser than the snapshots the PNGs were rendered with.
-  sphere.radius *= view === "top" ? (snapshot ? 0.78 : 0.84) : snapshot ? 0.92 : 1.1;
+  sphere.radius *= view === "top" ? (snapshot ? 0.78 : 1) : snapshot ? 0.92 : 1.1;
   await world.camera.controls.fitToSphere(sphere, false);
   await fragments.core.update(true);
   updateCompass();
