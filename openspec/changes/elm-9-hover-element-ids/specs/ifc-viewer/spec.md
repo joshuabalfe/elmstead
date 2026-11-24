@@ -63,7 +63,7 @@ it, and hide when the pointer is over no model geometry.
 
 #### Scenario: View change
 - **WHEN** the user chooses another camera view while a tooltip is showing
-- **THEN** the tooltip hides until the pointer identifies an element again
+- **THEN** the tooltip hides while the camera moves and names the element under the pointer again once it settles
 
 ### Requirement: Hover is passive
 Hover identification SHALL NOT capture clicks or change navigation. With hover identification on,

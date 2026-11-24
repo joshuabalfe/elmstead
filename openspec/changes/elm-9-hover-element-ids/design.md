@@ -54,8 +54,10 @@ subtracts the canvas rect itself, so NDC coordinates would miss every pick. Gate
 path on walk state (`savedView === null`), not just hide-on-entry: pointermove keeps firing when
 pointer lock is refused and walk stays active, and a completing pick would otherwise re-show the
 tooltip mid-walk. Hide the tooltip while any pointer button is down (`e.buttons !== 0`) and on
-camera-control updates (view easing), so it never names a stale element; the next pointermove
-re-picks. Alternative — a three.js Raycaster over the meshes — was rejected: fragments geometry
+camera-control updates (view easing), so it never names a stale element. Re-pick the last pointer
+position once those updates settle (debounced), and when a load, storey choice or walk exit
+completes: a move that arrived mid-load is otherwise dropped and never retried, and a trailing
+camera update would hide a pick made at load end. Alternative — a three.js Raycaster over the meshes — was rejected: fragments geometry
 lives in the worker, and `model.raycast` is the supported path that already respects visibility.
 
 ### HTML tooltip in client space

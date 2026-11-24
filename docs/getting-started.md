@@ -91,7 +91,11 @@ http://localhost:5173) that loads the IFC files in `out/`. It has a model picker
 SW/SE/NE/NW/Top camera buttons, and opens in the Top view. It shows the plan's room labels and
 dimensions at ceiling height, the model's measured constraints as red labels and dotted spans, and
 a compass pointing to true north. The **Labels** button hides the room text, and the
-**Constraints** button shows or hides the red constraints, which start hidden. The **Measure**
+**Constraints** button shows or hides the red constraints, which start hidden. The **Ids**
+button, or `?ids=1`, shows the model id of the element under the cursor (and its name, when it
+has one) in a tooltip beside it — the id to name when asking for an edit, such as
+`wall-hall-living`. Room labels carry the room id under the name and area, since rooms have no
+solid geometry to hover. Hover identification is off while walking and in snapshots. The **Measure**
 button, or `?measure=1`, starts a click-to-measure tool: click or tap two points on the model,
 snapping to corners and edges. The second point is projected onto the nearest axis through the
 first, so measurements run along X, Y or Z rather than diagonally. Each pair adds a numbered
