@@ -240,16 +240,17 @@ describe("stair readability presentation", () => {
   it("shows the cream tread bands in plan, IFC style and snapshots alike", async () => {
     const m = await model("models/elmstead");
     await publish("test-stair-presentation", m);
+    // A stair-less copy isolates the stair's own band pixels from shaded walls of the same tone.
+    const noStair = structuredClone(m);
+    for (const s of noStair.storeys) s.stairs = [];
+    await publish("test-stair-noband", noStair);
     const q = "view=top&labels=0&storeys=storey-ground";
-    const shots = [
-      await viewOf("test-stair-presentation", `${q}&style=plan`),
-      await viewOf("test-stair-presentation", `${q}&style=plan&snapshot=1`),
-      await viewOf("test-stair-presentation", `${q}&style=ifc`),
-    ];
-    for (const r of shots) {
-      // The recolour replaces the base IFC green and the darker tread band is present.
-      expect(near(r, green, 12)).toBeLessThan(50);
-      expect(near(r, darkCream, 8)).toBeGreaterThan(1000);
+    for (const style of ["plan", "plan&snapshot=1", "ifc"]) {
+      const withStair = await viewOf("test-stair-presentation", `${q}&style=${style}`);
+      const without = await viewOf("test-stair-noband", `${q}&style=${style}`);
+      // The recolour replaces the base IFC green, and the stair adds darker tread bands.
+      expect(near(withStair, green, 12)).toBeLessThan(50);
+      expect(near(withStair, darkCream, 8) - near(without, darkCream, 8)).toBeGreaterThan(1000);
     }
   }, 120_000);
 });

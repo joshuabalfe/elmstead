@@ -164,8 +164,12 @@ so the IFC solid reads as a flat slab with no steps. Edge outlines alone cannot 
 is occluded by the next higher tread's leading edge. The viewer therefore recolours the stair in the
 shader: upward faces alternate the floor cream (`C.room`) with a darker cream, banded on
 `floor(worldY / riser)` — every tread top sits at an integer multiple of the stair's shared riser, so
-the bands line up with the steps in both flights — and vertical faces take the wall colour. The base
-material stays the safe stair green so `styleOf` leaves it alone; only the shaded output is
+the bands line up with the steps in both flights — and vertical faces take the wall colour. The band
+must be computed in-shader from world position: fragments renders from its own material/geometry
+registry, so per-mesh material clones or custom vertex attributes do not take effect. One shared
+riser is used; a second stair with a different riser would band against the first's height (no
+current model has two). The base material stays the safe stair green so `styleOf` leaves it alone;
+only the shaded output is
 recoloured. It also attaches an `EdgesGeometry` ink outline (30° threshold) to each stair mesh, which
 reads the nosings and edges from corner views. Both are viewer-only presentation — the plan overlay
 and `renderPlan` are unchanged. The plan-vs-3D comparison is unaffected because the plan side draws
