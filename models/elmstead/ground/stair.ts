@@ -1,8 +1,9 @@
 /**
  * Elmstead's provisional half-turn stair, ground to first floor, fitted to the traced first-floor
- * stair well (which runs east into the extension). Owner: 17 risers of about 180 mm and steps about
- * 320 mm deep. Over the provisional 3100 mm rise that is a 182 mm riser; the 17 split 9 + 8, and to
- * keep every going at 320 mm the two runs stagger (2560 and 2240). You enter from the hallway: the
+ * stair well (which runs east into the extension). Owner: 17 risers of about 180 mm; steps 320 mm
+ * deep on the lower flight and 280 mm on the upper. Over the provisional 3100 mm rise that is a
+ * 182 mm riser; the 17 split 9 + 8, and the runs follow each flight's going (2560 and 1960). You
+ * enter from the hallway: the
  * lower flight north of the spine climbs east, turns over the half landing in the extension, and the
  * upper flight south of the spine climbs west back to the first-floor landing. No elevations are
  * stored: measuring the levels later re-derives the riser height.
@@ -31,8 +32,8 @@ const lowerRisers = 9;
 const upperRisers = 8; // 17 total, from the owner
 
 // Bottom-to-top: enter from the hallway, climb east north of the spine, turn over the half landing
-// in the extension, then climb west south of it to the first-floor landing. Runs are going ×
-// (risers − 1) so every step is 320 mm deep; the odd riser count staggers the two runs.
+// in the extension, then climb west south of it to the first-floor landing. Each flight's run is its
+// going × (risers − 1): 320 mm steps below, 280 mm above.
 const lower = stairFlight("stair-flight-lower", pt(west, northY), pt(landingWest, northY), { width, risers: lowerRisers });
 // The half landing wraps around the spine's traced east end: the spine strip is notched out of its
 // west part so the wall keeps its full length without passing through the landing.

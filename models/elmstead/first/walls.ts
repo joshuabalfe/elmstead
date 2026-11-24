@@ -90,7 +90,7 @@ export const stairNorthY = northIn;
 // The upper flight is one going shorter (17 risers split 9 + 8), so its top riser lands east of the
 // well's west edge. The landing sticks out to meet it across the south flight's band, leaving no
 // gap to step into.
-export const stairArrivalX = mm(5770);
+export const stairArrivalX = mm(6050);
 
 // Chimney breasts on the south wall: the dining-room one stacks on the living room's.
 export const breastDining = wall("wall-breast-dining-first", pt(livingBreast.west, southIn), pt(livingBreast.east, southIn), { thickness: breastDepth, height: wallH, justification: "left" });

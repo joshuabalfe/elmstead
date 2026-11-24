@@ -119,7 +119,8 @@ describe("Elmstead's stair", () => {
     expect(levels.riser).toBeGreaterThan(170); // ~180 mm, owner
     expect(levels.riser).toBeLessThan(190);
     for (const seg of levels.segments) {
-      if (seg.kind === "flight") expect(seg.going).toBe(320); // owner
+      // owner: 320 mm steps on the lower flight, 280 mm on the upper
+      if (seg.kind === "flight") expect(seg.going).toBe(seg.segment.id === "stair-flight-lower" ? 320 : 280);
     }
   });
 });
