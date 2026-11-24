@@ -21,7 +21,8 @@ export const bedroomWallY = mm(4080); // south face of the bedroom/bathroom wall
 export const bathWestX = mm(5690); //   west face of the lobby/bathroom wall; lobby 0.865 m wide (owner)
 export const bathNorthY = mm(5855); //  south face of the bathroom's north wall; bathroom 1.6 m deep (owner)
 export const spineY = mm(6990); //      south face of the wall between the stair flights; both flights 0.91 m wide (owner)
-export const spineEastX = mm(8945); // keeps its traced overlap into the east wall; the stair's turn is east of it
+export const spineEastX = mm(8945); // keeps its traced overlap into the east wall; the stairwell's east edge
+export const spineEndX = mm(8435); // the spine stops at the half landing, leaving the turn clear
 
 // ── External walls (counter-clockwise, body on the left = inside) ────────────
 export const north = wall("wall-north", pt(extEastX, coreD), pt(mm(0), coreD), { thickness: northT, height: wallH, justification: "left" });
@@ -55,9 +56,9 @@ export const hallLiving = wall("wall-hall-living", pt(westIn, hallWallY), pt(par
 export const breastBedroom = wall("wall-breast-bedroom", pt(partitionEast, southIn), pt(eastIn, southIn), { thickness: breastT, height: wallH, justification: "left" });
 export const bedroomBathroom = wall("wall-bedroom-bathroom", pt(partitionEast, bedroomWallY), pt(eastIn, bedroomWallY), { ...inner, justification: "left" });
 export const lobbyBathroom = wall("wall-lobby-bathroom", pt(bathWestX, face(bedroomBathroom, "north")), pt(bathWestX, face(bathNorth, "north")), { thickness: lobbyBathT, height: wallH, justification: "right" });
-// West end 175 mm short of its traced position, to leave room by the lobby door. The half landing
-// is east of the spine's end, in the extension, so the spine runs to its traced east end.
-export const spine = wall("wall-stair-spine", pt(mm(5450), spineY), pt(spineEastX, spineY), { ...inner, justification: "left" });
+// West end 175 mm short of its traced position, to leave room by the lobby door. East end stops at
+// the half landing (spineEndX), leaving the turn clear.
+export const spine = wall("wall-stair-spine", pt(mm(5450), spineY), pt(spineEndX, spineY), { ...inner, justification: "left" });
 // Diagonal screen from the hall wall's corner to the end of the stair spine, holding the lobby door.
 export const lobbyScreen = wall("wall-lobby-screen", pt(partitionEast, face(hallLiving, "north")), spine.start, { thickness: studT, height: wallH, justification: "centre" });
 

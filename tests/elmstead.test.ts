@@ -104,13 +104,17 @@ describe("Elmstead's stair", () => {
     }
   });
 
-  it("derives a top flight that lands exactly on the first floor", () => {
+  it("derives the owner's 17 risers and 320 mm goings, landing on the first floor", () => {
     const rise = first.elevation - ground.elevation;
     const levels = stairLevels(stair!, rise);
     const top = levels.segments[levels.segments.length - 1]!;
     expect(top.kind).toBe("flight");
     expect(top.kind === "flight" ? top.top : top.level).toBe(rise);
-    expect(levels.riser).toBeGreaterThan(150);
-    expect(levels.riser).toBeLessThan(220);
+    expect(levels.totalRisers).toBe(17); // owner
+    expect(levels.riser).toBeGreaterThan(170); // ~180 mm, owner
+    expect(levels.riser).toBeLessThan(190);
+    for (const seg of levels.segments) {
+      if (seg.kind === "flight") expect(seg.going).toBe(320); // owner
+    }
   });
 });

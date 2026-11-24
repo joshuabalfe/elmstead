@@ -166,10 +166,11 @@ well's west edge to the core's east wall (9025), the half landing filling the we
 The spine divides the flights as far as its traced east end (8945); the turn lies east of it. The
 owner's 910 mm flight widths are unchanged. Judgment calls, provisional until the levels are measured:
 
-- **Riser split 10 + 10 = 20** over the 3100 mm provisional rise: riser 155 mm, going 350 mm. The
-  lengthened flights (3150 mm run) make the going long; revisit the split when the real floor level
-  is measured. The half landing sits at 1550 mm.
-- **Landing 1225 mm deep** (the extension's width) spanning the full well width, thickness 150 mm.
+- **17 risers (owner), split 9 + 8**, over the 3100 mm provisional rise: riser 182.4 mm (~180 mm,
+  owner). **Going 320 mm (owner)** on every step, so the runs are going × (risers − 1): 2560 mm lower,
+  2240 mm upper — the odd riser count staggers the two runs. The half landing sits at 1641 mm.
+- **The spine stops at the half landing** (`spineEndX` 8435), leaving the turn clear; the landing
+  fills the well east of it (8435–10250, 1815 mm deep) spanning the full well width, thickness 150 mm.
 - **Hallway entry** (lower flight north of the spine), per the user; the traced first-floor comment
   assumed the south flight first, but either orientation arrives at the first-floor landing.
 
