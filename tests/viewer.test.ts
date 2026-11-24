@@ -4,7 +4,7 @@ import type { ResolvedConstraint } from "../src/constraints/check.js";
 import { constraintLabels } from "../viewer/constraints.js";
 import { CLICK_SLOP_PX, SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap } from "../viewer/measure.js";
 import { confinedPath } from "../viewer/serve.js";
-import { cameraForView, parseView } from "../viewer/view.js";
+import { cameraForView, labelHeading, parseView } from "../viewer/view.js";
 
 const dir = "/tmp/elmstead-out";
 
@@ -49,6 +49,31 @@ describe("cameraForView", () => {
     expect(cameraForView("sw", true)).toEqual({ direction: [-1, 0.7, 1], projection: "Perspective" });
     expect(cameraForView("top", true)).toEqual({ direction: [0, 1, 0.0001], projection: "Orthographic" });
     expect(cameraForView("top", false)).toEqual({ direction: [0, 1, 0.0001], projection: "Orthographic" });
+  });
+});
+
+describe("labelHeading", () => {
+  /** The direction the label's text reads in plan axes, for a camera with the given screen right. */
+  const reading = (right: { x: number; z: number }) => {
+    const h = labelHeading(right);
+    return { east: Math.cos(h), north: Math.sin(h) };
+  };
+
+  it("points the text along the camera's screen right", () => {
+    // Top view and a camera from the south: screen right is east, so the plan's orientation holds.
+    const top = reading({ x: 1, z: 0 });
+    expect(top.east).toBeCloseTo(1);
+    expect(top.north).toBeCloseTo(0);
+    // From the west: screen right is south. From the north: west. From the east: north.
+    const west = reading({ x: 0, z: 1 });
+    expect(west.east).toBeCloseTo(0);
+    expect(west.north).toBeCloseTo(-1);
+    const north = reading({ x: -1, z: 0 });
+    expect(north.east).toBeCloseTo(-1);
+    expect(north.north).toBeCloseTo(0);
+    const east = reading({ x: 0, z: -1 });
+    expect(east.east).toBeCloseTo(0);
+    expect(east.north).toBeCloseTo(1);
   });
 });
 

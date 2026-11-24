@@ -10,6 +10,15 @@ export interface CameraForView {
 }
 
 /**
+ * The yaw (radians about the scene's +Y) that turns a flat label — a plane laid down with its
+ * texture's up along plan north — so its text reads left-to-right across the screen. `right` is
+ * the camera's screen-right direction in scene axes; only its plan components matter.
+ */
+export function labelHeading(right: { x: number; z: number }): number {
+  return Math.atan2(-right.z, right.x);
+}
+
+/**
  * Interactive corner views are true isometric: equal X, Y and Z direction components behind an
  * orthographic camera foreshorten all three axes equally. Snapshots keep the lower perspective
  * corner cameras that the rendered 3D PNGs have always used. Top is an orthographic plan view.

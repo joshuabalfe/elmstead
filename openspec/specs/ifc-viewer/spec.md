@@ -312,7 +312,7 @@ The viewer SHALL show a measurement list with one row per completed measurement,
 - **THEN** no measurement list is shown
 
 ### Requirement: Measurement readout
-Each measurement SHALL draw a solid line between its two points, a marker at each point, and a camera-facing label at the midpoint. These SHALL be depth-tested, so they read over the model when in front of it and are hidden when a wall, floor or storey above is in front. The label SHALL state the straight-line distance, the horizontal plan distance and the vertical difference, in millimetres rounded to the nearest millimetre.
+Each measurement SHALL draw a solid line between its two points, a marker at each point, and a camera-facing label at the midpoint. These SHALL draw above the model and the viewer's other overlays, so a wall, floor or storey above never hides a measurement. The label SHALL state the straight-line distance, the horizontal plan distance and the vertical difference, in millimetres rounded to the nearest millimetre.
 
 #### Scenario: Distances in three dimensions
 - **WHEN** two picked points differ both horizontally and vertically
