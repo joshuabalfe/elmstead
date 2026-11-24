@@ -5,6 +5,7 @@
  */
 import * as WebIFC from "web-ifc";
 import type { Issue } from "../checks/issue.js";
+import { doorDivision } from "../geometry/door.js";
 import { revealSplay } from "../geometry/opening.js";
 import { area as polygonArea } from "../geometry/polygon.js";
 import { flightProfileArea, stairLevels } from "../geometry/stair.js";
@@ -118,14 +119,17 @@ export async function roundTripChecks(model: BuildingModel, ifc: Uint8Array): Pr
       }, 0)) / 2;
       expect(sl.id, a * sl.thickness, "slab");
     }
-    const designs = new Map((model.components?.windows ?? []).map((c) => [c.id, c]));
+    const doorDesigns = new Map((model.components?.doors ?? []).map((c) => [c.id, c]));
+    const windowDesigns = new Map((model.components?.windows ?? []).map((c) => [c.id, c]));
     for (const o of s.openings) {
       if (o.kind === "door") {
-        expect(o.id, o.width * o.height * PANEL_THICKNESS, "door panel");
+        const { leaf, frame } = doorDivision(o, o.componentId ? doorDesigns.get(o.componentId) : undefined);
+        const area = (rs: typeof frame) => rs.reduce((a, r) => a + r.w * r.h, 0);
+        expect(o.id, leaf.w * leaf.h * PANEL_THICKNESS + area(frame) * GLAZING_BAR_DEPTH, frame.length ? "door (frame and leaf)" : "door panel");
         continue;
       }
       // Frame, panes and bars never overlap, so their volumes add up.
-      const { panes, bars, frame } = windowDivision(o, o.componentId ? designs.get(o.componentId) : undefined);
+      const { panes, bars, frame } = windowDivision(o, o.componentId ? windowDesigns.get(o.componentId) : undefined);
       const area = (rs: typeof panes) => rs.reduce((a, r) => a + r.w * r.h, 0);
       const solid = [...frame, ...bars];
       expect(o.id, area(panes) * PANEL_THICKNESS + area(solid) * GLAZING_BAR_DEPTH, solid.length ? "window (frame, panes and bars)" : "window panel");

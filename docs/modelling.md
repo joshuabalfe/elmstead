@@ -164,8 +164,9 @@ A component is a door or window design: "internal door", "sash window". Each ope
 one it is with `componentId`, so a design is described once and shared, and IFC tools see the
 doors and windows as instances of one type.
 
-- The component is the design: how it is built. So far that is its name and, for windows, a frame
-  and glazing bars (below). Door panels and the like go here as they are added.
+- The component is the design: how it is built. So far that is its name and, for doors and
+  windows, a frame (below); windows can also have glazing bars. Door panels and the like go here
+  as they are added.
 - The opening holds its size and where it is: width, height, wall, offset, sill height, swing. One
   design comes in many sizes, as windows in an old house do. IFC does the same (`IfcWindow` carries
   its own overall width and height).
@@ -177,8 +178,19 @@ doors and windows as instances of one type.
 
 #### Frames and glazing bars
 
-A window component's `frame` and `glazing` divide every window of that design into frame, panes
-and bars:
+A door component's `frame` divides every door of that design into a frame (jambs and a head, but
+no sill) and the leaf inside it:
+
+```ts
+// A 1 m opening with a 50 mm frame leaves a 900 mm leaf.
+doorComponent("door-type-front", "Front door", { frame: { width: mm(50) } });
+```
+
+The opening stays the same size and the leaf shrinks; the two jambs and the head tile the
+opening. On the plan the leaf and its swing arc are inset by the frame, and in IFC the frame is
+three 70 mm deep white pieces around a 50 mm leaf. `build` checks that the frame leaves room for
+a leaf. A window component's `frame` and `glazing` divide every window of that design into frame,
+panes and bars:
 
 ```ts
 // A 100 mm frame, then a bar half way up and three panes across in the ratio 1:2:1: six panes.
@@ -268,7 +280,7 @@ build plain values, so a model can always write the JSON shape out directly inst
 | `face(wall, "north" \| "south" \| "east" \| "west")` | the coordinate of one face of an axis-aligned wall |
 | `rectRoom(id, name, { west, east, south, north })` | a rectangular room outline |
 | `centredOn(wall, at, width)` | the `offsetAlongWall` that centres an opening of `width` on plan coordinate `at` |
-| `doorComponent(id, name)`, `windowComponent(id, name)` | a door or window design for `components` |
+| `doorComponent(id, name, { frame? })`, `windowComponent(id, name, { frame?, glazing? })` | a door or window design for `components` |
 | `door(id, wall, offset, component?, { width, height }, swing?)` | a door, with `sillHeight` 0, linked to the component if given one |
 | `window(id, wall, offset, component?, { width, height, sillHeight }, reveal?)` | a window, linked to the component if given one, with splayed jambs if given a reveal |
 | `faceCrossing(wall, "left" \| "right", "x" \| "y", at)` | where a face of a wall at any angle crosses the line x = `at` or y = `at`: room corners against diagonal walls |

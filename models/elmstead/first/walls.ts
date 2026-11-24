@@ -58,10 +58,12 @@ export const extEast = wall("wall-extension-east-first", pt(extEastX, extSouthY)
 export const extSouth = wall("wall-extension-south-first", pt(coreW, extSouthY), pt(face(extEast, "west"), extSouthY), { thickness: brickT, height: wallH, justification: "left" });
 
 // ── Bay window, west side of the dining room ────────────────────────────────
-// Lines are the bay's outer edge; its sides meet the west wall's outer face.
-export const bayNorth = wall("wall-bay-north-first", pt(mm(0), bayNorthY), pt(bayOutX, bayFrontNorthY), { thickness: studT, height: wallH, justification: "centre" });
-export const bayFront = wall("wall-bay-front-first", pt(bayOutX, bayFrontNorthY), pt(bayOutX, bayFrontSouthY), { thickness: studT, height: wallH, justification: "centre" });
-export const baySouth = wall("wall-bay-south-first", pt(bayOutX, bayFrontSouthY), pt(mm(0), baySouthY), { thickness: studT, height: wallH, justification: "centre" });
+// Lines are the bay's outer edge; its sides meet the west wall's outer face. Its ceiling is
+// 150 mm below the room's, and the lights run up to it, so no wall shows above them.
+const bayH = sub(wallH, mm(150));
+export const bayNorth = wall("wall-bay-north-first", pt(mm(0), bayNorthY), pt(bayOutX, bayFrontNorthY), { thickness: studT, height: bayH, justification: "centre" });
+export const bayFront = wall("wall-bay-front-first", pt(bayOutX, bayFrontNorthY), pt(bayOutX, bayFrontSouthY), { thickness: studT, height: bayH, justification: "centre" });
+export const baySouth = wall("wall-bay-south-first", pt(bayOutX, bayFrontSouthY), pt(mm(0), baySouthY), { thickness: studT, height: bayH, justification: "centre" });
 
 // ── Internal walls ──────────────────────────────────────────────────────────
 // Kitchen/dining wall, and the kitchen's east wall above the step.

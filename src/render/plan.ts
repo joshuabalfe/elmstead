@@ -85,20 +85,26 @@ function wallPieces(w: Wall, openings: readonly Opening[]): Vec[][] {
   return pieces;
 }
 
-/** Door symbol geometry in plan mm: hinge on the face the door opens towards, leaf drawn fully open (90°). */
-export function doorGeometry(w: Wall, d: Door): { hinge: Vec; open: Vec; closed: Vec } {
+/**
+ * Door symbol geometry in plan mm: hinge on the face the door opens towards, leaf drawn fully
+ * open (90°). A frame insets the hinge and the closed edge, shrinking the leaf.
+ */
+export function doorGeometry(w: Wall, d: Door, frameWidth = 0): { hinge: Vec; open: Vec; closed: Vec; leaf: number } {
   const swing = d.swing ?? { hinge: "start", side: "left" };
   const { left, right } = faceOffsets(w);
   const faceAcross = swing.side === "left" ? left : right;
-  const hingeAlong = swing.hinge === "start" ? d.offsetAlongWall : d.offsetAlongWall + d.width;
-  const closedAlong = swing.hinge === "start" ? d.offsetAlongWall + d.width : d.offsetAlongWall;
+  const leaf = d.width - 2 * frameWidth;
+  const openAlong = d.offsetAlongWall + frameWidth;
+  const closeAlong = d.offsetAlongWall + d.width - frameWidth;
+  const hingeAlong = swing.hinge === "start" ? openAlong : closeAlong;
+  const closedAlong = swing.hinge === "start" ? closeAlong : openAlong;
   const hinge = wallPoint(w, hingeAlong, faceAcross);
   const outward = vscale(perpLeft(wallDirection(w)), swing.side === "left" ? 1 : -1);
-  return { hinge, open: vadd(hinge, vscale(outward, d.width)), closed: wallPoint(w, closedAlong, faceAcross) };
+  return { hinge, open: vadd(hinge, vscale(outward, leaf)), closed: wallPoint(w, closedAlong, faceAcross), leaf };
 }
 
-function drawDoor(w: Wall, d: Door, view: View): string {
-  const { hinge, open, closed } = doorGeometry(w, d);
+function drawDoor(w: Wall, d: Door, view: View, frameWidth = 0): string {
+  const { hinge, open, closed, leaf } = doorGeometry(w, d, frameWidth);
   // Quarter arc from the open leaf tip back to the closed position, as a polyline (no sweep-flag ambiguity).
   const a0 = Math.atan2(open.y - hinge.y, open.x - hinge.x);
   const c = vsub(closed, hinge);
@@ -108,7 +114,7 @@ function drawDoor(w: Wall, d: Door, view: View): string {
   const N = 24;
   const arc = Array.from({ length: N + 1 }, (_, i) => {
     const a = a0 + ((a1 - a0) * i) / N;
-    return view.toPx(vadd(hinge, v(Math.cos(a) * d.width, Math.sin(a) * d.width)));
+    return view.toPx(vadd(hinge, v(Math.cos(a) * leaf, Math.sin(a) * leaf)));
   });
   return group({ class: "door", "data-id": d.id }, [
     line(view.toPx(hinge), view.toPx(open), { stroke: C.opening, "stroke-width": 1.6 }),
@@ -337,7 +343,9 @@ export function renderPlanAnnotations(storey: Storey, { names = true }: { names?
  * wall tops, which aren't cut), or nothing.
  */
 function wallsAndOpenings(storey: Storey, view: View, components: Components | undefined, doors: "swing" | "gap" = "swing"): string[] {
-  const designs = new Map((components?.windows ?? []).map((c) => [c.id, c]));
+  const windowDesigns = new Map((components?.windows ?? []).map((c) => [c.id, c]));
+  const doorDesigns = new Map((components?.doors ?? []).map((c) => [c.id, c]));
+  const frameWidth = (o: Door) => (o.componentId ? doorDesigns.get(o.componentId)?.frame?.width ?? 0 : 0);
   const walls = storey.walls.filter((w) => wallLength(w) > 0);
   const wallById = new Map(walls.map((w) => [w.id, w]));
   const out: string[] = [];
@@ -352,18 +360,20 @@ function wallsAndOpenings(storey: Storey, view: View, components: Components | u
     const w = wallById.get(o.wallId);
     if (!w) continue; // reported by checks
     if (!isCut(o)) out.push(drawUncut(w, o, view));
-    else if (o.kind === "window") out.push(drawWindow(w, o, view, o.componentId ? designs.get(o.componentId) : undefined));
-    else out.push(doors === "swing" ? drawDoor(w, o, view) : drawDoorGap(w, o, view));
+    else if (o.kind === "window") out.push(drawWindow(w, o, view, o.componentId ? windowDesigns.get(o.componentId) : undefined));
+    else out.push(doors === "swing" ? drawDoor(w, o, view, frameWidth(o)) : drawDoorGap(w, o, view));
   }
   return out;
 }
 
 /** Each cut door's leaf and swing, as on the plan. */
-function doorSwings(storey: Storey, view: View): string[] {
+function doorSwings(storey: Storey, view: View, components: Components | undefined): string[] {
   const wallById = new Map(storey.walls.map((w) => [w.id, w]));
+  const doorDesigns = new Map((components?.doors ?? []).map((c) => [c.id, c]));
   return storey.openings.flatMap((o) => {
     const w = wallById.get(o.wallId);
-    return w && o.kind === "door" && isCut(o) && wallLength(w) > 0 ? [drawDoor(w, o, view)] : [];
+    const frame = o.kind === "door" && o.componentId ? doorDesigns.get(o.componentId)?.frame?.width ?? 0 : 0;
+    return w && o.kind === "door" && isCut(o) && wallLength(w) > 0 ? [drawDoor(w, o, view, frame)] : [];
   });
 }
 
@@ -381,11 +391,11 @@ export function renderWallTops(storey: Storey, components?: Components): { svg: 
  * the 3D viewer's floor. The slab fills the floor outside the room outlines too: bay windows and
  * alcoves are floor even where they are not part of the room's dimensions.
  */
-export function renderFloor(storey: Storey): { svg: string; bounds: Bounds } {
+export function renderFloor(storey: Storey, components?: Components): { svg: string; bounds: Bounds } {
   return overlay(storey, (view) => [
     ...storey.slabs.map((s) => polygon(s.outline.map((p) => view.toPx(toVec(p))), { fill: C.room, stroke: "none" })),
     ...storey.rooms.map((r) => polygon(r.outline.map((p) => view.toPx(toVec(p))), { fill: C.room, stroke: "none" })),
-    ...doorSwings(storey, view),
+    ...doorSwings(storey, view, components),
   ]);
 }
 

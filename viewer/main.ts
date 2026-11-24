@@ -346,7 +346,7 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
     // see is the topmost one, and it hides the storeys below. Cut-out (alphaTest), not blended, so
     // it stays in the opaque pass that runs before the walls. Built even while hidden, so the
     // selector can show a storey again without rebuilding it.
-    const fills = renderFloor(storey);
+    const fills = renderFloor(storey, model.components);
     const fill = await planPlane(fills.svg, fills.bounds, (storey.elevation + FLOOR_LIFT) / 1000, { alphaTest: 0.5 });
     if (epoch !== loadEpoch) return;
     fill.renderOrder = -1;
@@ -663,15 +663,30 @@ function setNavigationInput() {
  * Three.js is Y-up with plan north along −Z (IFC +Y).
  */
 async function setView(view: View) {
-  const centre = shownBox().getCenter(new THREE.Vector3());
+  const frame = shownBox().clone();
+  // The plan box is only 1 m tall; interactive views frame the shown storeys' real height so the
+  // whole building fits. Snapshots keep the plan box and the framing their PNGs were rendered with.
+  if (!snapshot && modelJson) {
+    const shown = modelJson.storeys.filter((s) => isShown(s.id));
+    if (shown.length) {
+      const tops = shown.flatMap((s) => [s.elevation, ...s.walls.map((w) => s.elevation + w.height), ...s.slabs.map((sl) => s.elevation + sl.elevationOffset)]);
+      const bottoms = shown.flatMap((s) => [s.elevation, ...s.slabs.map((sl) => s.elevation + sl.elevationOffset - sl.thickness)]);
+      frame.min.y = Math.min(...bottoms) / 1000;
+      frame.max.y = Math.max(...tops) / 1000;
+    }
+  }
+  const centre = frame.getCenter(new THREE.Vector3());
   const { direction, projection } = cameraForView(view, snapshot);
   await world.camera.projection.set(projection);
   // Start well outside the model, then fit to its bounding sphere: fitToSphere keeps the viewing
   // direction (fitToBox would snap to the nearest face).
-  const sphere = shownBox().getBoundingSphere(new THREE.Sphere());
+  const sphere = frame.getBoundingSphere(new THREE.Sphere());
   const d = new THREE.Vector3(...direction).normalize().multiplyScalar(sphere.radius * 4);
   await world.camera.controls.setLookAt(centre.x + d.x, centre.y + d.y, centre.z + d.z, centre.x, centre.y, centre.z, false);
-  sphere.radius *= view === "top" ? 0.78 : 0.92; // the sphere is loose around a flat box; tighten the framing
+  // Top looks straight down the height, so its sphere is loose and takes a tighter factor; the
+  // corner views fit the whole sphere plus a little air, so no corner of the building is cropped.
+  // Interactive views sit a touch looser than the snapshots the PNGs were rendered with.
+  sphere.radius *= view === "top" ? (snapshot ? 0.78 : 1) : snapshot ? 0.92 : 1.1;
   await world.camera.controls.fitToSphere(sphere, false);
   await fragments.core.update(true);
   updateCompass();

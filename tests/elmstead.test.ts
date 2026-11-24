@@ -7,7 +7,8 @@ import elmstead from "../models/elmstead/index.js";
 import { stairwellOutline } from "../models/elmstead/first/index.js";
 import { stairArrivalX } from "../models/elmstead/first/walls.js";
 import { flightFootprint, stairLevels } from "../src/geometry/stair.js";
-import { face } from "../src/model/index.js";
+import { wallLength } from "../src/geometry/wall.js";
+import { face, mm } from "../src/model/index.js";
 import type { Storey } from "../src/schema/schema.js";
 
 type Pt = { x: number; y: number };
@@ -39,6 +40,68 @@ const wallTop = (s: Storey): number => s.elevation + Math.max(0, ...s.walls.map(
 
 describe("Elmstead's floor structure", () => {
   const storeys = [...elmstead.storeys].sort((a, b) => a.elevation - b.elevation);
+
+  it("uses the owner's 2.7 m first-floor ceiling and a 150 mm lower bay", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    const bay = new Set(["wall-bay-north-first", "wall-bay-front-first", "wall-bay-south-first"]);
+    for (const wall of first.walls) expect(wall.height, wall.id).toBe(bay.has(wall.id) ? mm(2550) : mm(2700));
+  });
+
+  it("puts the kitchen window above the front door", () => {
+    const ground = elmstead.storeys.find((s) => s.id === "storey-ground");
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!ground || !first) throw new Error("Elmstead needs ground and first floors");
+    const door = ground.openings.find((o) => o.id === "door-front");
+    const window = first.openings.find((o) => o.id === "window-kitchen-west-first");
+    if (!door || !window) throw new Error("Elmstead needs the front door and kitchen window");
+    const doorWall = ground.walls.find((w) => w.id === door.wallId);
+    const windowWall = first.walls.find((w) => w.id === window.wallId);
+    if (!doorWall || !windowWall) throw new Error("The front door and kitchen window need their walls");
+    expect(windowWall.start).toEqual(doorWall.start);
+    expect(window.offsetAlongWall + window.width / 2).toBe(door.offsetAlongWall + door.width / 2);
+    expect(window.height).toBe(mm(2100));
+    expect(window.sillHeight).toBe(mm(450));
+  });
+
+  it("gives the bay windows the owner's size and bars", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    const bay = (id: string) => {
+      const o = first.openings.find((opening) => opening.id === id);
+      if (!o || o.kind !== "window") throw new Error(`Elmstead has no ${id}`);
+      return o;
+    };
+    const middle = bay("window-bay-front-first");
+    const north = bay("window-bay-north-first");
+    const south = bay("window-bay-south-first");
+    const walls = new Map(first.walls.map((w) => [w.id, w]));
+    for (const o of [middle, north, south]) {
+      expect(o.height).toBe(mm(2100));
+      expect(o.sillHeight).toBe(mm(450));
+      const wall = walls.get(o.wallId);
+      if (!wall) throw new Error(`${o.id} has no wall`);
+      expect(o.offsetAlongWall, o.id).toBe(0);
+      expect(o.width, o.id).toBe(Math.floor(wallLength(wall)));
+      expect(o.sillHeight + o.height, o.id).toBe(wall.height);
+    }
+    const designs = new Map((elmstead.components?.windows ?? []).map((c) => [c.id, c]));
+    expect(designs.get(middle.componentId!)?.glazing).toMatchObject({ columns: [1, 1], rows: [1, 1] });
+    expect(designs.get(north.componentId!)?.glazing).toMatchObject({ columns: [1], rows: [1, 1] });
+  });
+
+  it("gives the front door a 1 m opening with a 50 mm frame", () => {
+    const ground = elmstead.storeys.find((s) => s.id === "storey-ground");
+    if (!ground) throw new Error("Elmstead has no ground floor");
+    const door = ground.openings.find((o) => o.id === "door-front");
+    const fanlight = ground.openings.find((o) => o.id === "window-front-fanlight");
+    const component = elmstead.components?.doors.find((c) => c.id === door?.componentId);
+    if (!door || !fanlight || !component) throw new Error("Elmstead needs the front door, its frame and fanlight");
+    expect(door.width).toBe(mm(1000));
+    expect(component.frame?.width).toBe(mm(50));
+    expect(fanlight.offsetAlongWall).toBe(door.offsetAlongWall + 50);
+    expect(fanlight.width).toBe(mm(900));
+  });
 
   for (let i = 1; i < storeys.length; i++) {
     const lower = storeys[i - 1]!;

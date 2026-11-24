@@ -122,6 +122,14 @@ export default defineConstraints([
       measure: "y",
       distance: mm(2750),
     },
+    {
+      id: "kitchen-window-width",
+      note: "Kitchen window width from the owner (1.21 m), aligned above the front door",
+      from: jamb("window-kitchen-west-first", "start"),
+      to: jamb("window-kitchen-west-first", "end"),
+      measure: { along: "wall-west-first-north" },
+      distance: mm(1210),
+    },
   ]),
   inRoom("room-dining-first", [
     {
@@ -159,6 +167,22 @@ export default defineConstraints([
       to: corner({ wall: "wall-north", face: "south" }, { wall: "wall-west", face: "east" }),
       measure: "y",
       distance: m(1.5),
+    },
+    {
+      id: "front-door-offset",
+      note: "Front door opening starts 150 mm from the north end of the west wall (owner)",
+      from: wallEnd("wall-west", "start"),
+      to: jamb("door-front", "start"),
+      measure: { along: "wall-west" },
+      distance: mm(150),
+    },
+    {
+      id: "front-door-width",
+      note: "Front door opening width from the owner (1 m), with a 50 mm frame",
+      from: jamb("door-front", "start"),
+      to: jamb("door-front", "end"),
+      measure: { along: "wall-west" },
+      distance: m(1),
     },
     {
       id: "fanlight-width",
