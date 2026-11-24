@@ -8,7 +8,7 @@
  */
 import { wallLength } from "../../../src/geometry/wall.js";
 import { add, centredOn, divRound, door, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
-import { crossBarWindow, frontWindow, internalDoor, standardWindow } from "../components/index.js";
+import { bayWindow, crossBarWindow, internalDoor, standardWindow } from "../components/index.js";
 import { frontDoorOffset, frontDoorWidth } from "../ground/openings.js";
 import { bayFront, bayNorth, baySouth, bedroomNorth, diningNorth, east, ensuiteSouth, kitchenEast, westNorth } from "./walls.js";
 
@@ -17,6 +17,7 @@ const internal = { width: mm(700), height: doorH };
 const standard = { height: m(1.2), sillHeight: mm(900) };
 
 const bayWindowWidth = mm(450);
+const bayWindowSize = { height: mm(2100), sillHeight: mm(450) };
 const bayNorthOffset = mm(Math.round((wallLength(bayNorth) - bayWindowWidth) / 2));
 const baySouthOffset = mm(Math.round((wallLength(baySouth) - bayWindowWidth) / 2));
 
@@ -30,10 +31,11 @@ export const openings: Opening[] = [
   // square reveal keeps the frame and its cut inside the wall this close to the corner.
   window("window-kitchen-west-first", westNorth, kitchenWindowOffset, crossBarWindow, { width: kitchenWindowWidth, height: mm(2100), sillHeight: mm(450) }),
 
-  // Bay window on the dining room's canted west side.
-  window("window-bay-front-first", bayFront, centredOn(bayFront, mm(3390), mm(1500)), frontWindow, { width: mm(1500), height: mm(1800), sillHeight: mm(400) }),
-  window("window-bay-north-first", bayNorth, bayNorthOffset, standardWindow, { ...standard, width: bayWindowWidth }),
-  window("window-bay-south-first", baySouth, baySouthOffset, standardWindow, { ...standard, width: bayWindowWidth }),
+  // Bay windows on the dining room's canted west side: all three share a 450 mm sill and 2.1 m
+  // head. The middle light has one vertical and one horizontal bar; the sides only the horizontal.
+  window("window-bay-front-first", bayFront, centredOn(bayFront, mm(3390), mm(1500)), bayWindow, { width: mm(1500), ...bayWindowSize }),
+  window("window-bay-north-first", bayNorth, bayNorthOffset, crossBarWindow, { ...bayWindowSize, width: bayWindowWidth }),
+  window("window-bay-south-first", baySouth, baySouthOffset, crossBarWindow, { ...bayWindowSize, width: bayWindowWidth }),
 
   // Doors. Dining and bedroom doors open into their rooms; the ensuite door opens from the bedroom.
   door("door-dining-first", diningNorth, mm(3400), internalDoor, internal, { hinge: "end", side: "right" }),

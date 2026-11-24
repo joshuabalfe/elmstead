@@ -60,6 +60,29 @@ describe("Elmstead's floor structure", () => {
     expect(window.sillHeight).toBe(mm(450));
   });
 
+  it("gives the bay windows the owner's size and bars", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    const bay = (id: string) => {
+      const o = first.openings.find((opening) => opening.id === id);
+      if (!o || o.kind !== "window") throw new Error(`Elmstead has no ${id}`);
+      return o;
+    };
+    const middle = bay("window-bay-front-first");
+    const north = bay("window-bay-north-first");
+    const south = bay("window-bay-south-first");
+    for (const o of [middle, north, south]) {
+      expect(o.height).toBe(mm(2100));
+      expect(o.sillHeight).toBe(mm(450));
+    }
+    expect(middle.width).toBe(mm(1500));
+    expect(north.width).toBe(mm(450));
+    expect(south.width).toBe(mm(450));
+    const designs = new Map((elmstead.components?.windows ?? []).map((c) => [c.id, c]));
+    expect(designs.get(middle.componentId!)?.glazing).toMatchObject({ columns: [1, 1], rows: [1, 1] });
+    expect(designs.get(north.componentId!)?.glazing).toMatchObject({ columns: [1], rows: [1, 1] });
+  });
+
   it("gives the front door a 1 m opening with a 50 mm frame", () => {
     const ground = elmstead.storeys.find((s) => s.id === "storey-ground");
     if (!ground) throw new Error("Elmstead has no ground floor");
