@@ -25,8 +25,9 @@ the chosen one.
   so a hidden storey takes its openings, rooms and, once stairs exist, its flights and landings
   with it.
 - Add a storey selector to the viewer bar: choosing a storey shows it and every storey below it,
-  hiding everything above. The choice is written to `?storeys=` as the cumulative list, so it can
-  be shared, while the parameter keeps its exact-subset meaning for tests and hand-written URLs.
+  hiding everything above without moving the camera. The choice is written to `?storeys=` as the
+  cumulative list, so it can be shared, while the parameter keeps its exact-subset meaning for tests
+  and hand-written URLs.
 - Make plan style stack. Each shown storey's floor becomes its own room fills and door swings, at
   that storey's level, writing depth: the floor you see is the topmost one, and it hides the storeys
   below instead of the grey slab showing through. Slab tops stay discarded in plan style, at every

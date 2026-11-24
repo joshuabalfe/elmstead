@@ -32,8 +32,8 @@
 ## 6. Storey selector
 
 - [x] 6.1 Add a storey select to the bar, lowest first and hidden for single-storey models; choosing a storey shows it and every storey below, hides those above, and updates the loaded model without a reload
-- [x] 6.2 Write the cumulative selection to `?storeys=` (clearing it for the top storey), show a disabled custom value for a non-prefix URL subset, and re-frame the current view and walk entry on the shown storeys
-- [x] 6.3 Verify a browser test compares the selector's picture with the equivalent `?storeys=` picture, and that the topmost choice matches the all-storey picture with no parameter left
+- [x] 6.2 Write the cumulative selection to `?storeys=` (clearing it for the top storey), show a disabled custom value for a non-prefix URL subset, and leave the camera in place while updating walk entry for the lowest shown storey
+- [x] 6.3 Verify a browser test pins the camera with `?camera=` and compares the selector's picture with the equivalent `?storeys=` picture, and that the topmost choice matches the all-storey picture with no parameter left
 - [x] 6.4 Document the selector in `docs/rendering.md`; verify `npm test`, `npm run typecheck` and `npx openspec validate --all`
 
 ## Workflow follow-up

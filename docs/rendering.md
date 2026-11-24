@@ -125,9 +125,11 @@ openings cut, doors and glazing in place, colours applied.
   - White background, no grid.
 - The **Up to:** selector lists the model's storeys lowest first; choosing one shows that storey and
   every storey below it, hiding those above, and the topmost choice shows everything. A choice
-  updates the loaded model in place and re-frames the current view, and is written to `?storeys=`
-  so the URL shares it. A `?storeys=` set that is not one floor's prefix shows a disabled **Custom**
-  value until a floor is chosen. The selector is hidden for a single-storey model.
+  updates the loaded model in place without moving the camera, so floors compare from one viewpoint;
+  the compass follows the shown footprint, and the view buttons re-frame on request. The choice is
+  written to `?storeys=` so the URL shares it. A `?storeys=` set that is not one floor's prefix
+  shows a disabled **Custom** value until a floor is chosen. The selector is hidden for a
+  single-storey model.
 - `?storeys=a,b` shows only those storeys: everything the IFC contains or aggregates in the others is
   hidden, with their labels and floor planes. An id that names no storey is noted in the status line
   and ignored; omitting the parameter shows every storey. With one storey shown, the Top view is

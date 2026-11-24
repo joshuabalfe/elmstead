@@ -103,8 +103,6 @@ let modelJson: BuildingModel | null = null;
 let currentModel: FragmentsModel | null = null;
 /** The storey ids `?storeys=` asked for, in the model's order; null means every storey. */
 let shownStoreys: string[] | null = null;
-/** The view the camera was last set to; a storey choice re-frames it. */
-let currentView: View = parseView(params.get("view"));
 /** The label and plan-layer groups drawn for each storey, so hiding it takes its drawings with it. */
 const storeyLayers = new Map<string, THREE.Group[]>();
 
@@ -404,7 +402,9 @@ async function chooseStorey(topId: string): Promise<void> {
   await applyStoreyVisibility(currentModel);
   updateLowestElevation();
   status.textContent = `${select.value}.ifc`;
-  await setView(currentView);
+  // The camera stays put: only the drawings change, so floors compare from one viewpoint.
+  await fragments.core.update(true);
+  updateCompass();
 }
 
 /**
@@ -771,8 +771,7 @@ async function load(name: string) {
   applyStyle();
   box = model.box.clone();
   grid.three.position.y = box.min.y - 0.01; // under the lowest slab, so it doesn't show through floors
-  currentView = parseView(params.get("view")); // the plan view, unless the URL asks for another
-  await setView(currentView);
+  await setView(parseView(params.get("view"))); // the plan view, unless the URL asks for another
   if (params.get("camera")) await setCamera(params.get("camera")!);
   status.textContent = `${name}.ifc${storeysNote}`;
 }
@@ -795,12 +794,10 @@ constraintsButton.addEventListener("click", () => {
 document.querySelectorAll<HTMLButtonElement>("[data-view]").forEach((b) =>
   b.addEventListener("click", async () => {
     await exitWalk(); // choosing a view leaves walk mode before the view changes
-    currentView = parseView(b.dataset.view ?? null);
-    await setView(currentView);
+    await setView(parseView(b.dataset.view ?? null));
   }),
 );
 storeySelect.addEventListener("change", async () => {
-  await exitWalk(); // a new selection re-frames the view, so walking ends first
   await chooseStorey(storeySelect.value);
   requestAnimationFrame(() => requestAnimationFrame(() => (window.__elmsteadStoreyChanges = (window.__elmsteadStoreyChanges ?? 0) + 1)));
 });

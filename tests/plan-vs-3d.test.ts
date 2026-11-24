@@ -190,25 +190,28 @@ describe("storey selection", () => {
     expect(Buffer.from(hidden.data).equals(Buffer.from(absent.data))).toBe(true);
   }, 120_000);
 
-  it("shows the chosen floor and every storey below it", async () => {
+  it("shows the chosen floor and every storey below it, without moving the camera", async () => {
     const m = await model("models/elmstead");
     await publish("test-storey-selector", m);
-    const all = await viewOf("test-storey-selector", "view=top&labels=0&style=plan");
+    // A fixed camera makes a re-frame detectable: both pictures must come from the same viewpoint.
+    const camera = "16,11,6,5.2,1.5,-4.2";
+    const all = await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}`);
 
-    // The ground choice is the ground alone, the same picture as the exact-subset URL.
+    // The ground choice is the ground alone, from the camera it had before.
     await selectStorey("storey-ground");
     expect(new URL(page.url()).searchParams.get("storeys")).toBe("storey-ground");
     const ground = await canvasPixels();
-    const groundOnly = await viewOf("test-storey-selector", "view=top&labels=0&style=plan&storeys=storey-ground");
+    expect(samePixels(ground, all)).toBe(false);
+    const groundOnly = await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}&storeys=storey-ground`);
     expect(samePixels(ground, groundOnly)).toBe(true);
 
-    // The topmost choice puts the first floor back: everything, with no parameter left behind.
+    // The topmost choice puts the first floor back, still without moving the camera.
     await selectStorey("storey-first-floor");
     expect(new URL(page.url()).searchParams.has("storeys")).toBe(false);
     expect(samePixels(await canvasPixels(), all)).toBe(true);
 
     // A URL subset no single floor describes reads as custom rather than as some floor.
-    await viewOf("test-storey-selector", "view=top&labels=0&style=plan&storeys=storey-first-floor");
+    await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}&storeys=storey-first-floor`);
     const picker = await page.evaluate(() => {
       const s = document.getElementById("storeys") as HTMLSelectElement;
       return { value: s.value, text: s.selectedOptions[0]?.textContent };

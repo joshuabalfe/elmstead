@@ -61,9 +61,9 @@ until a floor is chosen.
 
 The selector updates the loaded model in place: every storey's labels, floor and constraint groups
 are built up front and toggled, and each fragment is made visible or hidden with `setVisible`. No
-reload and no texture rebuild. A change re-frames the current view on the shown storeys, and leaves
-walk mode first, because disappearing upper floors invalidate the old framing and the old walk
-pose.
+reload and no texture rebuild. A change does not move the camera — only the drawings change, so
+floors can be compared from one viewpoint. The compass is re-projected against the shown footprint
+and walk mode's next entry uses the lowest shown floor; the view buttons remain the way to re-fit.
 
 Alternatives considered: checkboxes (the requested behaviour is cumulative, so a select expresses
 it with less UI); a half-open range (a floor is the obvious unit); a slider (no storey names, and it
@@ -139,9 +139,9 @@ walks you on the first.
 - **Every storey's plan layers exist even when hidden.** Building them up front is what lets the
   selector re-show a floor without a reload; the cost is texture and line memory for layers that
   are not drawn. Small at this model's size; rebuild on demand if a real building makes it hurt.
-- **A selection change re-frames the camera.** Choosing a floor fits the view to the shown storeys,
-  which discards a hand-set `?camera=` close-up. Accepted: the alternative leaves one floor framed
-  for the whole building.
+- **The frame stays sized for the old selection.** Hiding the upper floors leaves the remaining ones
+  in the lower part of a frame fitted to the whole building. Deliberate: a camera that stays put is
+  what makes floor-by-floor comparison possible, and a view button re-fits on request.
 - **ELM-4 may merge after this change.** Both touch `applyStyle` and `patchTops` in `viewer/main.ts`,
   so whichever lands second resolves one small code conflict; per the decision above, ELM-4's viewer
   part should then be dropped, not re-cut. Nothing here needs ELM-4's schema, IFC or stair work.

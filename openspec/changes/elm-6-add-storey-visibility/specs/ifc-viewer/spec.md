@@ -22,10 +22,11 @@ or aggregates in it, and the drawings and labels made for it.
 
 ### Requirement: Storey selector
 The viewer SHALL offer a selector listing the model's storeys from lowest to highest. Choosing a
-storey SHALL show that storey and every storey below it, hiding every storey above. The selection
-SHALL be written to `?storeys=` as the ids it shows, and the topmost storey SHALL clear the
-parameter. A `?storeys=` set that is not some floor's prefix SHALL show a disabled custom value
-until a floor is chosen. The selector SHALL be hidden for a single-storey model.
+storey SHALL show that storey and every storey below it, hiding every storey above, without moving
+the camera. The selection SHALL be written to `?storeys=` as the ids it shows, and the topmost
+storey SHALL clear the parameter. A `?storeys=` set that is not some floor's prefix SHALL show a
+disabled custom value until a floor is chosen. The selector SHALL be hidden for a single-storey
+model.
 
 #### Scenario: Choosing a floor
 - **WHEN** the viewer shows a two-storey model and the user chooses the ground storey
@@ -33,7 +34,11 @@ until a floor is chosen. The selector SHALL be hidden for a single-storey model.
 
 #### Scenario: Everything below
 - **WHEN** the user chooses the topmost storey
-- **THEN** every storey is drawn and the URL has no `storeys` parameter
+- **THEN** every storey is drawn, the URL has no `storeys` parameter, and the camera has not moved
+
+#### Scenario: Camera stays put
+- **WHEN** the user changes the selection
+- **THEN** the camera, projection and framing stay exactly as they were, and only the drawn storeys differ
 
 #### Scenario: Shared view
 - **WHEN** the viewer is opened with `?storeys=storey-ground,storey-first-floor`
