@@ -60,6 +60,19 @@ describe("Elmstead's floor structure", () => {
     expect(window.sillHeight).toBe(mm(450));
   });
 
+  it("gives the front door a 1 m opening with a 50 mm frame", () => {
+    const ground = elmstead.storeys.find((s) => s.id === "storey-ground");
+    if (!ground) throw new Error("Elmstead has no ground floor");
+    const door = ground.openings.find((o) => o.id === "door-front");
+    const fanlight = ground.openings.find((o) => o.id === "window-front-fanlight");
+    const component = elmstead.components?.doors.find((c) => c.id === door?.componentId);
+    if (!door || !fanlight || !component) throw new Error("Elmstead needs the front door, its frame and fanlight");
+    expect(door.width).toBe(mm(1000));
+    expect(component.frame?.width).toBe(mm(50));
+    expect(fanlight.offsetAlongWall).toBe(door.offsetAlongWall + 50);
+    expect(fanlight.width).toBe(mm(900));
+  });
+
   for (let i = 1; i < storeys.length; i++) {
     const lower = storeys[i - 1]!;
     const upper = storeys[i]!;

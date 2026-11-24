@@ -20,9 +20,10 @@ this order:
 3. walls at their true thickness, split around the openings. Beside a window with a splayed
    reveal the wall ends square from one face to the middle, then at the reveal's angle to the
    splayed face (`src/geometry/opening.ts`)
-4. door leaves with swing arcs, and window symbols (outline, two glazing lines, and a small block
-   for each frame piece or glazing bar the cut passes through: jambs and vertical bars). A splayed
-   window's outline, and the dashed outline of one the cut misses, follow its reveal
+4. door leaves with swing arcs (inset by the door's frame), and window symbols (outline, two
+   glazing lines, and a small block for each frame piece or glazing bar the cut passes through:
+   jambs and vertical bars). A splayed window's outline, and the dashed outline of one the cut
+   misses, follow its reveal
 5. room labels (name and area in m²) and room dimensions: the longest clear wall-to-wall span
    east–west and north–south, in mm, drawn as dimension lines inside the room and kept clear of
    the label where the room is wide enough

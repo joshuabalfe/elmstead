@@ -346,7 +346,7 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
     // see is the topmost one, and it hides the storeys below. Cut-out (alphaTest), not blended, so
     // it stays in the opaque pass that runs before the walls. Built even while hidden, so the
     // selector can show a storey again without rebuilding it.
-    const fills = renderFloor(storey);
+    const fills = renderFloor(storey, model.components);
     const fill = await planPlane(fills.svg, fills.bounds, (storey.elevation + FLOOR_LIFT) / 1000, { alphaTest: 0.5 });
     if (epoch !== loadEpoch) return;
     fill.renderOrder = -1;

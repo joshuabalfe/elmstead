@@ -169,6 +169,14 @@ export default defineConstraints([
       distance: m(1.5),
     },
     {
+      id: "front-door-width",
+      note: "Front door opening width from the owner (1 m), with a 50 mm frame",
+      from: jamb("door-front", "start"),
+      to: jamb("door-front", "end"),
+      measure: { along: "wall-west" },
+      distance: m(1),
+    },
+    {
       id: "fanlight-width",
       note: "Fanlight size from the owner",
       from: jamb("window-front-fanlight", "start"),

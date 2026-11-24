@@ -6,11 +6,12 @@
  * IFC X/Y, Z is up. Every IfcRoot gets a GlobalId from ifcGuid(key); see guid.ts for the key scheme.
  */
 import * as WebIFC from "web-ifc";
+import { doorDivision } from "../geometry/door.js";
 import { isSplayed, openingProfile } from "../geometry/opening.js";
 import type { Vec } from "../geometry/vec.js";
 import { faceOffsets, wallDirection, wallLength } from "../geometry/wall.js";
 import { GLAZING_BAR_DEPTH, windowDivision, type Rect } from "../geometry/window.js";
-import type { BuildingModel, Door, Opening, Room, Slab, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
+import type { BuildingModel, Door, DoorComponent, Opening, Room, Slab, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
 import { ifcGuid } from "./guid.js";
 import { STYLES, type StyleName } from "./styles.js";
 
@@ -100,6 +101,8 @@ class Writer {
   private bodyCtx!: InstanceType<typeof IFC4.IfcGeometricRepresentationSubContext>;
   /** Doors and windows written so far, by the componentId they are an instance of. */
   private readonly instances = new Map<string, InstanceType<typeof IFC4.IfcObject>[]>();
+  /** Door components (their frames), by id. */
+  private doorDesigns = new Map<string, DoorComponent>();
   /** Window components (their frames and glazing bars), by id. */
   private windowDesigns = new Map<string, WindowComponent>();
   private axisCtx!: InstanceType<typeof IFC4.IfcGeometricRepresentationSubContext>;
@@ -205,6 +208,7 @@ class Writer {
     this.write(new IFC4.IfcRelAggregates(guid(`${model.project.id}#aggregates`), null, null, null, project, [site]));
     this.write(new IFC4.IfcRelAggregates(guid(`${model.site.id}#aggregates`), null, null, null, site, [building]));
 
+    this.doorDesigns = new Map((model.components?.doors ?? []).map((c) => [c.id, c]));
     this.windowDesigns = new Map((model.components?.windows ?? []).map((c) => [c.id, c]));
     const storeys = model.storeys.map((s) => this.storey(s, buildingPlacement));
     this.write(new IFC4.IfcRelAggregates(guid(`${model.building.id}#aggregates`), null, null, null, building, storeys));
@@ -284,13 +288,26 @@ class Writer {
   /**
    * IFC4 defines door handing looking along the door's local +Y (the opening direction): hinges on
    * the left are SINGLE_SWING_LEFT. We place the door with +Y pointing to the side it swings to.
+   * The leaf fills the opening unless its component has a frame: that adds jambs and a head, and
+   * the leaf shrinks to what is left. Frame boxes stand proud of the leaf like window frames.
    */
   private door(d: Door, mid: number, openingPlacement: InstanceType<typeof IFC4.IfcLocalPlacement>) {
     const swing = d.swing ?? { hinge: "start", side: "left" };
     const opensLeft = swing.side === "left"; // wall-local +Y is the wall's left
     const placement = this.placement(openingPlacement, d.width / 2, mid, 0, opensLeft ? 1 : -1, 0);
     const hingeOnDoorLeft = (swing.hinge === "start") === opensLeft;
-    const body = this.body(this.rectangle(0, 0, d.width, PANEL_THICKNESS), d.height, "door");
+    const design = d.componentId ? this.doorDesigns.get(d.componentId) : undefined;
+    const { leaf, frame } = doorDivision(d, design);
+    // Door-local X runs along the wall from the opening's centre; the rects are from its left edge.
+    const piece = (r: Rect, depth: number, style: StyleName) => {
+      const profile = this.rectangle(r.x + r.w / 2 - d.width / 2, 0, r.w, depth);
+      const at = r.z === 0 ? null : new IFC4.IfcAxis2Placement3D(this.pt3(0, 0, r.z), null, null);
+      const solid = new IFC4.IfcExtrudedAreaSolid(profile, at, this.zAxis, posLen(r.h));
+      this.write(new IFC4.IfcStyledItem(solid, [this.surfaceStyle(style)], null));
+      return solid;
+    };
+    const items = [piece(leaf, PANEL_THICKNESS, "door"), ...frame.map((f) => piece(f, GLAZING_BAR_DEPTH, "frame"))];
+    const body = new IFC4.IfcShapeRepresentation(this.bodyCtx, label("Body"), label("SweptSolid"), items);
     return this.write(
       new IFC4.IfcDoor(
         guid(d.id),
