@@ -36,12 +36,18 @@
 - [x] 6.3 Verify a browser test pins the camera with `?camera=` and compares the selector's picture with the equivalent `?storeys=` picture, and that the topmost choice matches the all-storey picture with no parameter left
 - [x] 6.4 Document the selector in `docs/rendering.md`; verify `npm test`, `npm run typecheck` and `npx openspec validate --all`
 
+## 7. Elmstead floor structure
+
+- [x] 7.1 Put the provisional first floor one floor structure (its 200 mm slab) above the ground ceiling, carry the ground walls up through that zone so the facade stays continuous, and verify `build` reports 0 errors and the plan-versus-3D comparisons still pass; a stair's rise is then ceiling + joist depth, not the ceiling alone
+
 ## Workflow follow-up
 
 - Archive the change after implementation and the project's review requirements are satisfied.
 - Verify the archived result.
 - If ELM-4 merges after this change, re-cut its ifc-viewer *Plan style* delta against this change's
   text and expect one small conflict in `applyStyle`/`patchTops`; its direction-keyed slab discard
-  belongs inside the single-storey plan mode this change defines.
+  belongs inside the single-storey plan mode this change defines. When ELM-4 adds Elmstead's stair,
+  its rise is the first-floor elevation (2.9 m clear ceiling plus the 200 mm structure), not the
+  ceiling alone; ELM-4's own fixture already treats the rise as floor-to-floor.
 - Per-storey checkboxes for arbitrary subsets, and making the occlusive render the named default in
   the help text, remain the next change on this primitive; a roof waits for the model to grow one.

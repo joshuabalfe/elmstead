@@ -6,9 +6,11 @@
  * The living room and hallway sizes are the owner's measurements, not traced.
  */
 import { add, face, mm, pt, sub, wall } from "../../../src/model/index.js";
-import { brickT, coreD, coreW, eastT, extEastX, extSouthY, groundFloor, northT, partT, southT, studT, westT } from "../shared.js";
+import { brickT, coreD, coreW, eastT, extEastX, extSouthY, firstFloor, groundFloor, northT, partT, southT, studT, westT } from "../shared.js";
 
-export const wallH = groundFloor.ceilingHeight; // walls stop at the ceiling until there is an upper floor
+// Run to the first floor, through the joist zone, so the facade stays continuous; the first-floor
+// slab's underside is the ground ceiling.
+export const wallH = sub(firstFloor.elevation, groundFloor.elevation);
 const breastT = mm(350); // chimney breasts and thickened masonry walls, per the owner
 const bathNorthT = mm(225); // bathroom north wall, 9-inch brick per the owner
 

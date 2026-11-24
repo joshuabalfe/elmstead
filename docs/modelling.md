@@ -70,6 +70,12 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
   cottage puts the origin at the outside south-west corner.
 - Heights are measured up from the storey's `elevation`, which is the finished floor level above
   the building's zero.
+- The floor structure that carries a storey belongs to that storey, as its slab: the slab's top is
+  at the storey elevation and it extends downwards. Above another storey, set the elevation one
+  structure thickness above the lower storey's clear ceiling, and carry the lower storey's walls up
+  through that structure to keep the facade continuous. The lower storey's clear ceiling is then the
+  slab's underside, and a stair rises the floor-to-floor distance — ceiling plus structure — not the
+  clear ceiling alone.
 - `site.northAngle` (optional) is the angle of true north, counter-clockwise from plan +y. Leave
   it out if north is straight up the plan.
 

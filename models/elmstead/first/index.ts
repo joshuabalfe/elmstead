@@ -17,7 +17,7 @@
  * the stairwell is a hole in the middle of the floor.
  */
 import { mm, pt, type Mm, type Storey, type Wall } from "../../../src/model/index.js";
-import { coreD, extEastX, firstFloor } from "../shared.js";
+import { coreD, extEastX, firstFloor, firstFloorStructure } from "../shared.js";
 import { ground } from "../ground/index.js";
 
 /** The ground floor's walls, re-id'd and re-heighted; the stair spine divides flights, not rooms. */
@@ -50,11 +50,12 @@ const stairwell = [
   pt(stairWest, spineSouth),
 ];
 
-const slabThickness = mm(200);
-
-/** One rectangular piece of the first floor, top at the storey's elevation. */
+/**
+ * One rectangular piece of the first floor, top at the storey's elevation. Its thickness is the
+ * floor structure between the ground ceiling and this floor.
+ */
 function slabPiece(id: string, west: Mm, south: Mm, east: Mm, north: Mm) {
-  return { id, name: `First floor ${id.replace("slab-first-", "")}`, outline: [pt(west, south), pt(east, south), pt(east, north), pt(west, north)], thickness: slabThickness, elevationOffset: mm(0) };
+  return { id, name: `First floor ${id.replace("slab-first-", "")}`, outline: [pt(west, south), pt(east, south), pt(east, north), pt(west, north)], thickness: firstFloorStructure, elevationOffset: mm(0) };
 }
 
 const slabs = [

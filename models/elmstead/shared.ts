@@ -5,7 +5,7 @@
  * Plan origin is the outside south-west corner of the core; x east, y north, mm. "North" is
  * the top of the source drawing, which has no north arrow.
  */
-import { m, mm, pt } from "../../src/model/index.js";
+import { add, m, mm, pt } from "../../src/model/index.js";
 
 // ── Outline ──────────────────────────────────────────────────────────────────
 export const coreW = m(9.025); // living 4.2 m + bedroom 3.85 m (owner) plus the walls between and outside them
@@ -29,7 +29,14 @@ export const studT = mm(100); //  light partitions
 /** Ceiling height is from the owner. */
 export const groundFloor = { elevation: mm(0), ceilingHeight: m(2.9) };
 /**
- * Provisional: neither level is measured yet. The elevation is the ground ceiling height, so the
- * ground walls meet it; revisit both when the owner's first-floor plan is traced.
+ * Provisional floor structure between the ground ceiling and the first floor: joists, deck and
+ * finishes. It is also the first-floor slab's thickness, so changing it moves the first floor and
+ * the stair rise with it.
  */
-export const firstFloor = { elevation: m(2.9), ceilingHeight: m(2.4) };
+export const firstFloorStructure = mm(200);
+/**
+ * Provisional: the levels are not measured yet. The first floor sits one structure thickness above
+ * the ground ceiling, so a stair rises the clear ceiling plus the joist depth; revisit both when
+ * the owner's first-floor plan is traced.
+ */
+export const firstFloor = { elevation: add(groundFloor.ceilingHeight, firstFloorStructure), ceilingHeight: m(2.4) };

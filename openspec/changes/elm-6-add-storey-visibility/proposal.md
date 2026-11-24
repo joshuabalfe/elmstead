@@ -58,7 +58,10 @@ None.
 - `viewer/main.ts`: visibility, the selector, plan-style scoping, walk-mode entry.
 - `viewer/index.html`: the storey selector in the bar.
 - `tests/plan-vs-3d.test.ts`: per-storey comparisons and the selector's picture.
-- `docs/rendering.md`: the viewer section.
+- `docs/rendering.md` and `docs/modelling.md`: the viewer section, and the floor-structure
+  convention the provisional Elmstead first floor now follows.
+- `models/elmstead`: the provisional first floor sits one structure thickness above the ground
+  ceiling, with the ground walls carried up through it; a stair's rise is ceiling plus joists.
 - No dependency on any other open change. The two-storey case the tests need is synthesised in the
   test from an existing single-storey model — a cloned second storey at a higher elevation with a
   different wall layout — because the viewer test publishes JSON and IFC from an in-memory model and
