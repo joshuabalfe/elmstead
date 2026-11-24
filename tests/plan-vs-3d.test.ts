@@ -135,8 +135,9 @@ describe("plan colours", () => {
 });
 
 describe("3D Top view against the plan", () => {
-  // Every storey of every model, each against the top view of that storey alone: with more than one
-  // storey shown the top view reads as the topmost storey's plan, not the one being compared.
+  // Every walled storey of every model, each against the top view of that storey alone: with more
+  // than one storey shown the top view reads as the topmost storey's plan, not the one compared.
+  // Wall-less external storeys (the street level) are covered by the ground-presentation test.
   for (const [path, source] of [
     ["models/example-cottage", cottage],
     ["models/elmstead", elmstead],
@@ -189,15 +190,16 @@ describe("storey selection", () => {
   it("hides a storey's geometry, not just its drawings", async () => {
     // This identity is about storey geometry, so compare a stair-less copy: a stair's parts are
     // aggregated under an IfcStair and fragments does not hide them per-item with their storey, so
-    // stair visibility across storeys is a separate follow-up.
+    // stair visibility across storeys is a separate follow-up. Hide the top storey (the first floor)
+    // above the basement and ground, and compare with a model that never had it.
     const m = structuredClone(await model("models/elmstead"));
     for (const s of m.storeys) s.stairs = [];
     await publish("test-hidden-storey", m);
-    const withoutFirst = structuredClone(m);
-    withoutFirst.storeys = withoutFirst.storeys.filter((s) => s.id !== "storey-first-floor");
-    await publish("test-ground-only", withoutFirst);
-    const hidden = await viewOf("test-hidden-storey", "view=se&snapshot=1&labels=0&style=ifc&storeys=storey-street,storey-ground");
-    const absent = await viewOf("test-ground-only", "view=se&snapshot=1&labels=0&style=ifc");
+const belowFirst = structuredClone(m);
+    belowFirst.storeys = belowFirst.storeys.filter((s) => s.id !== "storey-first-floor");
+    await publish("test-below-first", belowFirst);
+    const hidden = await viewOf("test-hidden-storey", "view=se&snapshot=1&labels=0&style=ifc&storeys=storey-basement,storey-street,storey-ground");
+    const absent = await viewOf("test-below-first", "view=se&snapshot=1&labels=0&style=ifc");
     // Hiding a storey must be the same picture as a model that never had it: same framing, same
     // pixels, every one of them.
     expect(Buffer.from(hidden.data).equals(Buffer.from(absent.data))).toBe(true);
@@ -210,12 +212,12 @@ describe("storey selection", () => {
     const camera = "16,11,6,5.2,1.5,-4.2";
     const all = await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}`);
 
-    // The ground choice is the street and ground together, from the camera it had before.
+// The ground choice is the basement, street and ground together, from the camera it had before.
     await selectStorey("storey-ground");
-    expect(new URL(page.url()).searchParams.get("storeys")).toBe("storey-street,storey-ground");
+    expect(new URL(page.url()).searchParams.get("storeys")).toBe("storey-basement,storey-street,storey-ground");
     const ground = await canvasPixels();
     expect(samePixels(ground, all)).toBe(false);
-    const groundOnly = await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}&storeys=storey-street,storey-ground`);
+    const groundOnly = await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}&storeys=storey-basement,storey-street,storey-ground`);
     expect(samePixels(ground, groundOnly)).toBe(true);
 
     // The topmost choice puts the first floor back, still without moving the camera.

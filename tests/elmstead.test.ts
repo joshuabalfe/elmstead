@@ -97,7 +97,7 @@ describe("Elmstead's floor structure", () => {
   it("makes every internal door and both doorways 768 mm wide", () => {
     const openings = elmstead.storeys.flatMap((s) => s.openings);
     const doors = openings.filter((o) => o.kind === "door" && !o.doorway && o.componentId === "door-type-internal");
-    expect(doors).toHaveLength(6);
+    expect(doors).toHaveLength(10);
     for (const door of doors) expect(door.width, door.id).toBe(mm(768));
     for (const id of ["door-dining-first", "door-lobby"]) {
       expect(openings.find((o) => o.id === id)).toMatchObject({ kind: "door", doorway: true, width: 768 });
