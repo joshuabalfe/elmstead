@@ -193,6 +193,21 @@ describe("Elmstead's floor structure", () => {
     expect(Math.max(...ys)).toBe(face(wall("wall-north-first"), "south"));
   });
 
+  it("tucks the lobby screen into the walls it joins", () => {
+    const ground = elmstead.storeys.find((s) => s.id === "storey-ground");
+    if (!ground) throw new Error("Elmstead has no ground floor");
+    const wall = (id: string) => {
+      const w = ground.walls.find((wall) => wall.id === id);
+      if (!w) throw new Error(`Elmstead's ground floor has no ${id}`);
+      return w;
+    };
+    const screen = wall("wall-lobby-screen");
+    expect(screen.start.y).toBeGreaterThan(face(wall("wall-hall-living"), "south"));
+    expect(screen.start.y).toBeLessThan(face(wall("wall-hall-living"), "north"));
+    expect(screen.end.y).toBeGreaterThan(face(wall("wall-stair-spine"), "south"));
+    expect(screen.end.y).toBeLessThan(face(wall("wall-stair-spine"), "north"));
+  });
+
   it("joins the dining/bedroom partition to the bedroom's north wall", () => {
     const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
     if (!first) throw new Error("Elmstead has no first floor");
