@@ -85,12 +85,14 @@ describe("Elmstead's floor structure", () => {
     expect(wallLength(wall("wall-kitchen-east-first")) - (door.offsetAlongWall + door.width)).toBe(mm(50));
   });
 
-  it("makes every internal door 768 mm wide", () => {
-    const doors = elmstead.storeys
-      .flatMap((s) => s.openings)
-      .filter((o) => o.kind === "door" && !o.doorway && o.componentId === "door-type-internal");
+  it("makes every internal door and both doorways 768 mm wide", () => {
+    const openings = elmstead.storeys.flatMap((s) => s.openings);
+    const doors = openings.filter((o) => o.kind === "door" && !o.doorway && o.componentId === "door-type-internal");
     expect(doors).toHaveLength(6);
     for (const door of doors) expect(door.width, door.id).toBe(mm(768));
+    for (const id of ["door-dining-first", "door-lobby"]) {
+      expect(openings.find((o) => o.id === id)).toMatchObject({ kind: "door", doorway: true, width: 768 });
+    }
   });
 
   it("gives the ensuite the owner's size", () => {

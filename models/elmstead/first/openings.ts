@@ -49,9 +49,9 @@ export const openings: Opening[] = [
   window("window-bay-north-first", bayNorth, mm(0), crossBarWindow, { ...bayWindowSize, width: baySideWidth }),
   window("window-bay-south-first", baySouth, mm(0), crossBarWindow, { ...bayWindowSize, width: baySideWidth }),
 
-  // The dining room's doorway to the landing has no leaf; the bedroom door opens into its room and
-  // the ensuite door opens from the bedroom.
-  doorway("door-dining-first", diningNorth, mm(3400), { width: mm(700), height: doorH }),
+  // The dining room's doorway to the landing has no leaf and takes the same 768 mm opening as the
+  // internal doors; the bedroom door opens into its room and the ensuite door opens from the bedroom.
+  doorway("door-dining-first", diningNorth, mm(3400), internal),
   door("door-bedroom-first", bedroomNorth, bedroomDoorOffset, internalDoor, internal, { hinge: "start", side: "right" }),
   door("door-ensuite-first", ensuiteSouth, mm(350), internalDoor, internal, { hinge: "start", side: "left" }),
   // Kitchen door sits 50 mm off the north wall; "left" is the kitchen.

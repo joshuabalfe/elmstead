@@ -32,8 +32,8 @@ const frontWindowCentreY = mm(Math.round((living.outline[1]!.y + living.outline[
 const bathroomDoorOffset = mm(135);
 const bathroomDoorY = add(face(bedroomBathroom, "north"), bathroomDoorOffset); // the living-room door sits opposite it
 const lobbyCentreX = mm(Math.round((partitionEast + bathWestX) / 2));
-const lobbyDoor = { width: mm(550), height: doorH }; // narrower than the others, to fit the screen
-const lobbyDoorOffset = add(lobbyScreenTuck, divRound(sub(lobbyScreenVisibleLength, lobbyDoor.width), 2));
+// The lobby doorway is centred on the visible screen, with a jamb each side.
+const lobbyDoorwayOffset = add(lobbyScreenTuck, divRound(sub(lobbyScreenVisibleLength, internal.width), 2));
 // Window returns splay out at about 45° on the inside. The frame is taken as sitting in the middle
 // of the wall, where the splay starts.
 const insideReveal = { face: "left", angle: deg(45) } as const;
@@ -55,7 +55,7 @@ export const openings: Opening[] = [
   // Lobby/bathroom wall runs south→north; "right" is the bathroom.
   door("door-bathroom", lobbyBathroom, bathroomDoorOffset, internalDoor, internal, { hinge: "start", side: "right" }),
   // Screen runs from the hall corner (south-west) to the spine (north-east); "right" is the lobby.
-  doorway("door-lobby", lobbyScreen, lobbyDoorOffset, lobbyDoor),
+  doorway("door-lobby", lobbyScreen, lobbyDoorwayOffset, internal),
 
   window("window-bedroom", east, bedroomWindowOffset, standardWindow, { ...standard, width: bedroomWindowWidth }, insideReveal),
   window("window-rear-hall", extEast, mm(700), standardWindow, { ...standard, width: mm(950) }),
