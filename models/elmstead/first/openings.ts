@@ -7,7 +7,7 @@
  * this floor, so the window belongs to the stair and half-landing model, not this storey.
  */
 import { wallLength } from "../../../src/geometry/wall.js";
-import { add, divRound, door, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
+import { add, divRound, door, doorway, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
 import { bayWindow, crossBarWindow, crossWindow, internalDoor } from "../components/index.js";
 import { frontDoorOffset, frontDoorWidth } from "../ground/openings.js";
 import { bayFront, bayNorth, baySouth, bedroomNorth, diningNorth, east, ensuiteSouth, kitchenEast, westNorth } from "./walls.js";
@@ -49,8 +49,9 @@ export const openings: Opening[] = [
   window("window-bay-north-first", bayNorth, mm(0), crossBarWindow, { ...bayWindowSize, width: baySideWidth }),
   window("window-bay-south-first", baySouth, mm(0), crossBarWindow, { ...bayWindowSize, width: baySideWidth }),
 
-  // Doors. Dining and bedroom doors open into their rooms; the ensuite door opens from the bedroom.
-  door("door-dining-first", diningNorth, mm(3400), internalDoor, internal, { hinge: "end", side: "right" }),
+  // The dining room's doorway to the landing has no leaf; the bedroom door opens into its room and
+  // the ensuite door opens from the bedroom.
+  doorway("door-dining-first", diningNorth, mm(3400), internal),
   door("door-bedroom-first", bedroomNorth, bedroomDoorOffset, internalDoor, { width: bedroomDoorWidth, height: doorH }, { hinge: "start", side: "right" }),
   door("door-ensuite-first", ensuiteSouth, mm(350), internalDoor, { width: mm(800), height: doorH }, { hinge: "start", side: "left" }),
   // Kitchen door sits 50 mm off the north wall; "left" is the kitchen.

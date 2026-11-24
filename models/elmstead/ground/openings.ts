@@ -6,7 +6,7 @@
  * (about 440 mm) is taken as 700. The front window, fanlight, and front door opening and frame
  * sizes are the owner's.
  */
-import { add, centredOn, deg, divRound, door, face, m, mm, scale, sub, window, type Opening } from "../../../src/model/index.js";
+import { add, centredOn, deg, divRound, door, doorway, face, m, mm, scale, sub, window, type Opening } from "../../../src/model/index.js";
 import { fanlight, frontDoor, frontWindow, internalDoor, standardWindow } from "../components/index.js";
 import { living } from "./rooms.js";
 import { bathWestX, bedroomBathroom, bedroomWallY, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, lobbyScreenTuck, lobbyScreenVisibleLength, partitionEast, southIn, west } from "./walls.js";
@@ -55,7 +55,7 @@ export const openings: Opening[] = [
   // Lobby/bathroom wall runs south→north; "right" is the bathroom.
   door("door-bathroom", lobbyBathroom, bathroomDoorOffset, internalDoor, internal, { hinge: "start", side: "right" }),
   // Screen runs from the hall corner (south-west) to the spine (north-east); "right" is the lobby.
-  door("door-lobby", lobbyScreen, lobbyDoorOffset, internalDoor, lobbyDoor, { hinge: "start", side: "right" }),
+  doorway("door-lobby", lobbyScreen, lobbyDoorOffset, lobbyDoor),
 
   window("window-bedroom", east, bedroomWindowOffset, standardWindow, { ...standard, width: bedroomWindowWidth }, insideReveal),
   window("window-rear-hall", extEast, mm(700), standardWindow, { ...standard, width: mm(950) }),
