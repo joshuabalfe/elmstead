@@ -40,7 +40,7 @@
 
 ## 7. Elmstead's provisional stair
 
-- [x] 7.1 Declare a half-turn stair in `models/elmstead/` from the ground storey to the provisional first floor: a lower flight south of the spine climbing east, a half landing at the east end, and an upper flight north of the spine climbing west, using the reserved stairwell and the owner-measured 910 mm flight widths; verify `npm run check models/elmstead` reports no errors and the flights and landing sit within `stairwellOutline`
+- [x] 7.1 Declare a half-turn stair in `models/elmstead/` from the ground storey to the provisional first floor: a lower flight north of the spine climbing east from the hallway (entered at the spine's start), a half landing at the east end wrapping the spine's traced end, and an upper flight south of the spine climbing west, using the reserved stairwell and the owner-measured 910 mm flight widths; verify `npm run check models/elmstead` reports no errors and the flights and landing sit within `stairwellOutline`
 - [x] 7.2 Choose a provisional riser split for the 3100 mm rise and record it as a judgment call; verify the derived riser and going are reasonable and the top flight lands on the first floor
 - [x] 7.3 Update the ground floor's "Left out for now: the stairs" note and the first-floor stairwell comment; verify no model comment still says Elmstead has no stair
 - [x] 7.4 Build and render Elmstead and add a fast model test guarding the stair against the reserved stairwell; verify the plan and 3D snapshots show the stair and the test passes in `test:fast`

@@ -203,7 +203,7 @@ describe("a stair in IFC", () => {
 
     const odd = structuredClone(stairModel);
     const upper = odd.storeys[0]!.stairs![0]!.segments[2]!;
-    if (upper.kind === "flight") upper.end = { x: upper.start.x - 1800, y: upper.start.y + 1800 } as never; // 45° turn
+    if (upper.kind === "flight") upper.end = { x: upper.start.x - 1800, y: upper.start.y + 1800 } as never; // 135° turn
     expect(enumValue((await lines(await write(odd), WebIFC.IFCSTAIR))[0]!.PredefinedType)).toBe("NOTDEFINED");
   });
 

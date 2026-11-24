@@ -40,9 +40,11 @@ Every element is an SVG group with `class` (`wall`, `door`, `window`, `room`, `r
 be inspected or queried. A stair's flights and landings are groups nested inside the stair's.
 
 Stairs are drawn by `renderPlan` alone. `renderFloor`, `renderWallTops` and `renderPlanAnnotations`,
-which the viewer composites into its plan-style overlay, do not draw them, so the viewer shows a
-stair as its own IFC geometry and needs no stair-specific code. Stair colours stay clear of the
-wall, room and paper colours the plan-versus-3D comparison classifies (`src/render/style.ts`).
+which the viewer composites into its plan-style overlay, do not draw them. For readability the viewer
+recolours the stair solids in interactive plan style only — cream / darker-cream tread bands and an
+edge outline — while snapshots and `?style=ifc` keep the IFC's own stair colour. Stair colours stay
+clear of the wall, room and paper colours the plan-versus-3D comparison classifies
+(`src/render/style.ts`).
 
 Drawing style is all in one place: `src/render/style.ts` holds the scale, colours, font and
 margins.

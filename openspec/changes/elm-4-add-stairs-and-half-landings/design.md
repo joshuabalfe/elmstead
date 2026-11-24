@@ -129,8 +129,9 @@ Stairs are drawn by `renderPlan` alone. `renderFloor`, `renderWallTops` and `ren
 are also imported by `viewer/main.ts`, which composites them into the viewer's plan-style overlay,
 so putting stair line work in one of them would silently change the viewer and the top view the
 plan-vs-3D test reads back. Drawing them only in `renderPlan` keeps the overlay as it is and leaves
-the viewer to show stairs as their own IFC solids — so "no viewer changes" means no viewer code
-changes and no change to what the overlay draws.
+the viewer to show stairs as their own IFC solids. The overlay is unchanged; the only viewer stair
+code is the plan-only readability recolour (cream tread bands + edge outlines), gated off for
+snapshots and IFC style so those keep the IFC's own colours.
 
 The plan-vs-3D test classifies only wall, room and paper pixels, skipping a pixel when either side
 is something else. Two colour constraints follow:
@@ -174,10 +175,11 @@ unrecognised — the recognisable cream 3D treads are never compared against it.
 ### Elmstead's provisional stair
 
 The first floor is now traced (PR #30); its stair well runs east into the extension
-(x 5875–10250, y 6075–8075) with the half landing in the extension. The stair is fitted to that well:
-a half turn entered from the hallway, the lower flight north of the spine climbing east from the
-well's west edge to the core's east wall (9025), the half landing filling the well's east end
-(9025–10250), and the upper flight south of the spine climbing west back to the first-floor landing.
+(x 6050–10250, y 6075–8075) with the half landing in the extension. The stair is fitted to that well:
+a half turn entered from the hallway at the spine's start (5450), the lower flight north of the spine
+climbing east to the turn (8010), the half landing filling the well's east end (8010–10250) and
+wrapping the spine's traced end (8945), and the upper flight south of the spine climbing west back to
+the first-floor landing at the arrival edge (6050).
 The spine divides the flights as far as its traced east end (8945); the turn lies east of it. The
 owner's 910 mm flight widths are unchanged. Judgment calls, provisional until the levels are measured:
 
@@ -257,7 +259,8 @@ would imply an incompatibility that does not exist.
   scope, and a skipped storey is far more likely to be a modelling mistake than an intent.
 - **Walk mode passes through the stair** → ELM-3's walk mode snaps the camera to a fixed eye height
   with no geometry query, so a stair is scenery, not a route: you walk through the flight massing
-  rather than up it. At the 1.6 m entry height the half landing at 1525 mm sits just below the
+  rather than up it. At the 1.6 m entry height the half landing (1525 mm on the fixture, 1641 mm on
+  Elmstead) sits just below the
   eyeline, which reads well; the 5 cm near plane lets treads be inspected close up. Climbing would
   need floor-following, which modifies ELM-3's fixed-height and no-blocking rules and needs the
   stairwell void first, so it is a separate change.

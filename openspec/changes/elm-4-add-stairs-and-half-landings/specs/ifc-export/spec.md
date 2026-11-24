@@ -68,4 +68,4 @@ patch its upward faces.
 
 #### Scenario: Stair material is not recognised as a wall or slab
 - **WHEN** the viewer's plan style looks for the wall and slab colours among a stair's material
-- **THEN** it finds neither, so stair faces keep their own colour instead of being painted charcoal or discarded
+- **THEN** it finds neither, so the classifier leaves the stair material alone instead of painting its tops charcoal or discarding them (the plan-only readability recolour is a separate shader, see `ifc-viewer`)

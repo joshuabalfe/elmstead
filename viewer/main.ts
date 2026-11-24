@@ -21,6 +21,7 @@ import { PointerLockControls } from "three/addons/controls/PointerLockControls.j
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { flightFootprint } from "../src/geometry/stair.js";
 import { STYLES } from "../src/ifc/styles.js";
 import { renderFloor, renderPlanAnnotations, renderWallTops, roomTags } from "../src/render/plan.js";
 import { C, FONT, PX_PER_MM, ROOM_LABEL } from "../src/render/style.js";
@@ -628,69 +629,123 @@ function applyStyle() {
       if (name === "slab") patchTops(m, 2);
     }
   }
-  for (const m of fragments.core.models.materials.list.values()) {
-    if (m instanceof THREE.MeshLambertMaterial && styleOf(m) === "stair") patchStairBands(m);
-  }
+  applyStairPresentation();
   world.scene.three.background = new THREE.Color(plan ? C.paper : 0xf4f4f2);
   grid.three.visible = !plan;
   planLayers.visible = plan;
 }
 
 /**
- * From straight down a flight's tread tops are uniformly lit and its risers are edge-on, so the
- * steps read as a flat slab. Outline the stair solids' edges: the tread nosings then show as lines
- * from any angle, including the Top view.
+ * Stair readability is interactive plan-style presentation only: snapshots and IFC style must show
+ * the IFC's own colours (ifc-viewer spec), so the cream banding and edge outlines are gated to
+ * `style === "plan" && !snapshot`.
+ *
+ * From straight down a flight's tread tops are uniformly lit and its risers are edge-on, so the steps
+ * read as a flat slab. Banding the upward faces by floor(worldY / riser) alternates the floor cream
+ * with a darker cream (tread tops are integer multiples of the stair's riser); vertical faces take the
+ * wall colour; an EdgesGeometry outline reads the nosings from corner views. Each stair mesh gets its
+ * own banded clone so stairs with different risers band correctly. The base material stays the safe
+ * stair green so the viewer's classifier leaves it alone; only the shaded output is recoloured.
  */
 const stairEdgeMaterial = new THREE.LineBasicMaterial({ color: C.ink });
-const stairEdgeGeoms: THREE.EdgesGeometry[] = [];
-
-/**
- * Every tread top sits at an integer multiple of the stair's shared riser height, so banding the
- * upward faces by floor(worldY / riser) alternates the floor cream with a darker cream and the steps
- * read from above, where edge outlines cannot help (each nosing is hidden by the next higher tread's
- * leading edge). Vertical faces take the wall colour. The base material stays the safe stair green so
- * the viewer's classifier leaves it alone; only the shaded output is recoloured.
- */
-let stairRiser = 0; // metres, set from the model on load
 const stairCream = new THREE.Color(C.room);
 const stairCreamDark = stairCream.clone().multiplyScalar(0.8);
 const stairWall = new THREE.Color().setRGB(STYLES.wall.rgb[0], STYLES.wall.rgb[1], STYLES.wall.rgb[2], THREE.SRGBColorSpace);
 function patchStairBands(m: THREE.MeshLambertMaterial) {
   m.onBeforeCompile = (shader) => {
-    shader.uniforms.uRiser = { value: stairRiser };
     shader.uniforms.uCream = { value: stairCream };
     shader.uniforms.uCreamDark = { value: stairCreamDark };
     shader.uniforms.uWall = { value: stairWall };
     shader.vertexShader = shader.vertexShader
-      .replace("void main() {", "varying float vWorldY;\nvarying vec3 vWorldN;\nvoid main() {")
-      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvWorldY = (modelMatrix * vec4(position, 1.0)).y;\nvWorldN = normalize(mat3(modelMatrix) * normal);");
+      .replace("void main() {", "attribute float aBand;\nvarying float vBand;\nvarying vec3 vWorldN;\nvoid main() {")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvBand = aBand;\nvWorldN = normalize(mat3(modelMatrix) * normal);");
     shader.fragmentShader = shader.fragmentShader
-      .replace("void main() {", "uniform float uRiser;\nuniform vec3 uCream;\nuniform vec3 uCreamDark;\nuniform vec3 uWall;\nvarying float vWorldY;\nvarying vec3 vWorldN;\nvoid main() {")
+      .replace("void main() {", "uniform vec3 uCream;\nuniform vec3 uCreamDark;\nuniform vec3 uWall;\nvarying float vBand;\nvarying vec3 vWorldN;\nvoid main() {")
       .replace(
         "#include <color_fragment>",
         `#include <color_fragment>
-        if (uRiser > 0.0) {
-          if (vWorldN.y > 0.7) {
-            float band = mod(floor(vWorldY / uRiser + 0.001), 2.0);
-            diffuseColor.rgb = mix(uCreamDark, uCream, band);
-          } else {
-            diffuseColor.rgb = uWall;
-          }
+        if (vWorldN.y > 0.7) {
+          diffuseColor.rgb = mix(uCreamDark, uCream, vBand);
+        } else {
+          diffuseColor.rgb = uWall;
         }`,
       );
   };
   m.customProgramCacheKey = () => "elmstead-stair-bands";
   m.needsUpdate = true;
 }
-function addStairEdges(model: FragmentsModel) {
+function unpatchStair(m: THREE.MeshLambertMaterial) {
+  m.onBeforeCompile = () => {};
+  m.customProgramCacheKey = () => "elmstead-stair-plain";
+  m.needsUpdate = true;
+}
+interface StairMesh {
+  mesh: THREE.Mesh;
+  edges: THREE.LineSegments;
+}
+let stairMeshes: StairMesh[] = [];
+const stairPresentation = () => style === "plan" && !snapshot;
+
+/** The riser (metres) of the stair whose flight footprint or landing contains this plan point. */
+function riserAt(json: BuildingModel | null, x: number, y: number): number {
+  for (const s of json?.storeys ?? []) {
+    for (const st of s.stairs ?? []) {
+      const to = json!.storeys.find((t) => t.id === st.toStoreyId);
+      const total = st.segments.reduce((n, g) => (g.kind === "flight" ? n + g.risers : n), 0);
+      if (!to || total <= 0) continue;
+      const hit = st.segments.some((g) => {
+        const poly = g.kind === "flight" ? flightFootprint(g) : g.outline;
+        let inside = false;
+        for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+          const a = poly[i]!;
+          const b = poly[j]!;
+          if (a.y > y !== (b.y > y) && x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y) + a.x) inside = !inside;
+        }
+        return inside;
+      });
+      if (hit) return (to.elevation - s.elevation) / total / 1000;
+    }
+  }
+  return 0;
+}
+
+function addStairEdges(model: FragmentsModel, json: BuildingModel | null) {
   model.object.traverse((obj) => {
     if (!(obj instanceof THREE.Mesh)) return;
     const m = obj.material;
     if (!(m instanceof THREE.MeshLambertMaterial) || styleOf(m) !== "stair") return;
-    const g = new THREE.EdgesGeometry(obj.geometry, 30);
-    stairEdgeGeoms.push(g);
-    obj.add(new THREE.LineSegments(g, stairEdgeMaterial));
+    const c = new THREE.Box3().setFromObject(obj).getCenter(new THREE.Vector3());
+    const riser = riserAt(json, c.x * 1000, c.y * 1000);
+    // Bake the tread band per vertex so one shared material bands every stair correctly, even when
+    // two stairs have different riser heights.
+    const pos = obj.geometry.getAttribute("position");
+    const bands = new Float32Array(pos.count);
+    obj.updateWorldMatrix(true, false);
+    const p = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i++) {
+      p.fromBufferAttribute(pos, i).applyMatrix4(obj.matrixWorld);
+      bands[i] = riser > 0 ? Math.floor(p.y / riser + 0.001) % 2 : 0;
+    }
+    obj.geometry.setAttribute("aBand", new THREE.BufferAttribute(bands, 1));
+    const edges = new THREE.LineSegments(new THREE.EdgesGeometry(obj.geometry, 30), stairEdgeMaterial);
+    obj.add(edges);
+    stairMeshes.push({ mesh: obj, edges });
   });
+}
+
+function applyStairPresentation() {
+  const on = stairPresentation();
+  for (const m of fragments.core.models.materials.list.values()) {
+    if (!(m instanceof THREE.MeshLambertMaterial) || styleOf(m) !== "stair") continue;
+    if (on) patchStairBands(m);
+    else unpatchStair(m);
+  }
+  for (const s of stairMeshes) s.edges.visible = on;
+}
+
+function disposeStairMeshes() {
+  for (const s of stairMeshes) s.edges.geometry.dispose();
+  stairMeshes = [];
 }
 
 /**
@@ -1188,8 +1243,7 @@ async function load(name: string) {
   currentModel = null;
   clearMeasurements();
   status.textContent = `loading ${name}.ifc…`;
-  for (const g of stairEdgeGeoms) g.dispose();
-  stairEdgeGeoms.length = 0;
+  disposeStairMeshes();
   for (const [id] of fragments.list) await fragments.core.disposeModel(id);
   if (epoch !== loadEpoch) return;
   const buffer = new Uint8Array(await (await fetch(`/out/${name}.ifc`)).arrayBuffer());
@@ -1199,14 +1253,6 @@ async function load(name: string) {
   if (epoch !== loadEpoch) return;
   parseStoreysParam(json);
   populateStoreySelector(json);
-  stairRiser = 0;
-  for (const s of json?.storeys ?? []) {
-    for (const st of s.stairs ?? []) {
-      const to = json!.storeys.find((x) => x.id === st.toStoreyId);
-      const total = st.segments.reduce((n, g) => (g.kind === "flight" ? n + g.risers : n), 0);
-      if (to && total > 0) stairRiser = (to.elevation - s.elevation) / total / 1000;
-    }
-  }
   const model = await ifcLoader.load(buffer, true, name);
   if (epoch !== loadEpoch) {
     await discardModel(model);
@@ -1236,7 +1282,8 @@ async function load(name: string) {
   await applyStoreyVisibility(model);
   if (epoch !== loadEpoch) return;
   applyStyle();
-  addStairEdges(model);
+  addStairEdges(model, json);
+  applyStairPresentation();
   box = model.box.clone();
   grid.three.position.y = box.min.y - 0.01; // under the lowest slab, so it doesn't show through floors
   await setView(parseView(params.get("view"))); // the plan view, unless the URL asks for another

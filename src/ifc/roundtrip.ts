@@ -97,6 +97,10 @@ export async function roundTripChecks(model: BuildingModel, ifc: Uint8Array): Pr
       issues.push({ level: "ERROR", id, message: `round-trip: web-ifc produced no geometry for this ${what}` });
       return;
     }
+    if (!Number.isFinite(g.volume) || expected <= 0) {
+      issues.push({ level: "ERROR", id, message: `round-trip: ${what} volume is not a finite positive number (got ${g.volume}, expected ${expected})` });
+      return;
+    }
     const rel = Math.abs(g.volume - expected) / expected;
     if (rel > VOLUME_TOLERANCE) {
       issues.push({
