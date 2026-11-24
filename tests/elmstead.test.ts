@@ -206,8 +206,10 @@ describe("Elmstead's floor structure", () => {
     const spine = wall("wall-stair-spine");
     expect(screen.start.y).toBeGreaterThan(face(hall, "south"));
     expect(screen.start.y).toBeLessThan(face(hall, "north"));
-    expect(screen.end.x).toBe(spine.start.x);
-    expect(screen.end.y).toBe(face(spine, "north"));
+    // The hallway-side face, not the centreline, meets the spine's north-west corner.
+    const at = ground.rooms.find((r) => r.id === "room-hallway")!.outline[2]!;
+    expect(Math.abs(at.x - spine.start.x)).toBeLessThanOrEqual(1);
+    expect(at.y).toBe(face(spine, "north"));
   });
 
   it("joins the dining/bedroom partition to the bedroom's north wall", () => {

@@ -165,8 +165,8 @@ describe("3D Top view against the plan", () => {
     // a 500 mm tile dilutes below the comparator's 25%-comparable threshold.
     const r = comparePlanTo3d(planPixels(m), await topView("test-elmstead-centreline", "storey-ground"), { tile: 250, step: 125 });
     expect(r.badTiles.length).toBeGreaterThan(0);
-    // Some tile covers the screen, whose wall runs from (4.698, 6.455) to (5.45, 7.165) m.
-    const over = r.badTiles.find((t) => t.x[0] < 5.45 && t.x[1] > 4.698 && t.y[0] < 7.165 && t.y[1] > 6.455);
+    // Some tile covers the screen, whose wall runs from (4.691, 6.462) to (5.484, 7.129) m.
+    const over = r.badTiles.find((t) => t.x[0] < 5.484 && t.x[1] > 4.691 && t.y[0] < 7.165 && t.y[1] > 6.462);
     expect(over, `screen tiles among ${r.badTiles.length}: ${JSON.stringify(r.badTiles.slice(0, 4))}`).toBeDefined();
   }, 120_000);
 });
