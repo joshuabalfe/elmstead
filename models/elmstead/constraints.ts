@@ -113,6 +113,26 @@ export default defineConstraints([
       distance: m(2),
     },
   ]),
+  inRoom("room-kitchen-first", [
+    {
+      id: "kitchen-depth",
+      note: "Kitchen size from the owner: 2.75 m from the north wall to its south wall",
+      from: roomCorner(0),
+      to: roomCorner(5),
+      measure: "y",
+      distance: mm(2750),
+    },
+  ]),
+  inRoom("room-dining-first", [
+    {
+      id: "dining-depth",
+      note: "Dining room size from the owner: 4.55 m from the kitchen wall to the chimney breast",
+      from: roomCorner(0),
+      to: roomCorner(3),
+      measure: "y",
+      distance: mm(4550),
+    },
+  ]),
   inStorey("storey-ground", [
     {
       id: "stair-flight-width",
