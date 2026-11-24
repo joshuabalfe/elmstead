@@ -30,3 +30,14 @@ material SHALL only select the slab's presentation colour and SHALL NOT change i
 #### Scenario: Unknown material rejected
 - **WHEN** a slab has `material: "timber"`
 - **THEN** schema validation fails
+
+## MODIFIED Requirements
+
+### Requirement: Slabs and rooms
+A slab SHALL have an outline, a thickness and an `elevationOffset` for its top relative to the
+storey, and MAY have a `material` (see Slab material). A room SHALL have a non-empty name and an
+outline. Outlines SHALL be open polygons of at least three points.
+
+#### Scenario: Two-point outline
+- **WHEN** a room outline has two points
+- **THEN** schema validation fails

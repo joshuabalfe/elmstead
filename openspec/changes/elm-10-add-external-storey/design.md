@@ -48,11 +48,22 @@ hidden convention); a freeform material string (over-general for one need). The 
 
 **Ground presentation through the existing palette path.** Add a `ground` entry to `STYLES` and the
 plan palette; the writer colours a slab by its material; the viewer's `styleOf` recognises ground
-and treats its tops like a slab's (discarded in plan style, coloured in 3D); the plan fills a ground
-slab with the ground colour. The ground colour sits at least 0.02 RGB from every other `STYLES`
-entry and is neither wall, room nor paper, so the plan-versus-3D comparison skips ground pixels just
-as it skips stair pixels. Alternative — making ground a compared class — would force plan/3D pixel
-agreement and churn the comparison; excluding it is simpler and consistent with stairs.
+and treats its tops like a slab's (discarded in plan style, coloured in 3D); both `renderPlan` and
+the viewer's `renderFloor` floor overlay fill a ground slab with the ground colour. Two distinct
+colour contracts apply: `styleOf` nearest-matches `STYLES` within 0.02 RGB, so the ground entry must
+be at least 0.02 from every other entry; the plan-versus-3D comparison classifies against the plan's
+`C` palette with a ±5-per-channel tolerance and only knows wall, room and paper, so the ground
+colour must independently clear `C.wall`, `C.room` and `C.paper` to be skipped (like the stair
+colour). Alternative — making ground a compared class — would force plan/3D pixel agreement and
+churn the comparison; excluding it is simpler and consistent with stairs.
+
+**Per-stair stair banding.** The viewer currently picks one riser from the first stair and applies it
+to every stair material (`viewer/main.ts`), with a comment that no model has two stairs. Adding the
+front steps creates exactly that case and would break the existing per-stair readability
+requirement, so the banding uniform becomes per stair: each stair material carries its own riser. We
+keep the requirement and fix the implementation rather than relaxing the spec, because banding on
+the stair's own riser is what makes the treads read. Alternative: one shared riser — rejected; it
+mis-bands the front steps.
 
 **Modest ground extent.** The ground slab reaches a few metres around the building, not across the
 whole site, so snapshot cameras (which frame on the shown bounds) keep the house readable.
@@ -69,7 +80,16 @@ fixture so it does not wait on that measurement.
 - [`styleOf` nearest-matches ground to stair, wall or slab] → keep ≥0.02 RGB distance from every
   `STYLES` entry and add a recognition test.
 - [Green ground churns the plan-versus-3D comparison] → ground classifies as neither wall, room nor
-  paper and is skipped; regenerate snapshots deliberately, not blind.
+  paper and is skipped; the comparison is live and has no snapshots, so only committed snapshots
+  (currently the cottage plan SVG) need review, and the cottage has no ground.
+- [A second stair mis-bands under the shared riser] → make banding per stair and test it with a
+  two-stair fixture.
+- [The external storey breaks tests that assume the ground floor is lowest and every storey has
+  walls] → update the elmstead floor-structure test, make the per-storey plan-vs-3D loop skip
+  wall-less storeys, and update the storey-selector expectation; add `npm test` to the model edit's
+  verification.
+- [Byte-identical has no committed IFC golden] → verify it with a manual pre/post build diff, not a
+  test that only checks determinism.
 - [A large ground slab shrinks the house in snapshots] → modest extent; eye-check the snapshots.
 - [Walk entry shifts to street level and the footprint centre moves with the ground slab] → modest
   extent keeps the centre near the house; verify the entry pose.
@@ -78,9 +98,10 @@ fixture so it does not wait on that measurement.
 
 ## Migration Plan
 
-Additive optional field; no existing model needs editing. Regenerate `schema/building.schema.json`,
-the plan SVG snapshot and the plan-versus-3D snapshots. Rollback is removing the field and the
-`ground` style entries; existing models are unaffected because they default to `concrete`.
+Additive optional field; no existing model needs editing. Regenerate `schema/building.schema.json`
+and the plan SVG snapshot (the plan-versus-3D comparison is live and has no snapshots). Rollback is
+removing the field and the `ground` style entries; existing models are unaffected because they
+default to `concrete`.
 
 ## Open Questions
 

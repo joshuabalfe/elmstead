@@ -15,34 +15,41 @@
 
 - [ ] 2.1 Add a `ground` entry to `STYLES` (`src/ifc/styles.ts`) at least 0.02 RGB from every other
   entry, and colour slabs by material in `src/ifc/writer.ts` (default concrete). Verify an IFC test
-  shows a ground slab styled with the ground colour, a concrete slab byte-identical to before, and
-  the ground colour distinct from every other entry; confirm the example cottage IFC and round-trip
-  are unchanged.
+  shows a ground slab styled with the ground colour and distinct from every entry; build
+  `models/example-cottage` before and after and diff the IFC bytes (there is no committed IFC golden;
+  the existing test only checks determinism), and confirm the round-trip is unchanged.
 
 ## 3. Plan rendering for ground
 
 - [ ] 3.1 Add a ground colour to the plan palette (`src/render/style.ts`) and fill ground slabs in
-  the floor layer (`src/render/plan.ts`). Verify a plan test shows the ground fill distinct from room
-  fills.
-- [ ] 3.2 Confirm ground pixels classify as neither wall, room nor paper in
-  `tests/support/plan-vs-3d.ts` (so the comparison skips them), and regenerate the affected plan SVG
-  and plan-versus-3D snapshots with review. Verify `npm test` passes on the reviewed snapshots.
+  the floor layer in both `renderPlan` and `renderFloor` (`src/render/plan.ts`). Verify a plan test
+  shows the ground fill distinct from room fills, and the viewer's floor overlay reads ground
+  rather than room fill.
+- [ ] 3.2 Add or confirm a classifier unit check in `tests/support/plan-vs-3d.ts` that a
+  ground-colour pixel classifies as neither wall, room nor paper (runnable without a model). The
+  plan-versus-3D comparison is live and has no snapshots; confirm the cottage plan SVG is unchanged
+  (the cottage has no ground).
 
 ## 4. Viewer presentation for ground
 
 - [ ] 4.1 Teach `styleOf` (`viewer/main.ts`) to recognise the ground material and present it in the
   ground colour in 3D and as a floor fill in plan style, handling its tops like a slab's. Verify a
-  viewer test shows ground green in 3D and plan style and not matched to wall, slab or stair.
-- [ ] 4.2 With a ground slab present, verify walk-mode entry stands at street level and snapshots
-  still frame the house; eye-check the snapshots and the viewer URL.
+  viewer test shows ground in the ground colour in 3D and plan style and not matched to wall, slab
+  or stair.
+- [ ] 4.2 Make stair readability banding per stair: each stair material bands on its own riser
+  height instead of the first stair's shared value (`viewer/main.ts`). Verify with a two-stair
+  fixture of different riser heights that each stair's treads band on its own riser, in the viewer
+  and snapshots.
 
 ## 5. Synthetic fixture and integration
 
 - [ ] 5.1 Add a synthetic test model with a below-grade street storey, a front-steps stair to the
   ground storey and a ground slab. Verify it builds, passes the model checks, renders plans and 3D
   snapshots, and round-trips through IFC.
-- [ ] 5.2 Run `npm test` and `npm run typecheck`; verify both pass and all generated files are
-  regenerated.
+- [ ] 5.2 With the fixture present, verify walk-mode entry stands at street level and snapshots
+  still frame the house; eye-check the snapshots and the viewer URL.
+- [ ] 5.3 Run `npm test` and `npm run typecheck`; verify both pass, and regenerate any committed
+  snapshot that changed, reviewing it rather than updating blind.
 
 ## 6. elmstead front steps (gated on the owner's measurement)
 
@@ -51,10 +58,17 @@
   provided.)
 - [ ] 6.2 Add the street storey, front-steps stair and ground slab to `models/elmstead` using the
   measured drop and riser count. Verify `npm run check models/elmstead` and `npm run all
-  models/elmstead` pass, and eye-check the steps and ground in the plans, 3D snapshots and viewer.
+  models/elmstead` pass.
+- [ ] 6.3 Update the tests that assume the ground floor is lowest and every storey has walls: the
+  floor-structure loop (`tests/elmstead.test.ts`), the per-storey plan-vs-3D loop (skip wall-less
+  storeys, `tests/plan-vs-3d.test.ts`) and the storey-selector expectation
+  (`tests/plan-vs-3d.test.ts`). Verify `npm test` passes.
+- [ ] 6.4 Run `npm test` and `npm run typecheck`; verify both pass, and eye-check the front steps,
+  the ground and both stairs' banding in the plans, 3D snapshots and viewer.
 
 ## Workflow follow-up
 
-- Open the pull request titled `ELM-10: …` (draft until ready) once the number is taken, per AGENTS.md.
+- PR #38 is open as a draft on branch `elm-10-add-external-storey`; mark it ready when implementation
+  is complete.
 - Archive the change after review requirements are satisfied, syncing its delta specs into
   `openspec/specs/`.
