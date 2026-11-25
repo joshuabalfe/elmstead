@@ -19,3 +19,22 @@ plan-versus-3D comparison, so the comparison skips them.
 #### Scenario: Railing pixels are not compared
 - **WHEN** the plan-versus-3D comparison sees the railing colour
 - **THEN** it classifies as neither wall, room nor paper and is skipped
+
+### Requirement: Railing storey visibility
+A railing SHALL be hidden when its storey is hidden, like the storey's other geometry.
+
+#### Scenario: Hiding the railing's storey
+- **WHEN** the street storey is hidden with `?storeys=` or the selector
+- **THEN** its railings are hidden with it
+
+#### Scenario: Showing the railing's storey
+- **WHEN** the street storey is shown again
+- **THEN** its railings are shown
+
+### Requirement: Outlying railing framing
+A railing outside the walls, slabs and rooms SHALL be included in the viewer's shown bounds for 3D
+views and walk entry, so it is not cropped.
+
+#### Scenario: Outlying railing in the view
+- **WHEN** a model has a railing outside its walls, slabs and rooms
+- **THEN** the 3D views and walk entry include the railing in the framed bounds

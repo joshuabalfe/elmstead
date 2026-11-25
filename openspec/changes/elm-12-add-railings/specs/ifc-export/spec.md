@@ -47,18 +47,22 @@ themselves rather than as a wall or a slab and patching their upward faces.
 
 ### Requirement: Railings
 A railing SHALL be an `IfcRailing` contained in its storey. Its `PredefinedType` SHALL be
-`HANDRAIL` when its base offsets differ and `GUARDRAIL` when they are equal. Its body SHALL be a
-top rail swept along the run at `height` above the walking surface, plus posts from that surface to
-the rail, all styled with the railing colour.
+`HANDRAIL` when its effective base offsets differ (an omitted base is 0) and `GUARDRAIL` when they
+are equal. Its body SHALL be a top rail whose top surface is `height` above the walking surface,
+swept along the run, plus posts from that surface to the rail, all styled with the railing colour.
 
 #### Scenario: Sloped handrail
 - **WHEN** a railing's end base is above its start base
 - **THEN** its `IfcRailing` has `PredefinedType` `HANDRAIL` and its rail rises from start to end
 
 #### Scenario: Level guardrail
-- **WHEN** a railing's base offsets are equal
+- **WHEN** a railing omits both bases
 - **THEN** its `IfcRailing` has `PredefinedType` `GUARDRAIL` and its rail is level
 
 #### Scenario: Rail and posts
 - **WHEN** a railing is 2000 mm long with a 900 mm height
 - **THEN** its body contains one top rail and posts at both ends and at intervals no greater than 1200 mm, in the railing display colour
+
+#### Scenario: Oriented rail
+- **WHEN** a railing's bases differ
+- **THEN** its rail solid's axis runs along the 3D rail line and its extrusion depth is the 3D length

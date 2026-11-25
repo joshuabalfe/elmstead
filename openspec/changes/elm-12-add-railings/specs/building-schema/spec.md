@@ -37,17 +37,8 @@ windows), slabs, rooms, optional stairs and optional railings. The schema SHALL 
 ### Requirement: Railing shape
 A railing SHALL have an id, an optional name, `start` and `end` points, a positive `height`, and
 optional non-negative `startBase` and `endBase` offsets from the storey floor. It SHALL be a
-straight run from `start` to `end`; `height` is the top rail above the walking surface, and the
-bases are that surface at each end, so equal bases make a level guard and different bases a sloped
-handrail. A railing SHALL NOT store any other elevation.
-
-#### Scenario: Level railing
-- **WHEN** a railing has equal `startBase` and `endBase`
-- **THEN** schema validation passes and the run is level
-
-#### Scenario: Sloped railing
-- **WHEN** a railing's `endBase` is 600 mm above its `startBase`
-- **THEN** schema validation passes and its top rail slopes upwards from start to end
+straight run from `start` to `end`, and `height` SHALL be the height of the top of the rail above
+the walking surface. A railing SHALL NOT store any other elevation.
 
 #### Scenario: Negative base
 - **WHEN** a railing's `startBase` is `-100`
@@ -56,3 +47,20 @@ handrail. A railing SHALL NOT store any other elevation.
 #### Scenario: Zero height
 - **WHEN** a railing's `height` is `0`
 - **THEN** schema validation fails
+
+### Requirement: Railing base offsets
+`startBase` and `endBase` SHALL be the walking surface at each end. An omitted base SHALL be 0.
+Equal effective bases SHALL mean a level guard; different effective bases SHALL mean a sloped
+handrail.
+
+#### Scenario: Level railing
+- **WHEN** a railing omits both bases
+- **THEN** schema validation passes and both effective bases are 0
+
+#### Scenario: Sloped railing
+- **WHEN** a railing's `endBase` is 600 mm and its `startBase` is omitted
+- **THEN** schema validation passes, the stored `endBase` is 600 and the omitted start base is effective 0
+
+#### Scenario: Raised level railing
+- **WHEN** a railing gives `startBase: 1525` and `endBase: 1525`
+- **THEN** schema validation passes and the effective bases are equal

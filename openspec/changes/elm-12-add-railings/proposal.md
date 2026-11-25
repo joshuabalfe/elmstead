@@ -19,12 +19,15 @@ on level ground.
   `GUARDRAIL` when level, with a body made of a top rail swept along the run and evenly spaced
   posts, in a new `railing` display colour.
 - Draw railings on plans as a thin line with post ticks in a colour the plan-versus-3D comparison
-  skips, include them in the sheet extent, and give each an SVG `railing` group with its id.
+  skips, include them in the plan's drawing extent (the viewer's plan overlay keeps its own extent),
+  and give each an SVG `railing` group with its id and, with `--ids`, its label.
 - Present railings in the viewer through the existing `STYLES` recognition; in plan style they show
-  as IFC geometry like stairs, so the plan overlay does not change.
+  as IFC geometry like stairs. Map railings to their storey so the selector hides them with it, and
+  include their points in the shown bounds.
 - Add a `railing()` model helper.
-- Model the two railings either side of elmstead's front steps, following the flight's 600 mm rise;
-  their 900 mm height is provisional until the owner confirms it.
+- Model the two railings either side of elmstead's front steps, following the flight's pitch from the
+  first tread to the threshold (150 → 600 mm) with a provisional 900 mm height until the owner
+  confirms it.
 - Regenerate the schema export and update docs and tests. Models without railings stay byte-identical.
 
 ## Capabilities
@@ -50,7 +53,8 @@ None. Railings extend the existing storey, plan, IFC and viewer capabilities.
 - Schema: `src/schema/schema.ts` and the regenerated `schema/building.schema.json`.
 - New geometry: `src/geometry/railing.ts` for the plan run, post positions and part volumes.
 - Pipeline: `src/checks/model.ts`, `src/ifc/writer.ts`, `src/ifc/roundtrip.ts`,
-  `src/ifc/styles.ts`, `src/render/style.ts`, `src/render/plan.ts`, `src/model/helpers.ts`.
+  `src/ifc/styles.ts`, `src/render/style.ts`, `src/render/plan.ts`, `src/model/helpers.ts`,
+  `viewer/main.ts` (`styleOf` through `STYLES`, storey ownership and shown bounds).
 - Model: `models/elmstead/street.ts` gains two railings; `models/elmstead/shared.ts` records the
   provisional height.
 - Tests: schema, model checks, IFC, round-trip, plan rendering, plan-versus-3D classification and
