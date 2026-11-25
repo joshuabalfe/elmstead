@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import elmstead from "../models/elmstead/index.js";
 import { stairwellOutline } from "../models/elmstead/first/index.js";
-import { stairArrivalX } from "../models/elmstead/first/walls.js";
+import { stairArrivalX, stairNorthY, stairSouthY } from "../models/elmstead/first/walls.js";
 import { coreW, extEastX } from "../models/elmstead/shared.js";
 import { checkModel } from "../src/checks/model.js";
 import { railingGeometry } from "../src/geometry/railing.js";
@@ -80,7 +80,7 @@ describe("Elmstead's floor structure", () => {
     expect(extSouth.profile!.at(-1)!.up).toBe(mm(Math.round(2700 - pitch * (extSouth.end.x - coreW))));
   });
 
-  it("pins the attic's gable geometry: floor-to-ridge gables, front parapet, core-rectangle slab", () => {
+  it("pins the attic's gable geometry: floor-to-ridge gables, front parapet, core slab with the stair well open", () => {
     const attic = elmstead.storeys.find((s) => s.id === "storey-attic");
     if (!attic) throw new Error("Elmstead has no attic");
     const wall = (id: string) => {
@@ -100,9 +100,14 @@ describe("Elmstead's floor structure", () => {
     expect(wallLength(wall("wall-west-attic"))).toBe(mm(8425)); // full width
     expect(attic.walls.some((w) => w.id === "wall-east-attic")).toBe(false); // rear open at floor
     expect(attic.slabs).toHaveLength(1);
-    const xs = attic.slabs[0]!.outline.map((p) => p.x);
+    const slab = attic.slabs[0]!.outline;
+    const xs = slab.map((p) => p.x);
     expect(Math.min(...xs)).toBe(mm(0));
-    expect(Math.max(...xs)).toBe(coreW); // clean core rectangle, not the extension
+    expect(Math.max(...xs)).toBe(coreW); // core only, not the extension
+    // The stair well is cut out of the north-east corner, open to the rear (east) edge.
+    const wellCentre = { x: (stairArrivalX + coreW) / 2, y: (stairSouthY + stairNorthY) / 2 };
+    expect(contains(slab, wellCentre)).toBe(false);
+    expect(contains(slab, { x: mm(1000), y: mm(1000) })).toBe(true); // solid core still floored
   });
 
   it("puts the kitchen window above the front door", () => {
