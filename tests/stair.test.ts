@@ -116,6 +116,20 @@ describe("derived stair geometry", () => {
     expect(levels.segments[2]).toMatchObject({ kind: "flight", base: 1715.625, top: 3050 });
   });
 
+  it("counts one more riser when a stair ends with a top landing", () => {
+    const first: any = { id: "storey-first", name: "First", elevation: 1950, walls: [], openings: [], slabs: [], rooms: [] };
+    const flight = stairFlight("stair-flight-lower", pt(mm(0), mm(0)), pt(mm(1500), mm(0)), { width: mm(900), risers: 6 });
+    const landing = stairLanding("stair-landing-top", [pt(mm(1500), mm(-450)), pt(mm(2400), mm(-450)), pt(mm(2400), mm(450)), pt(mm(1500), mm(450))], { thickness: mm(150) });
+    const levels = stairLevels(stair("stair-top", first, [flight, landing]), 1950);
+    expect(levels.totalRisers).toBe(7);
+    expect(levels.riser).toBeCloseTo(1950 / 7, 9);
+    expect(levels.segments[0]).toMatchObject({ kind: "flight", base: 0, run: 1500, going: 300 });
+    const [lower, top] = levels.segments;
+    if (lower?.kind !== "flight" || top?.kind !== "landing") throw new Error("expected a flight and a top landing");
+    expect(lower.top).toBeCloseTo((1950 * 6) / 7, 9);
+    expect(top.level).toBeCloseTo((1950 * 6) / 7, 9);
+  });
+
   it("derives the going from the plan run and one fewer tread", () => {
     const s = stairOf(model());
     expect(flightRun(s.segments[0] as StairFlight)).toBe(1800);
@@ -213,11 +227,25 @@ describe("stair checks", () => {
     expect(ids(checkStairs(m)).join()).toMatch(/stair-main: toStoreyId storey-second skips storey-first, the next storey up/);
   });
 
-  it("rejects a stair that starts or ends with a landing", () => {
-    const start = mutateStair((s) => s.segments.unshift({ ...s.segments[1] }));
-    expect(ids(checkStairs(start)).join()).toMatch(/the first segment is a landing/);
-    const end = mutateStair((s) => s.segments.push({ ...s.segments[1] }));
-    expect(ids(checkStairs(end)).join()).toMatch(/the last segment is a landing/);
+  it("rejects a stair that starts with a landing", () => {
+    const m = mutateStair((s) => s.segments.unshift({ ...s.segments[1] }));
+    expect(ids(checkStairs(m)).join()).toMatch(/the first segment is a landing/);
+  });
+
+  it("accepts a top landing at the end of the last flight", () => {
+    const m = mutateStair((s) => {
+      s.segments.push(stairLanding("stair-landing-top", [pt(mm(2600), mm(1800)), pt(mm(3400), mm(1800)), pt(mm(3400), mm(2600)), pt(mm(2600), mm(2600))], { thickness: mm(150) }));
+    });
+    expect(checkStairs(m)).toEqual([]);
+  });
+
+  it("rejects a top landing its last flight misses", () => {
+    const m = mutateStair((s) => {
+      s.segments.push(stairLanding("stair-landing-top", [pt(mm(2700), mm(1800)), pt(mm(3500), mm(1800)), pt(mm(3500), mm(2600)), pt(mm(2700), mm(2600))], { thickness: mm(150) }));
+    });
+    const found = ids(checkStairs(m)).filter((i) => i.startsWith("stair-landing-top"));
+    expect(found).toHaveLength(1);
+    expect(found.join()).toMatch(/stair-flight-upper ends 100 mm away from this landing/);
   });
 
   it("rejects two landings in a row", () => {

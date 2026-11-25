@@ -166,9 +166,10 @@ function nextStoreyUp(model: BuildingModel, storey: Storey): Storey | null {
 const LANDING_TOLERANCE = 1; // mm; authored points are integer, derived levels are exact
 
 /**
- * A stair must climb to the next storey up, alternate flight and landing starting and ending with a
- * flight, run somewhere on every flight, and land each flight on the boundary of the landing after
- * it. Nothing here bounds the riser height, which is why the target may not skip a storey.
+ * A stair must climb to the next storey up, alternate flight and landing starting with a flight,
+ * run somewhere on every flight, and land each flight on the boundary of the landing after it. A
+ * final landing is a top landing one riser below the storey above. Nothing here bounds the riser
+ * height, which is why the target may not skip a storey.
  */
 export function checkStairs(model: BuildingModel): Issue[] {
   const issues: Issue[] = [];
@@ -187,7 +188,6 @@ export function checkStairs(model: BuildingModel): Issue[] {
 
       const kinds = stair.segments.map((s) => s.kind);
       if (kinds[0] !== "flight") issues.push({ level: "ERROR", id: stair.id, message: "the first segment is a landing: a stair must start with a flight" });
-      if (kinds.at(-1) !== "flight") issues.push({ level: "ERROR", id: stair.id, message: "the last segment is a landing: a stair must end with a flight" });
       for (let i = 1; i < kinds.length; i++) {
         if (kinds[i] === "landing" && kinds[i - 1] === "landing") {
           issues.push({ level: "ERROR", id: stair.id, message: `${stair.segments[i]!.id} is a landing straight after ${stair.segments[i - 1]!.id}` });
@@ -201,12 +201,11 @@ export function checkStairs(model: BuildingModel): Issue[] {
         if (seg.kind !== "landing") return;
         const before = stair.segments[i - 1];
         const after = stair.segments[i + 1];
-        if (before?.kind !== "flight" || after?.kind !== "flight") return; // reported as an alternation error
         const outline = seg.outline.map(toVec);
-        for (const [point, what] of [
-          [toVec(before.end), `${before.id} ends`] as [Vec, string],
-          [toVec(after.start), `${after.id} starts`] as [Vec, string],
-        ]) {
+        const meetings: [Vec, string][] = [];
+        if (before?.kind === "flight") meetings.push([toVec(before.end), `${before.id} ends`]);
+        if (after?.kind === "flight") meetings.push([toVec(after.start), `${after.id} starts`]);
+        for (const [point, what] of meetings) {
           const off = distanceToOutline(point, outline);
           if (off > LANDING_TOLERANCE) {
             issues.push({ level: "ERROR", id: seg.id, message: `${what} ${Math.round(off)} mm away from this landing` });

@@ -36,7 +36,7 @@ export type SegmentLevel = FlightLevel | LandingLevel;
 export interface StairLevels {
   /** Total rise between the two storeys. */
   rise: number;
-  /** Height of one riser, shared by every flight in the stair. */
+  /** Height of one riser, shared by every flight in the stair and the final rise off a top landing. */
   riser: number;
   totalRisers: number;
   segments: SegmentLevel[];
@@ -44,11 +44,13 @@ export interface StairLevels {
 
 /**
  * Walk a stair's segments from its containing storey's floor, in mm relative to it, to the
- * elevation of the storey it climbs to. Callers run the model checks first: a stair with no flights
- * has no risers to divide the rise by.
+ * elevation of the storey it climbs to. A stair ending in a top landing has one further riser from
+ * that landing onto the storey. Callers run the model checks first: a stair with no flights has no
+ * risers to divide the rise by.
  */
 export function stairLevels(stair: Stair, rise: number): StairLevels {
-  const totalRisers = stair.segments.reduce((n, s) => (s.kind === "flight" ? n + s.risers : n), 0);
+  const topLanding = stair.segments.at(-1)?.kind === "landing";
+  const totalRisers = stair.segments.reduce((n, s) => (s.kind === "flight" ? n + s.risers : n), 0) + (topLanding ? 1 : 0);
   const riser = rise / totalRisers;
   const segments: SegmentLevel[] = [];
   let level = 0;
