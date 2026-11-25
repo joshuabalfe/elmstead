@@ -55,6 +55,14 @@ by its plan outline extruded up its height, its splayed jambs continued 10 mm pa
 - **WHEN** a window has no reveal
 - **THEN** its `IfcOpeningElement` is still a rectangle profile, the window's width by the wall's thickness plus 10 mm each side, extruded up its height
 
+#### Scenario: Flat wall body
+- **WHEN** a wall has a `height` and no `profile`
+- **THEN** its `Body` is a rectangle profile of its length by its thickness, extruded up its height
+
+#### Scenario: Gable wall body
+- **WHEN** a wall has a `profile` top edge rising from eaves to a ridge and back
+- **THEN** its `Body` is the closed side profile under that edge, extruded across the wall's thickness, so its top follows the roof line
+
 ### Requirement: Doors
 A door that is not a doorway SHALL fill its opening with a 50 mm `IfcDoor` panel. Its `OperationType` SHALL be
 `SINGLE_SWING_LEFT` or `SINGLE_SWING_RIGHT`, following the IFC4 convention of looking from the side

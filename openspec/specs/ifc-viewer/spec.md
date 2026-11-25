@@ -76,7 +76,7 @@ toggle them.
 Interactively, the viewer SHALL use a plan style:
 - each shown storey's room fills and door swings as its floor, at its own level, hiding the storeys below;
 - wall tops and sills in the plan's charcoal, unlit;
-- the plan's wall pieces, door gaps and window symbols 5 mm above the wall tops;
+- the plan's wall pieces, door gaps and window symbols 5 mm above the flat wall tops;
 - each storey's room names, areas and dimensions on a plane at its ceiling, hidden by any storey above;
 - a white background and no grid.
 
@@ -95,10 +95,10 @@ Interactively, the viewer SHALL use a plan style:
 - **THEN** its room names, areas and dimensions are hidden with it
 
 ### Requirement: Plan and 3D agree
-The test suite SHALL build each model and, for every storey, render the viewer's top view with only
-that storey shown and compare it with that storey's plan in overlapping 500 mm tiles. Pixels are
-classified as wall, room fill or paper. A tile SHALL fail above 10% mismatch, and failures SHALL be
-reported in metres from the outer walls' south-west corner.
+The test suite SHALL build each model and, for every storey whose walls are all flat-topped, render
+the viewer's top view with only that storey shown and compare it with that storey's plan in
+overlapping 500 mm tiles. Pixels are classified as wall, room fill or paper. A tile SHALL fail above
+10% mismatch, and failures SHALL be reported in metres from the outer walls' south-west corner.
 
 #### Scenario: Room outline on a wall centreline
 - **WHEN** a room outline runs to a wall's centreline instead of its face
@@ -107,6 +107,11 @@ reported in metres from the outer walls' south-west corner.
 #### Scenario: Two storeys with different layouts
 - **WHEN** a model's storeys have different wall layouts
 - **THEN** each storey's plan is compared against the top view of that storey alone, and both pass
+
+#### Scenario: Storey with a pitched wall
+- **WHEN** a storey has a pitched (gable) wall
+- **THEN** the cut-poché plan-versus-3D comparison skips that storey, because a sloped top's cut
+  footprint differs from its top projection (a top-view comparison is a follow-up)
 
 ### Requirement: Ground presentation
 The viewer SHALL recognise a ground slab's material as ground, not as a wall or concrete slab, and
@@ -564,6 +569,7 @@ the slab sits on them and its edge forms the floor-structure band at the facade.
 #### Scenario: Looking up from inside
 - **WHEN** walk mode stands on the ground floor of a two-storey model
 - **THEN** the first floor's slab underside is the ceiling, and its fills do not bleed through it
+
 ### Requirement: Ids toggle
 The viewer SHALL provide an **Ids** button that toggles hover identification, and `?ids=0|1` SHALL
 set it at load. Hover identification SHALL start off. Snapshots SHALL ignore the button and the
@@ -673,6 +679,24 @@ area, so a room can be referenced by id even though rooms have no pickable geome
 #### Scenario: Snapshot
 - **WHEN** the viewer is opened with `?snapshot=1`
 - **THEN** no room labels or ids are drawn
+
+### Requirement: Pitched wall plan overlay
+The flat wall-piece overlay SHALL cover only flat-topped walls, as one plane per wall height laid
+5 mm above that height's wall tops, so a taller wall's plane never floats above a shorter one. A
+pitched wall's sloped top SHALL be painted charcoal by the wall-top shader's upward-face rule
+instead of carrying a flat overlay.
+
+#### Scenario: Pitched wall beside flat eaves walls
+- **WHEN** a storey has a pitched gable wall alongside flat eaves walls in plan style
+- **THEN** the gable's sloped top reads charcoal and the flat wall-piece overlay sits at the eaves walls' height, with no flat plane floating at the ridge
+
+#### Scenario: Flat walls of different heights
+- **WHEN** a storey has flat walls of different heights in plan style
+- **THEN** each wall's poché overlay sits at its own top, with no plane floating above the shorter walls
+
+#### Scenario: Steep pitched top beyond the upward-face rule
+- **WHEN** a pitched wall's slope is steeper than the shader's upward-face threshold (about 45°)
+- **THEN** its top stays lit rather than charcoal; painting steep pitched tops angle-independently is a follow-up
 
 ### Requirement: Railing presentation
 The viewer SHALL recognise a railing's IFC colour as a railing and show it in that colour in 3D and
