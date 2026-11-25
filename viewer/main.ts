@@ -413,14 +413,21 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
       labelGroup.add(label);
     }
     // The wall-top poché is a flat plane, so it only fits flat-topped walls; a pitched wall's sloped
-    // top is painted by patchTops instead. Lay the overlay at the flat walls' height, not the ridge,
-    // so it does not float above the eaves walls or the slope.
+    // top is painted by patchTops instead. Lay one overlay per flat-wall height, each at its own wall
+    // top, so a taller wall's plane never floats above a shorter one (e.g. a 700 mm front wall over
+    // 200 mm eaves walls at the back).
     const flatWalls = storey.walls.filter((w) => !w.profile);
-    if (flatWalls.length) {
-      const flatCeiling = Math.max(...flatWalls.map((w) => wallHeight(w)));
-      const flatStorey = { ...storey, walls: flatWalls, openings: storey.openings.filter((o) => flatWalls.some((w) => w.id === o.wallId)) };
-      const tops = renderWallTops(flatStorey, model.components);
-      layerGroup.add(await planPlane(tops.svg, tops.bounds, (storey.elevation + flatCeiling + WALL_TOP_LIFT) / 1000, { transparent: true, depthWrite: false }));
+    const byHeight = new Map<number, typeof flatWalls>();
+    for (const w of flatWalls) {
+      const h = wallHeight(w);
+      const group = byHeight.get(h);
+      if (group) group.push(w);
+      else byHeight.set(h, [w]);
+    }
+    for (const [h, walls] of byHeight) {
+      const groupStorey = { ...storey, walls, openings: storey.openings.filter((o) => walls.some((w) => w.id === o.wallId)) };
+      const tops = renderWallTops(groupStorey, model.components);
+      layerGroup.add(await planPlane(tops.svg, tops.bounds, (storey.elevation + h + WALL_TOP_LIFT) / 1000, { transparent: true, depthWrite: false }));
     }
     if (epoch !== loadEpoch) return;
     // Every storey's floor is its own slab and room fills, at its own level, writing depth: the floor you

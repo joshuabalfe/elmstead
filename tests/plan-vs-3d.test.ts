@@ -198,8 +198,11 @@ describe("storey selection", () => {
     const belowTop = structuredClone(m);
     belowTop.storeys = belowTop.storeys.filter((s) => s.id !== "storey-attic");
     await publish("test-below-top", belowTop);
-    const hidden = await viewOf("test-hidden-storey", "view=se&snapshot=1&labels=0&style=ifc&storeys=storey-basement,storey-street,storey-ground,storey-first-floor");
-    const absent = await viewOf("test-below-top", "view=se&snapshot=1&labels=0&style=ifc");
+    // A fixed camera keeps the framing identical regardless of the hidden storey's bounds, so the
+    // comparison isolates geometry hiding rather than sub-pixel drift in the auto-framing.
+    const camera = "16,11,6,5.2,1.5,-4.2";
+    const hidden = await viewOf("test-hidden-storey", `view=se&snapshot=1&labels=0&style=ifc&camera=${camera}&storeys=storey-basement,storey-street,storey-ground,storey-first-floor`);
+    const absent = await viewOf("test-below-top", `view=se&snapshot=1&labels=0&style=ifc&camera=${camera}`);
     // Hiding a storey must be the same picture as a model that never had it: same framing, same
     // pixels, every one of them.
     expect(Buffer.from(hidden.data).equals(Buffer.from(absent.data))).toBe(true);
