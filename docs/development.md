@@ -49,17 +49,17 @@ tests table below).
 | `tests/helpers.test.ts` | `rectWalls`, `face`, `faceCrossing`, `centredOn`, `door`/`window` with components |
 | `tests/polygon.test.ts` | `spans()`, and `polygonProblems()` for repeated points, zero area, crossings, touching and collinear overlaps |
 | `tests/load.test.ts` | loading a model file; schema errors attributed to element ids; JSON formatting |
-| `tests/render.test.ts` | plan determinism, SVG snapshot, wall splitting, door and window symbols, labels, PNG size, door geometry |
+| `tests/render.test.ts` | plan determinism, SVG snapshot, wall splitting, door and window symbols, labels, PNG size, door geometry, drawing primitives and their SVG |
 | `tests/door.test.ts` | door frames; doorways: no component/swing, plan gap without leaf/swing, opening-only IFC |
 | `tests/guid.test.ts` | UUIDv5 and IFC GUID compression against reference vectors; fixed GlobalIds for known ids |
 | `tests/io.test.ts` | atomic writes leave the previous file and no temp file after a failure |
 | `tests/ifc.test.ts` | byte-identical IFC, GlobalId stability, door and window types, window partitioning, round-trip volumes, validator pass and fail cases |
-| `tests/plan-vs-3d.test.ts` | the viewer's Top view shows the same walls, rooms and openings as the plan, for each model; and that the check catches a room outline run to a wall's centreline |
+| `tests/plan-vs-3d.test.ts` | the viewer's Top view shows the same walls, rooms and openings as the plan, for each model; that the check catches a room outline run to a wall's centreline; and that no uploaded texture exceeds 1024 × 1024 texels |
 | `tests/window.test.ts` | frames and glazing bars: pane ratios, no overlaps, frame inside the window's size, fit checks, IFC volumes, plan symbol |
 | `tests/checks.test.ts` | component checks plus id, zero-length wall, opening host/fit/overlap and outline rules |
 | `tests/cli.test.ts` | `build`/`check`/`all`, failure fixtures, render-before-build and missing-Chromium warnings, exit statuses |
 | `tests/validate.test.ts` | validator bridge: non-JSON output, truncated JSON, crash status and exit 1 with findings (fake `uv`) |
-| `tests/viewer.test.ts` | path confinement, malformed encoding and `?view=` fallback; measurement maths, snap choice and click slop; element id/name labels |
+| `tests/viewer.test.ts` | path confinement, malformed encoding and `?view=` fallback; measurement maths, snap choice and click slop; element id/name labels; plan-overlay geometry (scale, run order, depth, text placement) |
 | `tests/viewer-identify.test.ts` | the Ids toggle, hover tooltip content, drag/view/walk/storey composition, the `?ids` lifecycle, room-id labels and the snapshot exemption in headless Chromium |
 | `tests/viewer-measure.test.ts` | snapped picks, drag/tap handling, Clear/Escape, model changes and the snapshot exemption in headless Chromium |
 | `tests/snapshot.test.ts` | a viewer failure is an ERROR and the server closes |
@@ -79,6 +79,29 @@ tests table below).
 
 If you change the plan renderer on purpose, review the new SVG and update the snapshot with
 `npx vitest run -u`.
+
+### Measuring the viewer
+
+Two scripts measure a viewer change against another checkout, for example a worktree of `main`.
+They are not tests: timings and antialiasing vary too much between machines and runs to assert
+on, so compare two runs on the same machine.
+
+```sh
+git worktree add --detach ../elmstead-main origin/main && ln -s "$PWD/node_modules" ../elmstead-main/
+npx tsx scripts/bench-viewer.ts elmstead --root ../elmstead-main   # before
+npx tsx scripts/bench-viewer.ts elmstead                           # after; --gpu for the real GPU
+npx tsx scripts/compare-viewer.ts --before ../elmstead-main elmstead
+```
+
+- `bench-viewer.ts` prints JSON with the load time, the textures uploaded (count, largest and
+  total), and the median and 90th-percentile frame and GPU times while the camera orbits. It
+  defaults to SwiftShader, which is slow but steady between runs.
+- `compare-viewer.ts` captures plan-style views from both checkouts: the top view and two
+  corners, each storey alone, and close-ups of a window, a door swing and a dimension figure. It
+  writes before | after | difference images, each view's mismatch ratio, and an `index.html` to
+  `out/compare-viewer/`.
+
+Both serve this checkout's `out/`, so build the model first.
 
 ## Continuous integration
 
