@@ -330,3 +330,37 @@ describe("ground presentation", () => {
     expect(near(withGround, ground, 30)).toBeGreaterThan(near(concrete, ground, 30) + 1000);
   }, 120_000);
 });
+
+describe("overlay textures", () => {
+  /** Records each texture allocation's level-0 size before the viewer's scripts run. */
+  const RECORD_TEXTURES = `
+    window.__textures = [];
+    for (const proto of [WebGLRenderingContext.prototype, WebGL2RenderingContext.prototype]) {
+      const storage = proto.texStorage2D;
+      if (storage) proto.texStorage2D = function (target, levels, format, w, h) { window.__textures.push([w, h]); return storage.apply(this, arguments); };
+      const image = proto.texImage2D;
+      proto.texImage2D = function () {
+        const a = arguments;
+        if (a[1] === 0) { const src = a.length >= 9 ? { width: a[3], height: a[4] } : a[5]; window.__textures.push([src?.videoWidth ?? src?.width ?? 0, src?.videoHeight ?? src?.height ?? 0]); }
+        return image.apply(this, a);
+      };
+    }`;
+
+  it("uploads no texture over 1024 × 1024 texels, whatever the storey's footprint", async () => {
+    await publish("test-overlay-textures", await model("models/elmstead"));
+    const p = await browser!.newPage({ viewport: VIEWPORT, deviceScaleFactor: 1 });
+    try {
+      await p.addInitScript(RECORD_TEXTURES);
+      // Plan style with labels on, as the viewer opens: every overlay and label is drawn.
+      await p.goto(`${server!.resolvedUrls!.local[0]!}?model=test-overlay-textures&view=top`);
+      await p.waitForFunction("window.__elmsteadReady || window.__elmsteadError", null, { timeout: 60_000 });
+      expect(await p.evaluate("window.__elmsteadError")).toBeUndefined();
+      const sizes = (await p.evaluate("window.__textures")) as [number, number][];
+      expect(sizes.length).toBeGreaterThan(0);
+      const largest = sizes.reduce((a, s) => (s[0] * s[1] > a[0] * a[1] ? s : a));
+      expect(largest[0] * largest[1], `largest texture ${largest[0]}×${largest[1]}`).toBeLessThanOrEqual(1024 * 1024);
+    } finally {
+      await p.close();
+    }
+  }, 120_000);
+});

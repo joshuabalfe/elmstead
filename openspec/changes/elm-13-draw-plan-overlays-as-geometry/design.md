@@ -98,16 +98,17 @@ is kept between runs, and draw calls stay at a few dozen per layer.
   angle becomes a negative yaw about +Y. Unlike room labels, figures do not follow the camera,
   because they are part of the drawing.
 - **Layers**: the `layer` argument picks the depth treatment:
-  - `floor`: opaque and `depthWrite: true`. Each run gets the next `renderOrder` (from −1 down) and
-    a stepped `polygonOffset` (units −1, −2, …), so coplanar runs keep painter order without
-    z-fighting and still hide the storeys below.
+  - `floor`: opaque and `depthWrite: true`. Each run gets the next fractional `renderOrder` step up
+    from −1, staying below −0.5, and a stepped `polygonOffset` (units 0, −1, −2, …). Coplanar runs
+    then keep painter order without z-fighting, and still hide the storeys below.
   - `overlay` (wall tops, annotations): `transparent`, `depthWrite: false`, with fractional
     `renderOrder` steps inside the layer's current value (0 for wall tops, 1 for annotations), so
     the layers still sort as they do now.
 
-`overlay.ts` also returns a `dispose()` that frees its own geometries, materials and textures.
-`loadLabels`' generic `dispose` skips `Line2` materials, because the constraint lines share one
-material.
+The overlay owns every geometry, material and texture it creates. `loadLabels`' generic `dispose`
+frees them: it disposes the geometry of any `LineSegments2`, the base class of the constraints'
+`Line2`, as well as meshes. The constraint lines' shared material survives disposal, because
+three.js recompiles it on next use.
 
 ### 5. Guarding against regression
 

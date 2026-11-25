@@ -15,20 +15,19 @@
 
 ## 2. Viewer geometry for primitives
 
-- [ ] 2.1 Move `labelTexture` from `viewer/main.ts` into a shared viewer module and return the baseline-to-centre offset as well. Verify that `npm run typecheck` passes and that room labels look unchanged in the viewer.
-- [ ] 2.2 Add `viewer/overlay.ts` with `overlayGroup(nodes, bounds, y, layer)`, following design §4:
+- [x] 2.1 Move `labelTexture` from `viewer/main.ts` into a shared viewer module and return the baseline-to-centre offset as well. Verify that `npm run typecheck` passes and that room labels look unchanged in the viewer.
+- [x] 2.2 Add `viewer/overlay.ts` with `overlayGroup(nodes, bounds, y, layer)`, following design §4:
   - batch consecutive primitives with the same material into runs, in painter order;
   - fills as merged unlit meshes;
   - strokes and dashes as world-unit `LineSegments2`;
   - figures as flat text planes;
-  - floor or overlay depth treatment;
-  - a `dispose()`.
+  - floor or overlay depth treatment.
 
   Verify with unit tests in `tests/viewer.test.ts`: the px-to-scene mapping, run batching that
   keeps painter order, the stroke-width and dash scale, and the text yaw sign.
-- [ ] 2.3 Replace `planPlane` in `viewer/main.ts` with `overlayGroup` for the annotation, wall-top and floor layers, keeping their heights and render orders. Dispose them through the overlay's `dispose()` in `loadLabels`. Verify that the plan-versus-3D, storey selection, railing, stair and ground tests in `tests/plan-vs-3d.test.ts` pass.
-- [ ] 2.4 Add a browser test that wraps `texImage2D`/`texStorage2D`, loads `elmstead` in plan style with labels on, and asserts that no upload exceeds 1,048,576 texels. Verify it fails on the parent commit's viewer and passes now.
-- [ ] 2.5 Run `scripts/compare-viewer.ts` with the baseline and the change, and review every view's side-by-side and heatmap: windows, door swings, dashed outlines and dimension figures, both close up and zoomed out. If thin lines shimmer or vanish, apply the minimum-width fallback from design.md. Verify that the remaining differences are antialiasing only, and record each view's mismatch ratio.
+- [x] 2.3 Replace `planPlane` in `viewer/main.ts` with `overlayGroup` for the annotation, wall-top and floor layers, keeping their heights and render orders. Have `loadLabels`' generic dispose free their line geometries too. Verify that the plan-versus-3D, storey selection, railing, stair and ground tests in `tests/plan-vs-3d.test.ts` pass.
+- [x] 2.4 Add a browser test that wraps `texImage2D`/`texStorage2D`, loads `elmstead` in plan style with labels on, and asserts that no upload exceeds 1,048,576 texels. Verify it fails on the parent commit's viewer and passes now.
+- [x] 2.5 Run `scripts/compare-viewer.ts` with the baseline and the change, and review every view's side-by-side and heatmap: windows, door swings, dashed outlines and dimension figures, both close up and zoomed out. If thin lines shimmer or vanish, apply the minimum-width fallback from design.md. Verify that the remaining differences are antialiasing only, and record each view's mismatch ratio.
 
 ## 3. Docs and integration
 

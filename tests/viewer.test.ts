@@ -1,9 +1,14 @@
 import { resolve } from "node:path";
+import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
+import * as THREE from "three";
 import { describe, expect, it } from "vitest";
+import { C } from "../src/render/style.js";
+import { group, line, polygon, polyline, text } from "../src/render/svg.js";
 import type { ResolvedConstraint } from "../src/constraints/check.js";
 import { constraintLabels } from "../viewer/constraints.js";
 import { elementLabel } from "../viewer/identify.js";
 import { CLICK_SLOP_PX, SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap } from "../viewer/measure.js";
+import { M_PER_PX, dashOf, overlayGroup, placeText, toRuns, toScene } from "../viewer/overlay.js";
 import { confinedPath } from "../viewer/serve.js";
 import { cameraForView, labelHeading, parseView } from "../viewer/view.js";
 
@@ -207,5 +212,78 @@ describe("elementLabel", () => {
   it("returns null when the item names no model element", () => {
     expect(elementLabel({})).toBeNull();
     expect(elementLabel({ Name: { value: "" } })).toBeNull();
+  });
+});
+describe("plan overlay geometry", () => {
+  const p = (x: number, y: number) => ({ x, y });
+  const bounds = { minX: 1000, minY: 2000, maxX: 9000, maxY: 5000 };
+  const square = (x: number) => [p(x, 0), p(x + 10, 0), p(x + 10, 10), p(x, 10)];
+
+  it("maps plan-SVG px to scene metres, y down to plan north along -z", () => {
+    expect(toScene(p(0, 0), bounds)).toEqual({ x: 1, z: -5 });
+    const s = toScene(p(10, 20), bounds); // 100 mm east and 200 mm south of the top-left corner
+    expect(s.x).toBeCloseTo(1.1);
+    expect(s.z).toBeCloseTo(-4.8);
+  });
+
+  it("scales stroke widths and dashes as the plan does, 1 px to 10 mm", () => {
+    expect(M_PER_PX).toBeCloseTo(0.01);
+    expect(dashOf({ "stroke-dasharray": "3 2" })).toEqual({ dash: expect.closeTo(0.03), gap: expect.closeTo(0.02) });
+    expect(dashOf({ "stroke-dasharray": "4" })).toEqual({ dash: expect.closeTo(0.04), gap: expect.closeTo(0.04) });
+    expect(dashOf({})).toBeNull();
+    const [run] = toRuns([line(p(0, 0), p(1, 0), { stroke: C.opening, "stroke-width": 1.6 })]);
+    expect(run).toMatchObject({ kind: "stroke", colour: C.opening, width: expect.closeTo(0.016) });
+  });
+
+  it("merges primitives that draw alike into runs, keeping the painter's order", () => {
+    const runs = toRuns([
+      polygon(square(0), { fill: C.wall, stroke: "none" }),
+      group({ class: "wall" }, [polygon(square(20), { fill: C.wall, stroke: "none" })]),
+      // A window: paper fill, then its outline, then the glass lines, then a bar in the wall colour.
+      polygon(square(40), { fill: C.paper, stroke: C.opening, "stroke-width": 0.8 }),
+      line(p(40, 3), p(50, 3), { stroke: C.glass, "stroke-width": 1 }),
+      line(p(40, 7), p(50, 7), { stroke: C.glass, "stroke-width": 1 }),
+      polygon(square(44), { fill: C.wall, stroke: "none" }),
+      polyline([p(0, 0), p(5, 5), p(9, 0)], { stroke: C.opening, "stroke-width": 0.7, "stroke-dasharray": "3 2" }),
+    ]);
+    expect(runs.map((r) => (r.kind === "fill" ? `fill ${r.colour} ×${r.polygons.length}` : r.kind === "stroke" ? `stroke ${r.colour} ×${r.segments.length}` : "text"))).toEqual([
+      `fill ${C.wall} ×2`,
+      `fill ${C.paper} ×1`,
+      `stroke ${C.opening} ×4`, // the outline, closed back to its start
+      `stroke ${C.glass} ×2`,
+      `fill ${C.wall} ×1`, // after the paper, so it isn't merged with the walls beneath it
+      `stroke ${C.opening} ×2`, // a dashed polyline differs from the solid outline
+    ]);
+  });
+
+  it("turns a figure as the SVG's clockwise rotate does, about its anchor", () => {
+    // Unrotated, the plane's centre sits the given offset from the anchor.
+    expect(placeText(p(100, 50), {}, p(0, -3.5))).toEqual({ centre: p(100, 46.5), yaw: -0 });
+    // Turned 90° clockwise on screen, the text reads southwards: its "up" points east, and seen
+    // from above that is a clockwise (negative) yaw about +Y.
+    const { centre, yaw } = placeText(p(100, 50), { transform: "rotate(90 100 50)" }, p(0, -3.5));
+    expect(centre.x).toBeCloseTo(103.5);
+    expect(centre.y).toBeCloseTo(50);
+    expect(yaw).toBeCloseTo(-Math.PI / 2);
+    const reading = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    expect(reading.z).toBeCloseTo(1); // scene +z is plan south
+  });
+
+  it("orders a floor's runs and offsets them towards the camera, and keeps an overlay out of the depth buffer", () => {
+    const nodes = [polygon(square(0), { fill: C.room, stroke: "none" }), polygon(square(0), { fill: C.paper, stroke: "none" }), line(p(0, 0), p(9, 9), { stroke: C.opening, "stroke-width": 1.6 })];
+    const floor = overlayGroup(nodes, bounds, 0.02, { kind: "floor", renderOrder: -1 });
+    expect(floor.children.map((c) => c.renderOrder)).toEqual([-1, -1 + 0.5 / 3, -1 + 1 / 3]);
+    const materials = floor.children.map((c) => (c as THREE.Mesh).material as THREE.Material);
+    expect(materials.map((m) => [m.depthWrite, m.transparent, m.polygonOffsetUnits])).toEqual([[true, false, -0], [true, false, -1], [true, false, -2]]);
+    expect(floor.children[2]).toBeInstanceOf(LineSegments2);
+    const mesh = floor.children[0] as THREE.Mesh;
+    expect(mesh.geometry.getAttribute("position").count).toBe(6); // a square as two triangles
+    expect(mesh.geometry.getAttribute("position").getY(0)).toBeCloseTo(0.02);
+    const over = overlayGroup(nodes, bounds, 3, { kind: "overlay", renderOrder: 1 });
+    for (const c of over.children) expect((c as THREE.Mesh).material).toMatchObject({ depthWrite: false, transparent: true, polygonOffset: false });
+  });
+
+  it("refuses plan-sheet furniture an overlay never draws", () => {
+    expect(() => toRuns([text(p(0, 0), "x", {}), { tag: "rect", attrs: {} }])).toThrow(/<rect>/);
   });
 });
