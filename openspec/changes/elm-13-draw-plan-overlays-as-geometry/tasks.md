@@ -1,5 +1,11 @@
 # Tasks
 
+## 0. Measurement and baseline
+
+- [ ] 0.1 Add `scripts/bench-viewer.ts`, which loads a model in the viewer under Playwright Chromium (SwiftShader by default, `--gpu` for the real GPU) and prints JSON: load time, texture upload count, largest and total uploaded texels, and median and p90 frame interval and GPU time while orbiting. Verify that it runs on `elmstead` and prints numbers matching the earlier profiling (about 1.3 GB of textures, and a largest texture of 5612×5092).
+- [ ] 0.2 Add `scripts/compare-viewer.ts`, which captures plan-style screenshots at fixed views (top, two corners, and close-ups of a window, a door swing and a dimension figure, each storey alone and all together) from two viewer roots. It writes side-by-side images, a diff heatmap per view and an HTML index to an output folder, with each view's mismatch ratio. Verify that comparing the tree with itself gives zero difference on every view.
+- [ ] 0.3 Capture the baseline from `origin/main` in a temporary worktree: run the benchmark on `elmstead` and keep its screenshots. Verify that the baseline JSON and images exist in the scratch folder.
+
 ## 1. Drawing primitives in `src/render/`
 
 - [ ] 1.1 In `src/render/svg.ts`, make `polygon`, `polyline`, `line`, `text`, `group` and `el` return typed `Node`s, and add `serialise(node)`, which writes exactly the string each helper wrote before. Verify with unit tests in `tests/render.test.ts` comparing `serialise` output with the old strings for each helper, including `num()` rounding and escaping.
@@ -22,12 +28,12 @@
   keeps painter order, the stroke-width and dash scale, and the text yaw sign.
 - [ ] 2.3 Replace `planPlane` in `viewer/main.ts` with `overlayGroup` for the annotation, wall-top and floor layers, keeping their heights and render orders. Dispose them through the overlay's `dispose()` in `loadLabels`. Verify that the plan-versus-3D, storey selection, railing, stair and ground tests in `tests/plan-vs-3d.test.ts` pass.
 - [ ] 2.4 Add a browser test that wraps `texImage2D`/`texStorage2D`, loads `elmstead` in plan style with labels on, and asserts that no upload exceeds 1,048,576 texels. Verify it fails on the parent commit's viewer and passes now.
-- [ ] 2.5 Eye-check the top view and a corner view of `elmstead` against the texture version: windows, door swings, dashed outlines and dimension figures, both close up and zoomed out. If thin lines shimmer or vanish, apply the minimum-width fallback from design.md. Record the view URLs checked.
+- [ ] 2.5 Run `scripts/compare-viewer.ts` with the baseline and the change, and review every view's side-by-side and heatmap: windows, door swings, dashed outlines and dimension figures, both close up and zoomed out. If thin lines shimmer or vanish, apply the minimum-width fallback from design.md. Verify that the remaining differences are antialiasing only, and record each view's mismatch ratio.
 
 ## 3. Docs and integration
 
 - [ ] 3.1 Update the viewer and rendering notes in `docs/rendering.md` (and `docs/architecture.md` if it describes the overlay textures) so they say the overlays are drawn as geometry from shared primitives. Verify that the docs mention no rasterised overlay planes.
-- [ ] 3.2 Re-run the profiling comparison (load time, uploaded texture total, and GPU time per frame on Metal and SwiftShader) and record before and after in the PR description. Verify that load and frame time improve and that the texture total is under 50 MB.
+- [ ] 3.2 Run `scripts/bench-viewer.ts` on SwiftShader and Metal and record the before and after JSON in the PR description. Verify that load and frame time improve and that the texture total is under 50 MB.
 - [ ] 3.3 Run `npm test`, `npm run typecheck` and `npx openspec validate --all --strict`. Verify that all pass.
 
 ## Workflow follow-up

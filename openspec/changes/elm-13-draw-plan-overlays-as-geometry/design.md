@@ -115,6 +115,15 @@ The texture bound in the spec is checked in a browser test. An init script wraps
 `texImage2D`/`texStorage2D`, the viewer loads `elmstead` in plan style with labels on, and the test
 asserts that no upload exceeds 1,048,576 texels. The plan-versus-3D test is the visual guard.
 
+Two scripts in `scripts/` measure the change, but they are not tests:
+- `bench-viewer.ts` gives performance numbers as JSON. It runs on SwiftShader by default, because
+  its numbers compare well run to run, with a real GPU optional.
+- `compare-viewer.ts` gives side-by-side screenshots and diff heatmaps at fixed views from two viewer
+  roots.
+
+Timings and antialiasing differences vary too much to assert on in `npm test`. The baseline comes
+from `origin/main` checked out in a temporary worktree.
+
 ## Risks / Trade-offs
 
 - [Lines thinner than a pixel (for example 7 mm strokes in a zoomed-out view) shimmer or vanish,
