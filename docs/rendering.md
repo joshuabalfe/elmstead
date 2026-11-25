@@ -119,9 +119,8 @@ openings cut, doors and glazing in place, colours applied.
   labels at its ceiling, 10 mm above the top of its tallest wall (the schema has no ceiling
   height). Being above the walls, they read from every camera that can see that storey.
   - The plan's own room and overall dimension lines (`renderPlanAnnotations` in
-    `src/render/plan.ts`) are drawn to one texture at 2.5 mm per pixel, as if on a glass ceiling.
-    Lying flat is what lets a storey above occlude them; camera-facing billboards painted through
-    floors.
+    `src/render/plan.ts`) lie flat at the ceiling, as if on a glass ceiling. Lying flat is what lets
+    a storey above occlude them; camera-facing billboards painted through floors.
   - Room names, areas and ids sit on small flat planes at the same ceiling, one per room, and each
     yaws about its room's centre to follow the camera (`updateLabelOrientation` in
     `viewer/main.ts`), so the text reads left-to-right across the screen from any view while
@@ -152,11 +151,24 @@ openings cut, doors and glazing in place, colours applied.
     **Clear** removes all measurements.
   - The measure layer is independent of **Labels** and **Constraints**; completed measurements
     stay visible when measure mode is off.
+- The plan overlays (floors, wall tops and dimensions) are drawn as scene geometry, not as images
+  of the plan (`viewer/overlay.ts`). `renderFloor`, `renderWallTops` and `renderPlanAnnotations`
+  return the drawing's primitives (polygons, polylines, lines and text, the same nodes their SVG
+  is written from), and the viewer draws them in the SVG's order:
+  - fills as flat, unlit meshes in the plan's colours;
+  - strokes and dashes as lines whose width and dash lengths are in world units at the plan's
+    scale (1 px = 10 mm), so a 0.8 px window outline is an 8 mm line;
+  - dimension figures as small flat haloed text planes, at the plan's size and rotation.
+
+  Consecutive primitives that draw alike share one mesh or line object. The overlays stay sharp
+  at any zoom, and the only textures are small text labels, so texture memory follows the amount
+  of text, not a storey's footprint. A browser test holds every uploaded texture to 1024 × 1024
+  texels at most.
 - Plan colouring, the same in every view (`applyStyle` in `main.ts`):
   - Floors are the plan's own floor fills and door swings (`renderFloor` in `src/render/plan.ts`),
-    slab fills (cream, or the ground colour for a ground slab) and room fills on white, one plane
-    per shown storey at that storey's level. The slab
-    fill covers floor outside the room outlines too, such as bay windows and alcoves. Each plane
+    slab fills (cream, or the ground colour for a ground slab) and room fills, one layer per shown
+    storey at that storey's level. The slab
+    fill covers floor outside the room outlines too, such as bay windows and alcoves. Each floor
     writes depth, so the topmost shown floor hides the storeys below it: from above you see the top
     floor's rooms, not the grey slab and not the floor beneath. In plan style a slab's top is not drawn; its
     underside is the ceiling below, and its exposed edges show the floor structure's thickness. The

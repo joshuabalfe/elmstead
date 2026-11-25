@@ -70,10 +70,10 @@ src/
   constraints/       constraints beside a model: schema, helpers, loader, point resolution, check
   cli/               command entry point, model loading, deterministic JSON formatting
   ifc/               IFC writer, GUIDs, round-trip geometry checks, validator bridge
-  render/            plan SVG, PNG rasterising, 3D snapshot driver
+  render/            plan drawing primitives and SVG, PNG rasterising, 3D snapshot driver
 validator/           validate.py (PEP 723 script for uv) and its lockfile
 viewer/              ThatOpen + Vite browser viewer, also used for 3D snapshots
-scripts/             one-off generators (JSON Schema export)
+scripts/             one-off generators (JSON Schema export) and viewer measurement (benchmark, before/after)
 tests/               vitest suites, fixtures and the plan SVG snapshot
 ```
 

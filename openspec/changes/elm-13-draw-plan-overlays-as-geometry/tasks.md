@@ -31,12 +31,21 @@
 
 ## 3. Docs and integration
 
-- [ ] 3.1 Update the viewer and rendering notes in `docs/rendering.md` (and `docs/architecture.md` if it describes the overlay textures) so they say the overlays are drawn as geometry from shared primitives. Verify that the docs mention no rasterised overlay planes.
-- [ ] 3.2 Run `scripts/bench-viewer.ts` on SwiftShader and Metal and record the before and after JSON in the PR description. Verify that load and frame time improve and that the texture total is under 50 MB.
-- [ ] 3.3 Run `npm test`, `npm run typecheck` and `npx openspec validate --all --strict`. Verify that all pass.
+- [x] 3.1 Update the viewer and rendering notes in `docs/rendering.md` (and `docs/architecture.md` if it describes the overlay textures) so they say the overlays are drawn as geometry from shared primitives. Verify that the docs mention no rasterised overlay planes.
+- [x] 3.2 Run `scripts/bench-viewer.ts` on SwiftShader and Metal and record the before and after JSON in the PR description. Verify that load and frame time improve and that the texture total is under 50 MB.
+  - Result: texture total 1816 MB → 8.7 MB. Load on SwiftShader 9.1 s → 1.8 s, and on Metal
+    unchanged (about 0.7 s). Frame time improved on SwiftShader (GPU p90 27.5 → 20.4 ms) and is
+    unchanged within noise on Metal (vsync-bound at 16.7 ms, GPU about 2 ms both ways).
+  - Most of plan style's remaining per-frame cost on a weak GPU is the stacked floor fills (about
+    6 ms on SwiftShader), which this change leaves as they were. See the follow-up below.
+- [x] 3.3 Run `npm test`, `npm run typecheck` and `npx openspec validate --all --strict`. Verify that all pass.
 
 ## Workflow follow-up
 
 - Mark PR #50 ready for review once the tasks are done.
 - Check whether the wall-top poché is redundant with the wall-top shader, as a separate change.
+- Cut the stacked floor fills' per-frame cost on weak GPUs, about 6 ms on SwiftShader with every
+  storey shown, as a separate change. Draw calls also rose from 50 to 226, mostly one per
+  dimension figure; a text atlas per storey would bring them down if that ever shows up in
+  measurements.
 - Archive the change after review, and verify the archived result.
