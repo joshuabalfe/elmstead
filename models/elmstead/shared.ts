@@ -96,3 +96,17 @@ export const firstFloorStructure = mm(200);
  * ceiling; revisit that when the levels are measured.
  */
 export const firstFloor = { elevation: add(groundFloor.ceilingHeight, firstFloorStructure), ceilingHeight: m(2.7) };
+/**
+ * Provisional attic floor structure, like the first floor's: joists, deck and finishes. It is the
+ * attic slab's thickness, so the slab hangs down onto the first-floor wall tops.
+ */
+export const atticFloorStructure = mm(200);
+/**
+ * Provisional attic, not measured yet: 2.4 m clear, sitting one structure thickness above the first
+ * floor's ceiling. The layout awaits the owner's attic plan; revisit the level and height when measured.
+ */
+export const atticClearHeight = m(2.4);
+export const atticFloor = {
+  elevation: add(add(firstFloor.elevation, firstFloor.ceilingHeight), atticFloorStructure),
+  ceilingHeight: atticClearHeight,
+};

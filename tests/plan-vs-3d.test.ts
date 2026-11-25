@@ -190,16 +190,16 @@ describe("storey selection", () => {
   it("hides a storey's geometry, not just its drawings", async () => {
     // This identity is about storey geometry, so compare a stair-less copy: a stair's parts are
     // aggregated under an IfcStair and fragments does not hide them per-item with their storey, so
-    // stair visibility across storeys is a separate follow-up. Hide the top storey (the first floor)
-    // above the basement and ground, and compare with a model that never had it.
+    // stair visibility across storeys is a separate follow-up. Hide the top storey (the attic)
+    // above the basement, street, ground and first floor, and compare with a model that never had it.
     const m = structuredClone(await model("models/elmstead"));
     for (const s of m.storeys) s.stairs = [];
     await publish("test-hidden-storey", m);
-const belowFirst = structuredClone(m);
-    belowFirst.storeys = belowFirst.storeys.filter((s) => s.id !== "storey-first-floor");
-    await publish("test-below-first", belowFirst);
-    const hidden = await viewOf("test-hidden-storey", "view=se&snapshot=1&labels=0&style=ifc&storeys=storey-basement,storey-street,storey-ground");
-    const absent = await viewOf("test-below-first", "view=se&snapshot=1&labels=0&style=ifc");
+    const belowTop = structuredClone(m);
+    belowTop.storeys = belowTop.storeys.filter((s) => s.id !== "storey-attic");
+    await publish("test-below-top", belowTop);
+    const hidden = await viewOf("test-hidden-storey", "view=se&snapshot=1&labels=0&style=ifc&storeys=storey-basement,storey-street,storey-ground,storey-first-floor");
+    const absent = await viewOf("test-below-top", "view=se&snapshot=1&labels=0&style=ifc");
     // Hiding a storey must be the same picture as a model that never had it: same framing, same
     // pixels, every one of them.
     expect(Buffer.from(hidden.data).equals(Buffer.from(absent.data))).toBe(true);
@@ -220,8 +220,8 @@ const belowFirst = structuredClone(m);
     const groundOnly = await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}&storeys=storey-basement,storey-street,storey-ground`);
     expect(samePixels(ground, groundOnly)).toBe(true);
 
-    // The topmost choice puts the first floor back, still without moving the camera.
-    await selectStorey("storey-first-floor");
+    // The topmost choice puts the attic back, still without moving the camera.
+    await selectStorey("storey-attic");
     expect(new URL(page.url()).searchParams.has("storeys")).toBe(false);
     expect(samePixels(await canvasPixels(), all)).toBe(true);
 
