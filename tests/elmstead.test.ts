@@ -72,6 +72,7 @@ describe("Elmstead's floor structure", () => {
     expect(northExt.profile!.at(-1)!.up).toBe(mm(2700));
     expect(extSouth.profile![0]!.up).toBe(mm(2700));
     expect(northExt.profile![0]!.up).toBe(extEast.height);
+    expect(extSouth.profile!.at(-1)!.up).toBe(extEast.height); // south slope meets the east wall flush too
     // The taper continues the attic gable's pitch, derived from the attic ridge rather than hardcoded.
     const attic = elmstead.storeys.find((s) => s.id === "storey-attic")!;
     const ridge = attic.walls.find((w) => w.id === "wall-south-attic")!.profile![1]!;

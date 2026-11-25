@@ -66,10 +66,12 @@ export const westIn = face(westNorth, "east");
 export const east = externalWall("wall-east-first", externalRuns.east, wallH);
 export const eastIn = face(east, "west");
 export const extEast = externalWall("wall-extension-east-first", externalRuns.extEast, extEaves);
-export const extSouth = wall("wall-extension-south-first", externalRuns.extSouth.start, externalRuns.extSouth.end, {
+// Run out to the east wall's outer face (not the canonical run's inner-face end) so the taper meets
+// the flat east wall flush at the eaves, as the north extension wall does on its side.
+export const extSouth = wall("wall-extension-south-first", externalRuns.extSouth.start, pt(extEastX, extSouthY), {
   thickness: externalRuns.extSouth.thickness,
   justification: externalRuns.extSouth.justification,
-  profile: [{ along: mm(0), up: wallH }, { along: sub(externalRuns.extSouth.end.x, coreW), up: extTopAt(externalRuns.extSouth.end.x) }],
+  profile: [{ along: mm(0), up: wallH }, { along: sub(extEastX, coreW), up: extEaves }],
 });
 
 // ── Bay window, west side of the dining room ────────────────────────────────
