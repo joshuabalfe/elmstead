@@ -1430,9 +1430,42 @@ document.querySelectorAll<HTMLButtonElement>("[data-view]").forEach((b) =>
     await setView(parseView(b.dataset.view ?? null));
   }),
 );
-storeySelect.addEventListener("change", async () => {
-  await chooseStorey(storeySelect.value);
+/** Choose a floor, then tell tests it has been applied and drawn. */
+async function applyStoreyChoice(topId: string): Promise<void> {
+  await chooseStorey(topId);
   requestAnimationFrame(() => requestAnimationFrame(() => (window.__elmsteadStoreyChanges = (window.__elmsteadStoreyChanges ?? 0) + 1)));
+}
+storeySelect.addEventListener("change", () => applyStoreyChoice(storeySelect.value));
+
+/** The storey above (+1) or below (-1) the highest storey shown; undefined past either end. */
+function neighbourStorey(direction: 1 | -1): string | undefined {
+  if (!modelJson) return undefined;
+  const ordered = storeysLowestFirst(modelJson);
+  const highest = ordered.reduce((found, s, i) => (isShown(s.id) ? i : found), -1);
+  return highest < 0 ? undefined : ordered[highest + direction]?.id;
+}
+
+/** True while a step is being drawn, so a key press in that time is dropped rather than queued. */
+let stepping = false;
+// Arrow Up and Down step the storey selector one floor, stopping at the first and last floor. Walk
+// mode keeps the arrows for walking.
+window.addEventListener("keydown", async (e) => {
+  if (e.code !== "ArrowUp" && e.code !== "ArrowDown") return;
+  if (snapshot || savedView || storeySelect.hidden || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+  const target = e.target;
+  if (target instanceof HTMLElement && target !== storeySelect && target.matches("input, select, textarea")) return;
+  // A focused select would also move its own value, and the opposite way round: its floors run
+  // lowest first.
+  e.preventDefault();
+  if (e.repeat || stepping) return;
+  const next = neighbourStorey(e.code === "ArrowUp" ? 1 : -1);
+  if (!next) return;
+  stepping = true;
+  try {
+    await applyStoreyChoice(next);
+  } finally {
+    stepping = false;
+  }
 });
 select.addEventListener("change", async () => {
   await exitWalk();

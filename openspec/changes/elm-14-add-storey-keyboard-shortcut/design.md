@@ -60,8 +60,10 @@ selects text), so they are left alone.
 
 ## Risks / Trade-offs
 
-- [Arrows also scroll a page] → the handler calls `preventDefault()` only when it acts on the key,
-  and the walk-mode handler already does the same for the same keys.
+- [Arrows also scroll a page, and move a focused select] → once the key is ours (past the walk,
+  snapshot, modifier and form-control checks) the handler calls `preventDefault()` even at an end
+  or on auto-repeat, so the storey selector can never move itself under the shortcut. The walk-mode
+  handler does the same for the same keys.
 - [A user expects Arrow Down to show the floor below by itself] → the selector's cumulative meaning
   is unchanged; the docs say the shortcut steps that selector.
 - [Dropping a press during a redraw can feel unresponsive] → a redraw is one fragments update; a
