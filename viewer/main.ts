@@ -25,6 +25,7 @@ import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { STYLES } from "../src/ifc/styles.js";
+import { wallHeight } from "../src/geometry/wall.js";
 import { renderFloor, renderPlanAnnotations, renderWallTops, roomTags } from "../src/render/plan.js";
 import { C, FONT, PX_PER_MM, ROOM_LABEL } from "../src/render/style.js";
 import type { BuildingModel, Storey } from "../src/schema/schema.js";
@@ -389,7 +390,7 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
     // Dimensions on one flat plane at the ceiling: lying flat is what lets an upper storey's floor
     // occlude them, which a camera-facing billboard could never be.
     const { svg, bounds } = renderPlanAnnotations(storey, { names: false });
-    const ceiling = Math.max(0, ...storey.walls.map((w) => w.height));
+    const ceiling = Math.max(0, ...storey.walls.map((w) => wallHeight(w)));
     const y = (storey.elevation + ceiling + LABEL_LIFT) / 1000;
     const annotations = await planPlane(svg, bounds, y, { transparent: true, depthWrite: false });
     if (epoch !== loadEpoch) return;
@@ -757,7 +758,7 @@ async function setView(view: View) {
   if (!snapshot && modelJson) {
     const shown = modelJson.storeys.filter((s) => isShown(s.id));
     if (shown.length) {
-      const tops = shown.flatMap((s) => [s.elevation, ...s.walls.map((w) => s.elevation + w.height), ...s.slabs.map((sl) => s.elevation + sl.elevationOffset)]);
+      const tops = shown.flatMap((s) => [s.elevation, ...s.walls.map((w) => s.elevation + wallHeight(w)), ...s.slabs.map((sl) => s.elevation + sl.elevationOffset)]);
       const bottoms = shown.flatMap((s) => [s.elevation, ...s.slabs.map((sl) => s.elevation + sl.elevationOffset - sl.thickness)]);
       frame.min.y = Math.min(...bottoms) / 1000;
       frame.max.y = Math.max(...tops) / 1000;

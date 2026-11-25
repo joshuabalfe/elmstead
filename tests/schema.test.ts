@@ -111,6 +111,34 @@ describe("building schema", () => {
     expect(issues(d).join()).toMatch(/rooms\.0\.outline/);
   });
 
+  it("accepts a pitched wall top edge instead of a height", () => {
+    const d = minimal() as any;
+    delete d.storeys[0].walls[0].height;
+    d.storeys[0].walls[0].profile = [{ along: 0, up: 1200 }, { along: 2000, up: 2600 }, { along: 4000, up: 1200 }];
+    expect(issues(d)).toEqual([]);
+  });
+
+  it("requires exactly one of height or profile", () => {
+    const both = minimal() as any;
+    both.storeys[0].walls[0].profile = [{ along: 0, up: 1200 }, { along: 4000, up: 1200 }];
+    expect(issues(both).join()).toMatch(/exactly one of height or profile/);
+    const neither = minimal() as any;
+    delete neither.storeys[0].walls[0].height;
+    expect(issues(neither).join()).toMatch(/exactly one of height or profile/);
+  });
+
+  it("rejects a profile with one point, non-increasing along, or fractional up", () => {
+    const set = (profile: unknown) => {
+      const d = minimal() as any;
+      delete d.storeys[0].walls[0].height;
+      d.storeys[0].walls[0].profile = profile;
+      return issues(d).join();
+    };
+    expect(set([{ along: 0, up: 1200 }])).toMatch(/profile/);
+    expect(set([{ along: 0, up: 1200 }, { along: 0, up: 2600 }])).toMatch(/strictly increase/);
+    expect(set([{ along: 0, up: 1200.5 }, { along: 4000, up: 1200 }])).toMatch(/profile\.0\.up/);
+  });
+
   it("committed JSON Schema is up to date (run npm run schema)", () => {
     expect(readFileSync("schema/building.schema.json", "utf8")).toBe(jsonSchemaText());
   });

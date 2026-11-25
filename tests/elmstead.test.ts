@@ -8,7 +8,7 @@ import { stairwellOutline } from "../models/elmstead/first/index.js";
 import { stairArrivalX } from "../models/elmstead/first/walls.js";
 import { checkModel } from "../src/checks/model.js";
 import { flightFootprint, stairLevels } from "../src/geometry/stair.js";
-import { wallDirection, wallLength } from "../src/geometry/wall.js";
+import { wallDirection, wallHeight, wallLength } from "../src/geometry/wall.js";
 import { face, faceCrossing, mm } from "../src/model/index.js";
 import { renderFloor, renderPlan } from "../src/render/plan.js";
 import { C } from "../src/render/style.js";
@@ -39,7 +39,7 @@ const contains = (poly: Pt[], p: Pt): boolean => {
   return inside;
 };
 
-const wallTop = (s: Storey): number => s.elevation + Math.max(0, ...s.walls.map((w) => w.height));
+const wallTop = (s: Storey): number => s.elevation + Math.max(0, ...s.walls.map((w) => wallHeight(w)));
 
 describe("Elmstead's floor structure", () => {
   const storeys = [...elmstead.storeys].sort((a, b) => a.elevation - b.elevation);

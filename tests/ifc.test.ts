@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import cottage from "../models/example-cottage/index.js";
 import elmstead from "../models/elmstead/index.js";
 import twoStorey from "../models/example-two-storey/index.js";
-import { mm } from "../src/model/index.js";
+import { mm, pt, wall as makeWall } from "../src/model/index.js";
 import { ifcGuid } from "../src/ifc/guid.js";
 import { STYLES } from "../src/ifc/styles.js";
 import { ifcGeometry, roundTripChecks } from "../src/ifc/roundtrip.js";
@@ -193,6 +193,28 @@ describe("IFC writer", () => {
       expect(issues.map((i) => i.id)).toEqual(["wall-south"]);
       expect(issues[0]!.message).toMatch(/wall \(after opening cuts\) volume/);
     });
+  });
+});
+
+describe("a pitched wall", () => {
+  const gable = () => {
+    const m = BuildingModelSchema.parse(JSON.parse(JSON.stringify(cottage)));
+    m.storeys[0]!.walls = [makeWall("wall-gable", pt(mm(0), mm(0)), pt(mm(4000), mm(0)), {
+      thickness: mm(200),
+      profile: [{ along: mm(0), up: mm(1200) }, { along: mm(2000), up: mm(2600) }, { along: mm(4000), up: mm(1200) }],
+      justification: "left",
+    })];
+    m.storeys[0]!.openings = [];
+    return m;
+  };
+
+  it("meshes the gable and round-trips its profile area × thickness", async () => {
+    const m = gable();
+    const ifc = await writeIfc(m, { fileName: "t.ifc" });
+    expect(await roundTripChecks(m, ifc)).toEqual([]);
+    const geom = await ifcGeometry(ifc);
+    // Side area = 4000×1200 + (2600−1200)×4000/2 = 7.6e6 mm²; × 200 mm = 1.52 m³.
+    expect(geom.get("wall-gable")!.volume / 1e9).toBeCloseTo(1.52, 6);
   });
 });
 

@@ -17,16 +17,31 @@ export const PointSchema = z.strictObject({ x: MmSchema, y: MmSchema }).meta({ i
 /** Open polygon (first point is not repeated), plan coordinates in mm. */
 export const PolygonSchema = z.array(PointSchema).min(3);
 
-export const WallSchema = z.strictObject({
-  id: IdSchema,
-  name: z.string().optional(),
-  start: PointSchema,
-  end: PointSchema,
-  thickness: PositiveMmSchema,
-  height: PositiveMmSchema,
-  /** Where the body sits relative to the start→end line, looking from start towards end. */
-  justification: z.enum(["centre", "left", "right"]),
-}).meta({ id: "Wall" });
+/** A point on a wall's pitched top edge: distance along the wall and height up, in mm. */
+const WallProfilePointSchema = z.strictObject({ along: NonNegativeMmSchema, up: PositiveMmSchema });
+
+/** A wall's top edge from its start to its end: at least two points, `along` strictly increasing. */
+const WallProfileSchema = z
+  .array(WallProfilePointSchema)
+  .min(2)
+  .refine((pts) => pts.every((p, i) => i === 0 || p.along > pts[i - 1]!.along), "profile along must strictly increase from the wall's start to its end");
+
+export const WallSchema = z
+  .strictObject({
+    id: IdSchema,
+    name: z.string().optional(),
+    start: PointSchema,
+    end: PointSchema,
+    thickness: PositiveMmSchema,
+    /** Flat top height. Mutually exclusive with `profile`. */
+    height: PositiveMmSchema.optional(),
+    /** Pitched top edge from start to end. Mutually exclusive with `height`. */
+    profile: WallProfileSchema.optional(),
+    /** Where the body sits relative to the start→end line, looking from start towards end. */
+    justification: z.enum(["centre", "left", "right"]),
+  })
+  .refine((w) => (w.height === undefined) !== (w.profile === undefined), "a wall has exactly one of height or profile")
+  .meta({ id: "Wall" });
 
 export const SwingSchema = z.strictObject({
   /** Which end of the opening (nearest the wall start, or the wall end) the hinge is on. */

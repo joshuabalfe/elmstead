@@ -1,17 +1,39 @@
 /**
- * Attic external walls, stacking on the first floor's via the shared runs. The internal layout awaits
- * the owner's attic plan, so only the envelope is here for now. The west wall is the straight run;
- * whether the attic carries the dining-room bay is a question for the plan.
+ * Attic external walls. Elmstead is a terrace under a dual-pitch gable roof, so the north and south
+ * party walls are gable ends rising to a north-south ridge over the core's mid-span; the front (west)
+ * and back (east) walls stop flat at eaves height, the roof sloping down to them. The north wall also
+ * carries the rear extension, whose roof stays flat at eaves height for now (a later pass).
+ *
+ * Heights and the ridge position are provisional (see ../shared.ts). The internal layout awaits the
+ * owner's attic plan.
  */
-import { atticFloor, externalRuns, externalWall } from "../shared.js";
+import { mm, sub, wall } from "../../../src/model/index.js";
+import { atticEavesHeight, atticRidgeHeight, atticRidgeX, coreW, extEastX, externalRuns, externalWall } from "../shared.js";
 
-export const wallH = atticFloor.ceilingHeight;
+const eaves = atticEavesHeight;
+const ridge = atticRidgeHeight;
 
-export const north = externalWall("wall-north-attic", externalRuns.north, wallH);
-export const south = externalWall("wall-south-attic", externalRuns.south, wallH);
-export const west = externalWall("wall-west-attic", externalRuns.west, wallH);
-export const east = externalWall("wall-east-attic", externalRuns.east, wallH);
-export const extEast = externalWall("wall-extension-east-attic", externalRuns.extEast, wallH);
-export const extSouth = externalWall("wall-extension-south-attic", externalRuns.extSouth, wallH);
+// Top edges in (along, up). The north wall runs east→west from the extension's east end, so its
+// extension band (along 0 → extEastX-coreW) stays at eaves before the core gable rises to the ridge.
+const northProfile = [
+  { along: mm(0), up: eaves },
+  { along: sub(extEastX, coreW), up: eaves },
+  { along: sub(extEastX, atticRidgeX), up: ridge },
+  { along: extEastX, up: eaves },
+];
+const southProfile = [
+  { along: mm(0), up: eaves },
+  { along: atticRidgeX, up: ridge },
+  { along: coreW, up: eaves },
+];
+
+export const north = wall("wall-north-attic", externalRuns.north.start, externalRuns.north.end, { thickness: externalRuns.north.thickness, justification: externalRuns.north.justification, profile: northProfile });
+export const south = wall("wall-south-attic", externalRuns.south.start, externalRuns.south.end, { thickness: externalRuns.south.thickness, justification: externalRuns.south.justification, profile: southProfile });
+
+// Eaves walls: front, back and the extension stop flat at eaves height.
+export const west = externalWall("wall-west-attic", externalRuns.west, eaves);
+export const east = externalWall("wall-east-attic", externalRuns.east, eaves);
+export const extEast = externalWall("wall-extension-east-attic", externalRuns.extEast, eaves);
+export const extSouth = externalWall("wall-extension-south-attic", externalRuns.extSouth, eaves);
 
 export const walls = [north, south, west, east, extEast, extSouth];
