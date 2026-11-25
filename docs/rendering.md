@@ -189,6 +189,11 @@ openings cut, doors and glazing in place, colours applied.
   written to `?storeys=` so the URL shares it. A `?storeys=` set that is not one floor's prefix
   shows a disabled **Custom** value until a floor is chosen. The selector is hidden for a
   single-storey model.
+- **Arrow Up** and **Arrow Down** step that selector one floor: up shows the next storey above the
+  highest one shown, down hides the highest one shown. They stop at the first and last floor rather
+  than wrapping, and from a custom set they step from its highest storey. They are ignored in walk
+  mode (where the arrows walk), in snapshots, with a modifier held, for auto-repeat, while a step is
+  still drawing, and while a form control other than the storey selector has focus.
 - `?storeys=a,b` shows only those storeys: everything the IFC contains or aggregates in the others is
   hidden, with their labels and floor planes. An id that names no storey is noted in the status line
   and ignored; omitting the parameter shows every storey. With one storey shown, the Top view is
