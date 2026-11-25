@@ -426,8 +426,8 @@ describe("Elmstead's railings", () => {
   const ground = elmstead.storeys.find((s) => s.id === "storey-ground")!;
   const rail = (id: string) => street.railings?.find((r) => r.id === id);
 
-  it("has two nosing-line step rails and a level front rail at the bottom of the steps", () => {
-    expect(street.railings?.map((r) => r.id).sort()).toEqual(["railing-front-facade-south", "railing-front-north", "railing-front-south"]);
+  it("has two nosing-line step rails, a level front rail and a corner return", () => {
+    expect(street.railings?.map((r) => r.id).sort()).toEqual(["railing-front-corner", "railing-front-facade-south", "railing-front-north", "railing-front-south"]);
     for (const [id, y] of [["railing-front-north", mm(8325)], ["railing-front-south", mm(6525)]] as const) {
       const r = rail(id)!;
       expect(r.start).toEqual({ x: mm(-880), y });
@@ -441,16 +441,24 @@ describe("Elmstead's railings", () => {
     }
     const front = rail("railing-front-facade-south")!;
     expect(front.start).toEqual({ x: mm(-900), y: mm(6525) });
-    expect(front.end).toEqual({ x: mm(-900), y: mm(0) });
+    expect(front.end).toEqual({ x: mm(-900), y: mm(900) });
     expect([front.startBase, front.endBase, front.height]).toEqual([undefined, undefined, mm(900)]);
-    expect(railingGeometry(front).run).toBe(6525);
-    expect(railingGeometry(front).posts).toHaveLength(42);
+    expect(railingGeometry(front).run).toBe(5625);
+    expect(railingGeometry(front).posts).toHaveLength(37);
     expect(railingGeometry(front).rail.up.z).toBe(1); // level
+
+    const corner = rail("railing-front-corner")!;
+    expect(corner.start).toEqual({ x: mm(0), y: mm(0) });
+    expect(corner.end).toEqual({ x: mm(-900), y: mm(0) });
+    expect([corner.startBase, corner.endBase, corner.height]).toEqual([undefined, undefined, mm(900)]);
+    expect(railingGeometry(corner).run).toBe(900);
+    expect(railingGeometry(corner).posts).toHaveLength(7);
+    expect(railingGeometry(corner).rail.up.z).toBe(1); // level
   });
 
-  it("draws all three railings on the street plan, with ids when asked, but none on the ground plan", () => {
+  it("draws all four railings on the street plan, with ids when asked, but none on the ground plan", () => {
     const plan = renderPlan(elmstead, street, { ids: false });
-    for (const id of ["railing-front-north", "railing-front-south", "railing-front-facade-south"]) {
+    for (const id of ["railing-front-north", "railing-front-south", "railing-front-facade-south", "railing-front-corner"]) {
       expect(plan).toContain(`class="railing" data-id="${id}"`);
     }
     expect(plan).toContain(`stroke="${C.railing}"`);
@@ -472,5 +480,14 @@ describe("Elmstead's external works", () => {
     expect(plan).toContain(`fill="${C.ground}"`);
     expect(plan).toContain('class="stair-flight" data-id="stair-flight-front"');
     expect(renderFloor(street).svg).toContain(`fill="${C.ground}"`);
+  });
+
+  it("wraps the pavement round the south-west corner and along the south wall, clear of the footprint", () => {
+    const street = elmstead.storeys.find((s) => s.id === "storey-street")!;
+    const pavement = street.slabs!.find((s) => s.id === "slab-external-ground")!;
+    expect(contains(pavement.outline, { x: mm(-1200), y: mm(1200) })).toBe(true); // front apron
+    expect(contains(pavement.outline, { x: mm(-1200), y: mm(-1200) })).toBe(true); // round the corner
+    expect(contains(pavement.outline, { x: coreW - 1200, y: mm(-1200) })).toBe(true); // along the south wall
+    expect(contains(pavement.outline, { x: coreW - 1200, y: mm(1200) })).toBe(false); // not under the house
   });
 });

@@ -480,12 +480,13 @@ describe("elmstead external storey", () => {
     const ifc = await writeIfc(elmsteadModel, { fileName: "t.ifc" });
     const text = new TextDecoder().decode(ifc);
     expect(text).toMatch(/IFCSURFACESTYLE\('ground'/);
-    expect(text.match(/IFCRAILING\(/g) ?? []).toHaveLength(3);
+    expect(text.match(/IFCRAILING\(/g) ?? []).toHaveLength(4);
     expect(text).toMatch(/railing-front-north/);
     expect(text).toMatch(/railing-front-south/);
     expect(text).toMatch(/railing-front-facade-south/);
+    expect(text).toMatch(/railing-front-corner/);
     expect(text.match(/\.HANDRAIL\./g) ?? []).toHaveLength(2);
-    expect(text.match(/\.GUARDRAIL\./g) ?? []).toHaveLength(1);
+    expect(text.match(/\.GUARDRAIL\./g) ?? []).toHaveLength(2);
     expect(await roundTripChecks(elmsteadModel, ifc)).toEqual([]);
   });
 });

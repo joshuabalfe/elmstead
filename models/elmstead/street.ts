@@ -5,7 +5,11 @@
  * out of the street to the threshold.
  *
  * The ground sits 900 mm clear of the front wall (owner), so the flight's 900 mm run lands its
- * bottom step on the ground edge. Nothing extends under the footprint: a basement goes there.
+ * bottom step on the ground edge. At the south end of the front rail it wraps the south-west
+ * corner and continues along the south wall to the core's south-east corner, at the same 2.4 m
+ * depth. The front rail stops 900 mm short of the corner; a short return from the house corner
+ * closes the end of the front gap and leaves a 900 mm opening round the corner onto the wrap.
+ * Nothing extends under the footprint: a basement goes there.
  *
  * The railings follow the nosing line: base 150 mm at the first tread, 600 mm at the threshold,
  * and start 20 mm up the flight so the bottom post sits wholly on the first tread.
@@ -14,12 +18,14 @@ import { add, div, m, mm, pt, railing, scale, stair, stairFlight, sub, type Mm }
 import type { Storey } from "../../src/schema/schema.js";
 import { frontDoorCentreY } from "./ground/openings.js";
 import { ground } from "./ground/index.js";
-import { coreD, frontRailingEdgeInset, frontRailingEndInset, frontRailingHeight, frontStepGoing, frontStepRiser, frontStepRisers, frontStepWidth, streetFloor } from "./shared.js";
+import { coreD, coreW, frontRailingEdgeInset, frontRailingEndInset, frontRailingHeight, frontStepGoing, frontStepRiser, frontStepRisers, frontStepWidth, streetFloor } from "./shared.js";
 
 const frontApron = m(2.4);
 const frontGap = mm(900);
 const groundEast = sub(mm(0), frontGap);
 const groundWest = sub(groundEast, frontApron);
+const groundSouth = sub(mm(0), frontApron);
+const cornerGap = mm(900);
 const stepOut = scale(frontStepGoing, frontStepRisers - 1);
 const railY = sub(div(frontStepWidth, 2), frontRailingEdgeInset);
 const railBottomX = add(sub(mm(0), stepOut), frontRailingEndInset);
@@ -38,7 +44,7 @@ export const street: Storey = {
     {
       id: "slab-external-ground",
       name: "External ground",
-      outline: [pt(groundWest, mm(0)), pt(groundEast, mm(0)), pt(groundEast, coreD), pt(groundWest, coreD)],
+      outline: [pt(groundWest, groundSouth), pt(coreW, groundSouth), pt(coreW, mm(0)), pt(groundEast, mm(0)), pt(groundEast, coreD), pt(groundWest, coreD)],
       thickness: mm(50),
       elevationOffset: mm(0),
       material: "ground",
@@ -51,7 +57,10 @@ export const street: Storey = {
     stepRailing("railing-front-north", add(frontDoorCentreY, railY)),
     stepRailing("railing-front-south", sub(frontDoorCentreY, railY)),
     // Continue the south step railing from the bottom of the steps south along the front of the
-    // house, at street level on the ground slab's edge.
-    railing("railing-front-facade-south", pt(groundEast, sub(frontDoorCentreY, railY)), pt(groundEast, mm(0)), { height: frontRailingHeight }),
+    // house, at street level on the ground slab's edge, stopping 900 mm short of the corner.
+    railing("railing-front-facade-south", pt(groundEast, sub(frontDoorCentreY, railY)), pt(groundEast, cornerGap), { height: frontRailingHeight }),
+    // A short return out from the house's south-west corner closes the end of the front gap and
+    // leaves the 900 mm opening between the two rails for the pavement wrap.
+    railing("railing-front-corner", pt(mm(0), mm(0)), pt(groundEast, mm(0)), { height: frontRailingHeight }),
   ],
 };
