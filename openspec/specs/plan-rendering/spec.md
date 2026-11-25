@@ -17,7 +17,7 @@ SHALL be at 1 px = 10 mm and the PNG rasterised at 2×.
 
 ### Requirement: Plan geometry
 The plan SHALL draw, in order:
-1. slab outlines, dashed;
+1. slab outlines, dashed, with ground slabs filled in the ground colour;
 2. room fills;
 3. walls at their true thickness, split around openings, and cut to the splayed outline of a window with a reveal;
 4. door leaves with swing arcs;
@@ -34,6 +34,24 @@ The plan SHALL draw, in order:
 #### Scenario: Window with a reveal
 - **WHEN** a window the cut passes through has a reveal on its wall's left face
 - **THEN** the wall pieces either side end square from the right face to the middle and angled from the middle to the left face, and the window's outline fills the splayed gap
+
+### Requirement: Ground floor fill
+The plan SHALL draw a slab whose material is `ground` with a ground-coloured fill in the floor
+layer, beneath room fills, in both the plan and the viewer's floor overlay. The colour SHALL be
+distinct from room fills and from the wall, room and paper colours the plan-versus-3D comparison
+classifies. A concrete slab SHALL keep its existing presentation.
+
+#### Scenario: Ground slab fill
+- **WHEN** a storey has a slab with `material: "ground"`
+- **THEN** the plan fills its outline with the ground colour, distinct from room fills
+
+#### Scenario: Viewer floor overlay
+- **WHEN** the viewer composites its plan-style floor for a storey with a ground slab
+- **THEN** the ground reads in the ground colour, not the room-fill colour
+
+#### Scenario: Ground pixels are not comparable
+- **WHEN** the plan-versus-3D comparison classifies a pixel of a ground fill
+- **THEN** it classifies as neither wall, room nor paper, and the comparison skips it
 
 ### Requirement: Plan annotations
 Over the geometry the plan SHALL draw, in order:
