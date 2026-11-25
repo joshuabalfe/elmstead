@@ -21,10 +21,13 @@ which is why they are not used here.
 
 ## Decisions
 
-**Keys: PageUp and PageDown, matched on `e.code`.** Walk mode owns the arrows and W/A/S/D, and the
-Page keys have no other meaning in the viewer, so they work in every mode, including walk. `e.code`
-matches how the existing handlers read keys. Alternatives: `[` and `]` (hard to find on some
-layouts), Up/Down arrows (clash with walk mode), `+`/`-` (read as zoom).
+**Keys: Arrow Up and Arrow Down, matched on `e.code`.** They are the natural "up and down", and
+laptop keyboards have no PageUp/PageDown key (it is Fn+Arrow). Nothing else in the viewer uses the
+arrows outside walk mode: camera-controls is not given key events. Walk mode owns the arrows, so the
+handler returns while `savedView` is set (the same flag the walk keydown handler uses) and floors
+cannot be stepped from the keyboard while walking. `e.code` matches how the existing handlers read
+keys. Alternatives: PageUp/PageDown (absent on laptops), `[` and `]` (work in walk mode too, but
+hard to guess; easy to add later), `+`/`-` (read as zoom).
 
 **Step from the highest storey shown.** `shownStoreys === null` means every storey. The current
 floor is the highest shown storey in `storeysLowestFirst()` order; Up targets the next one, Down
@@ -37,28 +40,29 @@ written to the URL for it.
 
 **Focus.** Ignore the key when the target is an `input`, `textarea` or `select` that is not the
 storey selector. For the storey selector, `preventDefault()` and step ourselves: a select would
-otherwise also move its own value on PageUp/PageDown, and since the selector keeps focus after a
+otherwise also move its own value, and in the opposite direction (its options run lowest first, so
+Arrow Down would choose a higher floor); and since the selector keeps focus after a
 mouse choice, the shortcut would be dead or doubled right after using the dropdown. Buttons are not
-excluded; they take no PageUp/PageDown input.
+excluded; they take no arrow-key input.
 
 **No runaway.** Ignore `e.repeat`, and guard with a module-level `stepping` flag held across
 `await chooseStorey()` (cleared in `finally`), so a key press during an in-flight redraw is dropped
 rather than queued. `chooseStorey()` awaits a fragments update, and a second concurrent call would
 race on `shownStoreys`.
 
-**Single storey, snapshot, modifiers.** The selector is hidden for a single storey, so the handler
+**Single storey, snapshot, walk mode, modifiers.** The selector is hidden for a single storey, so the handler
 returns when the selector is hidden. Snapshot mode has no interactive UI, so it returns when
-`snapshot` is set. Ctrl/Alt/Meta/Shift combinations belong to the browser and OS (Shift+PageUp
+`snapshot` is set. Ctrl/Alt/Meta/Shift combinations belong to the browser and OS (Shift+Arrow
 selects text), so they are left alone.
 
 **Discoverability.** The selector's `title` becomes "Show every storey up to and including this one
-(PageUp / PageDown to step)". No new button, since the selector is the control.
+(Up / Down arrows to step)". No new button, since the selector is the control.
 
 ## Risks / Trade-offs
 
-- [PageUp/PageDown also scroll a page] → the viewer page does not scroll, and the handler calls
-  `preventDefault()` only when it acts on the key.
-- [A user expects PageDown to show the floor below by itself] → the selector's cumulative meaning
+- [Arrows also scroll a page] → the handler calls `preventDefault()` only when it acts on the key,
+  and the walk-mode handler already does the same for the same keys.
+- [A user expects Arrow Down to show the floor below by itself] → the selector's cumulative meaning
   is unchanged; the docs say the shortcut steps that selector.
 - [Dropping a press during a redraw can feel unresponsive] → a redraw is one fragments update; a
   dropped press is preferable to a queue of floors flashing past.

@@ -9,15 +9,16 @@ the camera where they are.
 
 ## What Changes
 
-- Add a keyboard shortcut to the viewer: **PageUp** shows the next storey up and **PageDown** hides
-  the topmost shown storey, moving the storey selector one floor at a time with the same effect as
-  choosing that floor from the dropdown.
-- The shortcut stops at the ends. PageUp with the topmost storey already shown, and PageDown with
-  only the lowest storey shown, do nothing; they never wrap round.
-- The shortcut is ignored with a modifier key held, when a model has a single storey (the selector
-  is hidden), in snapshot mode, and while any form control other than the storey selector has
-  focus. While the storey selector itself has focus the shortcut still steps it, in place of the
-  browser's own PageUp/PageDown behaviour for a select, so the two never both act.
+- Add a keyboard shortcut to the viewer: **Arrow Up** shows the next storey up and **Arrow Down**
+  hides the topmost shown storey, moving the storey selector one floor at a time with the same
+  effect as choosing that floor from the dropdown.
+- The shortcut stops at the ends. Arrow Up with the topmost storey already shown, and Arrow Down
+  with only the lowest storey shown, do nothing; they never wrap round.
+- The shortcut is ignored in walk mode, where the arrows walk forward and back; with a modifier key
+  held; when a model has a single storey (the selector is hidden); in snapshot mode; and while any
+  form control other than the storey selector has focus. While the storey selector itself has
+  focus the shortcut still steps it, in place of the browser's own arrow-key behaviour for a
+  select, so the two never both act.
 - Holding the key does not run away: auto-repeat is ignored, and a key press that arrives while a
   step is still being drawn is ignored too.
 - The storey selector's tooltip names the keys so the shortcut can be found.
@@ -40,4 +41,4 @@ None.
 - `docs/rendering.md`: the viewer section lists the shortcut.
 - No schema, model, pipeline or dependency change.
 - Out of scope: showing a single floor in isolation (the selector stays cumulative), wrapping,
-  Home/End to jump to the ends, and a shortcut for walk mode's own floor changes.
+  Home/End to jump to the ends, and stepping floors in walk mode, where the arrows keep walking.
