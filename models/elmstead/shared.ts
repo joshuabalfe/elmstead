@@ -83,7 +83,20 @@ export const basementFloor = {
 export const frontStepRisers = 4;
 export const frontStepRiser = mm(150);
 export const frontStepGoing = mm(300);
+/** Four front steps, 2000 mm wide, centred on the front door (owner). */
+export const frontStepWidth = mm(2000);
 export const streetFloor = { elevation: sub(groundFloor.elevation, scale(frontStepRiser, frontStepRisers)) };
+/**
+ * Front-step railing height, provisional: 900 mm to the top of the rail above the walking
+ * surface; update it when the owner measures it. The rail follows the nosing line — base 150 at
+ * the first tread, 600 at the threshold — and starts half a 40 mm post (20 mm) up the flight so
+ * the bottom post sits wholly on the first tread.
+ */
+export const frontRailingHeight = mm(900);
+/** Railing centreline inset from the flight edge; the 50 mm rail's outer face is 75 mm in. */
+export const frontRailingEdgeInset = mm(100);
+/** Half a railing post: the bottom-post inset along the flight. */
+export const frontRailingEndInset = mm(20);
 /**
  * Provisional floor structure between the ground ceiling and the first floor: joists, deck and
  * finishes. It is also the first-floor slab's thickness, so changing it moves the first floor and

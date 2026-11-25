@@ -129,8 +129,9 @@ afterAll(async () => {
 }, 60_000);
 
 describe("plan colours", () => {
-  it("ignores ground pixels in the plan-versus-3D comparison", () => {
+  it("ignores ground and railing pixels in the plan-versus-3D comparison", () => {
     expect(isIgnoredColour(C.ground)).toBe(true);
+    expect(isIgnoredColour(C.railing)).toBe(true);
   });
 });
 
@@ -239,6 +240,35 @@ describe("storey selection", () => {
       return { value: s.value, text: s.selectedOptions[0]?.textContent };
     });
     expect(picker).toEqual({ value: "", text: "Custom" });
+  }, 120_000);
+});
+
+describe("railing presentation", () => {
+  const near = (r: Raster, rgb: [number, number, number], tol: number): number => {
+    let n = 0;
+    for (let i = 0; i < r.data.length; i += 4) {
+      if (Math.abs(r.data[i]! - rgb[0]) <= tol && Math.abs(r.data[i + 1]! - rgb[1]) <= tol && Math.abs(r.data[i + 2]! - rgb[2]) <= tol) n++;
+    }
+    return n;
+  };
+  const railing: [number, number, number] = [74, 81, 90]; // STYLES.railing, the IFC colour
+
+  it("shows the railings in 3D and hides them with the street storey", async () => {
+    const m = structuredClone(await model("models/elmstead"));
+    await publish("test-railing-view", m);
+    const noRailings = structuredClone(m);
+    for (const s of noRailings.storeys) s.railings = [];
+    await publish("test-railing-none", noRailings);
+    // A fixed camera keeps both pictures at the same scale; the front is to the west.
+    const q = "view=sw&labels=0&camera=-12,8,8,0,1,-4";
+    for (const style of ["plan", "ifc"]) {
+      const withRail = await viewOf("test-railing-view", `${q}&snapshot=1&style=${style}`);
+      const without = await viewOf("test-railing-none", `${q}&snapshot=1&style=${style}`);
+      expect(near(withRail, railing, 70), style).toBeGreaterThan(near(without, railing, 70) + 500);
+    }
+    // All three railings are on the street storey; hiding it hides them with the rest of the street.
+    const hidden = `${q}&snapshot=1&style=ifc&storeys=storey-basement,storey-ground,storey-first-floor`;
+    expect(samePixels(await viewOf("test-railing-view", hidden), await viewOf("test-railing-none", hidden))).toBe(true);
   }, 120_000);
 });
 

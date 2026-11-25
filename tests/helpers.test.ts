@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { centredOn, deg, door, doorComponent, face, faceCrossing, m, mm, pt, rectWalls, wall, window, windowComponent } from "../src/model/index.js";
+import { centredOn, deg, door, doorComponent, face, faceCrossing, m, mm, pt, railing, rectWalls, wall, window, windowComponent } from "../src/model/index.js";
 
 const opts = { thickness: mm(200), height: m(2.4) };
 
@@ -76,6 +76,14 @@ describe("model helpers", () => {
     expect(window("window-b", w.south, mm(100), size, reveal)).toMatchObject({ width: 1050, reveal });
     expect(window("window-c", w.south, mm(100), sash, size)).not.toHaveProperty("reveal");
     expect(window("window-d", w.south, mm(100), size)).not.toHaveProperty("reveal");
+  });
+
+  it("railing() records the bases it is given and omits both otherwise", () => {
+    const a = pt(mm(0), mm(0));
+    const b = pt(m(2), mm(0));
+    expect(railing("railing-level", a, b, { height: mm(900) })).toEqual({ id: "railing-level", start: a, end: b, height: 900 });
+    expect(railing("railing-sloped", a, b, { height: mm(900), startBase: mm(150), endBase: mm(600) })).toMatchObject({ startBase: 150, endBase: 600 });
+    expect(railing("railing-partial", a, b, { height: mm(900), endBase: mm(600) })).not.toHaveProperty("startBase");
   });
 
   it("centredOn() handles walls running in either direction", () => {

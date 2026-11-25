@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import cottage from "../models/example-cottage/index.js";
-import { deg, door, m, mm, pt, wall } from "../src/model/index.js";
-import { doorGeometry, renderFloor, renderPlan } from "../src/render/plan.js";
+import elmstead from "../models/elmstead/index.js";
+import { deg, door, m, mm, pt, railing, wall } from "../src/model/index.js";
+import { doorGeometry, renderFloor, renderPlan, renderPlanAnnotations, renderWallTops } from "../src/render/plan.js";
 import { svgToPng } from "../src/render/png.js";
 import { C } from "../src/render/style.js";
 import { BuildingModelSchema } from "../src/schema/schema.js";
@@ -160,6 +161,48 @@ describe("plan renderer", () => {
     const [w, h] = [png.readUInt32BE(16), png.readUInt32BE(20)];
     const [sw, sh] = [Number(svg.match(/width="(\d+)"/)![1]), Number(svg.match(/height="(\d+)"/)![1])];
     expect([w, h]).toEqual([sw * 2, sh * 2]);
+  });
+});
+
+describe("railings on the plan", () => {
+  const withRailing = (r: ReturnType<typeof railing>) => {
+    const m = structuredClone(model);
+    m.storeys[0]!.railings = [r];
+    return m;
+  };
+  const width = (svg: string) => Number(svg.match(/width="(\d+)"/)![1]);
+
+  it("draws a group with its id, rail line, post ticks and optional id label", () => {
+    const m = withRailing(railing("railing-a", pt(mm(500), mm(500)), pt(mm(3500), mm(500)), { height: mm(900) }));
+    const s = m.storeys[0]!;
+    const plan = renderPlan(m, s, { ids: false });
+    expect(plan).toContain('class="railing" data-id="railing-a"');
+    const body = plan.match(/<g class="railing" data-id="railing-a">([\s\S]*?)<\/g>/)![1]!;
+    expect(body).toContain(`stroke="${C.railing}"`);
+    expect([...body.matchAll(/<line /g)]).toHaveLength(21); // the rail plus one tick at each of 20 posts
+    expect(plan).not.toContain(">railing-a<");
+    expect(renderPlan(m, s, { ids: true })).toContain(">railing-a<");
+  });
+
+  it("includes an outlying railing in the plan extent but not in the shared overlay bounds", () => {
+    const outlying = railing("railing-out", pt(m(20), m(20)), pt(m(22), m(20)), { height: mm(900) });
+    const withRail = withRailing(outlying);
+    const plain = structuredClone(withRail);
+    plain.storeys[0]!.railings = [];
+    expect(width(renderPlan(withRail, withRail.storeys[0]!, { ids: false }))).toBeGreaterThan(width(renderPlan(plain, plain.storeys[0]!, { ids: false })));
+
+    for (const render of [renderFloor, renderWallTops, renderPlanAnnotations]) {
+      expect(render(withRail.storeys[0]!).bounds).toEqual(render(plain.storeys[0]!).bounds);
+      expect(render(withRail.storeys[0]!).svg).not.toContain("railing");
+    }
+  });
+
+  it("draws railings before the stair layer", () => {
+    const street = elmstead.storeys.find((s) => s.id === "storey-street")!;
+    const plan = renderPlan(elmstead, street, { ids: false });
+    const railingAt = plan.indexOf('class="railing"');
+    expect(railingAt).toBeGreaterThan(-1);
+    expect(plan.indexOf('class="stair"')).toBeGreaterThan(railingAt);
   });
 });
 

@@ -20,6 +20,8 @@ export const C = {
   // those three and compares only the pixels it recognises, so stair pixels must not be mistaken
   // for one of them (see tests/support/plan-vs-3d.ts).
   stair: "#5c8a55",
+  // Railing lines and post ticks. Clear of wall, room and paper so the comparison skips them.
+  railing: "#4a515a",
   constraint: "#c0392b",
   measure: "#00897b",
 };

@@ -150,6 +150,22 @@ export const StairSchema = z.strictObject({
   segments: z.array(StairSegmentSchema).min(1),
 }).meta({ id: "Stair" });
 
+/**
+ * A straight guard rail or handrail. `start`→`end` is its plan run. `height` is the height of
+ * the top of the rail above the walking surface; `startBase` and `endBase` are that surface at
+ * each end, relative to the storey floor, and an omitted base is 0. Equal effective bases make a
+ * level guard, different effective bases a sloped handrail.
+ */
+export const RailingSchema = z.strictObject({
+  id: IdSchema,
+  name: z.string().optional(),
+  start: PointSchema,
+  end: PointSchema,
+  height: PositiveMmSchema,
+  startBase: NonNegativeMmSchema.optional(),
+  endBase: NonNegativeMmSchema.optional(),
+}).meta({ id: "Railing" });
+
 export const StoreySchema = z.strictObject({
   id: IdSchema,
   name: z.string().min(1),
@@ -161,6 +177,8 @@ export const StoreySchema = z.strictObject({
   rooms: z.array(RoomSchema),
   /** Stairs climbing from this storey to the next one up. */
   stairs: z.array(StairSchema).optional(),
+  /** Straight guard rails and handrails on this storey. */
+  railings: z.array(RailingSchema).optional(),
 }).meta({ id: "Storey" });
 
 /**
@@ -245,6 +263,7 @@ export type StairFlight = z.infer<typeof StairFlightSchema>;
 export type StairLanding = z.infer<typeof StairLandingSchema>;
 export type StairSegment = z.infer<typeof StairSegmentSchema>;
 export type Stair = z.infer<typeof StairSchema>;
+export type Railing = z.infer<typeof RailingSchema>;
 export type Storey = z.infer<typeof StoreySchema>;
 export type Site = z.infer<typeof SiteSchema>;
 export type BuildingModel = z.infer<typeof BuildingModelSchema>;

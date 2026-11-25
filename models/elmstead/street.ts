@@ -1,25 +1,32 @@
 /**
- * External works at the front of the house: the street level, its ground slab and the four front
- * steps to the front door. The door is on the west wall, 150 mm from its north end (owner), so the
- * steps climb east out of the street to the threshold.
+ * External works at the front of the house: the street level, its ground slab, the four front
+ * steps to the front door, and the handrails down each side of them and along the front at the
+ * bottom. The door is on the west wall, 150 mm from its north end (owner), so the steps climb east
+ * out of the street to the threshold.
  *
  * The ground sits 900 mm clear of the front wall (owner), so the flight's 900 mm run lands its
  * bottom step on the ground edge. Nothing extends under the footprint: a basement goes there.
+ *
+ * The railings follow the nosing line: base 150 mm at the first tread, 600 mm at the threshold,
+ * and start 20 mm up the flight so the bottom post sits wholly on the first tread.
  */
-import { div, m, mm, pt, scale, stair, stairFlight, sub } from "../../src/model/index.js";
+import { add, div, m, mm, pt, railing, scale, stair, stairFlight, sub, type Mm } from "../../src/model/index.js";
 import type { Storey } from "../../src/schema/schema.js";
+import { frontDoorCentreY } from "./ground/openings.js";
 import { ground } from "./ground/index.js";
-import { frontDoorOffset, frontDoorWidth } from "./ground/openings.js";
-import { northIn } from "./ground/walls.js";
-import { coreD, frontStepGoing, frontStepRisers, streetFloor } from "./shared.js";
+import { coreD, frontRailingEdgeInset, frontRailingEndInset, frontRailingHeight, frontStepGoing, frontStepRiser, frontStepRisers, frontStepWidth, streetFloor } from "./shared.js";
 
 const frontApron = m(2.4);
 const frontGap = mm(900);
 const groundEast = sub(mm(0), frontGap);
 const groundWest = sub(groundEast, frontApron);
-const doorCentreY = sub(sub(northIn, frontDoorOffset), div(frontDoorWidth, 2));
 const stepOut = scale(frontStepGoing, frontStepRisers - 1);
-const stepWidth = mm(2000);
+const railY = sub(div(frontStepWidth, 2), frontRailingEdgeInset);
+const railBottomX = add(sub(mm(0), stepOut), frontRailingEndInset);
+const railTopBase = scale(frontStepRiser, frontStepRisers);
+
+const stepRailing = (id: string, y: Mm) =>
+  railing(id, pt(railBottomX, y), pt(mm(0), y), { height: frontRailingHeight, startBase: frontStepRiser, endBase: railTopBase });
 
 export const street: Storey = {
   id: "storey-street",
@@ -39,5 +46,12 @@ export const street: Storey = {
   ],
   rooms: [],
   // Four risers (owner) from the street to the door threshold, running east to the west wall.
-  stairs: [stair("stair-front", ground, [stairFlight("stair-flight-front", pt(sub(mm(0), stepOut), doorCentreY), pt(mm(0), doorCentreY), { width: stepWidth, risers: frontStepRisers })])],
+  stairs: [stair("stair-front", ground, [stairFlight("stair-flight-front", pt(sub(mm(0), stepOut), frontDoorCentreY), pt(mm(0), frontDoorCentreY), { width: frontStepWidth, risers: frontStepRisers })])],
+  railings: [
+    stepRailing("railing-front-north", add(frontDoorCentreY, railY)),
+    stepRailing("railing-front-south", sub(frontDoorCentreY, railY)),
+    // Continue the south step railing from the bottom of the steps south along the front of the
+    // house, at street level on the ground slab's edge.
+    railing("railing-front-facade-south", pt(groundEast, sub(frontDoorCentreY, railY)), pt(groundEast, mm(0)), { height: frontRailingHeight }),
+  ],
 };

@@ -566,6 +566,7 @@ async function applyStoreyVisibility(model: FragmentsModel) {
       owner.set(st.id, s.id);
       for (const seg of st.segments) owner.set(seg.id, s.id);
     }
+    for (const r of s.railings ?? []) owner.set(r.id, s.id);
   }
   // Fragments' spatial tree does not surface every storey, so map items by their Tag (elements) or
   // Name (spaces, whose Tag the writer leaves empty) instead of walking it.
@@ -587,6 +588,7 @@ function shownBox(): THREE.Box3 {
     ...s.walls.flatMap((w) => [w.start, w.end]),
     ...s.slabs.flatMap((sl) => sl.outline),
     ...s.rooms.flatMap((r) => r.outline),
+    ...(s.railings ?? []).flatMap((r) => [r.start, r.end]),
   ]);
   if (!pts.length) return box;
   const xs = pts.map((p) => p.x);
