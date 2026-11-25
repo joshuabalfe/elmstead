@@ -45,6 +45,8 @@ None. This extends the existing wall behaviour rather than introducing a new dur
   and a new rule requires the profile to span the wall length.
 - `ifc-verification`: the *Expected volumes* requirement uses a pitched wall's profile area × thickness.
 - `model-authoring`: the *Wall and room helpers* requirement lets `wall` take the pitched top.
+- `ifc-viewer`: the *Plan style* requirement lays the flat wall-piece overlay only over flat-topped
+  walls, so a pitched wall's sloped top is painted by the shader without a flat plane floating above it.
 
 ## Impact
 

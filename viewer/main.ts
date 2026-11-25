@@ -412,8 +412,16 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
       label.position.set(tag.at.x / 1000, y, -tag.at.y / 1000);
       labelGroup.add(label);
     }
-    const tops = renderWallTops(storey, model.components);
-    layerGroup.add(await planPlane(tops.svg, tops.bounds, (storey.elevation + ceiling + WALL_TOP_LIFT) / 1000, { transparent: true, depthWrite: false }));
+    // The wall-top poché is a flat plane, so it only fits flat-topped walls; a pitched wall's sloped
+    // top is painted by patchTops instead. Lay the overlay at the flat walls' height, not the ridge,
+    // so it does not float above the eaves walls or the slope.
+    const flatWalls = storey.walls.filter((w) => !w.profile);
+    if (flatWalls.length) {
+      const flatCeiling = Math.max(...flatWalls.map((w) => wallHeight(w)));
+      const flatStorey = { ...storey, walls: flatWalls, openings: storey.openings.filter((o) => flatWalls.some((w) => w.id === o.wallId)) };
+      const tops = renderWallTops(flatStorey, model.components);
+      layerGroup.add(await planPlane(tops.svg, tops.bounds, (storey.elevation + flatCeiling + WALL_TOP_LIFT) / 1000, { transparent: true, depthWrite: false }));
+    }
     if (epoch !== loadEpoch) return;
     // Every storey's floor is its own slab and room fills, at its own level, writing depth: the floor you
     // see is the topmost one, and it hides the storeys below. Cut-out (alphaTest), not blended, so
