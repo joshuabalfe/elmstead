@@ -24,13 +24,16 @@ import { PointerLockControls } from "three/addons/controls/PointerLockControls.j
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { STYLES } from "../src/ifc/styles.js";
 import { wallHeight } from "../src/geometry/wall.js";
-import { renderFloor, renderPlanAnnotations, renderWallTops, roomTags } from "../src/render/plan.js";
-import { C, FONT, PX_PER_MM, ROOM_LABEL } from "../src/render/style.js";
+import { renderFloor, renderPlanAnnotations, renderWallTops, roomTags, type Overlay } from "../src/render/plan.js";
+import { C, PX_PER_MM, ROOM_LABEL } from "../src/render/style.js";
 import type { BuildingModel, Storey } from "../src/schema/schema.js";
 import type { ResolvedConstraint } from "../src/constraints/check.js";
 import { constraintLabels } from "./constraints.js";
+import { overlayGroup, type OverlayLayer } from "./overlay.js";
+import { labelTexture, type BillboardLine } from "./text.js";
 import { elementLabel, type ElementLabel } from "./identify.js";
 import { SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap, type MeasurementValues, type Point3, type SnapCandidate } from "./measure.js";
 import { cameraForView, labelHeading, parseView, type View } from "./view.js";
@@ -92,8 +95,6 @@ const ifcLoader = components.get(OBC.IfcLoader);
 // Keep IFC coordinates as they are (no shift to the origin) so the room labels line up with the model.
 await ifcLoader.setup({ autoSetWasm: false, wasm: { path: "/wasm/", absolute: true }, webIfc: { COORDINATE_TO_ORIGIN: false } });
 
-/** Texture px per plan-SVG px: the SVG is 1 px = 10 mm, so this is 2.5 mm per texel. */
-const LABEL_RESOLUTION = 4;
 /** Height (mm) above the ceiling at which the labels are laid, clear of the wall tops. */
 const LABEL_LIFT = 10;
 const labels = new THREE.Group();
@@ -195,43 +196,6 @@ world.camera.controls.addEventListener("update", () => {
 });
 window.addEventListener("resize", updateCompass);
 
-interface BillboardLine {
-  text: string;
-  size: number;
-  bold?: boolean;
-  /** Baseline offset from the label's centre, in canvas px. */
-  dy: number;
-}
-
-/** A label's haloed canvas, at the plan's text scale; width and height are in canvas px. */
-function labelTexture(lines: BillboardLine[], fill: string): { map: THREE.CanvasTexture; width: number; height: number } {
-  const halo = 3;
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d")!;
-  const font = (l: BillboardLine) => `${l.bold ? "bold " : ""}${l.size}px "${FONT}", sans-serif`;
-  const width = Math.max(...lines.map((l) => ((ctx.font = font(l)), ctx.measureText(l.text).width))) + 2 * halo;
-  // Lay the baselines out around the centre, so the texture centres on its anchor.
-  const top = Math.min(...lines.map((l) => l.dy - l.size));
-  const bottom = Math.max(...lines.map((l) => l.dy + 4));
-  const height = bottom - top;
-  canvas.width = Math.ceil(width * LABEL_RESOLUTION);
-  canvas.height = Math.ceil((height + 2 * halo) * LABEL_RESOLUTION);
-  ctx.scale(LABEL_RESOLUTION, LABEL_RESOLUTION);
-  ctx.textAlign = "center";
-  ctx.lineJoin = "round";
-  for (const l of lines) {
-    ctx.font = font(l);
-    ctx.lineWidth = halo;
-    ctx.strokeStyle = C.paper;
-    ctx.strokeText(l.text, width / 2, halo - top + l.dy);
-    ctx.fillStyle = fill;
-    ctx.fillText(l.text, width / 2, halo - top + l.dy);
-  }
-  const map = new THREE.CanvasTexture(canvas);
-  map.colorSpace = THREE.SRGBColorSpace;
-  return { map, width, height: height + 2 * halo };
-}
-
 /** A sprite that always faces the camera, at the plan's text scale, with a halo so it reads over the model. */
 function billboard(lines: BillboardLine[], fill: string, renderOrder: number, depthTest = false): THREE.Sprite {
   const { map, width, height } = labelTexture(lines, fill);
@@ -309,23 +273,9 @@ function constraintLine(from: { x: number; y: number }, to: { x: number; y: numb
   return line;
 }
 
-/** A plan-sized SVG overlay as a flat plane at height `y` (m), the drawing's north along −Z (IFC +Y). */
-async function planPlane(svg: string, bounds: { minX: number; minY: number; maxX: number; maxY: number }, y: number, material: THREE.MeshBasicMaterialParameters) {
-  const img = new Image();
-  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  await img.decode();
-  const canvas = document.createElement("canvas");
-  canvas.width = img.naturalWidth * LABEL_RESOLUTION;
-  canvas.height = img.naturalHeight * LABEL_RESOLUTION;
-  canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
-  const map = new THREE.CanvasTexture(canvas);
-  map.colorSpace = THREE.SRGBColorSpace;
-  map.anisotropy = world.renderer!.three.capabilities.getMaxAnisotropy();
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry((bounds.maxX - bounds.minX) / 1000, (bounds.maxY - bounds.minY) / 1000), new THREE.MeshBasicMaterial({ map, ...material }));
-  mesh.rotation.x = -Math.PI / 2;
-  mesh.position.set((bounds.minX + bounds.maxX) / 2000, y, -(bounds.minY + bounds.maxY) / 2000);
-  return mesh;
-}
+/** A storey's overlay drawing as flat scene geometry at height `y` (m), the drawing's north along −Z (IFC +Y). */
+const planGeometry = ({ nodes, bounds }: Overlay, y: number, layer: OverlayLayer) =>
+  overlayGroup(nodes, bounds, y, layer, world.renderer!.three.capabilities.getMaxAnisotropy());
 
 /**
  * Plan colouring's layers (see applyStyle): the plan's floor fills (slab and rooms) and door swings
@@ -353,7 +303,7 @@ function updateLowestElevation() {
 }
 
 /**
- * The plan's dimensions for each storey on one transparent texture at its ceiling, each room's
+ * The plan's dimensions for each storey drawn flat at its ceiling, each room's
  * name and area on its own flat label there, and that storey's constraints as red labels and
  * dotted spans beside them. The schema has no ceiling height, so the ceiling is the top of the
  * storey's tallest wall. Lying flat, an upper storey's floor occludes a lower storey's labels, as
@@ -363,7 +313,8 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
   if (epoch !== loadEpoch) return;
   const dispose = (obj: THREE.Object3D) => {
     for (const child of [...obj.children]) dispose(child);
-    if (obj instanceof Line2) obj.geometry.dispose(); // the line material is shared by every constraint
+    // Line2 and the overlays' strokes; the constraint lines share one material, which survives disposal.
+    if (obj instanceof LineSegments2) obj.geometry.dispose();
     if (obj instanceof THREE.Mesh) obj.geometry.dispose(); // sprites share one geometry
     const material = "material" in obj ? (obj.material as THREE.MeshBasicMaterial | THREE.SpriteMaterial) : undefined;
     material?.map?.dispose();
@@ -387,15 +338,11 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
   for (const storey of model.storeys) {
     const labelGroup = new THREE.Group();
     const layerGroup = new THREE.Group();
-    // Dimensions on one flat plane at the ceiling: lying flat is what lets an upper storey's floor
-    // occlude them, which a camera-facing billboard could never be.
-    const { svg, bounds } = renderPlanAnnotations(storey, { names: false });
+    // Dimensions lying flat at the ceiling: lying flat is what lets an upper storey's floor occlude
+    // them, which a camera-facing billboard could never be. Over the wall tops' layer.
     const ceiling = Math.max(0, ...storey.walls.map((w) => wallHeight(w)));
     const y = (storey.elevation + ceiling + LABEL_LIFT) / 1000;
-    const annotations = await planPlane(svg, bounds, y, { transparent: true, depthWrite: false });
-    if (epoch !== loadEpoch) return;
-    annotations.renderOrder = 1; // over the wall tops' layer
-    labelGroup.add(annotations);
+    labelGroup.add(planGeometry(renderPlanAnnotations(storey, { names: false }), y, { kind: "overlay", renderOrder: 1 }));
     // Each room's name and area is its own plane, flat like the dimensions but yawed to the camera
     // (updateLabelOrientation), so it stays occludable without standing up through the floor above.
     for (const tag of roomTags(storey)) {
@@ -412,7 +359,7 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
       label.position.set(tag.at.x / 1000, y, -tag.at.y / 1000);
       labelGroup.add(label);
     }
-    // The wall-top poché is a flat plane, so it only fits flat-topped walls; a pitched wall's sloped
+    // The wall-top poché lies flat, so it only fits flat-topped walls; a pitched wall's sloped
     // top is painted by patchTops instead. Lay one overlay per flat-wall height, each at its own wall
     // top, so a taller wall's plane never floats above a shorter one (e.g. the first floor's 2.7 m
     // walls over its 2.55 m bay).
@@ -427,18 +374,13 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
     for (const [h, walls] of byHeight) {
       const groupStorey = { ...storey, walls, openings: storey.openings.filter((o) => walls.some((w) => w.id === o.wallId)) };
       const tops = renderWallTops(groupStorey, model.components);
-      layerGroup.add(await planPlane(tops.svg, tops.bounds, (storey.elevation + h + WALL_TOP_LIFT) / 1000, { transparent: true, depthWrite: false }));
+      layerGroup.add(planGeometry(tops, (storey.elevation + h + WALL_TOP_LIFT) / 1000, { kind: "overlay", renderOrder: 0 }));
     }
-    if (epoch !== loadEpoch) return;
     // Every storey's floor is its own slab and room fills, at its own level, writing depth: the floor you
-    // see is the topmost one, and it hides the storeys below. Cut-out (alphaTest), not blended, so
-    // it stays in the opaque pass that runs before the walls. Built even while hidden, so the
-    // selector can show a storey again without rebuilding it.
-    const fills = renderFloor(storey, model.components);
-    const fill = await planPlane(fills.svg, fills.bounds, (storey.elevation + FLOOR_LIFT) / 1000, { alphaTest: 0.5 });
-    if (epoch !== loadEpoch) return;
-    fill.renderOrder = -1;
-    layerGroup.add(fill);
+    // see is the topmost one, and it hides the storeys below. Opaque, not blended, so it stays in the
+    // opaque pass that runs before the walls. Built even while hidden, so the selector can show a
+    // storey again without rebuilding it.
+    layerGroup.add(planGeometry(renderFloor(storey, model.components), (storey.elevation + FLOOR_LIFT) / 1000, { kind: "floor", renderOrder: -1 }));
     // Constraints live in their own per-storey group inside the constraints layer, so the
     // Constraints button and the storey selection compose.
     const constraintGroup = new THREE.Group();
