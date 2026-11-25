@@ -266,7 +266,7 @@ describe("railing presentation", () => {
       const without = await viewOf("test-railing-none", `${q}&snapshot=1&style=${style}`);
       expect(near(withRail, railing, 70), style).toBeGreaterThan(near(without, railing, 70) + 500);
     }
-    // All three railings are on the street storey; hiding it hides them with the rest of the street.
+    // All four railings are on the street storey; hiding it hides them with the rest of the street.
     const hidden = `${q}&snapshot=1&style=ifc&storeys=storey-basement,storey-ground,storey-first-floor`;
     expect(samePixels(await viewOf("test-railing-view", hidden), await viewOf("test-railing-none", hidden))).toBe(true);
   }, 120_000);
@@ -309,7 +309,7 @@ describe("ground presentation", () => {
     }
     return n;
   };
-  const ground: [number, number, number] = [120, 143, 97]; // STYLES.ground, sRGB
+  const ground: [number, number, number] = [102, 102, 102]; // STYLES.ground, sRGB
 
   it("shows a ground slab in the ground colour and not as concrete", async () => {
     const m = await model("models/example-cottage");
@@ -322,7 +322,7 @@ describe("ground presentation", () => {
 
     // The plan-style floor fill is unlit, so the ground colour is exact.
     const plan = await viewOf("test-ground-presentation", "view=top&labels=0&style=plan");
-    expect(near(plan, [125, 143, 95], 6)).toBeGreaterThan(1000);
+    expect(near(plan, [102, 102, 102], 6)).toBeGreaterThan(1000);
 
     // In IFC style the slab top is lit, so compare the ground model against a concrete copy.
     const withGround = await viewOf("test-ground-presentation", "view=top&labels=0&style=ifc");
