@@ -48,7 +48,30 @@ describe("Elmstead's floor structure", () => {
     const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
     if (!first) throw new Error("Elmstead has no first floor");
     const bay = new Set(["wall-bay-north-first", "wall-bay-front-first", "wall-bay-south-first"]);
-    for (const wall of first.walls) expect(wall.height, wall.id).toBe(bay.has(wall.id) ? mm(2550) : mm(2700));
+    const extension = new Set(["wall-north-extension-first", "wall-extension-east-first", "wall-extension-south-first"]);
+    for (const wall of first.walls) {
+      if (extension.has(wall.id)) continue; // the extension roof slopes; see the taper test below
+      expect(wall.height, wall.id).toBe(bay.has(wall.id) ? mm(2550) : mm(2700));
+    }
+  });
+
+  it("tapers the first-floor extension roof from the full ceiling where the extension starts", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    const wall = (id: string) => {
+      const w = first.walls.find((wall) => wall.id === id);
+      if (!w) throw new Error(`Elmstead's first floor has no ${id}`);
+      return w;
+    };
+    const northExt = wall("wall-north-extension-first");
+    const extSouth = wall("wall-extension-south-first");
+    const extEast = wall("wall-extension-east-first");
+    // Full 2.7 m ceiling at the extension start (coreW), falling towards the extension east.
+    expect(northExt.profile!.at(-1)!.up).toBe(mm(2700));
+    expect(extSouth.profile![0]!.up).toBe(mm(2700));
+    expect(northExt.profile![0]!.up).toBe(extEast.height);
+    expect(extSouth.profile!.at(-1)!.up).toBeLessThan(mm(2700));
+    expect(extEast.height!).toBeLessThan(mm(2700));
   });
 
   it("puts the kitchen window above the front door", () => {

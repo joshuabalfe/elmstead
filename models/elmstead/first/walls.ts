@@ -8,7 +8,7 @@
  * belong to the stair change.
  */
 import { add, face, mm, pt, sub, wall } from "../../../src/model/index.js";
-import { brickT, coreW, extEastX, extSouthY, externalRuns, externalWall, firstFloor, partT, studT, westT } from "../shared.js";
+import { atticRidgeHeight, atticRidgeX, brickT, coreD, coreW, extEastX, extSouthY, externalRuns, externalWall, firstFloor, partT, studT, westT } from "../shared.js";
 import { livingBreast, partitionEast, partitionX } from "../ground/walls.js";
 
 export const wallH = firstFloor.ceilingHeight;
@@ -41,7 +41,18 @@ export const ensuiteSouthY = mm(3815); // bedroom face of the ensuite's south wa
 export const ensuiteSouthFaceY = add(ensuiteSouthY, partT);
 
 // ── External walls, on the ground floor's walls below ───────────────────────
-export const north = externalWall("wall-north-first", externalRuns.north, wallH);
+// The extension roof continues the attic's east slope down from the full ceiling where the extension
+// starts (coreW), tapering the extension walls' tops; the core and ensuite stay flat.
+const roofPitch = atticRidgeHeight / atticRidgeX; // the attic gable's rise per mm
+const extTopAt = (x: number) => mm(Math.round(wallH - roofPitch * (x - coreW)));
+const extEaves = extTopAt(extEastX);
+
+export const north = wall("wall-north-first", pt(coreW, coreD), pt(mm(0), coreD), { thickness: externalRuns.north.thickness, height: wallH, justification: externalRuns.north.justification });
+export const northExt = wall("wall-north-extension-first", pt(extEastX, coreD), pt(coreW, coreD), {
+  thickness: externalRuns.north.thickness,
+  justification: externalRuns.north.justification,
+  profile: [{ along: mm(0), up: extEaves }, { along: sub(extEastX, coreW), up: wallH }],
+});
 export const south = externalWall("wall-south-first", externalRuns.south, wallH);
 export const southIn = face(south, "north");
 export const northIn = face(north, "south");
@@ -54,8 +65,12 @@ export const westIn = face(westNorth, "east");
 
 export const east = externalWall("wall-east-first", externalRuns.east, wallH);
 export const eastIn = face(east, "west");
-export const extEast = externalWall("wall-extension-east-first", externalRuns.extEast, wallH);
-export const extSouth = externalWall("wall-extension-south-first", externalRuns.extSouth, wallH);
+export const extEast = externalWall("wall-extension-east-first", externalRuns.extEast, extEaves);
+export const extSouth = wall("wall-extension-south-first", externalRuns.extSouth.start, externalRuns.extSouth.end, {
+  thickness: externalRuns.extSouth.thickness,
+  justification: externalRuns.extSouth.justification,
+  profile: [{ along: mm(0), up: wallH }, { along: sub(externalRuns.extSouth.end.x, coreW), up: extTopAt(externalRuns.extSouth.end.x) }],
+});
 
 // ── Bay window, west side of the dining room ────────────────────────────────
 // Lines are the bay's outer edge; its sides meet the west wall's outer face. Its ceiling is
@@ -101,6 +116,7 @@ export const breastBedroom = wall("wall-breast-bedroom-first", pt(bedroomBreastW
 
 export const walls = [
   north,
+  northExt,
   south,
   westNorth,
   westSouth,
