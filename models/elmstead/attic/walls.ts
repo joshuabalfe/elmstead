@@ -30,9 +30,10 @@ const southProfile = [
 export const north = wall("wall-north-attic", externalRuns.north.start, externalRuns.north.end, { thickness: externalRuns.north.thickness, justification: externalRuns.north.justification, profile: northProfile });
 export const south = wall("wall-south-attic", externalRuns.south.start, externalRuns.south.end, { thickness: externalRuns.south.thickness, justification: externalRuns.south.justification, profile: southProfile });
 
-// Eaves walls: front, back and the extension stop flat at eaves height. The front knee wall is set
-// back 400 mm from the front edge (owner), recessed between the gable party walls.
-export const west = wall("wall-west-attic", pt(mm(400), externalRuns.west.start.y), pt(mm(400), externalRuns.west.end.y), { thickness: externalRuns.west.thickness, height: eaves, justification: "left" });
+// Eaves walls: back and extension stop flat at eaves height. The front knee wall is set back 400 mm
+// from the front edge (owner) and stands 600 mm high (owner), recessed between the gable party walls,
+// which keep their own eaves-to-ridge height.
+export const west = wall("wall-west-attic", pt(mm(400), externalRuns.west.start.y), pt(mm(400), externalRuns.west.end.y), { thickness: externalRuns.west.thickness, height: mm(600), justification: "left" });
 export const east = externalWall("wall-east-attic", externalRuns.east, eaves);
 export const extEast = externalWall("wall-extension-east-attic", externalRuns.extEast, eaves);
 export const extSouth = externalWall("wall-extension-south-attic", externalRuns.extSouth, eaves);
