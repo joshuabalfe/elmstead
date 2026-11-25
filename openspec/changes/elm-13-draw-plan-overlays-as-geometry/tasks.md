@@ -2,16 +2,16 @@
 
 ## 0. Measurement and baseline
 
-- [ ] 0.1 Add `scripts/bench-viewer.ts`, which loads a model in the viewer under Playwright Chromium (SwiftShader by default, `--gpu` for the real GPU) and prints JSON: load time, texture upload count, largest and total uploaded texels, and median and p90 frame interval and GPU time while orbiting. Verify that it runs on `elmstead` and prints numbers matching the earlier profiling (about 1.3 GB of textures, and a largest texture of 5612×5092).
-- [ ] 0.2 Add `scripts/compare-viewer.ts`, which captures plan-style screenshots at fixed views (top, two corners, and close-ups of a window, a door swing and a dimension figure, each storey alone and all together) from two viewer roots. It writes side-by-side images, a diff heatmap per view and an HTML index to an output folder, with each view's mismatch ratio. Verify that comparing the tree with itself gives zero difference on every view.
-- [ ] 0.3 Capture the baseline from `origin/main` in a temporary worktree: run the benchmark on `elmstead` and keep its screenshots. Verify that the baseline JSON and images exist in the scratch folder.
+- [x] 0.1 Add `scripts/bench-viewer.ts`, which loads a model in the viewer under Playwright Chromium (SwiftShader by default, `--gpu` for the real GPU) and prints JSON: load time, texture upload count, largest and total uploaded texels, and median and p90 frame interval and GPU time while orbiting. Verify that it runs on `elmstead` and prints numbers matching the earlier profiling (about 1.3 GB of textures, and a largest texture of 5612×5092).
+- [x] 0.2 Add `scripts/compare-viewer.ts`, which captures plan-style screenshots at fixed views (top, two corners, and close-ups of a window, a door swing and a dimension figure, each storey alone and all together) from two viewer roots. It writes side-by-side images, a diff heatmap per view and an HTML index to an output folder, with each view's mismatch ratio. Verify that comparing the tree with itself gives zero difference on every view.
+- [x] 0.3 Capture the baseline from `origin/main` in a temporary worktree: run the benchmark on `elmstead` and keep its screenshots. Verify that the baseline JSON and images exist in the scratch folder.
 
 ## 1. Drawing primitives in `src/render/`
 
-- [ ] 1.1 In `src/render/svg.ts`, make `polygon`, `polyline`, `line`, `text`, `group` and `el` return typed `Node`s, and add `serialise(node)`, which writes exactly the string each helper wrote before. Verify with unit tests in `tests/render.test.ts` comparing `serialise` output with the old strings for each helper, including `num()` rounding and escaping.
-- [ ] 1.2 Switch `src/render/plan.ts` from `string[]` to `Node[]`, serialising in `renderPlan` and `overlay()`. Verify that `tests/__snapshots__/example-cottage.storey-ground.plan.svg` passes unchanged and that `npm run test:fast` passes.
-- [ ] 1.3 Make `renderFloor`, `renderWallTops` and `renderPlanAnnotations` return `{ svg, bounds, nodes }`, with `svg` serialised from `nodes`. Verify with a test that `serialise` of the wrapped nodes equals `svg` for every storey of the example models.
-- [ ] 1.4 Give `dimension()` an optional style (line stroke and width, text halo). Have `renderPlanAnnotations` pass ink at 1 px with a 3 px paper halo and drop its `<style>` node. Verify with a test that annotation lines carry `stroke` = ink and `stroke-width` 1 and figures carry the halo, and that the plan snapshot is unchanged.
+- [x] 1.1 In `src/render/svg.ts`, make `polygon`, `polyline`, `line`, `text`, `group` and `el` return typed `Node`s, and add `serialise(node)`, which writes exactly the string each helper wrote before. Verify with unit tests in `tests/render.test.ts` comparing `serialise` output with the old strings for each helper, including `num()` rounding and escaping.
+- [x] 1.2 Switch `src/render/plan.ts` from `string[]` to `Node[]`, serialising in `renderPlan` and `overlay()`. Verify that `tests/__snapshots__/example-cottage.storey-ground.plan.svg` passes unchanged and that `npm run test:fast` passes.
+- [x] 1.3 Make `renderFloor`, `renderWallTops` and `renderPlanAnnotations` return `{ svg, bounds, nodes }`, with `svg` serialised from `nodes`. Verify with a test that `serialise` of the wrapped nodes equals `svg` for every storey of the example models.
+- [x] 1.4 Give `dimension()` an optional style (line stroke and width, text halo). Have `renderPlanAnnotations` pass ink at 1 px with a 3 px paper halo and drop its `<style>` node. Verify with a test that annotation lines carry `stroke` = ink and `stroke-width` 1 and figures carry the halo, and that the plan snapshot is unchanged.
 
 ## 2. Viewer geometry for primitives
 

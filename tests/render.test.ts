@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import cottage from "../models/example-cottage/index.js";
 import elmstead from "../models/elmstead/index.js";
+import twoStorey from "../models/example-two-storey/index.js";
 import { deg, door, m, mm, pt, railing, wall } from "../src/model/index.js";
 import { doorGeometry, renderFloor, renderPlan, renderPlanAnnotations, renderWallTops } from "../src/render/plan.js";
 import { svgToPng } from "../src/render/png.js";
 import { C } from "../src/render/style.js";
+import { el, group, line, polygon, polyline, serialise, text, type Node } from "../src/render/svg.js";
 import { BuildingModelSchema } from "../src/schema/schema.js";
 import { splayedCottage } from "./support/reveal.js";
 
@@ -230,5 +232,63 @@ describe("door swing geometry", () => {
     const d = doorGeometry(eastward, door("d", eastward, m(1), size));
     expect(d.hinge).toEqual({ x: 1000, y: 200 });
     expect(d.open.y).toBe(1100);
+  });
+});
+
+describe("drawing primitives", () => {
+  const p = (x: number, y: number) => ({ x, y });
+
+  it("serialise writes each primitive as the SVG the plan has always used", () => {
+    expect(serialise(polygon([p(1.04, 2.05), p(-0.04, 3)], { class: "wall", "data-id": "w", fill: C.wall, stroke: "none" }))).toBe(
+      `<polygon points="1,2.1 0,3" class="wall" data-id="w" fill="${C.wall}" stroke="none"/>`,
+    );
+    // A polyline is unfilled unless it says otherwise, and the fill keeps its place.
+    expect(serialise(polyline([p(0, 0), p(1, 1)], { stroke: "#000", "stroke-width": 0.7, "stroke-dasharray": "3 2" }))).toBe(
+      '<polyline points="0,0 1,1" fill="none" stroke="#000" stroke-width="0.7" stroke-dasharray="3 2"/>',
+    );
+    expect(serialise(polyline([p(0, 0)], { stroke: "#000", fill: "#fff" }))).toBe('<polyline points="0,0" fill="#fff" stroke="#000"/>');
+    expect(serialise(line(p(0.25, 0), p(10, 20.96), { stroke: "#000", "stroke-width": 1 }))).toBe('<line x1="0.3" y1="0" x2="10" y2="21" stroke="#000" stroke-width="1"/>');
+    expect(serialise(text(p(5, 6), 'A & <B> "c"', { "font-size": 11, transform: "rotate(90 5 6)" }))).toBe(
+      '<text x="5" y="6" font-size="11" transform="rotate(90 5 6)">A &amp; &lt;B&gt; &quot;c&quot;</text>',
+    );
+    expect(serialise(group({ class: "door", "data-id": "d" }, [line(p(0, 0), p(1, 0), {}), el("circle", { r: 2, fill: undefined })]))).toBe(
+      '<g class="door" data-id="d">\n<line x1="0" y1="0" x2="1" y2="0"/>\n<circle r="2"/>\n</g>',
+    );
+    expect(serialise(el("style", {}, "line { stroke: red; }"))).toBe("<style>line { stroke: red; }</style>");
+  });
+
+  it("serialises each overlay's SVG from its own primitives, for every storey of the example models", () => {
+    const two = BuildingModelSchema.parse(JSON.parse(JSON.stringify(twoStorey)));
+    for (const mod of [model, two, BuildingModelSchema.parse(JSON.parse(JSON.stringify(elmstead)))]) {
+      for (const s of mod.storeys) {
+        for (const o of [renderFloor(s, mod.components), renderWallTops(s, mod.components), renderPlanAnnotations(s, { names: false })]) {
+          const lines = o.svg.split("\n");
+          // Between the <svg> line and the closing "</svg>" and trailing newline: the primitives, in order.
+          expect(lines.slice(1, -2).join("\n")).toBe(o.nodes.map(serialise).join("\n"));
+        }
+      }
+    }
+  });
+
+  it("styles the annotation overlay on its primitives: ink lines 1 px wide and haloed text, with no stylesheet", () => {
+    const flat = (nodes: Node[]): Node[] => nodes.flatMap((n) => (n.tag === "g" ? flat(n.children) : [n]));
+    const o = renderPlanAnnotations(storey);
+    expect(o.svg).not.toContain("<style");
+    const nodes = flat(o.nodes);
+    const lines = nodes.filter((n) => n.tag === "line");
+    const texts = nodes.filter((n) => n.tag === "text");
+    expect(lines.length).toBeGreaterThan(0);
+    expect(texts.length).toBeGreaterThan(0);
+    for (const l of lines) expect(l.attrs).toMatchObject({ stroke: C.ink, "stroke-width": 1 });
+    for (const t of texts) expect(t.attrs).toMatchObject({ stroke: C.paper, "stroke-width": 3, "stroke-linejoin": "round", "paint-order": "stroke" });
+    // The plan keeps its own lighter dimension lines and unhaloed figures.
+    expect(svg).toContain(`stroke="${C.dim}" stroke-width="0.8"`);
+    expect(svg).not.toContain('paint-order="stroke">2');
+  });
+
+  it("keeps full precision on the nodes, rounding only the SVG", () => {
+    const node = line(p(0.123456, 0), p(1, 1), {});
+    expect(node.tag === "line" && node.from.x).toBe(0.123456);
+    expect(serialise(node)).toContain('x1="0.1"');
   });
 });
