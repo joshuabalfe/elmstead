@@ -6,10 +6,10 @@
  * (about 440 mm) uses the owner's 768 mm internal-door width. The front window, fanlight, front door
  * opening and frame, and the bedroom window's sill and head, are the owner's.
  */
-import { add, centredOn, deg, divRound, door, doorway, face, m, mm, scale, sub, window, type Opening } from "../../../src/model/index.js";
+import { add, centredOn, deg, div, divRound, door, doorway, face, m, mm, scale, sub, window, type Opening } from "../../../src/model/index.js";
 import { fanlight, frontDoor, frontWindow, internalDoor, smallPaneWindow, standardWindow } from "../components/index.js";
 import { living } from "./rooms.js";
-import { bathWestX, bedroomBathroom, bedroomWallY, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, lobbyScreenLobbyStart, lobbyScreenLobbyVisibleLength, partitionEast, southIn, west } from "./walls.js";
+import { bathWestX, bedroomBathroom, bedroomWallY, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, lobbyScreenLobbyStart, lobbyScreenLobbyVisibleLength, northIn, partitionEast, southIn, west } from "./walls.js";
 
 const doorH = m(2.1);
 const internal = { width: mm(768), height: doorH };
@@ -22,6 +22,8 @@ const frontDoorFrame = mm(50);
 export const frontDoorWidth = mm(1000);
 const front = { width: frontDoorWidth, height: doorH };
 export const frontDoorOffset = mm(150); // from the north end of the west wall (owner)
+/** Centre of the front door, shared with the step railings and the front facade railing. */
+export const frontDoorCentreY = sub(sub(northIn, frontDoorOffset), div(frontDoorWidth, 2));
 const frontHead = m(2.6);
 const transom = mm(100); // between the top of the door and the fanlight
 const frontWindowSize = { width: m(2.5), height: sub(frontHead, mm(500)), sillHeight: mm(500) };

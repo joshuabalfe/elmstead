@@ -12,7 +12,7 @@ models/elmstead/
   index.ts          defineBuilding(...): components, storeys: [basement, street, ground, first]
   constraints.ts    real measurements the model must keep (see Constraints)
   shared.ts         dimensions every floor uses: outline, external wall thicknesses, floor levels
-  street.ts         external works: street level, ground slab and front steps
+  street.ts         external works: street level, ground slab, front steps and railings
   components/       door and window designs, shared by every floor
     doors.ts        front door, internal door
     windows.ts      front window, fanlight, standard window
@@ -103,6 +103,7 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
 | **Stair** | `toStoreyId`, `segments` | a storey element climbing to the next storey up; `segments` run bottom to top |
 | **Stair flight** | `start`, `end`, `width`, `risers` | `kind: "flight"`; a straight run, centred on its start→end line, of at least 2 risers |
 | **Stair landing** | `outline`, `thickness` | `kind: "landing"`; a flat platform, its level derived from the flights below it |
+| **Railing** | `start`, `end`, `height`, `startBase?`, `endBase?` | a straight guard or handrail; `height` is to the top of the rail above the walking surface; an omitted base is 0, equal effective bases are level and different bases slope |
 | **Door / window component** | `id`, `name` | a design (not a size) shared by openings, in the building's `components: { doors, windows }`; written to IFC as `IfcDoorType` / `IfcWindowType` |
 
 - Outlines are open polygons: at least three distinct points, no repeated adjacent points, the
@@ -265,8 +266,24 @@ const ground: Storey = {
 
 The two flights turn through 180°, so the IFC calls the stair `HALF_TURN_STAIR`. Its landing is an
 ordinary polygon, so an irregular one — a rear hall wrapping around it, say — needs no special case.
-Not modelled yet: winders, curved and spiral stairs, railings, headroom, and openings cut in an
-upper floor's slab (shape the slab's outline around the stairwell instead).
+Not modelled yet: winders, curved and spiral stairs, headroom, and openings cut in an upper
+floor's slab (shape the slab's outline around the stairwell instead).
+
+## Railings
+
+A railing is a straight run from `start` to `end`. `height` is the top of the rail above the
+walking surface; `startBase` and `endBase` give that surface at each end, relative to the storey
+floor. An omitted base is 0, so equal effective bases make a level guard and different ones make a
+sloped handrail. Posts are derived at both ends and at centres no more than 160 mm apart.
+
+```ts
+const levelGuard = railing("railing-front", pt(mm(0), mm(0)), pt(m(3), mm(0)), { height: mm(900) });
+const handrail = railing("railing-steps", pt(mm(0), mm(0)), pt(mm(900), mm(0)), { height: mm(900), startBase: mm(150), endBase: mm(600) });
+```
+
+Nothing else vertical is stored: the rail follows the two bases and the writer, round-trip and
+plan derive the rest. A level rail along the front at street level can continue a step railing
+from the bottom of the steps, as `models/elmstead/street.ts` does.
 
 ## External works
 
@@ -315,6 +332,7 @@ build plain values, so a model can always write the JSON shape out directly inst
 | `stairFlight(id, start, end, { width, risers })` | a straight flight of steps, for `stair()` |
 | `stairLanding(id, outline, { thickness })` | a flat platform between flights, for `stair()` |
 | `stair(id, toStorey, segments)` | a stair to `toStorey`, recording its id as `toStoreyId`; segments run bottom to top |
+| `railing(id, start, end, { height, startBase?, endBase? })` | a straight guard or handrail; bases are recorded as given and an omitted base means 0 |
 
 ### Make dimensions follow each other
 
@@ -425,5 +443,5 @@ room's storey).
 ## Things the schema does not have yet
 
 Room heights (rooms are 2D outlines in IFC), wall types (external or internal), roofs, curved walls,
-winder and spiral stairs, and railings. Don't approximate these with the existing types. Propose a
+winder and spiral stairs. Don't approximate these with the existing types. Propose a
 schema change instead (see [Development](development.md#adding-a-new-element-type)).

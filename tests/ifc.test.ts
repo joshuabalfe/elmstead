@@ -6,9 +6,10 @@ import { describe, expect, it } from "vitest";
 import cottage from "../models/example-cottage/index.js";
 import elmstead from "../models/elmstead/index.js";
 import twoStorey from "../models/example-two-storey/index.js";
-import { mm, pt, wall as makeWall } from "../src/model/index.js";
+import { m, mm, pt, railing, wall as makeWall } from "../src/model/index.js";
 import { ifcGuid } from "../src/ifc/guid.js";
 import { STYLES } from "../src/ifc/styles.js";
+import { railingGeometry } from "../src/geometry/railing.js";
 import { ifcGeometry, roundTripChecks } from "../src/ifc/roundtrip.js";
 import { validateIfc } from "../src/ifc/validate.js";
 import { writeIfc } from "../src/ifc/writer.js";
@@ -353,6 +354,75 @@ describe("a stair in IFC", () => {
   });
 });
 
+describe("a railing in IFC", () => {
+  const railingModel = (() => {
+    const base = BuildingModelSchema.parse(JSON.parse(JSON.stringify(cottage)));
+    base.storeys[0]!.railings = [
+      railing("railing-level", pt(mm(0), mm(0)), pt(m(3), mm(0)), { height: mm(900) }),
+      railing("railing-sloped", pt(mm(0), mm(1000)), pt(mm(880), mm(1000)), { height: mm(900), startBase: mm(150), endBase: mm(600) }),
+    ];
+    return base;
+  })();
+  const write = (m: BuildingModel) => writeIfc(m, { fileName: "railing.ifc" });
+  const enumValue = (v: unknown) => (typeof v === "string" ? v : ((v as { value?: string } | null)?.value ?? null));
+
+  async function lines(ifc: Uint8Array, type: number) {
+    const api = new WebIFC.IfcAPI();
+    await api.Init();
+    const id = api.OpenModel(ifc);
+    try {
+      return ids(api, id, type).map((e) => api.GetLine(id, e));
+    } finally {
+      api.CloseModel(id);
+    }
+  }
+
+  it("writes level railings as GUARDRAIL and sloped ones as HANDRAIL", async () => {
+    const railings = await lines(await write(railingModel), WebIFC.IFCRAILING);
+    const byTag = new Map(railings.map((r) => [r.Tag.value as string, r]));
+    expect(enumValue(byTag.get("railing-level")!.PredefinedType)).toBe("GUARDRAIL");
+    expect(enumValue(byTag.get("railing-sloped")!.PredefinedType)).toBe("HANDRAIL");
+    expect(byTag.get("railing-level")!.Name.value).toBe("railing-level");
+  });
+
+  it("styles every rail and post with the railing colour", async () => {
+    const text = new TextDecoder().decode(await write(railingModel));
+    const style = /#(\d+)=IFCSURFACESTYLE\('railing'/.exec(text)![1];
+    const styled = text.match(new RegExp(`IFCSTYLEDITEM\\(#\\d+,\\(#${style}\\)`, "g")) ?? [];
+    expect(styled).toHaveLength(29); // 21 for the 3 m level run (rail + 20 posts), 8 for the sloped run (rail + 7 posts)
+  });
+
+  it("orients the rail along the 3D run, not straight up", async () => {
+    const ifc = await write(railingModel);
+    const api = new WebIFC.IfcAPI();
+    await api.Init();
+    const id = api.OpenModel(ifc);
+    try {
+      const railingLine = ids(api, id, WebIFC.IFCRAILING)
+        .map((e) => api.GetLine(id, e))
+        .find((r) => r.Tag.value === "railing-sloped")!;
+      const shape = api.GetLine(id, railingLine.Representation.value);
+      const body = api.GetLine(id, shape.Representations[0].value);
+      const railSolid = api.GetLine(id, body.Items[0].value);
+      const depth = railSolid.Depth.value ?? railSolid.Depth;
+      expect(depth).toBeCloseTo(Math.hypot(880, 450), 6);
+      const position = api.GetLine(id, railSolid.Position.value);
+      const axis = api.GetLine(id, position.Axis.value);
+      const ratios = axis.DirectionRatios.map((v: { value?: number } | number) => (typeof v === "number" ? v : v.value));
+      expect(ratios[2]).toBeGreaterThan(0.4); // the slope, not a vertical box
+    } finally {
+      api.CloseModel(id);
+    }
+  });
+
+  it("matches the rail and post volumes in the round-trip", async () => {
+    const ifc = await write(railingModel);
+    expect(await roundTripChecks(railingModel, ifc)).toEqual([]);
+    const geom = await ifcGeometry(ifc);
+    for (const r of railingModel.storeys[0]!.railings!) expect(geom.get(r.id)!.volume).toBeCloseTo(railingGeometry(r).volume, 0);
+  });
+});
+
 describe("IfcOpenShell validator", () => {
   const dir = mkdtempSync(join(tmpdir(), "elmstead-"));
 
@@ -367,6 +437,15 @@ describe("IfcOpenShell validator", () => {
   it("passes a splayed reveal with no errors or warnings", async () => {
     const path = join(dir, "splayed.ifc");
     writeFileSync(path, await writeIfc(splayedCottage(), { fileName: "splayed.ifc" }));
+    const v = validateIfc(path);
+    expect(v.issues).toEqual([]);
+    expect([v.errors, v.warnings]).toEqual([0, 0]);
+  }, 60_000);
+
+  it("passes railings with no errors or warnings", async () => {
+    const withRailings = structuredClone(elmstead);
+    const path = join(dir, "railings.ifc");
+    writeFileSync(path, await writeIfc(withRailings, { fileName: "railings.ifc" }));
     const v = validateIfc(path);
     expect(v.issues).toEqual([]);
     expect([v.errors, v.warnings]).toEqual([0, 0]);
@@ -397,10 +476,16 @@ describe("IfcOpenShell validator", () => {
 describe("elmstead external storey", () => {
   const elmsteadModel = BuildingModelSchema.parse(JSON.parse(JSON.stringify(elmstead)));
 
-  it("writes the street storey, ground slab and front-step stair, and round-trips", async () => {
+  it("writes the street storey, ground slab, front-step stair and railings, and round-trips", async () => {
     const ifc = await writeIfc(elmsteadModel, { fileName: "t.ifc" });
     const text = new TextDecoder().decode(ifc);
     expect(text).toMatch(/IFCSURFACESTYLE\('ground'/);
+    expect(text.match(/IFCRAILING\(/g) ?? []).toHaveLength(3);
+    expect(text).toMatch(/railing-front-north/);
+    expect(text).toMatch(/railing-front-south/);
+    expect(text).toMatch(/railing-front-facade-south/);
+    expect(text.match(/\.HANDRAIL\./g) ?? []).toHaveLength(2);
+    expect(text.match(/\.GUARDRAIL\./g) ?? []).toHaveLength(1);
     expect(await roundTripChecks(elmsteadModel, ifc)).toEqual([]);
   });
 });

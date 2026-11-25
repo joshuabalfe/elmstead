@@ -8,6 +8,7 @@ import type { Issue } from "../checks/issue.js";
 import { doorDivision } from "../geometry/door.js";
 import { revealSplay } from "../geometry/opening.js";
 import { area as polygonArea } from "../geometry/polygon.js";
+import { railingGeometry } from "../geometry/railing.js";
 import { flightProfileArea, stairLevels } from "../geometry/stair.js";
 import { toVec } from "../geometry/vec.js";
 import { wallSideArea } from "../geometry/wall.js";
@@ -150,6 +151,7 @@ export async function roundTripChecks(model: BuildingModel, ifc: Uint8Array): Pr
       // The IfcStair container is deliberately left out: it has no body, so its geometry is counted
       // once, through the flights and landings above.
     }
+    for (const railing of s.railings ?? []) expect(railing.id, railingGeometry(railing).volume, "railing");
   }
   return issues;
 }

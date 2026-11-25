@@ -8,11 +8,12 @@
 import * as WebIFC from "web-ifc";
 import { doorDivision } from "../geometry/door.js";
 import { isSplayed, openingProfile } from "../geometry/opening.js";
+import { POST_SIZE, RAIL_DEPTH, RAIL_WIDTH, railingGeometry } from "../geometry/railing.js";
 import { flightDirection, flightProfile, flightRun, stairLevels, turnBetween, type FlightLevel } from "../geometry/stair.js";
 import { v, type Vec } from "../geometry/vec.js";
 import { faceOffsets, wallDirection, wallHeight, wallLength, wallSideProfile } from "../geometry/wall.js";
 import { GLAZING_BAR_DEPTH, windowDivision, type Rect } from "../geometry/window.js";
-import type { BuildingModel, Door, DoorComponent, Opening, Room, Slab, Stair, StairFlight, StairLanding, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
+import type { BuildingModel, Door, DoorComponent, Opening, Railing, Room, Slab, Stair, StairFlight, StairLanding, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
 import { ifcGuid } from "./guid.js";
 import { STYLES, type StyleName } from "./styles.js";
 
@@ -257,6 +258,7 @@ class Writer {
       if (to === undefined) throw new Error(`${stair.id}: toStoreyId "${stair.toStoreyId}" is not a storey in the model`);
       contained.push(this.stair(stair, placement, to - s.elevation));
     }
+    for (const railing of s.railings ?? []) contained.push(this.railing(railing, placement));
 
     if (contained.length) {
       this.write(new IFC4.IfcRelContainedInSpatialStructure(guid(`${s.id}#contains`), null, null, null, contained, storey));
@@ -510,6 +512,35 @@ class Writer {
         posLen(round9(level.going)),
         IFC4.IfcStairFlightTypeEnum.STRAIGHT,
       ),
+    );
+  }
+
+  /**
+   * A railing: an IfcRailing in the storey with a swept top rail and vertical posts. The rail solid
+   * is oriented with its local Z along the 3D run and its local X across it, and positioned so its
+   * top surface is `height` above the walking surface. Each post is a vertical box. All solids are
+   * positioned in storey coordinates.
+   */
+  private railing(r: Railing, parent: InstanceType<typeof IFC4.IfcLocalPlacement>) {
+    const g = railingGeometry(r);
+    const placement = this.placement(parent, 0, 0, 0);
+    const railAt = new IFC4.IfcAxis2Placement3D(
+      this.pt3(round9(g.rail.start.x), round9(g.rail.start.y), round9(g.rail.start.z)),
+      new IFC4.IfcDirection([real(round9(g.rail.direction.x)), real(round9(g.rail.direction.y)), real(round9(g.rail.direction.z))]),
+      new IFC4.IfcDirection([real(round9(g.rail.across.x)), real(round9(g.rail.across.y)), real(0)]),
+    );
+    const rail = new IFC4.IfcExtrudedAreaSolid(this.rectangle(0, 0, RAIL_WIDTH, RAIL_DEPTH), railAt, this.zAxis, posLen(round9(g.rail.length)));
+    this.write(new IFC4.IfcStyledItem(rail, [this.surfaceStyle("railing")], null));
+    const posts = g.posts.map((p) => {
+      const at = new IFC4.IfcAxis2Placement3D(this.pt3(round9(p.at.x), round9(p.at.y), round9(p.base)), null, null);
+      const solid = new IFC4.IfcExtrudedAreaSolid(this.rectangle(0, 0, POST_SIZE, POST_SIZE), at, this.zAxis, posLen(round9(p.top - p.base)));
+      this.write(new IFC4.IfcStyledItem(solid, [this.surfaceStyle("railing")], null));
+      return solid;
+    });
+    const body = new IFC4.IfcShapeRepresentation(this.bodyCtx, label("Body"), label("SweptSolid"), [rail, ...posts]);
+    const predefinedType = g.startBase === g.endBase ? IFC4.IfcRailingTypeEnum.GUARDRAIL : IFC4.IfcRailingTypeEnum.HANDRAIL;
+    return this.write(
+      new IFC4.IfcRailing(guid(r.id), null, label(r.name ?? r.id), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [body]), ident(r.id), predefinedType),
     );
   }
 

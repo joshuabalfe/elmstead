@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import cottage from "../models/example-cottage/index.js";
 import elmstead from "../models/elmstead/index.js";
 import { checkComponents } from "../src/checks/components.js";
-import { checkIds, checkModel, checkOpenings, checkOutlines, checkWalls } from "../src/checks/model.js";
+import { checkIds, checkModel, checkOpenings, checkOutlines, checkRailings, checkWalls } from "../src/checks/model.js";
 import { wallHeight, wallLength } from "../src/geometry/wall.js";
 import { deg, m as metres, mm, pt, wall as makeWall, window as makeWindow, type Reveal } from "../src/model/index.js";
 import { BuildingModelSchema, type BuildingModel } from "../src/schema/schema.js";
@@ -53,6 +53,20 @@ describe("checkIds", () => {
     const m = model();
     m.components!.windows.push({ ...m.components!.doors[0]! });
     expect(checkIds(m)).toEqual([{ level: "ERROR", id: "door-type-external", message: "component id is used twice" }]);
+  });
+});
+
+describe("checkRailings", () => {
+  it("reports a railing whose start and end are the same", () => {
+    const m = model();
+    m.storeys[0]!.railings = [{ id: "railing-a", start: { x: mm(0), y: mm(0) }, end: { x: mm(0), y: mm(0) }, height: mm(900) }];
+    expect(checkRailings(m)).toEqual([{ level: "ERROR", id: "railing-a", message: "zero-length railing cannot be written to IFC" }]);
+  });
+
+  it("joins the unique id space", () => {
+    const m = model();
+    m.storeys[0]!.railings = [{ id: "wall-south", start: { x: mm(0), y: mm(0) }, end: { x: mm(1000), y: mm(0) }, height: mm(900) }];
+    expect(checkIds(m)).toEqual([{ level: "ERROR", id: "wall-south", message: "id is used by a wall and a railing" }]);
   });
 });
 

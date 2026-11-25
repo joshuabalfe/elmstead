@@ -251,6 +251,12 @@
           "items": {
             "$ref": "#/$defs/Stair"
           }
+        },
+        "railings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Railing"
+          }
         }
       },
       "required": [
@@ -694,6 +700,46 @@
         "id",
         "outline",
         "thickness"
+      ],
+      "additionalProperties": false
+    },
+    "Railing": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "start": {
+          "$ref": "#/$defs/Point"
+        },
+        "end": {
+          "$ref": "#/$defs/Point"
+        },
+        "height": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "startBase": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "endBase": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "id",
+        "start",
+        "end",
+        "height"
       ],
       "additionalProperties": false
     }
