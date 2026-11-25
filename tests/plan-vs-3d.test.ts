@@ -143,7 +143,10 @@ describe("3D Top view against the plan", () => {
     ["models/elmstead", elmstead],
     ["models/example-two-storey", twoStorey],
   ] as const) {
-    for (const storey of source.storeys.filter((s) => s.walls.length > 0)) {
+    // A storey with pitched walls is skipped: this compares the plan's horizontal cut poché with the
+    // 3D top view, which agree for flat-topped walls but not for a sloped top (its cut footprint and
+    // its top projection differ). Comparing pitched walls against a top-view plan is a follow-up.
+    for (const storey of source.storeys.filter((s) => s.walls.length > 0 && !s.walls.some((w) => w.profile))) {
       it(`shows the same walls, rooms and openings as the plan: ${path} ${storey.id}`, async () => {
         const m = structuredClone(source) as BuildingModel;
         const name = `test-${path.replace(/\W+/g, "-")}`;

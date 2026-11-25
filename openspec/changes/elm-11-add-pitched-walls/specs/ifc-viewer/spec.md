@@ -35,3 +35,23 @@ wall-top shader instead, so no flat overlay floats above the slope or above shor
 #### Scenario: Flat walls of different heights
 - **WHEN** a storey has a tall front wall and shorter eaves walls at the back in plan style
 - **THEN** each wall's poché overlay sits at its own top, with no plane floating above the shorter walls
+
+### Requirement: Plan and 3D agree
+The test suite SHALL build each model and, for every storey whose walls are all flat-topped, render
+the viewer's top view with only that storey shown and compare it with that storey's plan in
+overlapping 500 mm tiles. Pixels are classified as wall, room fill or paper. A tile SHALL fail above
+10% mismatch, and failures SHALL be reported in metres from the outer walls' south-west corner. A
+storey with a pitched wall SHALL be skipped: the plan's horizontal cut poché and the 3D top
+projection of a sloped top differ, so comparing them needs a top-view plan (a follow-up).
+
+#### Scenario: Room outline on a wall centreline
+- **WHEN** a room outline runs to a wall's centreline instead of its face
+- **THEN** the plan-versus-3D test fails on the affected tiles
+
+#### Scenario: Two storeys with different layouts
+- **WHEN** a model's storeys have different wall layouts
+- **THEN** each storey's plan is compared against the top view of that storey alone, and both pass
+
+#### Scenario: Storey with a pitched wall
+- **WHEN** a storey has a pitched (gable) wall
+- **THEN** the cut-poché plan-versus-3D comparison skips that storey
