@@ -104,10 +104,10 @@ export const atticFloorStructure = mm(200);
 /**
  * Attic roof heights. Elmstead is a terrace under a dual-pitch gable roof: the north and south party
  * walls rise to a north-south ridge over the core's mid-span, while the front (west) and back (east)
- * walls stop flat at eaves height. The ridge is the owner's estimate (~3.2 m); the eaves height and
- * ridge position are still provisional — revisit them when the roof is measured.
+ * walls stop flat at a low eaves knee wall. The ridge (~3.2 m) and eaves (~0.2 m) are the owner's
+ * estimates; the ridge position is still provisional — revisit it when the roof is measured.
  */
-export const atticEavesHeight = m(1.2);
+export const atticEavesHeight = m(0.2); // owner's estimate
 export const atticRidgeHeight = m(3.2); // owner's estimate
 export const atticRidgeX = mm(4512); // ridge over the core's east-west mid-span (provisional)
 export const atticFloor = {
