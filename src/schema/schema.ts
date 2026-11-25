@@ -17,14 +17,17 @@ export const PointSchema = z.strictObject({ x: MmSchema, y: MmSchema }).meta({ i
 /** Open polygon (first point is not repeated), plan coordinates in mm. */
 export const PolygonSchema = z.array(PointSchema).min(3);
 
-/** A point on a wall's pitched top edge: distance along the wall and height up, in mm. */
-const WallProfilePointSchema = z.strictObject({ along: NonNegativeMmSchema, up: PositiveMmSchema });
+/** A point on a wall's pitched top edge: distance along the wall and height up, in mm. `up` may be 0
+ * where the top edge meets the floor (a gable running right down to the floor). */
+const WallProfilePointSchema = z.strictObject({ along: NonNegativeMmSchema, up: NonNegativeMmSchema });
 
-/** A wall's top edge from its start to its end: at least two points, `along` strictly increasing. */
+/** A wall's top edge from its start to its end: at least two points, `along` strictly increasing,
+ * rising above the floor somewhere so the wall has a body. */
 const WallProfileSchema = z
   .array(WallProfilePointSchema)
   .min(2)
-  .refine((pts) => pts.every((p, i) => i === 0 || p.along > pts[i - 1]!.along), "profile along must strictly increase from the wall's start to its end");
+  .refine((pts) => pts.every((p, i) => i === 0 || p.along > pts[i - 1]!.along), "profile along must strictly increase from the wall's start to its end")
+  .refine((pts) => pts.some((p) => p.up > 0), "profile must rise above the floor somewhere");
 
 export const WallSchema = z
   .strictObject({

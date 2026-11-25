@@ -139,6 +139,17 @@ describe("building schema", () => {
     expect(set([{ along: 0, up: 1200.5 }, { along: 4000, up: 1200 }])).toMatch(/profile\.0\.up/);
   });
 
+  it("allows a profile that runs to the floor but rejects one that never rises", () => {
+    const toFloor = minimal() as any;
+    delete toFloor.storeys[0].walls[0].height;
+    toFloor.storeys[0].walls[0].profile = [{ along: 0, up: 0 }, { along: 2000, up: 3200 }, { along: 4000, up: 0 }];
+    expect(issues(toFloor)).toEqual([]);
+    const flatZero = minimal() as any;
+    delete flatZero.storeys[0].walls[0].height;
+    flatZero.storeys[0].walls[0].profile = [{ along: 0, up: 0 }, { along: 4000, up: 0 }];
+    expect(issues(flatZero).join()).toMatch(/rise above the floor/);
+  });
+
   it("committed JSON Schema is up to date (run npm run schema)", () => {
     expect(readFileSync("schema/building.schema.json", "utf8")).toBe(jsonSchemaText());
   });

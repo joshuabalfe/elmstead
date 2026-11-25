@@ -63,9 +63,21 @@ export function wallTopMin(w: Wall, from: number, to: number): number {
   return min;
 }
 
-/** Closed side elevation in (along, up): the base, then the top edge back, counter-clockwise. */
+/**
+ * Closed side elevation in (along, up): the base, then the top edge back, counter-clockwise. Where
+ * the top edge meets the floor (up 0) at an end or a flat band, that stretch is clipped off, so a
+ * gable running right down to the floor is a clean triangle rather than a degenerate polygon with
+ * repeated or collinear corners.
+ */
 export function wallSideProfile(w: Wall): Vec[] {
-  return [v(0, 0), v(wallLength(w), 0), ...wallTopEdge(w).slice().reverse()];
+  const edge = wallTopEdge(w);
+  const positive = edge.map((p, i) => ({ p, i })).filter(({ p }) => p.y > 0);
+  if (!positive.length) return [v(0, 0), v(wallLength(w), 0)];
+  const first = positive[0]!;
+  const last = positive[positive.length - 1]!;
+  const a = first.i > 0 && edge[first.i - 1]!.y === 0 ? edge[first.i - 1]!.x : first.p.x;
+  const b = last.i < edge.length - 1 && edge[last.i + 1]!.y === 0 ? edge[last.i + 1]!.x : last.p.x;
+  return [v(a, 0), v(b, 0), ...edge.slice(first.i, last.i + 1).reverse()];
 }
 
 /** Area of the wall's side elevation in mm²: length × height for a flat wall. */

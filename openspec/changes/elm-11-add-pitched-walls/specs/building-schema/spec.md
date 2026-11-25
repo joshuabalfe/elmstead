@@ -32,7 +32,8 @@ a `profile` top edge, exactly one of the two.
 ### Requirement: Pitched wall top edge
 A wall's `profile` SHALL be an open polyline of at least two `{ along, up }` points giving its top
 edge from the wall's start to its end, measured up from the storey elevation. `along` SHALL be a
-non-negative integer strictly increasing along the edge; `up` SHALL be a positive integer.
+non-negative integer strictly increasing along the edge; `up` SHALL be a non-negative integer, and
+the profile SHALL rise above the floor somewhere (at least one `up` greater than 0).
 
 #### Scenario: Gable top edge
 - **WHEN** a wall's profile is `{along: 0, up: 1200}`, `{along: 4512, up: 2600}`, `{along: 9025, up: 1200}`
@@ -48,4 +49,12 @@ non-negative integer strictly increasing along the edge; `up` SHALL be a positiv
 
 #### Scenario: Fractional up
 - **WHEN** a profile point's `up` is `1200.5`
+- **THEN** schema validation fails
+
+#### Scenario: Gable running to the floor
+- **WHEN** a wall's profile is `{along: 0, up: 0}`, `{along: 2000, up: 3200}`, `{along: 4000, up: 0}`
+- **THEN** schema validation passes
+
+#### Scenario: Profile that never rises
+- **WHEN** every point of a wall's profile has `up: 0`
 - **THEN** schema validation fails

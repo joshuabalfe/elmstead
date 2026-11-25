@@ -29,6 +29,10 @@ reveal, where splay is half the thickness × tan(angle).
 - **WHEN** a pitched wall's IFC mesh volume differs from the area under its top edge × its thickness, minus its openings
 - **THEN** build reports an ERROR against that wall saying its volume differs from the model
 
+#### Scenario: Gable running to the floor
+- **WHEN** a pitched wall's top edge meets the floor at its ends, so its body is a triangle
+- **THEN** the round-trip expects the triangle's area × thickness, the floor-touching stretches contributing no body
+
 #### Scenario: Flat wall volume unchanged
 - **WHEN** a flat wall with a `height` and no `profile` is round-tripped
 - **THEN** the round-trip expects length × thickness × height, minus its openings, as before
