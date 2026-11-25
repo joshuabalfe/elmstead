@@ -15,6 +15,16 @@ describe("model helpers", () => {
     expect(w.west.end).toEqual({ x: 0, y: 200 });
   });
 
+  it("wall() passes through a flat height or a pitched profile, never both", () => {
+    const flat = wall("wall-flat", pt(mm(0), mm(0)), pt(mm(4000), mm(0)), { thickness: mm(200), height: mm(2400) });
+    expect(flat).toMatchObject({ height: 2400, justification: "centre" });
+    expect(flat).not.toHaveProperty("profile");
+    const profile = [{ along: mm(0), up: mm(0) }, { along: mm(2000), up: mm(3200) }, { along: mm(4000), up: mm(0) }];
+    const pitched = wall("wall-gable", pt(mm(0), mm(0)), pt(mm(4000), mm(0)), { thickness: mm(200), profile });
+    expect(pitched.profile).toEqual(profile);
+    expect(pitched).not.toHaveProperty("height");
+  });
+
   it("face() returns inner and outer faces for walls in any direction", () => {
     expect(face(w.south, "south")).toBe(0);
     expect(face(w.south, "north")).toBe(200);

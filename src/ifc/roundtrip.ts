@@ -11,7 +11,7 @@ import { area as polygonArea } from "../geometry/polygon.js";
 import { railingGeometry } from "../geometry/railing.js";
 import { flightProfileArea, stairLevels } from "../geometry/stair.js";
 import { toVec } from "../geometry/vec.js";
-import { wallLength } from "../geometry/wall.js";
+import { wallSideArea } from "../geometry/wall.js";
 import { GLAZING_BAR_DEPTH, windowDivision } from "../geometry/window.js";
 import type { BuildingModel } from "../schema/schema.js";
 import { PANEL_THICKNESS } from "./writer.js";
@@ -115,7 +115,7 @@ export async function roundTripChecks(model: BuildingModel, ifc: Uint8Array): Pr
     for (const w of s.walls) {
       // Each opening's plan area within the wall: a splayed reveal adds a triangle at each jamb.
       const cut = s.openings.filter((o) => o.wallId === w.id).reduce((sum, o) => sum + (o.width + revealSplay(w, o) / 2) * w.thickness * o.height, 0);
-      expect(w.id, wallLength(w) * w.thickness * w.height - cut, "wall (after opening cuts)");
+      expect(w.id, wallSideArea(w) * w.thickness - cut, "wall (after opening cuts)");
     }
     for (const sl of s.slabs) {
       const a = Math.abs(sl.outline.reduce((acc, p, i) => {

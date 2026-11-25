@@ -6,10 +6,11 @@ import { describe, expect, it } from "vitest";
 import elmstead from "../models/elmstead/index.js";
 import { stairwellOutline } from "../models/elmstead/first/index.js";
 import { stairArrivalX } from "../models/elmstead/first/walls.js";
+import { coreW, extEastX } from "../models/elmstead/shared.js";
 import { checkModel } from "../src/checks/model.js";
 import { railingGeometry } from "../src/geometry/railing.js";
 import { flightFootprint, stairLevels } from "../src/geometry/stair.js";
-import { wallDirection, wallLength } from "../src/geometry/wall.js";
+import { wallDirection, wallHeight, wallLength } from "../src/geometry/wall.js";
 import { face, faceCrossing, mm } from "../src/model/index.js";
 import { renderFloor, renderPlan } from "../src/render/plan.js";
 import { C } from "../src/render/style.js";
@@ -40,7 +41,7 @@ const contains = (poly: Pt[], p: Pt): boolean => {
   return inside;
 };
 
-const wallTop = (s: Storey): number => s.elevation + Math.max(0, ...s.walls.map((w) => w.height));
+const wallTop = (s: Storey): number => s.elevation + Math.max(0, ...s.walls.map((w) => wallHeight(w)));
 
 describe("Elmstead's floor structure", () => {
   const storeys = [...elmstead.storeys].sort((a, b) => a.elevation - b.elevation);
@@ -49,7 +50,59 @@ describe("Elmstead's floor structure", () => {
     const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
     if (!first) throw new Error("Elmstead has no first floor");
     const bay = new Set(["wall-bay-north-first", "wall-bay-front-first", "wall-bay-south-first"]);
-    for (const wall of first.walls) expect(wall.height, wall.id).toBe(bay.has(wall.id) ? mm(2550) : mm(2700));
+    const extension = new Set(["wall-north-extension-first", "wall-extension-east-first", "wall-extension-south-first"]);
+    for (const wall of first.walls) {
+      if (extension.has(wall.id)) continue; // the extension roof slopes; see the taper test below
+      expect(wall.height, wall.id).toBe(bay.has(wall.id) ? mm(2550) : mm(2700));
+    }
+  });
+
+  it("tapers the first-floor extension roof from the full ceiling where the extension starts", () => {
+    const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
+    if (!first) throw new Error("Elmstead has no first floor");
+    const wall = (id: string) => {
+      const w = first.walls.find((wall) => wall.id === id);
+      if (!w) throw new Error(`Elmstead's first floor has no ${id}`);
+      return w;
+    };
+    const northExt = wall("wall-north-extension-first");
+    const extSouth = wall("wall-extension-south-first");
+    const extEast = wall("wall-extension-east-first");
+    // Full 2.7 m ceiling at the extension start (coreW), falling towards the extension east.
+    expect(northExt.profile!.at(-1)!.up).toBe(mm(2700));
+    expect(extSouth.profile![0]!.up).toBe(mm(2700));
+    expect(northExt.profile![0]!.up).toBe(extEast.height);
+    // The taper continues the attic gable's pitch, derived from the attic ridge rather than hardcoded.
+    const attic = elmstead.storeys.find((s) => s.id === "storey-attic")!;
+    const ridge = attic.walls.find((w) => w.id === "wall-south-attic")!.profile![1]!;
+    const pitch = ridge.up / ridge.along;
+    expect(extEast.height).toBe(mm(Math.round(2700 - pitch * (extEastX - coreW))));
+    expect(extSouth.profile!.at(-1)!.up).toBe(mm(Math.round(2700 - pitch * (extSouth.end.x - coreW))));
+  });
+
+  it("pins the attic's gable geometry: floor-to-ridge gables, front parapet, core-rectangle slab", () => {
+    const attic = elmstead.storeys.find((s) => s.id === "storey-attic");
+    if (!attic) throw new Error("Elmstead has no attic");
+    const wall = (id: string) => {
+      const w = attic.walls.find((wall) => wall.id === id);
+      if (!w) throw new Error(`Elmstead's attic has no ${id}`);
+      return w;
+    };
+    for (const id of ["wall-north-attic", "wall-south-attic"]) {
+      const gable = wall(id);
+      const L = wallLength(gable);
+      expect(gable.profile![0]!.up, id).toBe(mm(0)); // gable runs to the floor at both eaves
+      expect(gable.profile!.at(-1)!.up, id).toBe(mm(0));
+      expect(Math.max(...gable.profile!.map((p) => p.up)), id).toBe(mm(3200)); // owner's ridge estimate
+      expect(gable.profile!.at(-1)!.along, id).toBe(mm(Math.round(L)));
+    }
+    expect(wall("wall-west-attic").height).toBe(mm(700)); // owner's front parapet
+    expect(wallLength(wall("wall-west-attic"))).toBe(mm(8425)); // full width
+    expect(attic.walls.some((w) => w.id === "wall-east-attic")).toBe(false); // rear open at floor
+    expect(attic.slabs).toHaveLength(1);
+    const xs = attic.slabs[0]!.outline.map((p) => p.x);
+    expect(Math.min(...xs)).toBe(mm(0));
+    expect(Math.max(...xs)).toBe(coreW); // clean core rectangle, not the extension
   });
 
   it("puts the kitchen window above the front door", () => {

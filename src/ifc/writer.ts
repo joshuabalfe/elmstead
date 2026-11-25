@@ -11,7 +11,7 @@ import { isSplayed, openingProfile } from "../geometry/opening.js";
 import { POST_SIZE, RAIL_DEPTH, RAIL_WIDTH, railingGeometry } from "../geometry/railing.js";
 import { flightDirection, flightProfile, flightRun, stairLevels, turnBetween, type FlightLevel } from "../geometry/stair.js";
 import { v, type Vec } from "../geometry/vec.js";
-import { faceOffsets, wallDirection, wallLength } from "../geometry/wall.js";
+import { faceOffsets, wallDirection, wallHeight, wallLength, wallSideProfile } from "../geometry/wall.js";
 import { GLAZING_BAR_DEPTH, windowDivision, type Rect } from "../geometry/window.js";
 import type { BuildingModel, Door, DoorComponent, Opening, Railing, Room, Slab, Stair, StairFlight, StairLanding, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
 import { ifcGuid } from "./guid.js";
@@ -280,11 +280,33 @@ class Writer {
     const placement = this.placement(parent, w.start.x, w.start.y, 0, round9(d.x), round9(d.y));
     const { left, right } = faceOffsets(w);
     const axis = new IFC4.IfcShapeRepresentation(this.axisCtx, label("Axis"), label("Curve2D"), [new IFC4.IfcPolyline([this.pt2(0, 0), this.pt2(L, 0)])]);
-    const body = this.body(this.rectangle(L / 2, (left + right) / 2, L, w.thickness), w.height, "wall");
+    const body = w.profile ? this.pitchedWallBody(w, left) : this.body(this.rectangle(L / 2, (left + right) / 2, L, w.thickness), wallHeight(w), "wall");
     const wall = this.write(
       new IFC4.IfcWall(guid(w.id), null, label(w.name ?? w.id), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [axis, body]), ident(w.id), IFC4.IfcWallTypeEnum.NOTDEFINED),
     );
     return { wall, placement };
+  }
+
+  /**
+   * A pitched wall's body: its side elevation extruded across the thickness. The solid carries its
+   * own rotated position (X along the wall, Y up, Z across to the right) so the wall's product
+   * placement stays in plan axes and its openings keep working. Extruding from the left face by the
+   * thickness spans the justification's [right, left] offsets.
+   */
+  private pitchedWallBody(w: Wall, left: number) {
+    const profile = new IFC4.IfcArbitraryClosedProfileDef(
+      IFC4.IfcProfileTypeEnum.AREA,
+      null,
+      this.closedPolyline(wallSideProfile(w).map((p) => v(round9(p.x), round9(p.y)))),
+    );
+    const position = new IFC4.IfcAxis2Placement3D(
+      this.pt3(0, round9(left), 0),
+      new IFC4.IfcDirection([real(0), real(-1), real(0)]),
+      new IFC4.IfcDirection([real(1), real(0), real(0)]),
+    );
+    const solid = new IFC4.IfcExtrudedAreaSolid(profile, position, this.zAxis, posLen(w.thickness));
+    this.write(new IFC4.IfcStyledItem(solid, [this.surfaceStyle("wall")], null));
+    return new IFC4.IfcShapeRepresentation(this.bodyCtx, label("Body"), label("SweptSolid"), [solid]);
   }
 
   /**

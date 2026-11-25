@@ -109,3 +109,20 @@ export const firstFloorStructure = mm(200);
  * ceiling; revisit that when the levels are measured.
  */
 export const firstFloor = { elevation: add(groundFloor.ceilingHeight, firstFloorStructure), ceilingHeight: m(2.7) };
+/**
+ * Provisional attic floor structure, like the first floor's: joists, deck and finishes. It is the
+ * attic slab's thickness, so the slab hangs down onto the first-floor wall tops.
+ */
+export const atticFloorStructure = mm(200);
+/**
+ * Attic roof. Elmstead is a terrace under a dual-pitch gable roof: the north and south party walls
+ * rise from the floor to a north-south ridge over the core's mid-span; the rear and extension are
+ * open at floor level. The ridge (~3.2 m) is the owner's estimate; the ridge position is still
+ * provisional — revisit it when the roof is measured.
+ */
+export const atticRidgeHeight = m(3.2); // owner's estimate
+export const atticRidgeX = mm(4512); // ridge over the core's east-west mid-span (provisional)
+export const atticFloor = {
+  elevation: add(add(firstFloor.elevation, firstFloor.ceilingHeight), atticFloorStructure),
+  ceilingHeight: atticRidgeHeight,
+};

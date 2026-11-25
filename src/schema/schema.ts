@@ -17,16 +17,36 @@ export const PointSchema = z.strictObject({ x: MmSchema, y: MmSchema }).meta({ i
 /** Open polygon (first point is not repeated), plan coordinates in mm. */
 export const PolygonSchema = z.array(PointSchema).min(3);
 
-export const WallSchema = z.strictObject({
-  id: IdSchema,
-  name: z.string().optional(),
-  start: PointSchema,
-  end: PointSchema,
-  thickness: PositiveMmSchema,
-  height: PositiveMmSchema,
-  /** Where the body sits relative to the start→end line, looking from start towards end. */
-  justification: z.enum(["centre", "left", "right"]),
-}).meta({ id: "Wall" });
+/** A point on a wall's pitched top edge: distance along the wall and height up, in mm. `up` may be 0
+ * where the top edge meets the floor (a gable running right down to the floor). */
+const WallProfilePointSchema = z.strictObject({ along: NonNegativeMmSchema, up: NonNegativeMmSchema });
+
+/** A wall's top edge from its start to its end: at least two points, `along` strictly increasing,
+ * rising above the floor somewhere so the wall has a body. */
+const WallProfileSchema = z
+  .array(WallProfilePointSchema)
+  .min(2)
+  .refine((pts) => pts.every((p, i) => i === 0 || p.along > pts[i - 1]!.along), "profile along must strictly increase from the wall's start to its end")
+  .refine((pts) => pts.some((p) => p.up > 0), "profile must rise above the floor somewhere");
+
+export const WallSchema = z
+  .strictObject({
+    id: IdSchema,
+    name: z.string().optional(),
+    start: PointSchema,
+    end: PointSchema,
+    thickness: PositiveMmSchema,
+    /** Flat top height. Mutually exclusive with `profile`. */
+    height: PositiveMmSchema.optional(),
+    /** Pitched top edge from start to end. Mutually exclusive with `height`. */
+    profile: WallProfileSchema.optional(),
+    /** Where the body sits relative to the start→end line, looking from start towards end. */
+    justification: z.enum(["centre", "left", "right"]),
+  })
+  // The exactly-one-of rule is a zod refine, so it is enforced on parse but not carried into the
+  // exported JSON Schema (refinements have no JSON Schema equivalent); the zod schema is authoritative.
+  .refine((w) => (w.height === undefined) !== (w.profile === undefined), "a wall has exactly one of height or profile")
+  .meta({ id: "Wall" });
 
 export const SwingSchema = z.strictObject({
   /** Which end of the opening (nearest the wall start, or the wall end) the hinge is on. */

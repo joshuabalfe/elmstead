@@ -2,7 +2,7 @@ import { openingExtent } from "../geometry/opening.js";
 import { distanceToOutline, polygonProblems } from "../geometry/polygon.js";
 import { railingRun } from "../geometry/railing.js";
 import { flightRun } from "../geometry/stair.js";
-import { wallLength } from "../geometry/wall.js";
+import { wallLength, wallTopMin } from "../geometry/wall.js";
 import { toVec, type Vec } from "../geometry/vec.js";
 import type { BuildingModel, Opening, Polygon, Storey, Wall } from "../schema/schema.js";
 import { checkComponents } from "./components.js";
@@ -63,9 +63,18 @@ export function checkRailings(model: BuildingModel): Issue[] {
 
 export function checkWalls(model: BuildingModel): Issue[] {
   const issues: Issue[] = [];
+  const tolerance = 1e-6; // mm; wall lengths are square roots of integer coordinates
   for (const storey of model.storeys) {
     for (const w of storey.walls) {
-      if (wallLength(w) === 0) issues.push({ level: "ERROR", id: w.id, message: "zero-length wall cannot be written to IFC" });
+      const length = wallLength(w);
+      if (length === 0) issues.push({ level: "ERROR", id: w.id, message: "zero-length wall cannot be written to IFC" });
+      if (w.profile) {
+        const first = w.profile[0]!.along;
+        const last = w.profile[w.profile.length - 1]!.along;
+        if (Math.abs(first) > tolerance || Math.abs(last - length) > tolerance) {
+          issues.push({ level: "ERROR", id: w.id, message: "profile must span the wall from along 0 to its length" });
+        }
+      }
     }
   }
   return issues;
@@ -96,7 +105,7 @@ export function checkOpenings(model: BuildingModel): Issue[] {
       if (pastStart > tolerance) issues.push({ level: "ERROR", id: opening.id, message: `opening is ${Math.round(pastStart)} mm past the wall start` });
       const pastEnd = Math.max(...faces.map(([, to]) => to - length));
       if (pastEnd > tolerance) issues.push({ level: "ERROR", id: opening.id, message: `opening is ${Math.round(pastEnd)} mm past the wall end` });
-      const aboveTop = opening.sillHeight + opening.height - wall.height;
+      const aboveTop = opening.sillHeight + opening.height - wallTopMin(wall, opening.offsetAlongWall, opening.offsetAlongWall + opening.width);
       if (aboveTop > tolerance) issues.push({ level: "ERROR", id: opening.id, message: `opening is ${Math.round(aboveTop)} mm above the wall top` });
     }
     const list = [...hosted.values()];
