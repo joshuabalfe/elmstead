@@ -49,8 +49,8 @@ they report an ERROR.
 
 ### Requirement: Unique ids across the model
 Every id-bearing node SHALL have an id unique across the project, site, building, storeys, walls,
-openings, slabs, rooms, stairs, stair flights, stair landings and components. A duplicate SHALL be
-an ERROR against that id whose message names both kinds involved.
+openings, slabs, rooms, stairs, stair flights, stair landings, railings and components. A duplicate
+SHALL be an ERROR against that id whose message names both kinds involved.
 
 #### Scenario: Element and component share an id
 - **WHEN** a window component and a wall have the same id
@@ -71,6 +71,10 @@ an ERROR against that id whose message names both kinds involved.
 #### Scenario: Duplicate landing ids
 - **WHEN** two stair landings have the same id
 - **THEN** the checks report an ERROR against that id saying it is used by two stair landings
+
+#### Scenario: Railing and wall share an id
+- **WHEN** a railing and a wall have the same id
+- **THEN** the checks report an ERROR against that id saying it is used by a wall and a railing
 
 ### Requirement: Openings belong to a wall on their storey
 Each opening's `wallId` SHALL name a wall on the same storey. A zero-length wall SHALL be an ERROR.
@@ -203,3 +207,11 @@ ERROR against the landing.
 #### Scenario: Flights meet the landing
 - **WHEN** the previous flight's end and the next flight's start both lie on the landing boundary
 - **THEN** the checks report no ERROR for that landing
+
+### Requirement: Railing runs
+Each railing SHALL have a non-zero plan run. A zero-length railing SHALL be an ERROR against the
+railing.
+
+#### Scenario: Zero-length railing
+- **WHEN** a railing's start and end points are the same
+- **THEN** the checks report an ERROR against the railing
