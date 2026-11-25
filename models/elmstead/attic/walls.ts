@@ -7,8 +7,8 @@
  * Heights and the ridge position are provisional (see ../shared.ts). The internal layout awaits the
  * owner's attic plan.
  */
-import { mm, sub, wall } from "../../../src/model/index.js";
-import { atticEavesHeight, atticRidgeHeight, atticRidgeX, coreW, extEastX, externalRuns, externalWall } from "../shared.js";
+import { mm, pt, sub, wall } from "../../../src/model/index.js";
+import { atticEavesHeight, atticRidgeHeight, atticRidgeX, coreD, coreW, extEastX, externalRuns, externalWall, westT } from "../shared.js";
 
 const eaves = atticEavesHeight;
 const ridge = atticRidgeHeight;
@@ -30,9 +30,10 @@ const southProfile = [
 export const north = wall("wall-north-attic", externalRuns.north.start, externalRuns.north.end, { thickness: externalRuns.north.thickness, justification: externalRuns.north.justification, profile: northProfile });
 export const south = wall("wall-south-attic", externalRuns.south.start, externalRuns.south.end, { thickness: externalRuns.south.thickness, justification: externalRuns.south.justification, profile: southProfile });
 
-// Eaves walls: back and extension stop flat at eaves height. The front wall stands 600 mm high
-// (owner) at the front edge; the gable party walls keep their own eaves-to-ridge height.
-export const west = externalWall("wall-west-attic", externalRuns.west, mm(600));
+// Eaves walls: back and extension stop flat at eaves height. The front wall stands 700 mm high
+// (owner) at the front edge, running the full width of the building; the gable party walls keep their
+// own eaves-to-ridge height.
+export const west = wall("wall-west-attic", pt(mm(0), coreD), pt(mm(0), mm(0)), { thickness: westT, height: mm(700), justification: "left" });
 export const east = externalWall("wall-east-attic", externalRuns.east, eaves);
 export const extEast = externalWall("wall-extension-east-attic", externalRuns.extEast, eaves);
 export const extSouth = externalWall("wall-extension-south-attic", externalRuns.extSouth, eaves);
