@@ -43,6 +43,8 @@ export const WallSchema = z
     /** Where the body sits relative to the start→end line, looking from start towards end. */
     justification: z.enum(["centre", "left", "right"]),
   })
+  // The exactly-one-of rule is a zod refine, so it is enforced on parse but not carried into the
+  // exported JSON Schema (refinements have no JSON Schema equivalent); the zod schema is authoritative.
   .refine((w) => (w.height === undefined) !== (w.profile === undefined), "a wall has exactly one of height or profile")
   .meta({ id: "Wall" });
 

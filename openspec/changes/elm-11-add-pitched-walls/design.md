@@ -28,11 +28,11 @@ to be built. The schema keeps structural rules in zod and cross-element rules in
 the wall's start (`along: 0`) to its end (`along: wallLength`), measured up from the storey elevation.
 The body is the area under that edge, extruded across the thickness.
 
-- *Over a parametric gable (`eaves`, `ridge`, `ridgeAlong`)*: the attic's north/south walls span the
-  core **and** the rear extension, so the ridge is not at their mid-span and the top edge is not a
-  symmetric pentagon. A polyline places any number of peaks and breaks wherever the roof line needs
-  them, without encoding roof semantics in the schema. It reuses the point-array shape already used
-  for outlines, so the schema surface stays small.
+- *Over a parametric gable (`eaves`, `ridge`, `ridgeAlong`)*: the top edge is not always a symmetric
+  pentagon — the attic gables run right down to the floor (`up: 0` at the eaves), and the first floor's
+  extension walls taper from the full ceiling at the extension start. A polyline places any number of
+  peaks and breaks wherever the roof line needs them, without encoding roof semantics in the schema.
+  It reuses the point-array shape already used for outlines, so the schema surface stays small.
 - *Over a full closed elevation polygon*: storing only the top edge (the base is implied at `up: 0`)
   avoids redundant base points and keeps the authoring simple; the writer closes the profile.
 - *Over a roof element*: only wall tops are sloped; a roof surface is more than is asked for.
@@ -45,9 +45,11 @@ top. `height` becomes optional and a structural refine requires exactly one. Exi
 
 ### Structural vs cross-element validation
 The schema validates the profile's shape: at least two points, `along` a non-negative integer strictly
-increasing along the edge, `up` a positive integer. That the edge spans the wall (`along` 0 →
+increasing along the edge, `up` a non-negative integer (0 where the top edge meets the floor) with at
+least one point above 0 so the wall has a body. That the edge spans the wall (`along` 0 →
 `wallLength`) is a cross-element rule (length is derived from `start`/`end`), so it lives in
-`src/checks/`, like the other opening-fit rules.
+`src/checks/`, like the other opening-fit rules. `wallSideProfile` clips floor-touching stretches so a
+gable running to 0 is a clean triangle, not a degenerate polygon.
 
 ### Extrusion orientation mirrors the stair flight
 A pitched wall's body is its closed side profile — base `(0,0)→(L,0)`, up the end, back along the top
@@ -70,11 +72,16 @@ thickness minus the opening boxes (each still `width × thickness × height`), e
   0 → `wallLength`; the schema enforces strictly increasing `along`.
 - [Provisional attic heights look right but are unmeasured] → flag them in `shared.ts` like the
   basement level, and revisit when measured; the schema capability does not depend on the numbers.
-- [The extension's roof differs from the core's gable] → model the core gable now and leave the
-  extension's top edge as a flat eaves band for a later pass; the polyline can take the break later.
+- [The extension's roof differs from the core's gable] → the attic extension is open at floor level;
+  the first floor's extension walls taper from the full ceiling where the extension starts, continuing
+  the attic's east pitch. The polyline takes the break between the flat core and the tapered extension.
 
 ## Open Questions
 
-- The measured eaves and ridge heights, and the ridge's exact position over the core (provisional
-  values are used meanwhile; they change only the attic model, not the specs or the approach).
-- Whether the extension carries its own lean-to roof or continues the core slope (a later model pass).
+- The measured ridge height and its exact position over the core (provisional values are used
+  meanwhile; they change only the attic model, not the specs or the approach).
+- A top-view plan comparison for pitched-wall storeys, which the cut-poché plan-vs-3D check skips
+  (tracked in tasks.md — Workflow follow-up).
+- A pitched wall's plan symbols (door gaps, window symbols) when it carries an opening, and the reveal
+  splay fit against a sloped top — neither is triggered by the current models (no opening on a pitched
+  wall); revisit if one is added.

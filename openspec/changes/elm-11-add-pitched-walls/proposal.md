@@ -3,11 +3,11 @@
 ## Why
 
 The attic (top storey) of Elmstead — a terrace house — sits under a dual-pitch gable roof. Its north
-and south party walls rise to the ridge as gable ends; the east and west walls stop flat at eaves
-height. The schema's `Wall` is a straight run with a single flat `height`, extruded straight up by the
-IFC writer, so it cannot describe a sloping or triangular wall top. No existing element type can
-express a gable end, and a full roof element would be more than is needed: only the wall tops are
-sloped, not a roof surface. Adding the attic storey needs this shape.
+and south party walls rise from the floor to the ridge as gable ends; the front wall is a parapet and
+the rear is open at floor level. The schema's `Wall` is a straight run with a single flat `height`,
+extruded straight up by the IFC writer, so it cannot describe a sloping or triangular wall top. No
+existing element type can express a gable end, and a full roof element would be more than is needed:
+only the wall tops are sloped, not a roof surface. Adding the attic storey needs this shape.
 
 ## What Changes
 
@@ -23,8 +23,10 @@ sloped, not a roof surface. Adding the attic storey needs this shape.
 - Geometry round-trip: a pitched wall's expected volume is its top-edge profile area × thickness,
   minus its openings.
 - Authoring: the `wall` helper accepts the pitched top.
-- Use it for the Elmstead attic's north and south gable ends, at provisional eaves and ridge heights
-  (flagged for revisiting when measured); the east and west walls stay flat at eaves height.
+- Use it for the Elmstead attic's north and south gable ends running floor→ridge (provisional ridge
+  height, flagged for revisiting), a 700 mm full-width front parapet, and the rear/extension open at
+  floor level with a clean core-rectangle slab. The first floor's extension walls taper from the full
+  ceiling where the extension starts, continuing the roof slope down; the core and ensuite stay flat.
 
 Out of scope: a roof surface element (planes, overhangs, tiles), hips and valleys beyond what a wall
 top edge can describe, and the extension's separate roof.
@@ -46,7 +48,9 @@ None. This extends the existing wall behaviour rather than introducing a new dur
 - `ifc-verification`: the *Expected volumes* requirement uses a pitched wall's profile area × thickness.
 - `model-authoring`: the *Wall and room helpers* requirement lets `wall` take the pitched top.
 - `ifc-viewer`: the *Plan style* requirement lays the flat wall-piece overlay only over flat-topped
-  walls, so a pitched wall's sloped top is painted by the shader without a flat plane floating above it.
+  walls, so a pitched wall's sloped top is painted by the shader without a flat plane floating above it;
+  the *Plan and 3D agree* requirement skips pitched-wall storeys in the cut-poché comparison (a sloped
+  top's cut footprint differs from its top projection), with a top-view comparison as a follow-up.
 
 ## Impact
 
@@ -55,5 +59,6 @@ None. This extends the existing wall behaviour rather than introducing a new dur
 - `src/ifc/writer.ts` (wall body) and `src/ifc/roundtrip.ts` (expected wall volume).
 - `src/checks/` (opening fit against the top edge; profile spans the wall).
 - `src/model/helpers.ts` (`wall` helper).
-- `models/elmstead/attic/` (north/south gable ends) and `models/elmstead/shared.ts` (eaves/ridge heights).
+- `models/elmstead/attic/` (north/south gable ends, front parapet, core-rectangle slab),
+  `models/elmstead/first/walls.ts` (extension taper) and `models/elmstead/shared.ts` (ridge height/position).
 - Tests for the schema, writer, checks, round-trip and the attic gables; generated files regenerated.

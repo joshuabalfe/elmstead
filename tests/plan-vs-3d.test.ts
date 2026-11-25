@@ -206,8 +206,9 @@ describe("storey selection", () => {
     const camera = "16,11,6,5.2,1.5,-4.2";
     const hidden = await viewOf("test-hidden-storey", `view=se&snapshot=1&labels=0&style=ifc&camera=${camera}&storeys=storey-basement,storey-street,storey-ground,storey-first-floor`);
     const absent = await viewOf("test-below-top", `view=se&snapshot=1&labels=0&style=ifc&camera=${camera}`);
-    // Hiding a storey must be the same picture as a model that never had it: same framing, same
-    // pixels, every one of them.
+    // Hiding a storey must be the same picture as a model that never had it: same pixels, every one
+    // of them. The camera is pinned by the URL, so this proves geometry hiding but not hiding under
+    // auto-framing (which drifts sub-pixel with the hidden storey's bounds); that is a known gap.
     expect(Buffer.from(hidden.data).equals(Buffer.from(absent.data))).toBe(true);
   }, 120_000);
 

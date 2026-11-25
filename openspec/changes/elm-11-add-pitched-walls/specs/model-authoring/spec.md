@@ -4,8 +4,7 @@
 
 ### Requirement: Wall and room helpers
 The helpers SHALL only build plain schema values. `defineBuilding` SHALL fill in `schemaVersion`.
-`wall` SHALL be centre-justified by default and SHALL accept either a flat `height` or a `profile`
-top edge, passing it through as a plain schema value. `rectWalls` SHALL make four left-justified
+`wall` SHALL be centre-justified by default. `rectWalls` SHALL make four left-justified
 external walls, counter-clockwise, whose outer faces form the given rectangle. `face` SHALL give the
 coordinate of a named face of an axis-aligned wall, `faceCrossing` where a face of a wall at any
 angle crosses a given x or y, and `rectRoom` a rectangular room.

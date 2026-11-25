@@ -414,8 +414,8 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
     }
     // The wall-top poché is a flat plane, so it only fits flat-topped walls; a pitched wall's sloped
     // top is painted by patchTops instead. Lay one overlay per flat-wall height, each at its own wall
-    // top, so a taller wall's plane never floats above a shorter one (e.g. a 700 mm front wall over
-    // 200 mm eaves walls at the back).
+    // top, so a taller wall's plane never floats above a shorter one (e.g. the first floor's 2.7 m
+    // walls over its 2.55 m bay).
     const flatWalls = storey.walls.filter((w) => !w.profile);
     const byHeight = new Map<number, typeof flatWalls>();
     for (const w of flatWalls) {

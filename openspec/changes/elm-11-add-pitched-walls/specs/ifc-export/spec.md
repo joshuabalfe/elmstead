@@ -4,11 +4,9 @@
 
 ### Requirement: Walls and openings
 A wall SHALL be an `IfcWall` (`NOTDEFINED`) with an `Axis` polyline and an extruded `Body`, placed
-by its start, direction and justification. A flat wall's `Body` SHALL be its plan rectangle extruded
-up its `height`; a pitched wall's `Body` SHALL be the area under its `profile` top edge extruded
-across its thickness, positioned by its justification. Each opening SHALL be an `IfcOpeningElement`
-that voids its wall, and its box SHALL extend 10 mm past each wall face. A window with a reveal SHALL
-be voided by its plan outline extruded up its height, its splayed jambs continued 10 mm past the face.
+by its start, direction and justification. Each opening SHALL be an `IfcOpeningElement` that voids
+its wall, and its box SHALL extend 10 mm past each wall face. A window with a reveal SHALL be voided
+by its plan outline extruded up its height, its splayed jambs continued 10 mm past the face.
 
 #### Scenario: Opening cut
 - **WHEN** a wall has a window

@@ -4,8 +4,8 @@
 
 ### Requirement: Expected volumes
 The round-trip SHALL expect:
-- wall: its side elevation area × thickness — length × height for a flat wall, or the area under its
-  `profile` top edge for a pitched wall — minus each opening's plan area within the wall × its height;
+- wall: side elevation area × thickness (length × height when flat), minus each opening's plan area
+  within the wall × its height;
 - slab: outline area × thickness;
 - door: width × height × 50 mm, except a doorway, which has no filling;
 - window: pane area × 50 mm plus frame and bar area × 70 mm.

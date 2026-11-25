@@ -2,7 +2,7 @@
 
 ## 1. Schema and authoring contract
 
-- [x] 1.1 Add optional `profile` to `WallSchema` (a top-edge polyline of at least two `{along, up}` points, `along` a non-negative integer strictly increasing, `up` a positive integer), make `height` optional, and refine so exactly one of `height`/`profile` is present; verify schema tests cover flat, pitched, both, neither, one point, non-increasing `along` and fractional `up`.
+- [x] 1.1 Add optional `profile` to `WallSchema` (a top-edge polyline of at least two `{along, up}` points, `along` a non-negative integer strictly increasing, `up` a non-negative integer that rises above 0 somewhere), make `height` optional, and refine so exactly one of `height`/`profile` is present; verify schema tests cover flat, pitched, both, neither, one point, non-increasing `along`, fractional `up`, a gable running to the floor and a profile that never rises.
 - [x] 1.2 Let the `wall` helper accept a `profile` top edge (and keep `height`), passing it through as a plain schema value; verify helper tests for a pitched wall and an unchanged flat wall.
 - [x] 1.3 Regenerate `schema/building.schema.json` with `npm run schema`; verify the stale-JSON-Schema test passes.
 
@@ -19,16 +19,19 @@
 
 ## 4. Attic gable ends
 
-- [x] 4.1 Add provisional eaves and ridge heights to `models/elmstead/shared.ts`, flagged as unmeasured like the basement level; verify `npm run typecheck` passes.
-- [x] 4.2 Make the attic's north and south walls gable ends via `profile` (ridge over the core) and its east and west walls flat at eaves height; verify `npm run build models/elmstead/index.ts` meets all constraints and writes valid IFC, and the attic plan/3D show the gables.
+- [x] 4.1 Add the provisional ridge height and position to `models/elmstead/shared.ts`, flagged as unmeasured like the basement level; verify `npm run typecheck` passes.
+- [x] 4.2 Make the attic's north and south walls gable ends via `profile` running floor→ridge over the core, a 700 mm full-width front parapet, and the rear/extension open at floor level with a clean core-rectangle slab; taper the first floor's extension walls from the full ceiling at the extension start; verify `npm run build models/elmstead/index.ts` meets all constraints and writes valid IFC.
 - [x] 4.3 Eye-check the attic gables in the viewer on a close-up pose and confirm the ridge and eaves read correctly; capture the view URL.
 
 ## 5. Integration
 
 - [x] 5.1 Run `npm test` and `npm run typecheck`; verify every test passes and types are clean.
-- [x] 5.2 Regenerate generated files (`npm run schema`, build, render) and run `npx openspec validate --all`; verify the schema, artefacts and specs are all clean.
+- [x] 5.2 Regenerate generated files (`npm run schema`, build, render) and run `npx openspec validate --all --strict`; verify the schema, artefacts and specs are all clean.
 
 ## Workflow follow-up
 
 - Open a draft pull request titled `ELM-11: Add pitched walls` to reserve the number, per AGENTS.md.
+- Add a top-view plan comparison for pitched-wall storeys (the attic and first floor), which the
+  cut-poché plan-vs-3D check skips because a sloped top's cut footprint differs from its top
+  projection. See the `ifc-viewer` *Plan and 3D agree* requirement.
 - Archive the change after the project's review requirements are satisfied, and verify the archived result.

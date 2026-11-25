@@ -134,7 +134,7 @@ describe("building schema", () => {
       d.storeys[0].walls[0].profile = profile;
       return issues(d).join();
     };
-    expect(set([{ along: 0, up: 1200 }])).toMatch(/profile/);
+    expect(set([{ along: 0, up: 1200 }])).toMatch(/profile:.*2/); // the min(2) rule, not just any profile error
     expect(set([{ along: 0, up: 1200 }, { along: 0, up: 2600 }])).toMatch(/strictly increase/);
     expect(set([{ along: 0, up: 1200.5 }, { along: 4000, up: 1200 }])).toMatch(/profile\.0\.up/);
   });
