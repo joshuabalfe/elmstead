@@ -188,13 +188,18 @@ riser height tied to one storey's rise, which no other check bounds.
 - **THEN** the checks report an ERROR against the stair
 
 ### Requirement: Stair segments alternate
-A stair SHALL start and end with a flight and SHALL have no two adjacent landings. Each flight SHALL
-have a non-zero plan run. A violation SHALL be an ERROR against the stair. The schema already
-rejects a flight with fewer than two risers, so the checks do not repeat that rule.
+A stair SHALL start with a flight and SHALL have no two adjacent landings. It SHALL end with a
+flight, or with a top landing one riser below the storey it climbs to. Each flight SHALL have a
+non-zero plan run. A violation SHALL be an ERROR against the stair. The schema already rejects a
+flight with fewer than two risers, so the checks do not repeat that rule.
 
 #### Scenario: Starts with a landing
 - **WHEN** a stair's first segment is a landing
 - **THEN** the checks report an ERROR against the stair
+
+#### Scenario: Ends with a top landing
+- **WHEN** a stair's last segment is a landing whose boundary meets the last flight's end
+- **THEN** the checks report no error
 
 #### Scenario: Adjacent landings
 - **WHEN** a stair has two landing segments in a row
@@ -205,12 +210,16 @@ rejects a flight with fewer than two risers, so the checks do not repeat that ru
 - **THEN** the checks report an ERROR against the stair
 
 ### Requirement: Stair landings connect their flights
-Each landing SHALL meet the previous flight's end and the next flight's start: both points SHALL lie
-on the landing outline's boundary within 1 mm. A landing that does not meet its flights SHALL be an
-ERROR against the landing.
+Each landing SHALL meet the previous flight's end and, when there is a flight after it, the next
+flight's start: both points SHALL lie on the landing outline's boundary within 1 mm. A landing that
+does not meet its flights SHALL be an ERROR against the landing.
 
 #### Scenario: Flight misses the landing
 - **WHEN** a flight ends 100 mm away from the next landing's boundary
+- **THEN** the checks report an ERROR against the landing
+
+#### Scenario: Top landing misses its flight
+- **WHEN** a top landing's boundary lies 100 mm from the last flight's end
 - **THEN** the checks report an ERROR against the landing
 
 #### Scenario: Flights meet the landing

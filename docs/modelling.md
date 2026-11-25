@@ -102,7 +102,7 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
 | **Room** | `name`, `outline`, `dimensionOutline?` | 2D outline only, for now; `dimensionOutline` optionally gives the part the plan measures, while the label, area and IFC space keep `outline` |
 | **Stair** | `toStoreyId`, `segments` | a storey element climbing to the next storey up; `segments` run bottom to top |
 | **Stair flight** | `start`, `end`, `width`, `risers` | `kind: "flight"`; a straight run, centred on its start→end line, of at least 2 risers |
-| **Stair landing** | `outline`, `thickness` | `kind: "landing"`; a flat platform, its level derived from the flights below it |
+| **Stair landing** | `outline`, `thickness` | `kind: "landing"`; a flat platform between flights or at the top of the stair, its level derived from the flights below it |
 | **Railing** | `start`, `end`, `height`, `startBase?`, `endBase?` | a straight guard or handrail; `height` is to the top of the rail above the walking surface; an omitted base is 0, equal effective bases are level and different bases slope |
 | **Door / window component** | `id`, `name` | a design (not a size) shared by openings, in the building's `components: { doors, windows }`; written to IFC as `IfcDoorType` / `IfcWindowType` |
 
@@ -229,23 +229,29 @@ defineBuilding({ ..., components: { doors: [internalDoor], windows: [sash] }, st
 ## Stairs
 
 A stair climbs from the storey that holds it to the storey named by `toStoreyId`, which must be the
-next one up. Its `segments` run bottom to top, start and end with a flight, and never put two
-landings in a row. A flight is centred on its start→end line and a landing's outline must meet the
-end of the flight before it and the start of the flight after it.
+next one up. Its `segments` run bottom to top, start with a flight, and never put two landings in a
+row. A flight is centred on its start→end line, and a landing's outline must meet the end of the
+flight before it and, when there is one, the start of the flight after it.
+
+A stair normally ends with a flight. It may instead end with a **top landing** one riser below the
+storey above: the last, implicit riser is the storey edge you step onto. The landing then has no
+flight after it, so only the flight before it has to meet its outline.
 
 Nothing vertical is stored. The rise comes from the two storeys and the rest follows:
 
 ```text
 total rise = toStorey.elevation − storey.elevation
-riser      = total rise / the sum of every flight's risers
+riser      = total rise / (the sum of every flight's risers + 1 if a top landing ends the stair)
 going      = a flight's plan run / (its risers − 1)
 levels     = walk the segments: a flight rises by risers × riser, a landing stays level
 ```
 
 So a 3050 mm rise over two flights of 8 risers gives 190.625 mm risers, a half landing 1525 mm up,
-and a top that lands exactly on the storey above. Move that storey and the whole stair follows.
-Derived lengths are plain numbers rather than the branded integer `Mm`: rounding 190.625 to 191
-would put sixteen risers at 3056 mm, past the storey the stair climbs to.
+and a top that lands exactly on the storey above. A stair whose last segment is a landing counts one
+more riser: over 1950 mm with six flight risers and a top landing, the riser is 278.571 mm and the
+landing sits one riser below the street. Move that storey and the whole stair follows. Derived
+lengths are plain numbers rather than the branded integer `Mm`: rounding 190.625 to 191 would put
+sixteen risers at 3056 mm, past the storey the stair climbs to.
 
 `models/example-two-storey/index.ts` is a worked half-turn stair:
 
