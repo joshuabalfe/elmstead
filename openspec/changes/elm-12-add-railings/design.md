@@ -51,7 +51,7 @@ and snapshots stay byte-identical. The schema adds `RailingSchema` and
 - the plan run (the start→end distance), the 3D rail line and the vertical offset from the rail's
   top surface to its centreline (half the 40 mm depth, divided by the run's cosine);
 - post positions: both ends plus evenly spaced intermediates,
-  intervals = max(1, ceil(planRun / 1200)), so posts are never more than 1200 mm apart;
+  intervals = max(1, ceil(planRun / 160)), so posts are never more than 160 mm apart;
 - part volumes: the top rail's 3D length × 50 mm × 40 mm and each post's 40 mm × 40 mm × height.
 
 A zero plan run is a model-check ERROR, not a geometry fallback. The writer, the round-trip and the
@@ -92,17 +92,25 @@ colour. The viewer does need to add railing ids to `applyStoreyVisibility`'s own
 they stay visible when their storey is hidden, and to `shownBox`, so an outlying railing is framed.
 Hover labels need no change: `elementLabels` is built from every item's Tag.
 
-**Model: two railings on elmstead's street storey.** The flight's nosings run from 150 mm at the
-first tread to 600 mm at the threshold. The rail base line must follow that surface: bases 0→600
-would give a slope of 0.667 against the nosings' 0.5 and leave the rail only 750–900 mm above
-them. Each railing therefore starts 20 mm up the flight (half the 40 mm post, so the bottom post
-sits wholly on the first tread) at base 150 mm, and ends at the wall at base 600 mm. Its centreline
-is 50 mm inside the 2000 mm flight edge, so the 50 mm rail is wholly on the steps. The top post is
-wall-fixed (half embedded in the west wall); the bottom post is a newel on the first tread. The
-rail is 890–900 mm above the nosings and exactly 900 mm above the tread and threshold at its ends.
+**Model: three railings on elmstead's street storey.** The flight's nosings run from 150 mm at the
+first tread to 600 mm at the threshold. The step rails' base line must follow that surface: bases
+0→600 would give a slope of 0.667 against the nosings' 0.5 and leave the rail only 750–900 mm above
+them. Each step railing therefore starts 20 mm up the flight (half the 40 mm post, so the bottom
+post sits wholly on the first tread) at base 150 mm, and ends at the wall at base 600 mm. Its
+centreline is 100 mm inside the 2000 mm flight edge (the 50 mm rail's outer face is 75 mm in). The
+top post is wall-fixed (half embedded in the west wall); the bottom post is a newel on the first
+tread. The step rail is 890–900 mm above the nosings and exactly 900 mm above the tread and
+threshold at its ends.
+
+A third, level railing continues the south step rail from the bottom of the steps south along the
+front of the house at street level (owner correction). It sits on the ground slab's edge line
+(x = −900) from the south step's bottom (y = 6525) to the south corner (y = 0), base 0 (street),
+height 900. It is level and on the street storey, so all three external railings hide with the
+street; it edges the front at the foot of the steps, not the ground floor at the top.
+
 The 900 mm height is recorded in `models/elmstead/shared.ts` as provisional pending the owner's
-measurement. The street storey is correct because the railing accompanies the street→ground stair;
-it is external, so it sits with the ground rather than inside the house.
+measurement. The street storey is correct because the railings accompany the street→ground stair;
+they are external, so they sit with the ground rather than inside the house.
 
 **Checks.** Add railings to the unique-id walk and add a zero-plan-run ERROR, following the wall and
 flight precedents. The schema already guarantees positive height and non-negative bases. No
@@ -130,8 +138,8 @@ collision or clearance checks.
 - [Generated schema and snapshots change] → regenerate them; the cottage has no railings, so its
   snapshot should not change. Verify the cottage IFC is byte-identical before and after.
 - [An outlying railing grows the plan sheet] → the plan extent includes it, and the viewer overlay
-  keeps its own extent; elmstead's railings are inside the existing stair footprint, so its street
-  plan extent is unchanged.
+  keeps its own extent. Elmstead's level front railing runs along the ground slab edge, which the
+  street extent already covers, so the street plan is unchanged.
 
 ## Migration Plan
 
@@ -141,7 +149,7 @@ entries; models that used railings would fail validation and must drop them with
 
 ## Open Questions
 
-- The 900 mm railing height is provisional pending the owner's measurement; the 50 mm edge inset,
-  20 mm bottom inset, 1200 mm post spacing and `#4a515a` colour are settled design choices that
+- The 900 mm railing height is provisional pending the owner's measurement; the 100 mm edge inset,
+  20 mm bottom inset, 160 mm post spacing and `#4a515a` colour are settled design choices that
   can still change by eye without changing the specs.
 - Whether the internal main stair should get a handrail is a model follow-up after this change.

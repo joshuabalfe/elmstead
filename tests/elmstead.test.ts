@@ -7,6 +7,7 @@ import elmstead from "../models/elmstead/index.js";
 import { stairwellOutline } from "../models/elmstead/first/index.js";
 import { stairArrivalX } from "../models/elmstead/first/walls.js";
 import { checkModel } from "../src/checks/model.js";
+import { railingGeometry } from "../src/geometry/railing.js";
 import { flightFootprint, stairLevels } from "../src/geometry/stair.js";
 import { wallDirection, wallLength } from "../src/geometry/wall.js";
 import { face, faceCrossing, mm } from "../src/model/index.js";
@@ -358,6 +359,45 @@ describe("Elmstead's front steps", () => {
     if (!flight || flight.kind !== "flight") throw new Error("The front steps should be one flight");
     expect(flight.risers).toBe(4);
     expect(ground.elevation - street.elevation).toBe(mm(600));
+  });
+});
+
+describe("Elmstead's railings", () => {
+  const street = elmstead.storeys.find((s) => s.id === "storey-street")!;
+  const ground = elmstead.storeys.find((s) => s.id === "storey-ground")!;
+  const rail = (id: string) => street.railings?.find((r) => r.id === id);
+
+  it("has two nosing-line step rails and a level front rail at the bottom of the steps", () => {
+    expect(street.railings?.map((r) => r.id).sort()).toEqual(["railing-front-facade-south", "railing-front-north", "railing-front-south"]);
+    for (const [id, y] of [["railing-front-north", mm(8325)], ["railing-front-south", mm(6525)]] as const) {
+      const r = rail(id)!;
+      expect(r.start).toEqual({ x: mm(-880), y });
+      expect(r.end).toEqual({ x: mm(0), y });
+      expect([r.startBase, r.endBase, r.height]).toEqual([mm(150), mm(600), mm(900)]);
+      const g = railingGeometry(r);
+      expect(g.run).toBe(880);
+      expect(g.posts).toHaveLength(7);
+      expect([g.posts[0]!.base, g.posts[0]!.top]).toEqual([150, 1050]);
+      expect([g.posts.at(-1)!.base, g.posts.at(-1)!.top]).toEqual([600, 1500]);
+    }
+    const front = rail("railing-front-facade-south")!;
+    expect(front.start).toEqual({ x: mm(-900), y: mm(6525) });
+    expect(front.end).toEqual({ x: mm(-900), y: mm(0) });
+    expect([front.startBase, front.endBase, front.height]).toEqual([undefined, undefined, mm(900)]);
+    expect(railingGeometry(front).run).toBe(6525);
+    expect(railingGeometry(front).posts).toHaveLength(42);
+    expect(railingGeometry(front).rail.up.z).toBe(1); // level
+  });
+
+  it("draws all three railings on the street plan, with ids when asked, but none on the ground plan", () => {
+    const plan = renderPlan(elmstead, street, { ids: false });
+    for (const id of ["railing-front-north", "railing-front-south", "railing-front-facade-south"]) {
+      expect(plan).toContain(`class="railing" data-id="${id}"`);
+    }
+    expect(plan).toContain(`stroke="${C.railing}"`);
+    expect(plan.indexOf("railing-front-facade-south")).toBeLessThan(plan.indexOf('class="stair"'));
+    expect(renderPlan(elmstead, street, { ids: true })).toContain(">railing-front-facade-south<");
+    expect(renderPlan(elmstead, ground, { ids: false })).not.toContain("railing-front");
   });
 });
 

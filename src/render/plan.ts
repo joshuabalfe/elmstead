@@ -1,6 +1,7 @@
 import { faceOffsets, wallDirection, wallLength, wallPoint, wallSegmentFootprint } from "../geometry/wall.js";
 import { jambEdges, openingOutline, openingProfile } from "../geometry/opening.js";
 import { area, bounds, centroid, spans, type Bounds } from "../geometry/polygon.js";
+import { POST_SIZE, railingPostPoints } from "../geometry/railing.js";
 import { flightFootprint, flightTreads, stairLevels } from "../geometry/stair.js";
 import { GLAZING_BAR_DEPTH, windowDivision } from "../geometry/window.js";
 import { dot, perpLeft, toVec, unit, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";
@@ -23,12 +24,14 @@ interface View {
   height: number;
 }
 
-function makeView(storey: Storey): View {
+function makeView(storey: Storey, { railings = false }: { railings?: boolean } = {}): View {
   const pts: Vec[] = [
     ...storey.walls.flatMap((w) => (wallLength(w) > 0 ? wallSegmentFootprint(w, 0, wallLength(w)) : [toVec(w.start)])),
     ...storey.slabs.flatMap((s) => s.outline.map(toVec)),
     ...storey.rooms.flatMap((r) => r.outline.map(toVec)),
     ...stairPoints(storey),
+    // Only the plan sheet includes railings; the viewer's overlay keeps the extent it had.
+    ...(railings ? (storey.railings ?? []).flatMap((r) => [toVec(r.start), toVec(r.end)]) : []),
   ];
   const extent = pts.length ? bounds(pts) : { minX: 0, minY: 0, maxX: 1000, maxY: 1000 };
   const toPx = (p: Vec) => v(MARGIN.left + (p.x - extent.minX) * PX_PER_MM, MARGIN.top + (extent.maxY - p.y) * PX_PER_MM);
@@ -436,6 +439,26 @@ const idLabel = (p: Vec, id: string): string =>
  * `renderWallTops`, which the viewer composites into its plan-style overlay, do not, so the viewer
  * shows a stair as its own IFC geometry.
  */
+/**
+ * Railings: a line from start to end with a tick at each derived post. Drawn after the walls and
+ * before the stairs, so the stairs remain the last geometry layer. Only `renderPlan` draws them.
+ */
+function drawRailings(storey: Storey, view: View, opts: PlanOptions): string[] {
+  const out: string[] = [];
+  for (const r of storey.railings ?? []) {
+    const d = unit(vsub(toVec(r.end), toVec(r.start)));
+    const across = v(d.y, -d.x);
+    const parts: string[] = [line(view.toPx(toVec(r.start)), view.toPx(toVec(r.end)), { stroke: C.railing, "stroke-width": 1.2 })];
+    for (const p of railingPostPoints(r)) {
+      const half = vscale(across, POST_SIZE / 2);
+      parts.push(line(view.toPx(vadd(p, half)), view.toPx(vsub(p, half)), { stroke: C.railing, "stroke-width": 1.2 }));
+    }
+    if (opts.ids) parts.push(idLabel(view.toPx(v((r.start.x + r.end.x) / 2, (r.start.y + r.end.y) / 2)), r.id));
+    out.push(group({ class: "railing", "data-id": r.id }, parts));
+  }
+  return out;
+}
+
 function drawStairs(model: BuildingModel, storey: Storey, view: View, opts: PlanOptions): string[] {
   const out: string[] = [];
   for (const s of storey.stairs ?? []) {
@@ -470,7 +493,7 @@ function drawStairs(model: BuildingModel, storey: Storey, view: View, opts: Plan
 }
 
 export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptions): string {
-  const view = makeView(storey);
+  const view = makeView(storey, { railings: true });
   const walls = [...storey.walls].filter((w) => wallLength(w) > 0);
   const wallById = new Map(walls.map((w) => [w.id, w]));
   const out: string[] = [];
@@ -493,6 +516,8 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
   }
 
   out.push(...wallsAndOpenings(storey, view, model.components));
+
+  out.push(...drawRailings(storey, view, opts));
 
   out.push(...drawStairs(model, storey, view, opts));
 

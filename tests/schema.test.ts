@@ -105,6 +105,25 @@ describe("building schema", () => {
     expect(issues(d).join()).toMatch(/slabs\.0\.material/);
   });
 
+  it("accepts railings with omitted, partial and full bases", () => {
+    const d = minimal() as any;
+    d.storeys[0].railings = [{ id: "railing-a", start: { x: 0, y: 0 }, end: { x: 1000, y: 0 }, height: 900 }];
+    expect(issues(d)).toEqual([]);
+    d.storeys[0].railings[0].endBase = 600;
+    expect(issues(d)).toEqual([]);
+    d.storeys[0].railings[0].startBase = 150;
+    expect(issues(d)).toEqual([]);
+  });
+
+  it("rejects a negative railing base and a zero height", () => {
+    const negative = minimal() as any;
+    negative.storeys[0].railings = [{ id: "railing-a", start: { x: 0, y: 0 }, end: { x: 1000, y: 0 }, height: 900, startBase: -100 }];
+    expect(issues(negative).join()).toMatch(/railings\.0\.startBase/);
+    const flat = minimal() as any;
+    flat.storeys[0].railings = [{ id: "railing-a", start: { x: 0, y: 0 }, end: { x: 1000, y: 0 }, height: 0 }];
+    expect(issues(flat).join()).toMatch(/railings\.0\.height/);
+  });
+
   it("rejects polygons with fewer than 3 points", () => {
     const d = minimal();
     d.storeys[0]!.rooms[0]!.outline.pop();

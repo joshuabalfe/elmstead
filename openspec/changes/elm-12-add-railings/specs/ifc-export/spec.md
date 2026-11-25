@@ -61,7 +61,7 @@ swept along the run, plus posts from that surface to the rail, all styled with t
 
 #### Scenario: Rail and posts
 - **WHEN** a railing is 2000 mm long with a 900 mm height
-- **THEN** its body contains one top rail and posts at both ends and at intervals no greater than 1200 mm, in the railing display colour
+- **THEN** its body contains one top rail and posts at both ends and at intervals no greater than 160 mm, in the railing display colour
 
 #### Scenario: Oriented rail
 - **WHEN** a railing's bases differ

@@ -26,8 +26,8 @@ on level ground.
   include their points in the shown bounds.
 - Add a `railing()` model helper.
 - Model the two railings either side of elmstead's front steps, following the flight's pitch from the
-  first tread to the threshold (150 → 600 mm) with a provisional 900 mm height until the owner
-  confirms it.
+  first tread to the threshold (150 → 600 mm) with a provisional 900 mm height, and a level railing
+  along the front of the house at the bottom of the steps (owner correction).
 - Regenerate the schema export and update docs and tests. Models without railings stay byte-identical.
 
 ## Capabilities

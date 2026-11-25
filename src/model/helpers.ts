@@ -2,7 +2,7 @@
  * Authoring helpers for model files. These only build plain schema values; they hold no state.
  * Everything here is optional sugar: a model can always write the JSON shape out by hand.
  */
-import { SCHEMA_VERSION, type BuildingModel, type Door, type DoorComponent, type Point, type Polygon, type Reveal, type Room, type Stair, type StairFlight, type StairLanding, type StairSegment, type Storey, type Swing, type Wall, type Window, type WindowComponent } from "../schema/schema.js";
+import { SCHEMA_VERSION, type BuildingModel, type Door, type DoorComponent, type Point, type Polygon, type Railing, type Reveal, type Room, type Stair, type StairFlight, type StairLanding, type StairSegment, type Storey, type Swing, type Wall, type Window, type WindowComponent } from "../schema/schema.js";
 import { faceOffsets, wallDirection, wallLength } from "../geometry/wall.js";
 import { add, divRound, mm, sub, type Mm } from "../schema/units.js";
 
@@ -200,4 +200,20 @@ export const stair = (id: string, toStorey: Storey, segments: StairSegment[]): S
   id,
   toStoreyId: toStorey.id,
   segments,
+});
+
+export type RailingOpts = Pick<Railing, "height"> & Partial<Pick<Railing, "startBase" | "endBase">>;
+
+/**
+ * A straight railing run. `height` is to the top of the rail above the walking surface;
+ * `startBase`/`endBase` are that surface at each end. Bases are recorded exactly as given and both
+ * are omitted when neither is given; an omitted base means 0 (see the schema).
+ */
+export const railing = (id: string, start: Point, end: Point, opts: RailingOpts): Railing => ({
+  id,
+  start,
+  end,
+  height: opts.height,
+  ...(opts.startBase === undefined ? {} : { startBase: opts.startBase }),
+  ...(opts.endBase === undefined ? {} : { endBase: opts.endBase }),
 });

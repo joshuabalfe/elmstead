@@ -24,27 +24,30 @@ this order:
    glazing lines, and a small block for each frame piece or glazing bar the cut passes through:
    jambs and vertical bars). A splayed window's outline, and the dashed outline of one the cut
    misses, follow its reveal. A doorway has no leaf or swing: its wall pieces leave the opening.
-5. stairs, drawn in full rather than cut: each flight's footprint, a tread line per tread and a
+5. railings: a line from start to end with a tick at each derived post, in the railing colour
+6. stairs, drawn in full rather than cut: each flight's footprint, a tread line per tread and a
    walking-direction arrow, and each landing's outline. The cut height only decides which openings
    are cut, so a half landing above it is drawn like any other geometry
-6. room labels (name and area in m²) and room dimensions: the longest clear wall-to-wall span
+7. room labels (name and area in m²) and room dimensions: the longest clear wall-to-wall span
    east–west and north–south of the room's `dimensionOutline` when it has one (otherwise its
    `outline`), in mm, drawn as dimension lines inside the room and kept clear of the label where
    the room is wide enough
-7. element ids in red, only with `--ids`
-8. overall dimensions
-9. title, north arrow and a 5 m scale bar
+8. element ids in red, only with `--ids`
+9. overall dimensions
+10. title, north arrow and a 5 m scale bar
 
 Every element is an SVG group with `class` (`wall`, `door`, `window`, `room`, `room-dimensions`,
-`slab`, `stair`, `stair-flight`, `stair-landing`) and `data-id` set to its model id, so the SVG can
-be inspected or queried. A stair's flights and landings are groups nested inside the stair's.
+`slab`, `railing`, `stair`, `stair-flight`, `stair-landing`) and `data-id` set to its model id, so
+the SVG can be inspected or queried. A stair's flights and landings are groups nested inside the
+stair's.
 
-Stairs are drawn by `renderPlan` alone. `renderFloor`, `renderWallTops` and `renderPlanAnnotations`,
-which the viewer composites into its plan-style overlay, do not draw them. For readability the viewer
-recolours the stair solids in every viewer mode including snapshots — cream / darker-cream tread
-bands and an edge outline. The base IFC stair colour stays classifier-safe; the recolour is
-presentation only. Stair colours stay clear of the wall, room and paper colours the plan-versus-3D
-comparison classifies (`src/render/style.ts`).
+Railings and stairs are drawn by `renderPlan` alone. `renderFloor`, `renderWallTops` and
+`renderPlanAnnotations`, which the viewer composites into its plan-style overlay, draw neither, and
+their drawing extent stays clear of outlying railings. For readability the viewer recolours the
+stair solids in every viewer mode including snapshots — cream / darker-cream tread bands and an
+edge outline. The base IFC stair colour stays classifier-safe; the recolour is presentation only.
+Railings keep their IFC slate colour. Both colours stay clear of the wall, room and paper colours
+the plan-versus-3D comparison classifies (`src/render/style.ts`).
 
 Drawing style is all in one place: `src/render/style.ts` holds the scale, colours, font and
 margins.

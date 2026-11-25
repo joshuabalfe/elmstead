@@ -16,5 +16,7 @@ export const STYLES = {
   // what it recognises, so a stair must stay well clear of every entry — above all `wall`, whose tops
   // it would paint charcoal, and `slab`, whose tops it would discard (see styleOf in viewer/main.ts).
   stair: { rgb: [0.36, 0.54, 0.33], transparency: 0 },
+  // Railing posts and rails. Dark slate, clear of every other entry so styleOf recognises it.
+  railing: { rgb: [0.2901960784, 0.3176470588, 0.3529411765], transparency: 0 },
 } as const;
 export type StyleName = keyof typeof STYLES;

@@ -1,5 +1,6 @@
 import { openingExtent } from "../geometry/opening.js";
 import { distanceToOutline, polygonProblems } from "../geometry/polygon.js";
+import { railingRun } from "../geometry/railing.js";
 import { flightRun } from "../geometry/stair.js";
 import { wallLength } from "../geometry/wall.js";
 import { toVec, type Vec } from "../geometry/vec.js";
@@ -24,6 +25,7 @@ function idEntries(model: BuildingModel): [string, string][] {
       entries.push([s.id, "stair"]);
       for (const seg of s.segments) entries.push([seg.id, seg.kind === "flight" ? "stair flight" : "stair landing"]);
     }
+    for (const r of storey.railings ?? []) entries.push([r.id, "railing"]);
   }
   for (const c of model.components?.doors ?? []) entries.push([c.id, "door component"]);
   for (const c of model.components?.windows ?? []) entries.push([c.id, "window component"]);
@@ -45,6 +47,16 @@ export function checkIds(model: BuildingModel): Issue[] {
     const message =
       isComponent(first) && isComponent(kind) ? "component id is used twice" : first === kind ? `id is used by two ${kind}s` : `id is used by a ${first} and a ${kind}`;
     issues.push({ level: "ERROR", id, message });
+  }
+  return issues;
+}
+
+export function checkRailings(model: BuildingModel): Issue[] {
+  const issues: Issue[] = [];
+  for (const storey of model.storeys) {
+    for (const r of storey.railings ?? []) {
+      if (railingRun(r) === 0) issues.push({ level: "ERROR", id: r.id, message: "zero-length railing cannot be written to IFC" });
+    }
   }
   return issues;
 }
@@ -202,6 +214,7 @@ export const checkModel = (model: BuildingModel): Issue[] => [
   ...checkComponents(model),
   ...checkIds(model),
   ...checkWalls(model),
+  ...checkRailings(model),
   ...checkOpenings(model),
   ...checkOutlines(model),
   ...checkStairs(model),
