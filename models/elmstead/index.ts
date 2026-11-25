@@ -7,6 +7,7 @@
  *   basement/     basement: traced from the owner's basement plan, stair well left open
  *   ground/       ground floor: walls, openings, rooms, traced from the owner's plan image
  *   first/        first floor: traced from the owner's first-floor plan, with the stair well open
+ *   attic/        attic (top storey): empty floor and open stair well, layout awaiting the owner's plan
  *
  * The half landing and the stair flights still wait for the stair change; the stair well and half
  * landing are already left open in the first-floor slab.
@@ -16,6 +17,7 @@
  * large front window: 135° counter-clockwise from plan +y.
  */
 import { defineBuilding, deg } from "../../src/model/index.js";
+import { attic } from "./attic/index.js";
 import { basement } from "./basement/index.js";
 import { components } from "./components/index.js";
 import { first } from "./first/index.js";
@@ -27,5 +29,5 @@ export default defineBuilding({
   site: { id: "site-default", name: "Default site", northAngle: deg(135) },
   building: { id: "building-elmstead", name: "Elmstead" },
   components,
-storeys: [basement, street, ground, first],
+  storeys: [basement, street, ground, first, attic],
 });

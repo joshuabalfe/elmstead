@@ -290,6 +290,30 @@
           "exclusiveMinimum": 0,
           "maximum": 9007199254740991
         },
+        "profile": {
+          "minItems": 2,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "along": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "up": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "along",
+              "up"
+            ],
+            "additionalProperties": false
+          }
+        },
         "justification": {
           "type": "string",
           "enum": [
@@ -304,7 +328,6 @@
         "start",
         "end",
         "thickness",
-        "height",
         "justification"
       ],
       "additionalProperties": false

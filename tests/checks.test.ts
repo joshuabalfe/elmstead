@@ -3,7 +3,7 @@ import cottage from "../models/example-cottage/index.js";
 import elmstead from "../models/elmstead/index.js";
 import { checkComponents } from "../src/checks/components.js";
 import { checkIds, checkModel, checkOpenings, checkOutlines, checkWalls } from "../src/checks/model.js";
-import { wallLength } from "../src/geometry/wall.js";
+import { wallHeight, wallLength } from "../src/geometry/wall.js";
 import { deg, m as metres, mm, pt, wall as makeWall, window as makeWindow, type Reveal } from "../src/model/index.js";
 import { BuildingModelSchema, type BuildingModel } from "../src/schema/schema.js";
 
@@ -63,6 +63,18 @@ describe("checkWalls", () => {
     w.end = { ...w.start };
     expect(checkWalls(m)).toEqual([{ level: "ERROR", id: "wall-south", message: "zero-length wall cannot be written to IFC" }]);
   });
+
+  it("reports a pitched profile that does not span the wall", () => {
+    const m = model();
+    m.storeys[0]!.walls = [makeWall("wall-gable", pt(mm(0), mm(0)), pt(mm(4000), mm(0)), { thickness: mm(200), profile: [{ along: mm(0), up: mm(1200) }, { along: mm(3900), up: mm(1200) }] })];
+    expect(checkWalls(m)).toEqual([{ level: "ERROR", id: "wall-gable", message: "profile must span the wall from along 0 to its length" }]);
+  });
+
+  it("accepts a pitched profile that spans the wall", () => {
+    const m = model();
+    m.storeys[0]!.walls = [makeWall("wall-gable", pt(mm(0), mm(0)), pt(mm(4000), mm(0)), { thickness: mm(200), profile: [{ along: mm(0), up: mm(1200) }, { along: mm(4000), up: mm(1200) }] })];
+    expect(checkWalls(m)).toEqual([]);
+  });
 });
 
 describe("checkOpenings", () => {
@@ -79,7 +91,7 @@ describe("checkOpenings", () => {
     o.offsetAlongWall = mm(wallLength(w));
     expect(checkOpenings(m)).toEqual([{ level: "ERROR", id: "door-living", message: `opening is ${o.width} mm past the wall end` }]);
     o.offsetAlongWall = mm(0);
-    o.sillHeight = w.height;
+    o.sillHeight = mm(wallHeight(w));
     expect(checkOpenings(m)).toEqual([{ level: "ERROR", id: "door-living", message: `opening is ${o.height} mm above the wall top` }]);
   });
 
@@ -143,6 +155,31 @@ describe("checkOpenings", () => {
       const a = makeWindow("window-a", w, mm(1000), size, reveal("left"));
       const b = makeWindow("window-b", w, mm(2300), size); // 100 mm clear, inside window-a's 200 mm splay
       expect(checkOpenings(withOpenings(a, b)).map((i) => i.id)).toEqual(["window-a", "window-b"]);
+    });
+  });
+
+  describe("with a pitched top", () => {
+    // A 4 m gable wall: eaves 1200 at both ends, ridge 2600 at mid-span.
+    const w = makeWall("wall-gable", pt(mm(0), mm(0)), pt(mm(4000), mm(0)), {
+      thickness: mm(200),
+      profile: [{ along: mm(0), up: mm(1200) }, { along: mm(2000), up: mm(2600) }, { along: mm(4000), up: mm(1200) }],
+    });
+    const withOpenings = (...openings: ReturnType<typeof makeWindow>[]): BuildingModel => {
+      const m = model();
+      m.storeys[0]!.walls = [w];
+      m.storeys[0]!.openings = openings;
+      return m;
+    };
+
+    it("reports a window poking above the low eaves end of the slope", () => {
+      // Over [100, 1300] the top edge's lowest point is 1270 mm, at the near jamb.
+      const o = makeWindow("window-eaves", w, mm(100), { width: mm(1200), height: mm(1400), sillHeight: mm(0) });
+      expect(checkOpenings(withOpenings(o))).toEqual([{ level: "ERROR", id: "window-eaves", message: "opening is 130 mm above the wall top" }]);
+    });
+
+    it("allows a window that fits under the ridge", () => {
+      const o = makeWindow("window-ridge", w, mm(1400), { width: mm(1200), height: mm(1500), sillHeight: mm(0) });
+      expect(checkOpenings(withOpenings(o))).toEqual([]);
     });
   });
 });

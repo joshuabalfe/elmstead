@@ -14,10 +14,19 @@ export const defineBuilding = (b: Omit<BuildingModel, "schemaVersion">): Buildin
   ...b,
 });
 
-type WallOpts = Pick<Wall, "thickness" | "height"> & Partial<Pick<Wall, "justification" | "name">>;
+type WallOpts = Pick<Wall, "thickness"> & Partial<Pick<Wall, "height" | "profile" | "justification" | "name">>;
 
 export function wall(id: string, start: Point, end: Point, opts: WallOpts): Wall {
-  return { id, ...(opts.name === undefined ? {} : { name: opts.name }), start, end, thickness: opts.thickness, height: opts.height, justification: opts.justification ?? "centre" };
+  return {
+    id,
+    ...(opts.name === undefined ? {} : { name: opts.name }),
+    start,
+    end,
+    thickness: opts.thickness,
+    ...(opts.height === undefined ? {} : { height: opts.height }),
+    ...(opts.profile === undefined ? {} : { profile: opts.profile }),
+    justification: opts.justification ?? "centre",
+  };
 }
 
 export interface RectWalls {
