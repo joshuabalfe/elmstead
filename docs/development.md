@@ -32,9 +32,9 @@ output is written and the command exits 1. The rules are:
 - room, slab and stair landing outlines, and a room's optional dimension outline, are simple
   polygons: at least three distinct points, no repeated first or adjacent points, non-zero area
   and no self-intersection
-- a stair names the next storey up, alternates flight and landing starting and ending with a
-  flight, runs somewhere on every flight, and each landing meets the flights either side of it
-  within 1 mm
+- a stair names the next storey up, alternates flight and landing starting with a flight, runs
+  somewhere on every flight, and each landing meets the flight before it and, when present, the
+  flight after it within 1 mm; a stair may end with a top landing one riser below its target storey
 
 Add new rules to the matching `check*` function, keep them pure (no writes or exits), and report
 them as an `Issue` against the element id. Add a fixture test to the matching test file (see the

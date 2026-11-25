@@ -192,7 +192,7 @@ export const stairFlight = (id: string, start: Point, end: Point, opts: Pick<Sta
   risers: opts.risers,
 });
 
-/** A flat platform between flights, for `stair()`. Its level follows from the flights below it. */
+/** A flat platform between flights, or a stair's top landing, for `stair()`. Its level follows from the flights below it. */
 export const stairLanding = (id: string, outline: Polygon, opts: Pick<StairLanding, "thickness">): StairLanding => ({
   kind: "landing",
   id,

@@ -468,6 +468,58 @@ describe("Elmstead's railings", () => {
   });
 });
 
+describe("Elmstead's basement", () => {
+  it("projects the slab 900 mm beyond the front wall, out to the pavement edge", () => {
+    const basement = elmstead.storeys.find((s) => s.id === "storey-basement")!;
+    const slab = basement.slabs.find((s) => s.id === "slab-basement")!;
+    expect(Math.min(...slab.outline.map((p) => p.x))).toBe(mm(-900));
+    expect(contains(slab.outline, { x: mm(-450), y: mm(1000) })).toBe(true); // out past the west wall
+    expect(contains(slab.outline, { x: mm(-901), y: mm(1000) })).toBe(false);
+    expect(Math.min(...slab.outline.map((p) => p.y))).toBe(mm(0)); // south edge unchanged
+    expect(Math.max(...slab.outline.map((p) => p.x))).toBe(extEastX); // still covers the extension
+  });
+});
+
+describe("Elmstead's basement external stair", () => {
+  const basement = elmstead.storeys.find((s) => s.id === "storey-basement")!;
+  const street = elmstead.storeys.find((s) => s.id === "storey-street")!;
+  const stair = basement.stairs?.find((s) => s.id === "stair-basement-external")!;
+
+  it("climbs six steps to a 900 mm square top landing at the corner", () => {
+    expect(stair.toStoreyId).toBe(street.id);
+    expect(stair.segments.map((s) => s.kind)).toEqual(["flight", "landing"]);
+    const [flight, landing] = stair.segments;
+    if (flight?.kind !== "flight" || landing?.kind !== "landing") throw new Error("The external stair needs a flight and a top landing");
+    expect(flight.risers).toBe(6);
+    expect(flight.width).toBe(mm(900));
+    expect(flight.start).toEqual({ x: mm(-450), y: mm(2400) });
+    expect(flight.end).toEqual({ x: mm(-450), y: mm(900) });
+    const footprint = flightFootprint(flight);
+    expect(Math.min(...footprint.map((p) => p.x))).toBe(mm(-900)); // fills the external path
+    expect(Math.max(...footprint.map((p) => p.x))).toBe(mm(0));
+    expect(landing.outline).toEqual([
+      { x: mm(-900), y: mm(0) },
+      { x: mm(0), y: mm(0) },
+      { x: mm(0), y: mm(900) },
+      { x: mm(-900), y: mm(900) },
+    ]);
+    expect(landing.thickness).toBe(mm(150));
+  });
+
+  it("derives seven risers and leaves the last rise from the landing to the street", () => {
+    const levels = stairLevels(stair, street.elevation - basement.elevation);
+    expect(levels.totalRisers).toBe(7);
+    expect(levels.riser).toBeCloseTo(1950 / 7, 9);
+    const [flight, landing] = levels.segments;
+    if (flight?.kind !== "flight" || landing?.kind !== "landing") throw new Error("The external stair needs a flight and a top landing");
+    expect(flight.run).toBe(1500);
+    expect(flight.going).toBe(300);
+    expect(flight.top).toBeCloseTo((1950 * 6) / 7, 9);
+    expect(landing.level).toBeCloseTo((1950 * 6) / 7, 9);
+    expect(street.elevation - basement.elevation - landing.level).toBeCloseTo(levels.riser, 9);
+  });
+});
+
 describe("Elmstead's external works", () => {
   it("passes the model checks", () => {
     expect(checkModel(elmstead)).toEqual([]);

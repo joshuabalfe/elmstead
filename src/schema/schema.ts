@@ -140,8 +140,9 @@ export const StairLandingSchema = z.strictObject({
 export const StairSegmentSchema = z.discriminatedUnion("kind", [StairFlightSchema, StairLandingSchema]);
 
 /**
- * A storey element climbing to another storey: segments in bottom-to-top order, starting and ending
- * with a flight. The bottom is the containing storey's elevation and the top is `toStoreyId`'s.
+ * A storey element climbing to another storey: segments in bottom-to-top order, starting with a
+ * flight. The bottom is the containing storey's elevation and the top is `toStoreyId`'s. A stair
+ * ends with a flight, or with a top landing one riser below the storey above.
  */
 export const StairSchema = z.strictObject({
   id: IdSchema,

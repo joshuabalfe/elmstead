@@ -487,6 +487,9 @@ describe("elmstead external storey", () => {
     expect(text).toMatch(/railing-front-corner/);
     expect(text.match(/\.HANDRAIL\./g) ?? []).toHaveLength(2);
     expect(text.match(/\.GUARDRAIL\./g) ?? []).toHaveLength(2);
+    expect(text).toMatch(/stair-basement-external/);
+    expect(text).toMatch(/stair-flight-basement-external/);
+    expect(text).toMatch(/stair-landing-basement-external/);
     expect(await roundTripChecks(elmsteadModel, ifc)).toEqual([]);
   });
 });
