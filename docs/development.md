@@ -120,18 +120,20 @@ Both serve this checkout's `out/`, so build the model first.
 
 `.github/workflows/ci.yml` runs on pull requests and on pushes to `main` (a branch with a pull
 request runs once, not once for the push and once for the PR). A new push to a pull request
-cancels its stale run. Two jobs:
+cancels its stale run. Three kinds of job, all started together:
 
+- **scope**: decides whether **full** is needed. A pull request that only changes `docs/`,
+  `openspec/`, `.agents/` or `*.md` skips it; pushes to `main` always run it. It needs no
+  checkout, so it finishes in seconds.
 - **fast**: `npm ci`, `npm run typecheck`, a schema freshness check
-  (`npm run schema && git diff --exit-code schema/`) and `npm run test:fast`. It then decides
-  whether **full** is needed: a pull request that only changes `docs/`, `openspec/`, `.agents/` or
-  `*.md` skips it. Pushes to `main` always run it.
+  (`npm run schema && git diff --exit-code schema/`) and `npm run test:fast`. It is the quick
+  signal; **full** does not wait for it.
 - **full**: installs uv and Chromium's system libraries, then runs `npm test`, including the
-  IfcOpenShell validator and the 3D-versus-plan comparison. It starts only once **fast** has
-  passed, and runs as a matrix of groups, one runner each, because the browser and CLI tests
-  fight over the cores of a single runner. Each heavy test file is named in a group; **rest**
-  runs every file no group names, so a new test file is always run. When you add a heavy file,
-  give it a group and add it to rest's `--exclude` list.
+  IfcOpenShell validator and the 3D-versus-plan comparison. It runs as a matrix of groups, one
+  runner each, because the browser and CLI tests fight over the cores of a single runner. Each
+  heavy test file is named in a group; **rest** runs every file no group names, so a new test
+  file is always run. When you add a heavy file, give it a group and add it to rest's `--exclude`
+  list.
 
 The actions are pinned by commit SHA, matching the repo's exact-version rule.
 
