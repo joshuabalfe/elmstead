@@ -32,6 +32,7 @@ import type { View } from "../src/render/views.js";
 import type { BuildingModel, Storey } from "../src/schema/schema.js";
 import type { ResolvedConstraint } from "../src/constraints/check.js";
 import { constraintLabels } from "./constraints.js";
+import { disposeTree } from "./dispose.js";
 import { overlayGroup, type OverlayLayer } from "./overlay.js";
 import { labelTexture, type BillboardLine } from "./text.js";
 import { elementLabel, type ElementLabel } from "./identify.js";
@@ -311,19 +312,7 @@ function updateLowestElevation() {
  */
 async function loadLabels(name: string, model: BuildingModel | null, epoch: number) {
   if (epoch !== loadEpoch) return;
-  const dispose = (obj: THREE.Object3D) => {
-    for (const child of [...obj.children]) dispose(child);
-    if (obj instanceof THREE.Mesh) obj.geometry.dispose(); // lines are meshes too; sprites share one geometry
-    const material = "material" in obj ? (obj.material as THREE.MeshBasicMaterial | THREE.SpriteMaterial) : undefined;
-    if (material === (constraintLineMaterial as THREE.Material)) return; // every constraint line shares one material
-    material?.map?.dispose();
-    material?.dispose();
-  };
-  for (const obj of [...labels.children, ...constraints.children, ...planLayers.children]) dispose(obj);
-  labels.clear();
-  constraints.clear();
-  planLayers.clear();
-  storeyLayers.clear();
+  clearLabelLayers();
   northAngle = null;
   lowestElevation = null;
   modelJson = model;
@@ -335,71 +324,101 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
   const resolved = constraintsRes.ok ? ((await constraintsRes.json()) as ResolvedConstraint[]) : [];
   updateLowestElevation();
   for (const storey of model.storeys) {
-    const labelGroup = new THREE.Group();
-    const layerGroup = new THREE.Group();
-    // Dimensions lying flat at the ceiling: lying flat is what lets an upper storey's floor occlude
-    // them, which a camera-facing billboard could never be. Over the wall tops' layer.
-    const ceiling = Math.max(0, ...storey.walls.map((w) => wallHeight(w)));
-    const y = (storey.elevation + ceiling + LABEL_LIFT) / 1000;
-    labelGroup.add(planGeometry(renderPlanAnnotations(storey, { names: false }), y, { kind: "overlay", renderOrder: 1 }));
-    // Each room's name and area is its own plane, flat like the dimensions but yawed to the camera
-    // (updateLabelOrientation), so it stays occludable without standing up through the floor above.
-    for (const tag of roomTags(storey)) {
-      window.__elmsteadRoomLabels!.push([tag.name, tag.area, tag.id]);
-      const label = flatLabel(
-        [
-          { text: tag.name, size: ROOM_LABEL.name.size, bold: true, dy: ROOM_LABEL.name.dy },
-          { text: tag.area, size: ROOM_LABEL.area.size, dy: ROOM_LABEL.area.dy },
-          { text: tag.id, size: 9, dy: ROOM_LABEL.area.dy + 12 },
-        ],
-        C.ink,
-        2, // over the dimension lines, as the room billboards were
-      );
-      label.position.set(tag.at.x / 1000, y, -tag.at.y / 1000);
-      labelGroup.add(label);
-    }
-    // The wall-top poché lies flat, so it only fits flat-topped walls; a pitched wall's sloped
-    // top is painted by patchTops instead. Lay one overlay per flat-wall height, each at its own wall
-    // top, so a taller wall's plane never floats above a shorter one (e.g. the first floor's 2.7 m
-    // walls over its 2.55 m bay).
-    const flatWalls = storey.walls.filter((w) => !w.profile);
-    const byHeight = new Map<number, typeof flatWalls>();
-    for (const w of flatWalls) {
-      const h = wallHeight(w);
-      const group = byHeight.get(h);
-      if (group) group.push(w);
-      else byHeight.set(h, [w]);
-    }
-    for (const [h, walls] of byHeight) {
-      const groupStorey = { ...storey, walls, openings: storey.openings.filter((o) => walls.some((w) => w.id === o.wallId)) };
-      const tops = renderWallTops(groupStorey, model.components);
-      layerGroup.add(planGeometry(tops, (storey.elevation + h + WALL_TOP_LIFT) / 1000, { kind: "overlay", renderOrder: 0 }));
-    }
-    // Every storey's floor is its own slab and room fills, at its own level, writing depth: the floor you
-    // see is the topmost one, and it hides the storeys below. Opaque, not blended, so it stays in the
-    // opaque pass that runs before the walls. Built even while hidden, so the selector can show a
-    // storey again without rebuilding it.
-    layerGroup.add(planGeometry(renderFloor(storey, model.components), (storey.elevation + FLOOR_LIFT) / 1000, { kind: "floor", renderOrder: -1 }));
-    // Constraints live in their own per-storey group inside the constraints layer, so the
-    // Constraints button and the storey selection compose.
-    const constraintGroup = new THREE.Group();
-    for (const label of constraintLabels(resolved, storey.id)) {
-      const sprite = constraintBillboard(label.lines);
-      sprite.position.set(label.at.x / 1000, y, -label.at.y / 1000);
-      constraintGroup.add(sprite);
-    }
-    for (const c of resolved) {
-      if (c.storey === storey.id) constraintGroup.add(constraintLine(c.span.from, c.span.to, y));
-    }
-    constraints.add(constraintGroup);
-    labelGroup.visible = isShown(storey.id);
-    layerGroup.visible = isShown(storey.id);
-    constraintGroup.visible = isShown(storey.id);
+    const [labelGroup, layerGroup, constraintGroup] = buildStoreyLayers(storey, model, resolved);
     labels.add(labelGroup);
     planLayers.add(layerGroup);
+    constraints.add(constraintGroup);
     storeyLayers.set(storey.id, [labelGroup, layerGroup, constraintGroup]);
   }
   updateLabelOrientation();
+}
+
+/** Frees and empties the label, constraint and plan layers, ready for the next model. */
+function clearLabelLayers() {
+  const shared = new Set([constraintLineMaterial]); // every constraint line shares one material
+  for (const obj of [...labels.children, ...constraints.children, ...planLayers.children]) disposeTree(obj, shared);
+  labels.clear();
+  constraints.clear();
+  planLayers.clear();
+  storeyLayers.clear();
+}
+
+/**
+ * One storey's labels (dimensions and room tags at its ceiling), plan layers (wall tops and floor)
+ * and constraints, each in its own group and shown or hidden with the storey.
+ */
+function buildStoreyLayers(storey: Storey, model: BuildingModel, resolved: readonly ResolvedConstraint[]): [THREE.Group, THREE.Group, THREE.Group] {
+  // Dimensions lying flat at the ceiling: lying flat is what lets an upper storey's floor occlude
+  // them, which a camera-facing billboard could never be. Over the wall tops' layer.
+  const ceiling = Math.max(0, ...storey.walls.map((w) => wallHeight(w)));
+  const y = (storey.elevation + ceiling + LABEL_LIFT) / 1000;
+  const labelGroup = new THREE.Group();
+  labelGroup.add(planGeometry(renderPlanAnnotations(storey, { names: false }), y, { kind: "overlay", renderOrder: 1 }));
+  for (const label of roomLabels(storey, y)) labelGroup.add(label);
+  const layerGroup = new THREE.Group();
+  for (const tops of wallTopOverlays(storey, model)) layerGroup.add(tops);
+  // Every storey's floor is its own slab and room fills, at its own level, writing depth: the floor you
+  // see is the topmost one, and it hides the storeys below. Opaque, not blended, so it stays in the
+  // opaque pass that runs before the walls. Built even while hidden, so the selector can show a
+  // storey again without rebuilding it.
+  layerGroup.add(planGeometry(renderFloor(storey, model.components), (storey.elevation + FLOOR_LIFT) / 1000, { kind: "floor", renderOrder: -1 }));
+  // Constraints live in their own per-storey group inside the constraints layer, so the
+  // Constraints button and the storey selection compose.
+  const constraintGroup = new THREE.Group();
+  for (const label of constraintLabels(resolved, storey.id)) {
+    const sprite = constraintBillboard(label.lines);
+    sprite.position.set(label.at.x / 1000, y, -label.at.y / 1000);
+    constraintGroup.add(sprite);
+  }
+  for (const c of resolved) {
+    if (c.storey === storey.id) constraintGroup.add(constraintLine(c.span.from, c.span.to, y));
+  }
+  const groups: [THREE.Group, THREE.Group, THREE.Group] = [labelGroup, layerGroup, constraintGroup];
+  for (const g of groups) g.visible = isShown(storey.id);
+  return groups;
+}
+
+/**
+ * Each room's name and area as its own plane at height `y`, flat like the dimensions but yawed to
+ * the camera (updateLabelOrientation), so it stays occludable without standing up through the
+ * floor above. Also records each label for the test hook.
+ */
+function roomLabels(storey: Storey, y: number): THREE.Mesh[] {
+  return roomTags(storey).map((tag) => {
+    window.__elmsteadRoomLabels!.push([tag.name, tag.area, tag.id]);
+    const label = flatLabel(
+      [
+        { text: tag.name, size: ROOM_LABEL.name.size, bold: true, dy: ROOM_LABEL.name.dy },
+        { text: tag.area, size: ROOM_LABEL.area.size, dy: ROOM_LABEL.area.dy },
+        { text: tag.id, size: 9, dy: ROOM_LABEL.area.dy + 12 },
+      ],
+      C.ink,
+      2, // over the dimension lines, as the room billboards were
+    );
+    label.position.set(tag.at.x / 1000, y, -tag.at.y / 1000);
+    return label;
+  });
+}
+
+/**
+ * The wall-top poché, which lies flat, so it only fits flat-topped walls; a pitched wall's sloped
+ * top is painted by patchTops instead. One overlay per flat-wall height, each at its own wall top,
+ * so a taller wall's plane never floats above a shorter one (e.g. the first floor's 2.7 m walls
+ * over its 2.55 m bay).
+ */
+function wallTopOverlays(storey: Storey, model: BuildingModel): THREE.Object3D[] {
+  const byHeight = new Map<number, Storey["walls"]>();
+  for (const w of storey.walls.filter((wall) => !wall.profile)) {
+    const h = wallHeight(w);
+    const group = byHeight.get(h);
+    if (group) group.push(w);
+    else byHeight.set(h, [w]);
+  }
+  return [...byHeight].map(([h, walls]) => {
+    const ids = new Set(walls.map((w) => w.id));
+    const groupStorey = { ...storey, walls, openings: storey.openings.filter((o) => ids.has(o.wallId)) };
+    return planGeometry(renderWallTops(groupStorey, model.components), (storey.elevation + h + WALL_TOP_LIFT) / 1000, { kind: "overlay", renderOrder: 0 });
+  });
 }
 
 let box = new THREE.Box3();
@@ -973,13 +992,9 @@ function showPendingMarker(at: THREE.Vector3) {
 }
 
 function clearMeasureLayer() {
-  for (const obj of measureLayer.children) {
-    if (obj instanceof Line2) obj.geometry.dispose();
-    else if (obj instanceof THREE.Sprite) {
-      obj.material.map?.dispose();
-      obj.material.dispose();
-    }
-  }
+  // Every measurement line shares one material, and every marker one geometry and material.
+  const shared = new Set<THREE.BufferGeometry | THREE.Material>([measureLineMaterial, measureMarkerGeometry, measureMarkerMaterial]);
+  for (const obj of measureLayer.children) disposeTree(obj, shared);
   measureLayer.clear();
   pendingMarker = null;
 }
@@ -1189,8 +1204,7 @@ function repickHover() {
 function disposeHoverSprite() {
   if (!hoverSprite) return;
   world.scene.three.remove(hoverSprite);
-  hoverSprite.material.map?.dispose();
-  hoverSprite.material.dispose();
+  disposeTree(hoverSprite);
   hoverSprite = null;
 }
 

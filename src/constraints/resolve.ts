@@ -1,62 +1,34 @@
+import { idNodes, type IdNode, type StoreyKind } from "../checks/ids.js";
 import { openingExtent } from "../geometry/opening.js";
 import { faceOffsets, wallDirection, wallLength, wallPoint } from "../geometry/wall.js";
 import { cross, dot, len, perpLeft, toVec, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";
-import type { BuildingModel, Door, DoorComponent, Room, Site, Slab, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
+import type { BuildingModel, Room, Wall } from "../schema/schema.js";
 import type { Constraint, CornerPoint, Face, Measure, Point, RoomCornerPoint, WallFace } from "./schema.js";
 
 /** A constraint that cannot be measured: a missing id, a face a wall does not have, and so on. */
 export class ConstraintError extends Error {}
 
-const fail: (message: string) => never = (message) => {
+function fail(message: string): never {
   throw new ConstraintError(message);
-};
-
-/** The element each id kind holds. */
-interface ElementByKind {
-  project: BuildingModel["project"];
-  site: Site;
-  building: BuildingModel["building"];
-  "door component": DoorComponent;
-  "window component": WindowComponent;
-  storey: Storey;
-  wall: Wall;
-  door: Door;
-  window: Window;
-  slab: Slab;
-  room: Room;
 }
 
-/** Every id-bearing node; `storey` is set for the kinds that live on one. */
-type Entry = { [K in keyof ElementByKind]: { kind: K; element: ElementByKind[K]; storey?: string } }[keyof ElementByKind];
-
 /** Every id in the model, with its kind and storey. Ids are unique model-wide, so one map will do. */
-export type ModelIndex = Map<string, Entry>;
+export type ModelIndex = Map<string, IdNode>;
 
 export function indexModel(model: BuildingModel): ModelIndex {
   const ix: ModelIndex = new Map();
-  const add = (id: string, entry: Entry) => {
-    if (!ix.has(id)) ix.set(id, entry); // a duplicate is reported by checkIds
-  };
-  add(model.project.id, { kind: "project", element: model.project });
-  add(model.site.id, { kind: "site", element: model.site });
-  add(model.building.id, { kind: "building", element: model.building });
-  for (const c of model.components?.doors ?? []) add(c.id, { kind: "door component", element: c });
-  for (const c of model.components?.windows ?? []) add(c.id, { kind: "window component", element: c });
-  for (const s of model.storeys) {
-    add(s.id, { kind: "storey", storey: s.id, element: s });
-    for (const w of s.walls) add(w.id, { kind: "wall", storey: s.id, element: w });
-    for (const o of s.openings) add(o.id, o.kind === "door" ? { kind: "door", storey: s.id, element: o } : { kind: "window", storey: s.id, element: o });
-    for (const sl of s.slabs) add(sl.id, { kind: "slab", storey: s.id, element: sl });
-    for (const r of s.rooms) add(r.id, { kind: "room", storey: s.id, element: r });
+  for (const node of idNodes(model)) {
+    if (!ix.has(node.element.id)) ix.set(node.element.id, node); // a duplicate is reported by checkIds
   }
   return ix;
 }
 
-/** An element found by id, checked to be one of `kinds`; `label` names what was wanted in the error. */
-export function lookup<K extends keyof ElementByKind>(ix: ModelIndex, id: string, kinds: readonly K[], label: string): { element: ElementByKind[K]; storey: string } {
-  const entry = ix.get(id) ?? fail(`${id} is not in the model`);
-  if (!(kinds as readonly (keyof ElementByKind)[]).includes(entry.kind) || entry.storey === undefined) fail(`${id} is a ${entry.kind}, not ${/^[aeiou]/.test(label) ? "an" : "a"} ${label}`);
-  return { element: entry.element as ElementByKind[K], storey: entry.storey };
+const isOneOf = <K extends IdNode["kind"]>(node: IdNode, kinds: readonly K[]): node is Extract<IdNode, { kind: K }> => (kinds as readonly string[]).includes(node.kind);
+
+/** An element on a storey, found by id and checked to be one of `kinds`; `label` names what was wanted in the error. */
+export function lookup<K extends StoreyKind>(ix: ModelIndex, id: string, kinds: readonly K[], label: string): Extract<IdNode, { kind: K }> {
+  const node = ix.get(id) ?? fail(`${id} is not in the model`);
+  return isOneOf(node, kinds) ? node : fail(`${id} is a ${node.kind}, not ${/^[aeiou]/.test(label) ? "an" : "a"} ${label}`);
 }
 
 const wallOf = (ix: ModelIndex, id: string) => {

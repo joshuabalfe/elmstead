@@ -18,8 +18,21 @@ const ValidatorLineSchema = z.object({
   errors: z.number().optional(),
   warnings: z.number().optional(),
 });
+type ValidatorLine = z.infer<typeof ValidatorLineSchema>;
 
 const stderrTail = (stderr: string): string => stderr.trim().split("\n").slice(-5).join(" | ");
+
+/** One stdout line as a typed validator line, or the message explaining why it is malformed. */
+function parseValidatorLine(raw: string): { line: ValidatorLine } | { malformed: string } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { malformed: `validator output is not JSON: ${raw}` };
+  }
+  const result = ValidatorLineSchema.safeParse(parsed);
+  return result.success ? { line: result.data } : { malformed: `validator line has an unexpected shape: ${raw}` };
+}
 
 /** Runs validator/validate.py (IfcOpenShell) through uv and maps its JSON lines to Issues. */
 export function validateIfc(ifcPath: string): IfcValidation {
@@ -33,21 +46,13 @@ export function validateIfc(ifcPath: string): IfcValidation {
   let malformed = 0;
   for (const raw of r.stdout.split("\n")) {
     if (!raw.trim()) continue;
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
+    const parsed = parseValidatorLine(raw);
+    if ("malformed" in parsed) {
       malformed++;
-      issues.push({ level: "ERROR", id: ifcPath, message: `validator output is not JSON: ${raw}` });
+      issues.push({ level: "ERROR", id: ifcPath, message: parsed.malformed });
       continue;
     }
-    const result = ValidatorLineSchema.safeParse(parsed);
-    if (!result.success) {
-      malformed++;
-      issues.push({ level: "ERROR", id: ifcPath, message: `validator line has an unexpected shape: ${raw}` });
-      continue;
-    }
-    const line = result.data;
+    const { line } = parsed;
     if (line.level === "SUMMARY") {
       summary = { errors: line.errors ?? 0, warnings: line.warnings ?? 0 };
       continue;

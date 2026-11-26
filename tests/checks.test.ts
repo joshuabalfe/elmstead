@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import cottage from "../models/example-cottage/index.js";
 import elmstead from "../models/elmstead/index.js";
+import { z } from "zod";
 import { checkComponents } from "../src/checks/components.js";
+import { schemaIssue } from "../src/checks/issue.js";
 import { checkIds, checkModel, checkOpenings, checkOutlines, checkRailings, checkWalls } from "../src/checks/model.js";
 import { wallHeight, wallLength } from "../src/geometry/wall.js";
 import { deg, m as metres, mm, pt, wall as makeWall, window as makeWindow, type Reveal } from "../src/model/index.js";
@@ -234,5 +236,34 @@ describe("checkModel", () => {
     expect(messages).toContain("id is used by two rooms");
     expect(messages).toContain("zero-length wall cannot be written to IFC");
     expect(messages).toContain("wallId wall-missing is not a wall on this storey");
+  });
+});
+
+describe("schemaIssue", () => {
+  const Doc = z.object({ id: z.string(), storeys: z.array(z.object({ id: z.string(), walls: z.array(z.object({ id: z.string(), thickness: z.number().positive() })) })) });
+  const firstIssue = (schema: z.ZodType, input: unknown) => {
+    const r = schema.safeParse(input);
+    if (r.success) throw new Error("expected a schema failure");
+    return r.error.issues[0]!;
+  };
+
+  it("attributes a nested failure to the nearest enclosing element id", () => {
+    const doc = { id: "project", storeys: [{ id: "storey-ground", walls: [{ id: "wall-south", thickness: 0 }] }] };
+    const issue = schemaIssue(doc, firstIssue(Doc, doc));
+    expect(issue).toMatchObject({ level: "ERROR", id: "wall-south" });
+    expect(issue.message).toMatch(/^schema: storeys\.0\.walls\.0\.thickness: /);
+  });
+
+  it("labels a root-level failure (root) and gives no id", () => {
+    const issue = schemaIssue(5, firstIssue(Doc, 5));
+    expect(issue).not.toHaveProperty("id");
+    expect(issue.message).toMatch(/^schema: \(root\): /);
+  });
+
+  it("keeps the last id found when the path runs past the input", () => {
+    const doc = { id: "project", storeys: [{ id: "storey-ground" }] };
+    const issue = schemaIssue(doc, firstIssue(Doc, doc));
+    expect(issue).toMatchObject({ level: "ERROR", id: "storey-ground" });
+    expect(issue.message).toMatch(/^schema: storeys\.0\.walls: /);
   });
 });

@@ -66,9 +66,10 @@ src/
   schema/            units (Mm, mm(), m(), deg()) and the zod schema
   model/             authoring helpers: wall, rectWalls, face, rectRoom, door, window, centredOn
   geometry/          2D vector, wall, opening and polygon maths shared by renderers, writer and checks
-  checks/            Issue type and formatting; model-level checks (components.ts so far)
+  checks/            Issue type, formatting and schema-error mapping; the id walk; model-level checks
   constraints/       constraints beside a model: schema, helpers, loader, point resolution, check
   cli/               command entry point, model loading, deterministic JSON formatting
+  paths.ts           a model's name, entry point and constraints file
   ifc/               IFC writer, GUIDs, round-trip geometry checks, validator bridge
   render/            plan drawing primitives and SVG, PNG rasterising, 3D snapshot driver
 validator/           validate.py (PEP 723 script for uv) and its lockfile
@@ -81,8 +82,8 @@ tests/               vitest suites, fixtures and the plan SVG snapshot
 
 ```mermaid
 flowchart TD
-  cli --> schema & checks & constraints & ifc & render
-  constraints --> schema & geometry & checks
+  cli --> schema & checks & constraints & ifc & render & paths
+  constraints --> schema & geometry & checks & paths
   model --> schema & geometry
   ifc --> schema & geometry & checks
   render --> schema & geometry & checks

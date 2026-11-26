@@ -6,31 +6,8 @@ import { wallLength, wallTopMin } from "../geometry/wall.js";
 import { toVec, type Vec } from "../geometry/vec.js";
 import type { BuildingModel, Opening, Polygon, Storey, Wall } from "../schema/schema.js";
 import { checkComponents } from "./components.js";
+import { idNodes } from "./ids.js";
 import type { Issue } from "./issue.js";
-
-/** Every id-bearing node, in model order, paired with the kind of thing that owns the id. */
-function idEntries(model: BuildingModel): [string, string][] {
-  const entries: [string, string][] = [
-    [model.project.id, "project"],
-    [model.site.id, "site"],
-    [model.building.id, "building"],
-  ];
-  for (const storey of model.storeys) {
-    entries.push([storey.id, "storey"]);
-    for (const w of storey.walls) entries.push([w.id, "wall"]);
-    for (const o of storey.openings) entries.push([o.id, o.kind]);
-    for (const s of storey.slabs) entries.push([s.id, "slab"]);
-    for (const r of storey.rooms) entries.push([r.id, "room"]);
-    for (const s of storey.stairs ?? []) {
-      entries.push([s.id, "stair"]);
-      for (const seg of s.segments) entries.push([seg.id, seg.kind === "flight" ? "stair flight" : "stair landing"]);
-    }
-    for (const r of storey.railings ?? []) entries.push([r.id, "railing"]);
-  }
-  for (const c of model.components?.doors ?? []) entries.push([c.id, "door component"]);
-  for (const c of model.components?.windows ?? []) entries.push([c.id, "window component"]);
-  return entries;
-}
 
 const isComponent = (kind: string): boolean => kind === "door component" || kind === "window component";
 
@@ -38,7 +15,7 @@ const isComponent = (kind: string): boolean => kind === "door component" || kind
 export function checkIds(model: BuildingModel): Issue[] {
   const issues: Issue[] = [];
   const seen = new Map<string, string>();
-  for (const [id, kind] of idEntries(model)) {
+  for (const { kind, element: { id } } of idNodes(model)) {
     const first = seen.get(id);
     if (first === undefined) {
       seen.set(id, kind);

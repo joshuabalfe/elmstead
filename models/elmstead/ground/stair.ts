@@ -8,7 +8,7 @@
  * upper flight south of the spine climbs west back to the first-floor landing. No elevations are
  * stored: measuring the levels later re-derives the riser height.
  */
-import { face, mm, pt, stairFlight, stairLanding, type Mm, type Stair } from "../../../src/model/index.js";
+import { face, mid, mm, pt, stairFlight, stairLanding, type Stair } from "../../../src/model/index.js";
 import { stairwellOutline } from "../first/index.js";
 import { stairArrivalX } from "../first/walls.js";
 import { bathNorth, northIn, spine, spineEastX, spineEndX, spineY } from "./walls.js";
@@ -24,7 +24,6 @@ const north = mm(Math.max(...ys));
 const landingWest = spineEndX;
 
 const spineNorth = face(spine, "north"); //    7165: north flight's south edge, the spine's far face
-const mid = (a: Mm, b: Mm): Mm => mm((a + b) / 2);
 const southY = mid(face(bathNorth, "north"), spineY); // 6535: centreline south of the spine
 const northY = mid(spineNorth, northIn); //              7620: centreline north of the spine
 const width = mm(910); // both flights, from the owner

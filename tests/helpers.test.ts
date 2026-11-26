@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { centredOn, deg, door, doorComponent, face, faceCrossing, m, mm, pt, railing, rectWalls, wall, window, windowComponent } from "../src/model/index.js";
+import { centredOn, deg, door, doorComponent, face, faceCrossing, m, mid, mm, pt, railing, rectWalls, wall, window, windowComponent } from "../src/model/index.js";
 
 const opts = { thickness: mm(200), height: m(2.4) };
 
 describe("model helpers", () => {
+  it("mid() is the midpoint, rounded half up to the nearest mm", () => {
+    expect(mid(mm(0), mm(1000))).toBe(500);
+    expect(mid(mm(1), mm(2))).toBe(2);
+    expect(mid(mm(1), mm(4))).toBe(3);
+    expect(mid(mm(-1000), mm(1000))).toBe(0);
+    expect(mid(mm(-3), mm(0))).toBe(-1);
+    expect(Object.is(mid(mm(-1), mm(0)), 0)).toBe(true); // never -0, which would format differently
+  });
+
   const w = rectWalls("wall", pt(mm(0), mm(0)), m(8), m(6), opts);
 
   it("rectWalls butts east/west walls between full-length south/north walls", () => {

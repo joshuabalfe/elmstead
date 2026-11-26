@@ -34,6 +34,28 @@ describe("validateIfc", () => {
     expect(v.errors).toBe(1);
   });
 
+  it("reports valid JSON of the wrong shape as an ERROR and still reads the summary", () => {
+    const v = withFakeUv(`printf '%s\\n' '[1]'\nprintf '%s\\n' '{"level":5}'\nprintf '%s\\n' '{"level":"SUMMARY","errors":2,"warnings":0}'\nexit 1`);
+    expect(v.issues).toEqual([
+      { level: "ERROR", id: "t.ifc", message: "validator line has an unexpected shape: [1]" },
+      { level: "ERROR", id: "t.ifc", message: 'validator line has an unexpected shape: {"level":5}' },
+    ]);
+    expect([v.errors, v.warnings]).toEqual([4, 0]);
+  });
+
+  it("counts a summary with no counts as zero errors and warnings", () => {
+    const v = withFakeUv(`printf '%s\\n' '{"level":"SUMMARY"}'`);
+    expect(v.issues).toEqual([]);
+    expect([v.errors, v.warnings]).toEqual([0, 0]);
+  });
+
+  it("rejects a summary whose counts are not numbers, so the run counts as crashed", () => {
+    const v = withFakeUv(`printf '%s\\n' '{"level":"SUMMARY","errors":"3","warnings":0}'`);
+    expect(v.issues[0]!.message).toBe('validator line has an unexpected shape: {"level":"SUMMARY","errors":"3","warnings":0}');
+    expect(v.issues.at(-1)!.message).toContain("validator crashed (exit 0)");
+    expect(v.errors).toBe(2);
+  });
+
   it("reports an unexpected exit status without a summary with stderr", () => {
     const v = withFakeUv(`printf '%s\\n' 'boom one' >&2\nprintf '%s\\n' 'boom two' >&2\nexit 2`);
     expect(v.issues.at(-1)!.message).toContain("validator crashed (exit 2)");

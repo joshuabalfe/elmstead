@@ -1,8 +1,8 @@
+// Where a model's files live: its name, entry point and constraints file.
 import { existsSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 
-/** Where a model's files live: its name, entry point and constraints file. */
-
+/** The file name without its .ts/.js (or .mts, .cjs, ...) extension. */
 const stripExt = (path: string): string => basename(path).replace(/\.[cm]?[jt]s$/, "");
 
 /** A folder is a multi-file model; its entry point is index.ts. */

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import cottage from "../models/example-cottage/index.js";
+import elmstead from "../models/elmstead/index.js";
 import { corner, defineConstraints, inRoom, inStorey, jamb, m, mm, roomCorner, wallEnd } from "../src/constraints/index.js";
 import { loadConstraints } from "../src/constraints/load.js";
-import { constraintsPath } from "../src/paths.js";
 import { ConstraintError, faceSide, indexModel, measureConstraint, resolvePoint, type Scope } from "../src/constraints/resolve.js";
 import { loadModel } from "../src/cli/load.js";
 import { checkConstraints } from "../src/constraints/check.js";
@@ -100,16 +100,6 @@ describe("constraint helpers", () => {
 });
 
 describe("loadConstraints", () => {
-  it("finds constraints.ts in a folder model, given the folder or its index.ts", () => {
-    expect(constraintsPath("models/elmstead")).toBe("models/elmstead/constraints.ts");
-    expect(constraintsPath("models/elmstead/")).toBe("models/elmstead/constraints.ts");
-    expect(constraintsPath("models/elmstead/index.ts")).toBe("models/elmstead/constraints.ts");
-  });
-
-  it("finds <name>.constraints.ts beside a single-file model", () => {
-    expect(constraintsPath("tests/fixtures/broken-constraint.ts")).toBe("tests/fixtures/broken-constraint.constraints.ts");
-  });
-
   it("loads a folder model's constraints", async () => {
     const r = await loadConstraints("tests/fixtures/constraints-folder");
     expect(r.ok && r.value?.path).toBe("tests/fixtures/constraints-folder/constraints.ts");
@@ -243,6 +233,9 @@ describe("corner, wall end and opening points", () => {
     expect(error(() => at(jamb("window-gone", "start")))).toBe("window-gone is not in the model");
     expect(error(() => at(jamb("wall-south", "start")))).toBe("wall-south is a wall, not an opening");
     expect(error(() => at(wallEnd("door-front", "start")))).toBe("door-front is a door, not a wall");
+    const withStairs = indexModel(BuildingModelSchema.parse(JSON.parse(JSON.stringify(elmstead))));
+    expect(error(() => resolvePoint(withStairs, wallEnd("stair-flight-front", "start"), ground))).toBe("stair-flight-front is a stair flight, not a wall");
+    expect(error(() => resolvePoint(withStairs, wallEnd("railing-front-north", "start"), ground))).toBe("railing-front-north is a railing, not a wall");
     expect(error(() => at(corner({ wall: "wall-south", face: "north" }, { wall: "wall-north", face: "south" })))).toBe("the faces of wall-south and wall-north are parallel, so they do not meet");
   });
 });
