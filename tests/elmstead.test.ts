@@ -432,6 +432,15 @@ describe("Elmstead's stair", () => {
   });
 });
 
+describe("Elmstead's main half landing window", () => {
+  it("has the owner's 1.2 × 2.1 m window, 450 mm off the landing, in the extension's east wall", () => {
+    const half = elmstead.storeys.find((s) => s.id === "storey-main-half-landing")!;
+    const win = half.openings.find((o) => o.id === "window-main-half-landing");
+    expect(win?.wallId).toBe("wall-extension-east-main-half-landing");
+    expect([win!.width, win!.height, win!.sillHeight]).toEqual([mm(1200), mm(2100), mm(450)]); // owner
+  });
+});
+
 describe("Elmstead's attic stair", () => {
   const storey = (id: string) => elmstead.storeys.find((s) => s.id === id)!;
   const first = storey("storey-first-floor");

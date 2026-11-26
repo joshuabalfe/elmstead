@@ -17,9 +17,10 @@ const extLength = sub(extEastX, coreW);
 
 /** The main half landing's extension walls, flat-topped up to the attic half landing. */
 const mainHeight = sub(atticHalfLanding.elevation, mainHalfLanding.elevation);
+export const mainHalfLandingEast = externalWall("wall-extension-east-main-half-landing", externalRuns.extEast, mainHeight);
 export const mainHalfLandingWalls: Wall[] = [
   wall("wall-north-extension-main-half-landing", north.start, pt(coreW, coreD), { thickness: north.thickness, height: mainHeight, justification: north.justification }),
-  externalWall("wall-extension-east-main-half-landing", externalRuns.extEast, mainHeight),
+  mainHalfLandingEast,
   externalWall("wall-extension-south-main-half-landing", extSouth, mainHeight),
 ];
 

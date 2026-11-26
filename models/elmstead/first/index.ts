@@ -20,7 +20,7 @@
  *
  * The slab is two rectangles around the stair well and the half landing, because a slab outline is
  * a simple polygon and the stair well is a hole in the middle of the floor. The half landing's
- * window belongs to the stair and half-landing model, not this storey.
+ * window is on the main half landing's storey (../ground/stair.ts), not this one.
  */
 import { mm, pt, type Polygon, type Storey } from "../../../src/model/index.js";
 import { coreD, coreW, firstFloor, firstFloorStructure } from "../shared.js";

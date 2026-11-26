@@ -11,10 +11,11 @@
  * climbs from the ground floor to the half landing, and the upper flight from the half landing to
  * the first floor. No elevations are stored here: measuring the levels later re-derives the riser.
  */
-import { face, mm, pt, stairFlight, type Mm, type Stair, type Storey } from "../../../src/model/index.js";
+import { centredOn, face, m, mm, pt, stairFlight, window, type Mm, type Stair, type Storey } from "../../../src/model/index.js";
+import { standardWindow } from "../components/index.js";
 import { stairwellOutline } from "../first/index.js";
 import { stairArrivalX } from "../first/walls.js";
-import { mainHalfLandingWalls } from "../extension.js";
+import { mainHalfLandingEast, mainHalfLandingWalls } from "../extension.js";
 import { mainHalfLanding, mainStairRisers } from "../shared.js";
 import { bathNorth, northIn, spine, spineEastX, spineEndX, spineY } from "./walls.js";
 
@@ -44,12 +45,23 @@ export const stairs: Stair[] = [
   { id: "stair-main-lower", name: "Main stair, lower flight", toStoreyId: "storey-main-half-landing", segments: [lower] },
 ];
 
+// The half landing's window in the extension's east wall, centred on the landing and so above the
+// rear-hall window: 1.2 m wide, 2.1 m tall, 450 mm off the landing (owner).
+const landingWindowWidth = m(1.2);
+const landingWindow = window(
+  "window-main-half-landing",
+  mainHalfLandingEast,
+  centredOn(mainHalfLandingEast, mid(south, north), landingWindowWidth),
+  standardWindow,
+  { width: landingWindowWidth, height: m(2.1), sillHeight: mm(450) },
+);
+
 export const mainHalfLandingStorey: Storey = {
   id: "storey-main-half-landing",
   name: "Main half landing",
   elevation: mainHalfLanding.elevation,
   walls: mainHalfLandingWalls,
-  openings: [],
+  openings: [landingWindow],
   // The half landing wraps around the spine's traced east end: the spine strip is notched out of
   // its west part so the wall keeps its full length without passing through the landing.
   slabs: [{
