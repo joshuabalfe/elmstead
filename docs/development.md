@@ -46,9 +46,11 @@ tests table below).
 |---|---|
 | `tests/units.test.ts` | `mm()`, `m()`, arithmetic helpers, and the branded type (with `@ts-expect-error`) |
 | `tests/schema.test.ts` | valid and invalid models, and a check that `schema/building.schema.json` is up to date |
-| `tests/helpers.test.ts` | `rectWalls`, `face`, `faceCrossing`, `centredOn`, `door`/`window` with components |
+| `tests/helpers.test.ts` | `mid`, `rectWalls`, `face`, `faceCrossing`, `centredOn`, `door`/`window` with components |
 | `tests/polygon.test.ts` | `spans()`, and `polygonProblems()` for repeated points, zero area, crossings, touching and collinear overlaps |
+| `tests/roundtrip.test.ts` | the volumes the round-trip check expects for every element |
 | `tests/load.test.ts` | loading a model file; schema errors attributed to element ids; JSON formatting |
+| `tests/paths.test.ts` | a model's entry point, output name and constraints file |
 | `tests/render.test.ts` | plan determinism, SVG snapshot, wall splitting, door and window symbols, labels, PNG size, door geometry, drawing primitives and their SVG |
 | `tests/door.test.ts` | door frames; doorways: no component/swing, plan gap without leaf/swing, opening-only IFC |
 | `tests/guid.test.ts` | UUIDv5 and IFC GUID compression against reference vectors; fixed GlobalIds for known ids |
@@ -56,10 +58,10 @@ tests table below).
 | `tests/ifc.test.ts` | byte-identical IFC, GlobalId stability, door and window types, window partitioning, round-trip volumes, validator pass and fail cases |
 | `tests/plan-vs-3d.test.ts` | the viewer's Top view shows the same walls, rooms and openings as the plan, for each model; that the check catches a room outline run to a wall's centreline; and that no uploaded texture exceeds 1024 × 1024 texels |
 | `tests/window.test.ts` | frames and glazing bars: pane ratios, no overlaps, frame inside the window's size, fit checks, IFC volumes, plan symbol |
-| `tests/checks.test.ts` | component checks plus id, zero-length wall, opening host/fit/overlap and outline rules |
+| `tests/checks.test.ts` | schema-issue attribution, component checks plus id, zero-length wall, opening host/fit/overlap and outline rules |
 | `tests/cli.test.ts` | `build`/`check`/`all`, failure fixtures, render-before-build and missing-Chromium warnings, exit statuses |
-| `tests/validate.test.ts` | validator bridge: non-JSON output, truncated JSON, crash status and exit 1 with findings (fake `uv`) |
-| `tests/viewer.test.ts` | path confinement, malformed encoding and `?view=` fallback; measurement maths, snap choice and click slop; element id/name labels; plan-overlay geometry (scale, run order, depth, text placement) |
+| `tests/validate.test.ts` | validator bridge: non-JSON output, truncated JSON, wrong-shaped lines, summary defaults, crash status and exit 1 with findings (fake `uv`) |
+| `tests/viewer.test.ts` | layer disposal keeping shared materials, path confinement, malformed encoding and `?view=` fallback; measurement maths, snap choice and click slop; element id/name labels; plan-overlay geometry (scale, run order, depth, text placement) |
 | `tests/viewer-identify.test.ts` | the Ids toggle, hover tooltip content, drag/view/walk/storey composition, the `?ids` lifecycle, room-id labels and the snapshot exemption in headless Chromium |
 | `tests/viewer-measure.test.ts` | snapped picks, drag/tap handling, Clear/Escape, model changes and the snapshot exemption in headless Chromium |
 | `tests/snapshot.test.ts` | a viewer failure is an ERROR and the server closes |
@@ -128,6 +130,9 @@ The actions are pinned by commit SHA, matching the repo's exact-version rule.
 
 - **TypeScript:** strict, with `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` and
   `verbatimModuleSyntax`. ES modules, with `.js` extensions on relative imports.
+- **Code style:** one-line arrow consts for small helpers, function declarations for larger bodies,
+  JSDoc on exports. No formatter is configured and lines may run long; keep the shape of the file
+  you are editing.
 - **Lengths:** always `Mm`. Convert to metres (`toMetres`) only for display.
 - **Determinism:** no `Date.now()`, no random numbers, and no iteration over unordered sources in
   anything that ends up in `out/`.
