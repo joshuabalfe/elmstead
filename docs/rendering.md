@@ -193,7 +193,8 @@ openings cut, doors and glazing in place, colours applied.
     and Ids toggle stay as they are, so you can flick between versions from one viewpoint. `?view=`
     and `?camera=` apply only when a model is first opened. The view buttons frame the revision's
     own extent. The previous revision stays on screen while the next one loads (the renderer
-    pauses), so the switch shows no blank or half-styled frames. Measurements are cleared and walk
+    pauses), so the switch shows no blank or half-styled frames. Each revision stays loaded once
+    shown, so flicking back to one is close to instant; choosing another model releases them. Measurements are cleared and walk
     mode ends, as for a model change.
   - **Arrow Right** and **Arrow Left** step the revision picker, skipping a disabled Existing and
     stopping at either end. They work while any of the bar's pickers has focus, in place of the

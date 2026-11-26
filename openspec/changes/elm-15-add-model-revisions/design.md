@@ -209,12 +209,42 @@ with the storey selector focused would change the storey as well as the revision
 owns all four arrows, and the guard's walk-mode check covers it.
 
 Alternatives considered:
-- **Keeping every revision's Fragments model loaded and toggling visibility.** That would switch
-  faster, but costs memory per revision and complicates hover, ids and storey visibility, which all
-  assume one model. ELM-16 needs the base loaded alongside a revision for its ghosts, and can bring
-  in a second model there, where it's needed.
+- **Reloading every revision from its IFC on each switch.** This was the first implementation. It
+  takes the switch past a quarter of a second even on a fast GPU, and it is what made the switch
+  flicker. The next decision replaces it.
 - **`[` and `]` as the shortcut.** These need no `preventDefault`, but they are awkward on non-UK and
   non-US layouts, and the arrows pair naturally with the storey shortcut.
+
+### Switches draw once, and revisions stay loaded
+
+Measured on Elmstead with a GPU (Apple M5 Pro, Metal), a switch that reloads from the IFC took
+280–380 ms:
+- about 135 ms converting the IFC into Fragments;
+- about 95 ms for Fragments' first `update`;
+- the rest styling, overlays and the first frame.
+
+Two changes follow from that.
+
+1. **The renderer pauses for the length of a switch.** The canvas is created with
+   `preserveDrawingBuffer`, so it keeps showing the old revision until the new one is complete.
+   Without the pause the canvas went blank while the IFC converted, and the new model showed several
+   half-styled frames while its plan style, storeys and overlays were applied. A counter handles
+   overlapping switches.
+2. **Each revision of the shown model stays loaded once shown** (`resident` in `viewer/main.ts`). A
+   switch takes the shown model out of the scene and puts the chosen one in. Only the cheap per-model
+   state is rebuilt from the JSON: overlays, labels, storey visibility and the element-id map. Each
+   kept model holds its own stair outlines, which are added once. Hover picking and measure snapping
+   only ever ask `currentModel`, so a kept model that is out of the scene can't be picked. Choosing
+   another model disposes the previous model's revisions, which keeps memory to one model's worth.
+   A rebuild reloads the page, so a kept model can't be stale.
+
+A revision seen before then switches in about 100 ms. Caching the converted Fragments buffer instead,
+and reloading from it, was measured too: it saved only about 10%, because Fragments still rebuilds
+the model and runs its first `update`.
+
+A stair material captures the shared stair riser when its shader compiles, so a kept model keeps the
+riser it was first shown with. Revisions share their base's storeys, so this only matters if a
+revision changes a stair's riser count.
 
 ### Example models
 

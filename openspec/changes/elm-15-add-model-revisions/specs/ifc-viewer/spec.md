@@ -82,6 +82,19 @@ frame shows in between.
 - **WHEN** the user switches revision
 - **THEN** every frame drawn shows either the previous revision or the finished new one
 
+### Requirement: Revisions stay loaded
+Each revision of the shown model, Existing included, SHALL stay loaded once it has been shown. Showing
+it again SHALL NOT fetch or convert its IFC again, and SHALL draw exactly as when it was first
+loaded. Choosing another model SHALL release the previous model's revisions.
+
+#### Scenario: Flicking back
+- **WHEN** the user switches from Existing to a revision and back, then to the revision again
+- **THEN** neither IFC is fetched a second time, and each picture matches the first time it was drawn
+
+#### Scenario: Another model
+- **WHEN** the user chooses another model and then the first model again
+- **THEN** the first model's IFC and its revisions' IFCs are fetched again as they are shown
+
 ### Requirement: Revision keyboard shortcut
 Arrow Right SHALL choose the next enabled entry in the revision picker, and Arrow Left the previous
 one, with the same effect as choosing it. Neither SHALL wrap. The revision picker's tooltip SHALL

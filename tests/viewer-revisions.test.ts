@@ -302,6 +302,50 @@ describe("switching revisions keeps the view", () => {
   }, 120_000);
 });
 
+describe("revisions stay loaded", () => {
+  /** The IFC files the page fetches from now on, by name. */
+  function ifcFetches(): string[] {
+    const names: string[] = [];
+    page.on("request", (r) => {
+      if (r.url().endsWith(".ifc")) names.push(decodeURIComponent(r.url().split("/out/")[1]!).replace(/\.ifc$/, ""));
+    });
+    return names;
+  }
+
+  it("shows a revision seen before without fetching or converting it again", async () => {
+    await open(`model=${COTTAGE}&view=nw&labels=0`);
+    const fetched = ifcFetches();
+    await step("ArrowRight");
+    await step("ArrowRight");
+    await step("ArrowLeft");
+    await step("ArrowLeft");
+    expect(fetched).toEqual([`${COTTAGE}@no-kitchen-window`, `${COTTAGE}@rear-extension`]);
+  }, 180_000);
+
+  it("draws a kept revision exactly as a fresh load, stairs included", async () => {
+    await open(`model=${TWO}&view=nw&labels=0`);
+    const existing = await canvasPixels();
+    await choose("moved");
+    const moved = await canvasPixels();
+    await choose("");
+    expect(samePixels(await canvasPixels(), existing)).toBe(true);
+    await choose("moved");
+    expect(samePixels(await canvasPixels(), moved)).toBe(true);
+  }, 180_000);
+
+  it("lets another model's revisions go when the model changes", async () => {
+    await open(`model=${COTTAGE}&view=nw&labels=0`);
+    await choose("rear-extension");
+    const fetched = ifcFetches();
+    await page.selectOption("#model", PLAIN);
+    await page.waitForFunction((m: string) => document.querySelector("#status")?.textContent?.startsWith(`${m}.ifc`), PLAIN, { timeout: 60_000 });
+    await page.selectOption("#model", COTTAGE);
+    await page.waitForFunction((m: string) => document.querySelector("#status")?.textContent?.startsWith(`${m}.ifc`), COTTAGE, { timeout: 60_000 });
+    await choose("rear-extension");
+    expect(fetched).toEqual([PLAIN, COTTAGE, `${COTTAGE}@rear-extension`]);
+  }, 180_000);
+});
+
 describe("revision keyboard shortcut", () => {
   it("steps right and left through the picker without wrapping, keeping the view", async () => {
     await open(`model=${COTTAGE}&view=top&labels=0`);

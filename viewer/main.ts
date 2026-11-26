@@ -686,11 +686,6 @@ function applyStairPresentation() {
   for (const s of stairMeshes) s.edges.visible = true;
 }
 
-function disposeStairMeshes() {
-  for (const s of stairMeshes) s.edges.geometry.dispose();
-  stairMeshes = [];
-}
-
 /**
  * Map-style input: left drag or one finger pans; the wheel or a pinch zooms; the middle or right
  * button, or three fingers, orbits. OBC's projection switch rebinds the wheel and middle button, so
@@ -1269,10 +1264,30 @@ canvas.addEventListener("pointerleave", hideHover);
 idsButton.setAttribute("aria-pressed", "false");
 idsButton.addEventListener("click", () => setIdentifying(!identifying));
 
-async function discardModel(model: FragmentsModel) {
-  if (currentModel === model) currentModel = null;
+/** A loaded model and the stair outlines added to its meshes. */
+interface Resident {
+  model: FragmentsModel;
+  stairs: StairMesh[];
+}
+
+/**
+ * The shown model's loaded revisions, Existing included, by name. Loading a model into Fragments is
+ * most of a switch, so each one stays loaded once shown and a switch only swaps which one is in
+ * the scene. Choosing another model disposes them; a rebuild reloads the page (see vite.config.ts),
+ * so nothing goes stale.
+ */
+const resident = new Map<string, Resident>();
+/** The model group the latest load is for, so a load overtaken by a model change can clean up. */
+let loadingGroup = "";
+
+async function disposeResident(name: string) {
+  const r = resident.get(name);
+  if (!r) return;
+  resident.delete(name);
+  for (const s of r.stairs) s.edges.geometry.dispose();
+  if (currentModel === r.model) currentModel = null;
   try {
-    await fragments.core.disposeModel(model.modelId);
+    await fragments.core.disposeModel(r.model.modelId);
   } catch {
     // a newer load may already have disposed it
   }
@@ -1291,10 +1306,12 @@ async function load(name: string, { keepView = false }: { keepView?: boolean } =
   elementLabels.clear();
   clearMeasurements();
   status.textContent = `loading ${name}.ifc…`;
-  disposeStairMeshes();
-  for (const [id] of fragments.list) await fragments.core.disposeModel(id);
-  if (epoch !== loadEpoch) return;
-  const buffer = new Uint8Array(await (await fetch(`/out/${name}.ifc`)).arrayBuffer());
+  // Take the shown model out of the scene; keep this model's revisions loaded, dispose the rest.
+  const group = splitName(name).model;
+  loadingGroup = group;
+  for (const r of resident.values()) world.scene.three.remove(r.model.object);
+  stairMeshes = [];
+  for (const n of [...resident.keys()]) if (splitName(n).model !== group) await disposeResident(n);
   if (epoch !== loadEpoch) return;
   const res = await fetch(`/out/${name}.building.json`);
   const json = res.ok ? ((await res.json()) as BuildingModel) : null;
@@ -1312,44 +1329,39 @@ async function load(name: string, { keepView = false }: { keepView?: boolean } =
       if (to && total > 0) stairRiser = Math.max(stairRiser, (to.elevation - s.elevation) / total / 1000);
     }
   }
-  const model = await ifcLoader.load(buffer, true, name);
-  if (epoch !== loadEpoch) {
-    await discardModel(model);
-    return;
+  let entry = resident.get(name);
+  const fresh = !entry;
+  if (!entry) {
+    const buffer = new Uint8Array(await (await fetch(`/out/${name}.ifc`)).arrayBuffer());
+    const model = await ifcLoader.load(buffer, true, name);
+    model.useCamera(world.camera.three);
+    // Always full geometry. By default Fragments draws items it judges small on screen as lines (its
+    // LOD), and glazing bars and window frames qualify even close up: they showed as thin lines you
+    // could see through. Our models are small enough not to need it.
+    await model.setLodMode(LodMode.ALL_VISIBLE);
+    entry = { model, stairs: [] };
+    resident.set(name, entry);
+    // Overtaken by a change to another model: this one will not be shown, so let it go.
+    if (loadingGroup !== group) await disposeResident(name);
   }
-  model.useCamera(world.camera.three);
-  // Always full geometry. By default Fragments draws items it judges small on screen as lines (its
-  // LOD), and glazing bars and window frames qualify even close up: they showed as thin lines you
-  // could see through. Our models are small enough not to need it.
-  await model.setLodMode(LodMode.ALL_VISIBLE);
-  if (epoch !== loadEpoch) {
-    await discardModel(model);
-    return;
-  }
+  if (epoch !== loadEpoch) return; // a newer load owns the scene; this model stays loaded, out of it
+  const { model } = entry;
   world.scene.three.add(model.object);
   currentModel = model;
+  stairMeshes = entry.stairs;
   await fragments.core.update(true);
-  if (epoch !== loadEpoch) {
-    await discardModel(model);
-    return;
-  }
+  if (epoch !== loadEpoch) return;
   for (const [localId, item] of await model.getItems()) {
     const label = elementLabel(item.data);
     if (label) elementLabels.set(localId, label);
   }
-  if (epoch !== loadEpoch) {
-    await discardModel(model);
-    return;
-  }
+  if (epoch !== loadEpoch) return;
   await loadLabels(name, json, epoch);
-  if (epoch !== loadEpoch) {
-    await discardModel(model);
-    return;
-  }
+  if (epoch !== loadEpoch) return;
   await applyStoreyVisibility(model);
   if (epoch !== loadEpoch) return;
   applyStyle();
-  addStairEdges(model);
+  if (fresh) addStairEdges(model);
   applyStairPresentation();
   box = model.box.clone();
   grid.three.position.y = box.min.y - 0.01; // under the lowest slab, so it doesn't show through floors
