@@ -36,11 +36,11 @@
 
 ## 7. Viewer
 
-- [ ] 7.1 Group `/models.json` names by the part before `@`. List models once in the model picker, and add a revision picker ("Existing" first, then revisions by name) that is hidden for a model with none, renders names as text, and disables "Existing" when the base isn't built; verify browser tests for a model with revisions, one without, and one with only a revision built
-- [ ] 7.2 Write the choice to `?model=` and open `?model=<model>@<revision>` with both pickers set; verify a browser test of the shared link
-- [ ] 7.3 Give `load` a keep-view path for revision switches. It updates `box`, the grid and the compass from the new model, skips `setView` and the `?camera=` re-application, keeps `?storeys=` and Ids mode, clears measurements, and leaves walk mode first. Verify browser tests that open with `?view=sw`, choose the top view, switch revision and find the top view's camera state; that open with `?camera=`, move the camera, switch, and find it unmoved; and that a view button then frames the revision's larger extent
-- [ ] 7.4 Add Arrow Left and Arrow Right on the storey shortcut's guard, working from any focused picker with the browser default prevented, skipping a disabled "Existing", and naming the keys in the picker's tooltip; verify browser tests for stepping, no wrap, the disabled entry, the focused storey selector (the storey unchanged), walk mode and a model without revisions
-- [ ] 7.5 Document the revision picker, the shortcut and `?model=<model>@<revision>` in `docs/rendering.md`
+- [x] 7.1 Group `/models.json` names by the part before `@`. List models once in the model picker, and add a revision picker ("Existing" first, then revisions by name) that is hidden for a model with none, renders names as text, and disables "Existing" when the base isn't built; verify browser tests for a model with revisions, one without, and one with only a revision built
+- [x] 7.2 Write the choice to `?model=` and open `?model=<model>@<revision>` with both pickers set; verify a browser test of the shared link
+- [x] 7.3 Give `load` a keep-view path for revision switches. It updates `box`, the grid and the compass from the new model, skips `setView` and the `?camera=` re-application, keeps `?storeys=` and Ids mode, clears measurements, and leaves walk mode first. Verify browser tests that open with `?view=sw`, choose the top view, switch revision and find the top view's camera state; that open with `?camera=`, move the camera, switch, and find it unmoved; and that a view button then frames the revision's larger extent
+- [x] 7.4 Add Arrow Left and Arrow Right on the storey shortcut's guard, working from any focused picker with the browser default prevented, skipping a disabled "Existing", and naming the keys in the picker's tooltip; verify browser tests for stepping, no wrap, the disabled entry, the focused storey selector (the storey unchanged), walk mode and a model without revisions
+- [x] 7.5 Document the revision picker, the shortcut and `?model=<model>@<revision>` in `docs/rendering.md`
 
 ## 8. Integration
 

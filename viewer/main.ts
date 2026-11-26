@@ -4,7 +4,8 @@
  * the model's constraints as red labels and dotted spans, a distance measurement tool, and a
  * compass pointing to true north (all from out/<model>.building.json and
  * out/<model>.constraints.json). A storey selector in the bar shows every storey up to the chosen
- * floor, and `?storeys=` shows an exact subset. Every view uses the plan's colours, with the plan's
+ * floor, and `?storeys=` shows an exact subset. A revision picker beside the model picker switches
+ * between a model and its revisions (`?model=<model>@<revision>`) without moving the camera. Every view uses the plan's colours, with the plan's
  * walls, doors and windows laid on the wall tops, so the Top view reads like the plan. Query params:
  * ?model=<name>&view=<sw|se|ne|nw|top (default)>&snapshot=1&labels=0|1&constraints=0|1&storeys=a,b
  * &measure=1&style=plan|ifc&camera=px,py,pz,tx,ty,tz&walk=1&ids=0|1 (snapshot hides the UI and sets
@@ -36,6 +37,7 @@ import { overlayGroup, type OverlayLayer } from "./overlay.js";
 import { labelTexture, type BillboardLine } from "./text.js";
 import { elementLabel, type ElementLabel } from "./identify.js";
 import { SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap, type MeasurementValues, type Point3, type SnapCandidate } from "./measure.js";
+import { defaultName, groupModels, joinName, splitName, stepRevision, type ModelGroup } from "./revisions.js";
 import { cameraForView, labelHeading, parseView, type View } from "./view.js";
 import { WALK_AXES, entryPosition, headingBasis, movementOffset, walkRequested, walkStep } from "./walk.js";
 declare global {
@@ -44,6 +46,8 @@ declare global {
     __elmsteadError?: string;
     /** Increments after a storey choice has been applied and drawn; tests wait on it. */
     __elmsteadStoreyChanges?: number;
+    /** Increments after a revision choice has been loaded and drawn; tests wait on it. */
+    __elmsteadRevisionChanges?: number;
     __elmsteadMeasurements?: { id: number; from: Point3; to: Point3; values: MeasurementValues }[];
     __elmsteadHover?: { id: string; name: string | null } | null;
     /** The text lines of each room label, in storey order; tests read it. */
@@ -56,6 +60,7 @@ const snapshot = params.has("snapshot");
 if (snapshot) document.body.classList.add("snapshot");
 const status = document.getElementById("status")!;
 const select = document.getElementById("model") as HTMLSelectElement;
+const revisionSelect = document.getElementById("revision") as HTMLSelectElement;
 const storeySelect = document.getElementById("storeys") as HTMLSelectElement;
 const storeyLabel = document.getElementById("storey-label")!;
 
@@ -1273,7 +1278,12 @@ async function discardModel(model: FragmentsModel) {
   }
 }
 
-async function load(name: string) {
+/**
+ * Load `out/<name>.ifc` and its JSON. A revision switch keeps the view: the camera, projection and
+ * framing stay as they are (`?view=` and `?camera=` only apply when a model is first opened), while
+ * the extent the grid and the view buttons use follows the new model.
+ */
+async function load(name: string, { keepView = false }: { keepView?: boolean } = {}) {
   const epoch = ++loadEpoch;
   currentModel = null;
   hoverEpoch++;
@@ -1343,9 +1353,14 @@ async function load(name: string) {
   applyStairPresentation();
   box = model.box.clone();
   grid.three.position.y = box.min.y - 0.01; // under the lowest slab, so it doesn't show through floors
-  await setView(parseView(params.get("view"))); // the plan view, unless the URL asks for another
-  if (epoch !== loadEpoch) return;
-  if (params.get("camera")) await setCamera(params.get("camera")!);
+  if (keepView) {
+    updateCompass();
+    updateLabelOrientation();
+  } else {
+    await setView(parseView(params.get("view"))); // the plan view, unless the URL asks for another
+    if (epoch !== loadEpoch) return;
+    if (params.get("camera")) await setCamera(params.get("camera")!);
+  }
   if (epoch !== loadEpoch) return;
   status.textContent = `${name}.ifc${storeysNote}`;
   repickHover();
@@ -1409,26 +1424,84 @@ window.addEventListener("keydown", async (e) => {
     stepping = false;
   }
 });
+/** Every model in out/, with its revisions; filled at startup. */
+let groups = new Map<string, ModelGroup>();
+/** The revision shown, or null for the existing building (the base). */
+let revision: string | null = null;
+
+const option = (value: string, text: string, disabled = false): HTMLOptionElement => {
+  const o = document.createElement("option");
+  o.value = value;
+  o.textContent = text; // text, never markup: names come from file names in out/
+  o.disabled = disabled;
+  return o;
+};
+
+/** List the shown model's revisions, Existing first; hidden for a model with none. */
+function populateRevisionSelector(group: ModelGroup) {
+  revisionSelect.replaceChildren(option("", "Existing", !group.base), ...group.revisions.map((r) => option(r, r)));
+  revisionSelect.value = revision ?? "";
+  revisionSelect.hidden = group.revisions.length === 0;
+}
+
+/** Show `name`, a model or one of its revisions, setting both pickers and `?model=`. */
+async function show(name: string, opts: { keepView?: boolean } = {}) {
+  const { model, revision: rev } = splitName(name);
+  revision = rev;
+  select.value = model;
+  populateRevisionSelector(groups.get(model) ?? { base: true, revisions: [] });
+  params.set("model", name);
+  history.replaceState(null, "", `?${params}`);
+  await load(name, opts);
+}
+
 select.addEventListener("change", async () => {
   await exitWalk();
-  params.set("model", select.value);
-  history.replaceState(null, "", `?${params}`);
-  void load(select.value);
+  void show(defaultName(select.value, groups.get(select.value)!));
+});
+
+/** Choose a revision of the shown model, keeping the view, then tell tests it has been drawn. */
+async function applyRevisionChoice(rev: string | null): Promise<void> {
+  await exitWalk(); // as a model change does; the view it restores is the one kept
+  await show(joinName(select.value, rev), { keepView: true });
+  requestAnimationFrame(() => requestAnimationFrame(() => (window.__elmsteadRevisionChanges = (window.__elmsteadRevisionChanges ?? 0) + 1)));
+}
+revisionSelect.addEventListener("change", () => applyRevisionChoice(revisionSelect.value || null));
+
+/** True while a revision step is loading, so a key press in that time is dropped rather than queued. */
+let switching = false;
+// Arrow Left and Right step the revision picker, with the storey shortcut's exceptions. They work
+// from any of the bar's pickers: on Windows and Linux a focused select would otherwise also move its
+// own value on Left and Right, changing the storey or the model along with the revision.
+window.addEventListener("keydown", async (e) => {
+  if (e.code !== "ArrowLeft" && e.code !== "ArrowRight") return;
+  if (snapshot || savedView || revisionSelect.hidden || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+  const target = e.target;
+  const picker = target === select || target === storeySelect || target === revisionSelect;
+  if (target instanceof HTMLElement && !picker && target.matches("input, select, textarea")) return;
+  e.preventDefault();
+  if (e.repeat || switching) return;
+  const next = stepRevision(groups.get(select.value)!, revision, e.code === "ArrowRight" ? 1 : -1);
+  if (next === undefined) return;
+  switching = true;
+  try {
+    await applyRevisionChoice(next);
+  } finally {
+    switching = false;
+  }
 });
 
 try {
-  const models: string[] = await (await fetch("/models.json")).json();
-  if (!models.length) throw new Error("no IFC files in out/ — run npm run build <model> first");
-  select.replaceChildren(
-    ...models.map((m) => {
-      const option = document.createElement("option");
-      option.value = m;
-      option.textContent = m;
-      return option;
-    }),
-  );
-  select.value = params.get("model") ?? models[0]!;
-  await load(select.value);
+  const names: string[] = await (await fetch("/models.json")).json();
+  if (!names.length) throw new Error("no IFC files in out/ — run npm run build <model> first");
+  groups = groupModels(names);
+  select.replaceChildren(...[...groups.keys()].map((m) => option(m, m)));
+  // No ?model= opens the first model. A model asked for by its base name opens its first revision
+  // when only revisions are built. Any other name is loaded as asked, so a missing one fails loudly
+  // rather than showing (or snapshotting) some other model.
+  const requested = params.get("model") ?? defaultName(...[...groups][0]!);
+  const group = groups.get(requested);
+  await show(group && !names.includes(requested) ? defaultName(requested, group) : requested);
   if (idsRequested) setIdentifying(true);
   // `?walk=1` and `?measure=1` apply once, at startup; a model change leaves both modes alone.
   // Walk wins when both are present.

@@ -182,6 +182,21 @@ openings cut, doors and glazing in place, colours applied.
     shows what is in the walls below, as the plan does. From above, the Top view reads like the
     plan without cutting the model.
   - White background, no grid.
+- The model picker lists each model in `out/` once. A revision's outputs are named
+  `<model>@<revision>` (see [Revisions](modelling.md#revisions)), and the **revision picker** beside
+  the model picker lists **Existing** (the base model) and then the model's built revisions by name.
+  It is hidden for a model with no revisions. **Existing** is disabled when only revisions have been
+  built, and choosing such a model opens its first revision.
+  - The choice is written to `?model=`, as `<model>@<revision>` or just `<model>` for Existing, so
+    `?model=elmstead@rear-extension` opens a revision directly with both pickers set.
+  - Switching revision loads it in place and keeps the view: the camera, projection, shown storeys
+    and Ids toggle stay as they are, so you can flick between versions from one viewpoint. `?view=`
+    and `?camera=` apply only when a model is first opened. The view buttons frame the revision's
+    own extent. Measurements are cleared and walk mode ends, as for a model change.
+  - **Arrow Right** and **Arrow Left** step the revision picker, skipping a disabled Existing and
+    stopping at either end. They work while any of the bar's pickers has focus, in place of the
+    browser's own arrow keys for that picker, and are ignored where the storey shortcut is, and
+    for a model with no revisions.
 - The **Up to:** selector lists the model's storeys lowest first; choosing one shows that storey and
   every storey below it, hiding those above, and the topmost choice shows everything. A choice
   updates the loaded model in place without moving the camera, so floors compare from one viewpoint;
