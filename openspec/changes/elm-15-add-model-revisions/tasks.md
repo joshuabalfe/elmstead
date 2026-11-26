@@ -7,7 +7,7 @@
 
 ## 2. One id index
 
-- [ ] 2.1 Extract `indexIds(model)` into `src/schema/ids.ts`, giving each id's kind, collection and element, and use it in `checkIds` and constraint resolution in place of `idEntries` and `indexModel`; verify the existing check and constraint tests pass unchanged, and a unit test covers every id-bearing collection
+- [x] 2.1 Extract `indexIds(model)` into `src/schema/ids.ts`, giving each id's kind, collection and element, and use it in `checkIds` and constraint resolution in place of `idEntries` and `indexModel`; verify the existing check and constraint tests pass unchanged, and a unit test covers every id-bearing collection
 
 ## 3. The `revise` helper
 

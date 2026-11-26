@@ -1,7 +1,8 @@
 import { openingExtent } from "../geometry/opening.js";
 import { faceOffsets, wallDirection, wallLength, wallPoint } from "../geometry/wall.js";
 import { cross, dot, len, perpLeft, toVec, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";
-import type { BuildingModel, Opening, Room, Wall } from "../schema/schema.js";
+import type { IdIndex } from "../schema/ids.js";
+import type { Opening, Room, Wall } from "../schema/schema.js";
 import type { Constraint, CornerPoint, Face, Measure, Point, RoomCornerPoint } from "./schema.js";
 
 /** A constraint that cannot be measured: a missing id, a face a wall does not have, and so on. */
@@ -11,35 +12,8 @@ const fail = (message: string): never => {
   throw new ConstraintError(message);
 };
 
-interface Entry {
-  kind: string;
-  /** The storey an element is on; undefined for the project, site, building and components. */
-  storey?: string;
-  element: unknown;
-}
-
-/** Every id in the model, with its kind and storey. Ids are unique model-wide, so one map will do. */
-export type ModelIndex = Map<string, Entry>;
-
-export function indexModel(model: BuildingModel): ModelIndex {
-  const ix: ModelIndex = new Map();
-  const add = (id: string, entry: Entry) => {
-    if (!ix.has(id)) ix.set(id, entry); // a duplicate is reported by checkIds
-  };
-  add(model.project.id, { kind: "project", element: model.project });
-  add(model.site.id, { kind: "site", element: model.site });
-  add(model.building.id, { kind: "building", element: model.building });
-  for (const c of model.components?.doors ?? []) add(c.id, { kind: "door component", element: c });
-  for (const c of model.components?.windows ?? []) add(c.id, { kind: "window component", element: c });
-  for (const s of model.storeys) {
-    add(s.id, { kind: "storey", storey: s.id, element: s });
-    for (const w of s.walls) add(w.id, { kind: "wall", storey: s.id, element: w });
-    for (const o of s.openings) add(o.id, { kind: o.kind, storey: s.id, element: o });
-    for (const sl of s.slabs) add(sl.id, { kind: "slab", storey: s.id, element: sl });
-    for (const r of s.rooms) add(r.id, { kind: "room", storey: s.id, element: r });
-  }
-  return ix;
-}
+/** Every id in the model, with its kind and storey (see indexIds). */
+export type ModelIndex = IdIndex;
 
 /** An element found by id, checked to be one of `kinds`; `label` names what was wanted in the error. */
 export function lookup<T>(ix: ModelIndex, id: string, kinds: readonly string[], label: string): { element: T; storey: string } {

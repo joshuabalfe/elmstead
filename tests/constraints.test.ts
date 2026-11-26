@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import cottage from "../models/examples/example-cottage/index.js";
 import { corner, defineConstraints, inRoom, inStorey, jamb, m, mm, roomCorner, wallEnd } from "../src/constraints/index.js";
 import { constraintsPath, loadConstraints } from "../src/constraints/load.js";
-import { ConstraintError, faceSide, indexModel, measureConstraint, resolvePoint, type Scope } from "../src/constraints/resolve.js";
+import { ConstraintError, faceSide, measureConstraint, resolvePoint, type Scope } from "../src/constraints/resolve.js";
+import { indexIds } from "../src/schema/ids.js";
 import { loadModel } from "../src/cli/load.js";
 import { checkConstraints } from "../src/constraints/check.js";
 import { ConstraintsFileSchema, type Constraint, type Measure, type Point } from "../src/constraints/schema.js";
@@ -160,7 +161,7 @@ function testModel(): BuildingModel {
   return m;
 }
 
-const ix = indexModel(testModel());
+const ix = indexIds(testModel());
 const ground: Scope = { kind: "storey", id: "storey-ground", storey: "storey-ground" };
 const living: Scope = { kind: "room", id: "room-living", storey: "storey-ground" };
 const at = (p: Point, scope = ground) => resolvePoint(ix, p, scope).at;
