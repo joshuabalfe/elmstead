@@ -13,20 +13,20 @@
 import { face, mid, mm, pt, stairFlight, sub, wall, type Stair, type Storey } from "../../../src/model/index.js";
 import { atticHalfLandingWalls } from "../extension.js";
 import { atticFloor, atticHalfLanding, atticStairRisers, coreW, studT } from "../shared.js";
-import { bathNorth, northIn, spine, spineEndX, spineY } from "../ground/walls.js";
-import { stairArrivalX, stairEastX, stairNorthY, stairSouthY } from "./walls.js";
+import { bathLeft, partyIn, spine, spineEndX, spineY } from "../ground/walls.js";
+import { stairArrivalX, stairRearX, stairLeftY, stairRightY } from "./walls.js";
 
 // The flights keep the main stair's centrelines and width, so each sits over the flight below it.
-const southY = mid(face(bathNorth, "north"), spineY); // 6535
-const northY = mid(face(spine, "north"), northIn); //    7620
+const rightY = mid(face(bathLeft, "north"), spineY); // 6535
+const leftY = mid(face(spine, "north"), partyIn); //    7620
 const width = mm(910);
 
 // 7 goings of 280 mm on each flight: from the well's west edge to where the main stair turns.
-const west = stairArrivalX;
-const landingWest = spineEndX;
+const front = stairArrivalX;
+const landingFront = spineEndX;
 
-const lower = stairFlight("stair-flight-attic-lower", pt(west, northY), pt(landingWest, northY), { width, risers: atticStairRisers.lower });
-const upper = stairFlight("stair-flight-attic-upper", pt(landingWest, southY), pt(west, southY), { width, risers: atticStairRisers.upper });
+const lower = stairFlight("stair-flight-attic-lower", pt(front, leftY), pt(landingFront, leftY), { width, risers: atticStairRisers.lower });
+const upper = stairFlight("stair-flight-attic-upper", pt(landingFront, rightY), pt(front, rightY), { width, risers: atticStairRisers.upper });
 
 export const stairs: Stair[] = [
   { id: "stair-attic-lower", name: "Attic stair, lower flight", toStoreyId: "storey-attic-half-landing", segments: [lower] },
@@ -35,7 +35,7 @@ export const stairs: Stair[] = [
 // The back wall runs across the landing's east edge, just outside it, up to the attic floor level
 // where the attic's east roof slope comes down. It is a light stud wall carried on the landing; it
 // stands over the main half landing, well above head height, so the main stair keeps its headroom.
-const backWall = wall("wall-attic-half-landing-back", pt(coreW, stairSouthY), pt(coreW, stairNorthY), {
+const backWall = wall("wall-attic-half-landing-back", pt(coreW, stairRightY), pt(coreW, stairLeftY), {
   thickness: studT,
   height: sub(atticFloor.elevation, atticHalfLanding.elevation),
   justification: "right",
@@ -51,7 +51,7 @@ export const atticHalfLandingStorey: Storey = {
   slabs: [{
     id: "slab-attic-half-landing",
     name: "Attic half landing",
-    outline: [pt(landingWest, stairSouthY), pt(coreW, stairSouthY), pt(coreW, stairNorthY), pt(landingWest, stairNorthY)],
+    outline: [pt(landingFront, stairRightY), pt(coreW, stairRightY), pt(coreW, stairLeftY), pt(landingFront, stairLeftY)],
     thickness: mm(150),
     elevationOffset: mm(0),
   }, {
@@ -59,7 +59,7 @@ export const atticHalfLandingStorey: Storey = {
     // landing's level out to the extension walls' inner faces; the back wall stands on it.
     id: "slab-attic-half-landing-behind",
     name: "Attic half landing, behind the wall",
-    outline: [pt(coreW, stairSouthY), pt(stairEastX, stairSouthY), pt(stairEastX, stairNorthY), pt(coreW, stairNorthY)],
+    outline: [pt(coreW, stairRightY), pt(stairRearX, stairRightY), pt(stairRearX, stairLeftY), pt(coreW, stairLeftY)],
     thickness: mm(150),
     elevationOffset: mm(0),
   }],

@@ -17,7 +17,7 @@
  * shower-room south thickening await the eye check.
  */
 import { add, mm, pt, scale, stair, stairFlight, stairLanding, sub, type Storey } from "../../../src/model/index.js";
-import { basementFloor, coreD, coreW, extEastX, extSouthY, frontStepGoing } from "../shared.js";
+import { basementFloor, coreD, coreW, extRearX, extRightY, frontStepGoing } from "../shared.js";
 import { street } from "../street.js";
 import { openings } from "./openings.js";
 import { rooms } from "./rooms.js";
@@ -47,7 +47,7 @@ export const basement: Storey = {
   slabs: [{
     id: "slab-basement",
     name: "Basement slab",
-    outline: [pt(mm(-900), mm(0)), pt(coreW, mm(0)), pt(coreW, extSouthY), pt(extEastX, extSouthY), pt(extEastX, coreD), pt(mm(-900), coreD)],
+    outline: [pt(mm(-900), mm(0)), pt(coreW, mm(0)), pt(coreW, extRightY), pt(extRearX, extRightY), pt(extRearX, coreD), pt(mm(-900), coreD)],
     thickness: mm(150),
     elevationOffset: mm(0),
   }],

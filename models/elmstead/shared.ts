@@ -10,17 +10,17 @@ import { add, m, mm, pt, scale, sub, wall, type Mm, type Point, type Wall } from
 // ── Outline ──────────────────────────────────────────────────────────────────
 export const coreW = m(9.025); // living 4.2 m + bedroom 3.85 m (owner) plus the walls between and outside them
 export const coreD = m(8.425); // living 5.8 m + hallway 1.5 m (owner) plus the walls between and outside them
-export const extEastX = m(10.425); // outside face of the extension's east wall; keeps its traced 1.4 m width
-export const extSouthY = m(5.9); // outside face of the extension's south wall; rear hall 2 m deep (owner)
+export const extRearX = m(10.425); // outside face of the extension's east wall; keeps its traced 1.4 m width
+export const extRightY = m(5.9); // outside face of the extension's south wall; rear hall 2 m deep (owner)
 
 /** Outside of the core plus the rear extension (north-east corner). */
-export const footprint = [pt(mm(0), mm(0)), pt(coreW, mm(0)), pt(coreW, extSouthY), pt(extEastX, extSouthY), pt(extEastX, coreD), pt(mm(0), coreD)];
+export const footprint = [pt(mm(0), mm(0)), pt(coreW, mm(0)), pt(coreW, extRightY), pt(extRearX, extRightY), pt(extRearX, coreD), pt(mm(0), coreD)];
 
 // ── Construction ─────────────────────────────────────────────────────────────
-export const westT = mm(450); //  front wall, stone
-export const northT = mm(350); // stone, continues across the extension
-export const eastT = mm(350); //  stone
-export const southT = mm(250); // stone
+export const frontT = mm(450); //  front wall, stone
+export const partyT = mm(350); // stone, continues across the extension
+export const rearT = mm(350); //  stone
+export const endT = mm(250); // stone
 export const brickT = mm(175); // extension walls
 export const partT = mm(175); //  internal partitions
 export const studT = mm(100); //  light partitions
@@ -41,17 +41,17 @@ export interface WallRun {
  * overrides the run rather than re-declaring the outline. Inner-face coordinates are derived from
  * the thicknesses, so they match face() on the built walls exactly.
  */
-const northInY = sub(coreD, northT);
-const southInY = southT;
-const extEastInX = sub(extEastX, brickT);
+const partyInY = sub(coreD, partyT);
+const endInY = endT;
+const extRearInX = sub(extRearX, brickT);
 
 export const externalRuns = {
-  north: { start: pt(extEastX, coreD), end: pt(mm(0), coreD), thickness: northT, justification: "left" },
-  south: { start: pt(mm(0), mm(0)), end: pt(coreW, mm(0)), thickness: southT, justification: "left" },
-  west: { start: pt(mm(0), northInY), end: pt(mm(0), southInY), thickness: westT, justification: "left" },
-  east: { start: pt(coreW, southInY), end: pt(coreW, extSouthY), thickness: eastT, justification: "left" },
-  extEast: { start: pt(extEastX, extSouthY), end: pt(extEastX, northInY), thickness: brickT, justification: "left" },
-  extSouth: { start: pt(coreW, extSouthY), end: pt(extEastInX, extSouthY), thickness: brickT, justification: "left" },
+  party: { start: pt(extRearX, coreD), end: pt(mm(0), coreD), thickness: partyT, justification: "left" },
+  end: { start: pt(mm(0), mm(0)), end: pt(coreW, mm(0)), thickness: endT, justification: "left" },
+  front: { start: pt(mm(0), partyInY), end: pt(mm(0), endInY), thickness: frontT, justification: "left" },
+  rear: { start: pt(coreW, endInY), end: pt(coreW, extRightY), thickness: rearT, justification: "left" },
+  extRear: { start: pt(extRearX, extRightY), end: pt(extRearX, partyInY), thickness: brickT, justification: "left" },
+  extRight: { start: pt(coreW, extRightY), end: pt(extRearInX, extRightY), thickness: brickT, justification: "left" },
 } satisfies Record<string, WallRun>;
 
 /** Build one storey's external wall from a shared run, at that storey's height. */

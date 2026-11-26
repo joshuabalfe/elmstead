@@ -22,9 +22,9 @@ import { coreD, coreW, frontRailingEdgeInset, frontRailingEndInset, frontRailing
 
 const frontApron = m(2.4);
 const frontGap = mm(900);
-const groundEast = sub(mm(0), frontGap);
-const groundWest = sub(groundEast, frontApron);
-const groundSouth = sub(mm(0), frontApron);
+const groundRear = sub(mm(0), frontGap);
+const groundFront = sub(groundRear, frontApron);
+const groundRight = sub(mm(0), frontApron);
 const cornerGap = mm(900);
 const stepOut = scale(frontStepGoing, frontStepRisers - 1);
 const railY = sub(div(frontStepWidth, 2), frontRailingEdgeInset);
@@ -44,7 +44,7 @@ export const street: Storey = {
     {
       id: "slab-external-ground",
       name: "External ground",
-      outline: [pt(groundWest, groundSouth), pt(coreW, groundSouth), pt(coreW, mm(0)), pt(groundEast, mm(0)), pt(groundEast, coreD), pt(groundWest, coreD)],
+      outline: [pt(groundFront, groundRight), pt(coreW, groundRight), pt(coreW, mm(0)), pt(groundRear, mm(0)), pt(groundRear, coreD), pt(groundFront, coreD)],
       thickness: mm(50),
       elevationOffset: mm(0),
       material: "ground",
@@ -54,13 +54,13 @@ export const street: Storey = {
   // Four risers (owner) from the street to the door threshold, running east to the west wall.
   stairs: [stair("stair-front", ground, [stairFlight("stair-flight-front", pt(sub(mm(0), stepOut), frontDoorCentreY), pt(mm(0), frontDoorCentreY), { width: frontStepWidth, risers: frontStepRisers })])],
   railings: [
-    stepRailing("railing-front-north", add(frontDoorCentreY, railY)),
-    stepRailing("railing-front-south", sub(frontDoorCentreY, railY)),
+    stepRailing("railing-front-left", add(frontDoorCentreY, railY)),
+    stepRailing("railing-front-right", sub(frontDoorCentreY, railY)),
     // Continue the south step railing from the bottom of the steps south along the front of the
     // house, at street level on the ground slab's edge, stopping 900 mm short of the corner.
-    railing("railing-front-facade-south", pt(groundEast, sub(frontDoorCentreY, railY)), pt(groundEast, cornerGap), { height: frontRailingHeight }),
+    railing("railing-front-facade-right", pt(groundRear, sub(frontDoorCentreY, railY)), pt(groundRear, cornerGap), { height: frontRailingHeight }),
     // A short return out from the house's south-west corner closes the end of the front gap and
     // leaves the 900 mm opening between the two rails for the pavement wrap.
-    railing("railing-front-corner", pt(mm(0), mm(0)), pt(groundEast, mm(0)), { height: frontRailingHeight }),
+    railing("railing-front-corner", pt(mm(0), mm(0)), pt(groundRear, mm(0)), { height: frontRailingHeight }),
   ],
 };

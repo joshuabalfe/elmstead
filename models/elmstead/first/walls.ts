@@ -8,85 +8,85 @@
  * ../ground/stair.ts, and the attic stair above them in ./stair.ts.
  */
 import { add, face, mm, pt, sub, wall } from "../../../src/model/index.js";
-import { brickT, coreD, coreW, extEastX, extSouthY, externalRuns, externalWall, firstFloor, partT, studT, westT } from "../shared.js";
-import { livingBreast, partitionEast, partitionX } from "../ground/walls.js";
+import { brickT, coreD, coreW, extRearX, extRightY, externalRuns, externalWall, firstFloor, partT, studT, frontT } from "../shared.js";
+import { livingBreast, partitionRear, partitionX } from "../ground/walls.js";
 
 export const wallH = firstFloor.ceilingHeight;
 export const breastDepth = mm(350); // chimney breasts, as on the ground floor
 
 // ── Traced plan positions ────────────────────────────────────────────────────
 // Kitchen, north-west; its east wall steps east above the dining-room wall.
-export const kitchenSouthY = mm(5325); // kitchen face of the kitchen/dining wall; 2.75 m below the north wall (owner)
-export const diningNorthY = mm(5150); //  dining face of the kitchen/dining wall; 4.55 m above the chimney breast (owner)
-export const kitchenEastLowerX = mm(3400); // west face of its return below the step
-export const passageWestX = add(kitchenEastLowerX, partT);
-export const kitchenEastFaceX = add(passageWestX, mm(1100)); // east face above the step; the return's internal length is 1.1 m (owner)
-export const kitchenEastX = sub(kitchenEastFaceX, partT); // west face of the kitchen's east wall, above the step
-export const kitchenStepY = add(kitchenSouthY, mm(1250)); // kitchen face of the step wall, 1.25 m into the kitchen (owner)
-export const stepSouthY = sub(kitchenStepY, partT); // landing face of the step wall
+export const kitchenRightY = mm(5325); // kitchen face of the kitchen/dining wall; 2.75 m below the north wall (owner)
+export const diningLeftY = mm(5150); //  dining face of the kitchen/dining wall; 4.55 m above the chimney breast (owner)
+export const kitchenRearLowerX = mm(3400); // west face of its return below the step
+export const passageFrontX = add(kitchenRearLowerX, partT);
+export const kitchenRearFaceX = add(passageFrontX, mm(1100)); // east face above the step; the return's internal length is 1.1 m (owner)
+export const kitchenRearX = sub(kitchenRearFaceX, partT); // west face of the kitchen's east wall, above the step
+export const kitchenStepY = add(kitchenRightY, mm(1250)); // kitchen face of the step wall, 1.25 m into the kitchen (owner)
+export const stepRightY = sub(kitchenStepY, partT); // landing face of the step wall
 
 // Dining room, south-west, with a canted bay window in the west wall.
-export const bayNorthY = mm(4775);
-export const baySouthY = mm(2005);
-export const bayFrontNorthY = mm(4315);
-export const bayFrontSouthY = mm(2465);
+export const bayLeftY = mm(4775);
+export const bayRightY = mm(2005);
+export const bayFrontLeftY = mm(4315);
+export const bayFrontRightY = mm(2465);
 export const bayOutX = mm(-450);
 
 // Ensuite in the bedroom's north-east corner.
-export const bedroomNorthY = mm(5375); // bedroom face of its north wall
-export const bedroomNorthFaceY = add(bedroomNorthY, partT);
-export const ensuiteWestX = mm(5710); // ensuite 2.79 m long west to east (owner); the bedroom's entrance strip narrows to 885 mm
-export const ensuiteWestFaceX = add(ensuiteWestX, partT);
-export const ensuiteSouthY = mm(3815); // bedroom face of the ensuite's south wall; the room is 1.91 m wide to the extension wall (owner)
-export const ensuiteSouthFaceY = add(ensuiteSouthY, partT);
+export const bedroomLeftY = mm(5375); // bedroom face of its north wall
+export const bedroomLeftFaceY = add(bedroomLeftY, partT);
+export const ensuiteFrontX = mm(5710); // ensuite 2.79 m long west to east (owner); the bedroom's entrance strip narrows to 885 mm
+export const ensuiteFrontFaceX = add(ensuiteFrontX, partT);
+export const ensuiteRightY = mm(3815); // bedroom face of the ensuite's south wall; the room is 1.91 m wide to the extension wall (owner)
+export const ensuiteRightFaceY = add(ensuiteRightY, partT);
 
 // ── External walls, on the ground floor's walls below ───────────────────────
 // The extension's walls stand on the half landings instead (../extension.ts): it is split level.
-export const north = wall("wall-north-first", pt(coreW, coreD), pt(mm(0), coreD), { thickness: externalRuns.north.thickness, height: wallH, justification: externalRuns.north.justification });
-export const south = externalWall("wall-south-first", externalRuns.south, wallH);
-export const southIn = face(south, "north");
-export const northIn = face(north, "south");
-export const breastNorthY = add(southIn, breastDepth);
-export const bedroomBreastWestX = mm(7850);
+export const party = wall("wall-party-first", pt(coreW, coreD), pt(mm(0), coreD), { thickness: externalRuns.party.thickness, height: wallH, justification: externalRuns.party.justification });
+export const end = externalWall("wall-end-first", externalRuns.end, wallH);
+export const endIn = face(end, "north");
+export const partyIn = face(party, "south");
+export const breastLeftY = add(endIn, breastDepth);
+export const bedroomBreastFrontX = mm(7850);
 
-export const westNorth = wall("wall-west-first-north", externalRuns.west.start, pt(mm(0), bayNorthY), { thickness: westT, height: wallH, justification: "left" });
-export const westSouth = wall("wall-west-first-south", pt(mm(0), baySouthY), externalRuns.west.end, { thickness: westT, height: wallH, justification: "left" });
-export const westIn = face(westNorth, "east");
+export const frontLeft = wall("wall-front-first-left", externalRuns.front.start, pt(mm(0), bayLeftY), { thickness: frontT, height: wallH, justification: "left" });
+export const frontRight = wall("wall-front-first-right", pt(mm(0), bayRightY), externalRuns.front.end, { thickness: frontT, height: wallH, justification: "left" });
+export const frontIn = face(frontLeft, "east");
 
-export const east = externalWall("wall-east-first", externalRuns.east, wallH);
-export const eastIn = face(east, "west");
+export const rear = externalWall("wall-rear-first", externalRuns.rear, wallH);
+export const rearIn = face(rear, "west");
 // ── Bay window, west side of the dining room ────────────────────────────────
 // Lines are the bay's outer edge; its sides meet the west wall's outer face. Its ceiling is
 // 150 mm below the room's, and the lights run up to it, so no wall shows above them.
 const bayH = sub(wallH, mm(150));
-export const bayNorth = wall("wall-bay-north-first", pt(mm(0), bayNorthY), pt(bayOutX, bayFrontNorthY), { thickness: studT, height: bayH, justification: "centre" });
-export const bayFront = wall("wall-bay-front-first", pt(bayOutX, bayFrontNorthY), pt(bayOutX, bayFrontSouthY), { thickness: studT, height: bayH, justification: "centre" });
-export const baySouth = wall("wall-bay-south-first", pt(bayOutX, bayFrontSouthY), pt(mm(0), baySouthY), { thickness: studT, height: bayH, justification: "centre" });
+export const bayLeft = wall("wall-bay-left-first", pt(mm(0), bayLeftY), pt(bayOutX, bayFrontLeftY), { thickness: studT, height: bayH, justification: "centre" });
+export const bayFront = wall("wall-bay-front-first", pt(bayOutX, bayFrontLeftY), pt(bayOutX, bayFrontRightY), { thickness: studT, height: bayH, justification: "centre" });
+export const bayRight = wall("wall-bay-right-first", pt(bayOutX, bayFrontRightY), pt(mm(0), bayRightY), { thickness: studT, height: bayH, justification: "centre" });
 
 // ── Internal walls ──────────────────────────────────────────────────────────
 // Kitchen/dining wall, and the kitchen's east wall above the step.
-export const diningNorth = wall("wall-dining-north-first", pt(westIn, kitchenSouthY), pt(partitionX, kitchenSouthY), { thickness: partT, height: wallH, justification: "right" });
-export const kitchenEast = wall("wall-kitchen-east-first", pt(kitchenEastX, kitchenStepY), pt(kitchenEastX, northIn), { thickness: partT, height: wallH, justification: "right" });
-export const kitchenEastLower = wall("wall-kitchen-east-lower-first", pt(kitchenEastLowerX, diningNorthY), pt(kitchenEastLowerX, kitchenStepY), { thickness: partT, height: wallH, justification: "right" });
-export const kitchenStep = wall("wall-kitchen-step-first", pt(kitchenEastLowerX, kitchenStepY), pt(kitchenEastFaceX, kitchenStepY), { thickness: partT, height: wallH, justification: "right" });
+export const diningLeft = wall("wall-dining-left-first", pt(frontIn, kitchenRightY), pt(partitionX, kitchenRightY), { thickness: partT, height: wallH, justification: "right" });
+export const kitchenRear = wall("wall-kitchen-rear-first", pt(kitchenRearX, kitchenStepY), pt(kitchenRearX, partyIn), { thickness: partT, height: wallH, justification: "right" });
+export const kitchenRearLower = wall("wall-kitchen-rear-lower-first", pt(kitchenRearLowerX, diningLeftY), pt(kitchenRearLowerX, kitchenStepY), { thickness: partT, height: wallH, justification: "right" });
+export const kitchenStep = wall("wall-kitchen-step-first", pt(kitchenRearLowerX, kitchenStepY), pt(kitchenRearFaceX, kitchenStepY), { thickness: partT, height: wallH, justification: "right" });
 
 // Dining/bedroom partition, on the ground floor's; it runs up to the landing face so the bedroom's
 // north wall meets it along its full end.
-export const diningBedroom = wall("wall-dining-bedroom-first", pt(partitionX, southIn), pt(partitionX, bedroomNorthFaceY), { thickness: partT, height: wallH, justification: "right" });
+export const diningBedroom = wall("wall-dining-bedroom-first", pt(partitionX, endIn), pt(partitionX, bedroomLeftFaceY), { thickness: partT, height: wallH, justification: "right" });
 
 // Bedroom north wall, and the ensuite in its north-east corner.
-export const bedroomNorth = wall("wall-bedroom-north-first", pt(partitionEast, bedroomNorthY), pt(ensuiteWestX, bedroomNorthY), { thickness: partT, height: wallH, justification: "left" });
-export const ensuiteWest = wall("wall-ensuite-west-first", pt(ensuiteWestX, ensuiteSouthY), pt(ensuiteWestX, extSouthY), { thickness: partT, height: wallH, justification: "right" });
-export const ensuiteSouth = wall("wall-ensuite-south-first", pt(ensuiteWestX, ensuiteSouthY), pt(eastIn, ensuiteSouthY), { thickness: partT, height: wallH, justification: "left" });
+export const bedroomLeft = wall("wall-bedroom-left-first", pt(partitionRear, bedroomLeftY), pt(ensuiteFrontX, bedroomLeftY), { thickness: partT, height: wallH, justification: "left" });
+export const ensuiteFront = wall("wall-ensuite-front-first", pt(ensuiteFrontX, ensuiteRightY), pt(ensuiteFrontX, extRightY), { thickness: partT, height: wallH, justification: "right" });
+export const ensuiteRight = wall("wall-ensuite-right-first", pt(ensuiteFrontX, ensuiteRightY), pt(rearIn, ensuiteRightY), { thickness: partT, height: wallH, justification: "left" });
 // Under the stairs, level with the extension's south wall, so the whole stair well reads as one wall.
-export const ensuiteNorth = wall("wall-ensuite-north-first", pt(ensuiteWestX, extSouthY), pt(coreW, extSouthY), { thickness: partT, height: wallH, justification: "left" });
+export const ensuiteLeft = wall("wall-ensuite-left-first", pt(ensuiteFrontX, extRightY), pt(coreW, extRightY), { thickness: partT, height: wallH, justification: "left" });
 
 // The stair well and half landing fill one rectangle to the walls' inner faces: the ensuite west
 // wall, the extension east wall, the ensuite north wall and the north wall.
-export const stairWestX = ensuiteWestX;
-export const stairEastX = sub(extEastX, brickT);
-export const stairSouthY = add(extSouthY, brickT);
-export const stairNorthY = northIn;
+export const stairFrontX = ensuiteFrontX;
+export const stairRearX = sub(extRearX, brickT);
+export const stairRightY = add(extRightY, brickT);
+export const stairLeftY = partyIn;
 
 // The upper flight is one going shorter (17 risers split 9 + 8), so its top riser lands east of the
 // well's west edge. The landing sticks out to meet it across the south flight's band, leaving no
@@ -94,27 +94,27 @@ export const stairNorthY = northIn;
 export const stairArrivalX = mm(6050);
 
 // Chimney breasts on the south wall: the dining-room one stacks on the living room's.
-export const breastDining = wall("wall-breast-dining-first", pt(livingBreast.west, southIn), pt(livingBreast.east, southIn), { thickness: breastDepth, height: wallH, justification: "left" });
-export const breastBedroom = wall("wall-breast-bedroom-first", pt(bedroomBreastWestX, southIn), pt(eastIn, southIn), { thickness: breastDepth, height: wallH, justification: "left" });
+export const breastDining = wall("wall-breast-dining-first", pt(livingBreast.front, endIn), pt(livingBreast.rear, endIn), { thickness: breastDepth, height: wallH, justification: "left" });
+export const breastBedroom = wall("wall-breast-bedroom-first", pt(bedroomBreastFrontX, endIn), pt(rearIn, endIn), { thickness: breastDepth, height: wallH, justification: "left" });
 
 export const walls = [
-  north,
-  south,
-  westNorth,
-  westSouth,
-  east,
-  bayNorth,
+  party,
+  end,
+  frontLeft,
+  frontRight,
+  rear,
+  bayLeft,
   bayFront,
-  baySouth,
-  diningNorth,
-  kitchenEast,
-  kitchenEastLower,
+  bayRight,
+  diningLeft,
+  kitchenRear,
+  kitchenRearLower,
   kitchenStep,
   diningBedroom,
-  bedroomNorth,
-  ensuiteWest,
-  ensuiteSouth,
-  ensuiteNorth,
+  bedroomLeft,
+  ensuiteFront,
+  ensuiteRight,
+  ensuiteLeft,
   breastDining,
   breastBedroom,
 ];

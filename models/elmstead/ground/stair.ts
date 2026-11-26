@@ -15,30 +15,30 @@ import { centredOn, face, m, mid, mm, pt, stairFlight, window, type Stair, type 
 import { crossBarWindow } from "../components/index.js";
 import { stairwellOutline } from "../first/index.js";
 import { stairArrivalX } from "../first/walls.js";
-import { mainHalfLandingEast, mainHalfLandingWalls } from "../extension.js";
+import { mainHalfLandingRear, mainHalfLandingWalls } from "../extension.js";
 import { mainHalfLanding, mainStairRisers } from "../shared.js";
-import { bathNorth, northIn, spine, spineEastX, spineEndX, spineY } from "./walls.js";
+import { bathLeft, partyIn, spine, spineRearX, spineEndX, spineY } from "./walls.js";
 
 // The traced first-floor well bounds the flights and landing; the half landing fills its east end
 // (the extension), from the spine's end to the well's east edge.
 const xs = stairwellOutline.map((p) => p.x);
 const ys = stairwellOutline.map((p) => p.y);
-const west = spine.start.x; // the stair bottom aligns with the spine's start, by the lobby door
-const east = mm(Math.max(...xs));
-const south = mm(Math.min(...ys));
-const north = mm(Math.max(...ys));
-const landingWest = spineEndX;
+const front = spine.start.x; // the stair bottom aligns with the spine's start, by the lobby door
+const rear = mm(Math.max(...xs));
+const right = mm(Math.min(...ys));
+const left = mm(Math.max(...ys));
+const landingFront = spineEndX;
 
-const spineNorth = face(spine, "north"); //    7165: north flight's south edge, the spine's far face
-const southY = mid(face(bathNorth, "north"), spineY); // 6535: centreline south of the spine
-const northY = mid(spineNorth, northIn); //              7620: centreline north of the spine
+const spineLeft = face(spine, "north"); //    7165: north flight's south edge, the spine's far face
+const rightY = mid(face(bathLeft, "north"), spineY); // 6535: centreline south of the spine
+const leftY = mid(spineLeft, partyIn); //              7620: centreline north of the spine
 const width = mm(910); // both flights, from the owner
 
 // Bottom-to-top: enter from the hallway, climb east north of the spine, turn over the half landing
 // in the extension, then climb west south of it to the first-floor landing. Each flight's run is its
 // going × (risers − 1): 320 mm steps below, 280 mm above.
-const lower = stairFlight("stair-flight-lower", pt(west, northY), pt(landingWest, northY), { width, risers: mainStairRisers.lower });
-const upper = stairFlight("stair-flight-upper", pt(landingWest, southY), pt(stairArrivalX, southY), { width, risers: mainStairRisers.upper });
+const lower = stairFlight("stair-flight-lower", pt(front, leftY), pt(landingFront, leftY), { width, risers: mainStairRisers.lower });
+const upper = stairFlight("stair-flight-upper", pt(landingFront, rightY), pt(stairArrivalX, rightY), { width, risers: mainStairRisers.upper });
 
 export const stairs: Stair[] = [
   { id: "stair-main-lower", name: "Main stair, lower flight", toStoreyId: "storey-main-half-landing", segments: [lower] },
@@ -50,8 +50,8 @@ export const stairs: Stair[] = [
 const landingWindowWidth = m(1.2);
 const landingWindow = window(
   "window-main-half-landing",
-  mainHalfLandingEast,
-  centredOn(mainHalfLandingEast, mid(south, north), landingWindowWidth),
+  mainHalfLandingRear,
+  centredOn(mainHalfLandingRear, mid(right, left), landingWindowWidth),
   crossBarWindow,
   { width: landingWindowWidth, height: m(2.1), sillHeight: mm(450) },
 );
@@ -68,14 +68,14 @@ export const mainHalfLandingStorey: Storey = {
     id: "slab-main-half-landing",
     name: "Main half landing",
     outline: [
-      pt(landingWest, south),
-      pt(east, south),
-      pt(east, north),
-      pt(landingWest, north),
-      pt(landingWest, spineNorth),
-      pt(spineEastX, spineNorth),
-      pt(spineEastX, spineY),
-      pt(landingWest, spineY),
+      pt(landingFront, right),
+      pt(rear, right),
+      pt(rear, left),
+      pt(landingFront, left),
+      pt(landingFront, spineLeft),
+      pt(spineRearX, spineLeft),
+      pt(spineRearX, spineY),
+      pt(landingFront, spineY),
     ],
     thickness: mm(150),
     elevationOffset: mm(0),

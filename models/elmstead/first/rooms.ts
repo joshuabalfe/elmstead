@@ -1,31 +1,31 @@
 /** First-floor rooms, outlined along the faces of the walls around them (./walls.ts). */
 import { pt, type Room } from "../../../src/model/index.js";
-import { extSouthY } from "../shared.js";
-import { partitionEast, partitionX } from "../ground/walls.js";
+import { extRightY } from "../shared.js";
+import { partitionRear, partitionX } from "../ground/walls.js";
 import {
-  bedroomBreastWestX,
-  bedroomNorthFaceY,
-  bedroomNorthY,
-  breastNorthY,
-  diningNorthY,
-  eastIn,
-  ensuiteSouthFaceY,
-  ensuiteSouthY,
-  ensuiteWestFaceX,
-  ensuiteWestX,
-  kitchenEastFaceX,
-  kitchenEastLowerX,
-  kitchenEastX,
-  kitchenSouthY,
+  bedroomBreastFrontX,
+  bedroomLeftFaceY,
+  bedroomLeftY,
+  breastLeftY,
+  diningLeftY,
+  rearIn,
+  ensuiteRightFaceY,
+  ensuiteRightY,
+  ensuiteFrontFaceX,
+  ensuiteFrontX,
+  kitchenRearFaceX,
+  kitchenRearLowerX,
+  kitchenRearX,
+  kitchenRightY,
   kitchenStepY,
-  northIn,
-  passageWestX,
-  southIn,
+  partyIn,
+  passageFrontX,
+  endIn,
   stairArrivalX,
-  stairSouthY,
-  stairWestX,
-  stepSouthY,
-  westIn,
+  stairRightY,
+  stairFrontX,
+  stepRightY,
+  frontIn,
 } from "./walls.js";
 
 export const kitchen: Room = {
@@ -33,12 +33,12 @@ export const kitchen: Room = {
   name: "Kitchen",
   // L-shaped: the east wall steps out above the dining-room wall, leaving a passage to the landing.
   outline: [
-    pt(westIn, kitchenSouthY),
-    pt(kitchenEastLowerX, kitchenSouthY),
-    pt(kitchenEastLowerX, kitchenStepY),
-    pt(kitchenEastX, kitchenStepY),
-    pt(kitchenEastX, northIn),
-    pt(westIn, northIn),
+    pt(frontIn, kitchenRightY),
+    pt(kitchenRearLowerX, kitchenRightY),
+    pt(kitchenRearLowerX, kitchenStepY),
+    pt(kitchenRearX, kitchenStepY),
+    pt(kitchenRearX, partyIn),
+    pt(frontIn, partyIn),
   ],
 };
 
@@ -48,7 +48,7 @@ export const dining: Room = {
   // From the kitchen wall to the chimney breast, and from the thick west wall to the partition: the
   // alcoves beside the breast are built-ins, as in the living room below, and the bay window projects
   // beyond the west wall without adding to the room's dimensions.
-  outline: [pt(westIn, breastNorthY), pt(partitionX, breastNorthY), pt(partitionX, diningNorthY), pt(westIn, diningNorthY)],
+  outline: [pt(frontIn, breastLeftY), pt(partitionX, breastLeftY), pt(partitionX, diningLeftY), pt(frontIn, diningLeftY)],
 };
 
 export const landing: Room = {
@@ -56,23 +56,23 @@ export const landing: Room = {
   name: "Landing",
   // Wraps the west and south of the stair well, with the passage to the dining-room door.
   outline: [
-    pt(kitchenEastFaceX, northIn),
-    pt(kitchenEastFaceX, stepSouthY),
-    pt(passageWestX, stepSouthY),
-    pt(passageWestX, kitchenSouthY),
-    pt(partitionX, kitchenSouthY),
-    pt(partitionX, bedroomNorthFaceY),
-    pt(stairWestX, bedroomNorthFaceY),
-    pt(stairWestX, stairSouthY),
-    pt(stairArrivalX, stairSouthY),
-    pt(stairArrivalX, northIn),
+    pt(kitchenRearFaceX, partyIn),
+    pt(kitchenRearFaceX, stepRightY),
+    pt(passageFrontX, stepRightY),
+    pt(passageFrontX, kitchenRightY),
+    pt(partitionX, kitchenRightY),
+    pt(partitionX, bedroomLeftFaceY),
+    pt(stairFrontX, bedroomLeftFaceY),
+    pt(stairFrontX, stairRightY),
+    pt(stairArrivalX, stairRightY),
+    pt(stairArrivalX, partyIn),
   ],
 };
 
 export const ensuite: Room = {
   id: "room-ensuite-first",
   name: "Ensuite",
-  outline: [pt(ensuiteWestFaceX, ensuiteSouthFaceY), pt(eastIn, ensuiteSouthFaceY), pt(eastIn, extSouthY), pt(ensuiteWestFaceX, extSouthY)],
+  outline: [pt(ensuiteFrontFaceX, ensuiteRightFaceY), pt(rearIn, ensuiteRightFaceY), pt(rearIn, extRightY), pt(ensuiteFrontFaceX, extRightY)],
 };
 
 export const bedroom: Room = {
@@ -80,23 +80,23 @@ export const bedroom: Room = {
   name: "Bedroom",
   // Wraps the ensuite's south and west sides; chimney breast in its south-east corner.
   outline: [
-    pt(partitionEast, southIn),
-    pt(bedroomBreastWestX, southIn),
-    pt(bedroomBreastWestX, breastNorthY),
-    pt(eastIn, breastNorthY),
-    pt(eastIn, ensuiteSouthY),
-    pt(ensuiteWestX, ensuiteSouthY),
-    pt(ensuiteWestX, bedroomNorthY),
-    pt(partitionEast, bedroomNorthY),
+    pt(partitionRear, endIn),
+    pt(bedroomBreastFrontX, endIn),
+    pt(bedroomBreastFrontX, breastLeftY),
+    pt(rearIn, breastLeftY),
+    pt(rearIn, ensuiteRightY),
+    pt(ensuiteFrontX, ensuiteRightY),
+    pt(ensuiteFrontX, bedroomLeftY),
+    pt(partitionRear, bedroomLeftY),
   ],
   // The plan measures the main room; the entrance strip beside the ensuite is not part of it.
   dimensionOutline: [
-    pt(partitionEast, southIn),
-    pt(bedroomBreastWestX, southIn),
-    pt(bedroomBreastWestX, breastNorthY),
-    pt(eastIn, breastNorthY),
-    pt(eastIn, ensuiteSouthY),
-    pt(partitionEast, ensuiteSouthY),
+    pt(partitionRear, endIn),
+    pt(bedroomBreastFrontX, endIn),
+    pt(bedroomBreastFrontX, breastLeftY),
+    pt(rearIn, breastLeftY),
+    pt(rearIn, ensuiteRightY),
+    pt(partitionRear, ensuiteRightY),
   ],
 };
 

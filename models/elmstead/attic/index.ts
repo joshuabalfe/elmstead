@@ -8,7 +8,7 @@
  */
 import { mm, pt, type Storey } from "../../../src/model/index.js";
 import { atticFloor, atticFloorStructure, coreD, coreW } from "../shared.js";
-import { stairArrivalX, stairNorthY, stairSouthY } from "../first/walls.js";
+import { stairArrivalX, stairLeftY, stairRightY } from "../first/walls.js";
 import { walls } from "./walls.js";
 
 export const attic: Storey = {
@@ -23,10 +23,10 @@ export const attic: Storey = {
     outline: [
       pt(mm(0), mm(0)),
       pt(coreW, mm(0)),
-      pt(coreW, stairSouthY),
-      pt(stairArrivalX, stairSouthY),
-      pt(stairArrivalX, stairNorthY),
-      pt(coreW, stairNorthY),
+      pt(coreW, stairRightY),
+      pt(stairArrivalX, stairRightY),
+      pt(stairArrivalX, stairLeftY),
+      pt(coreW, stairLeftY),
       pt(coreW, coreD),
       pt(mm(0), coreD),
     ],

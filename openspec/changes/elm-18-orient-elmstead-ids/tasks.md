@@ -9,10 +9,10 @@
 
 ## 2. Rename ids
 
-- [ ] 2.1 Rename the external wall runs and their walls on every storey (`shared.ts`, `*/walls.ts`, `extension.ts`) per design.md's table, renaming `externalRuns` keys and TypeScript identifiers to match; verify `npm run check models/elmstead/index.ts` passes
-- [ ] 2.2 Rename the internal walls, rooms, doors, windows, slabs and railings per the table (`basement/`, `ground/`, `first/`, `street.ts`), plus compass words in element `name`s; verify `npm run check models/elmstead/index.ts` passes
-- [ ] 2.3 Rename the constraint ids and update every wall/opening/room reference in `constraints.ts`; reword compass words in notes without changing any distance or attribution; verify all constraints are met with unchanged distances
-- [ ] 2.4 Update `tests/elmstead.test.ts` to the new ids, including the templated `wall-extension-${side}` ids; verify `npx vitest run tests/elmstead.test.ts` passes
+- [x] 2.1 Rename the external wall runs and their walls on every storey (`shared.ts`, `*/walls.ts`, `extension.ts`) per design.md's table, renaming `externalRuns` keys and TypeScript identifiers to match; verify `npm run check models/elmstead/index.ts` passes
+- [x] 2.2 Rename the internal walls, rooms, doors, windows, slabs and railings per the table (`basement/`, `ground/`, `first/`, `street.ts`), plus compass words in element `name`s; verify `npm run check models/elmstead/index.ts` passes
+- [x] 2.3 Rename the constraint ids and update every wall/opening/room reference in `constraints.ts`; reword compass words in notes without changing any distance or attribution; verify all constraints are met with unchanged distances
+- [x] 2.4 Update `tests/elmstead.test.ts` to the new ids, including the templated `wall-extension-${side}` ids; verify `npx vitest run tests/elmstead.test.ts` passes
 
 ## 3. Comments
 
