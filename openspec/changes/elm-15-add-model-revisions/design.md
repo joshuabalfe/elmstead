@@ -226,12 +226,14 @@ Alternatives considered:
     rooms with one;
   - removes `window-kitchen`;
   - adds a lean-to off the north wall, with a doorway through `wall-north` into it;
-  - widens `window-bedroom` by replacing it.
+  - widens `window-living` by replacing it. Two base constraints measure it, so the revision has
+    to revise them; nothing measures `window-bedroom`.
 
   That covers remove, replace and add, and it breaks some of the cottage's constraints.
-- **It gets `revisions/rear-extension.constraints.ts`,** which removes the constraints the revision
-  invalidates, with notes, and adds one extension dimension marked as illustrative, like the
-  cottage's own constraints.
+- **It gets `revisions/rear-extension.constraints.ts`,** which replaces the two constraints the
+  wider window invalidates and adds the lean-to's dimensions, each noted as illustrative like the
+  cottage's own constraints. The knocked-through room keeps the id `room-living`, so the living
+  room's other constraint still has its room.
 - **`example-two-storey` moves to `tests/fixtures/two-storey/`.** It is no longer a model, but its
   six tests keep their stair coverage. `docs/modelling.md`'s stair example points at the fixture, or
   at Elmstead's `ground/stair.ts`.

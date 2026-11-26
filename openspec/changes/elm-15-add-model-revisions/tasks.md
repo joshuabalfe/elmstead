@@ -31,8 +31,8 @@
 
 ## 6. Example revision
 
-- [ ] 6.1 Add `models/examples/example-cottage/revisions/rear-extension.ts`: knock through the living room and kitchen, remove `window-kitchen`, add a lean-to with a doorway through `wall-north`, and widen `window-bedroom`; verify `npm run check` on it fails on the broken base constraints before 6.2
-- [ ] 6.2 Add `revisions/rear-extension.constraints.ts`, removing the invalidated constraints with notes and adding one illustrative extension dimension; verify `npm run all models/examples/example-cottage/revisions/rear-extension.ts` passes with the expected summary line
+- [x] 6.1 Add `models/examples/example-cottage/revisions/rear-extension.ts`: knock through the living room and kitchen, remove `window-kitchen`, add a lean-to with a doorway through `wall-north`, and widen `window-living` (measured by two base constraints, where `window-bedroom` is measured by none); verify `npm run check` on it fails on the broken base constraints before 6.2
+- [x] 6.2 Add `revisions/rear-extension.constraints.ts`, replacing the invalidated constraints with notes and adding illustrative lean-to dimensions; verify `npm run all models/examples/example-cottage/revisions/rear-extension.ts` passes with the expected summary line
 
 ## 7. Viewer
 
