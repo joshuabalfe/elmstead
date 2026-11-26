@@ -56,8 +56,8 @@ Implement after ELM-15 has merged; rebase this branch on it first.
 
 ## 9. Integration
 
-- [ ] 9.1 Eye-check in the browser on `example-cottage@rear-extension`: Diff from each corner and from the top, the knocked-through wall's ghost and dashed plan outline, the lean-to in green, the widened living-room window in yellow, Transparency with and without Diff, and flicking to "Existing" and back
-- [ ] 9.2 Run `npm test`, `npm run typecheck` and `npx openspec validate --all`, and regenerate any generated file the change touches; verify all pass
+- [x] 9.1 Eye-check in the browser on `example-cottage@rear-extension`: Diff from each corner and from the top, the knocked-through wall's ghost and dashed plan outline, the lean-to in green, the widened living-room window in yellow, Transparency with and without Diff, and flicking to "Existing" and back
+- [x] 9.2 Run `npm test`, `npm run typecheck` and `npx openspec validate --all`, and regenerate any generated file the change touches; verify all pass
 
 ## Workflow follow-up
 
