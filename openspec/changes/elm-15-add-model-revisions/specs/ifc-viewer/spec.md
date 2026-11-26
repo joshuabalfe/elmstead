@@ -73,6 +73,15 @@ mode, as choosing a model does. Choosing another model SHALL frame the camera as
 - **WHEN** the user chooses a different model in the model picker
 - **THEN** the camera is framed on the new model as before
 
+### Requirement: Revision switches do not flicker
+While another revision loads, the previous revision SHALL stay drawn, and the new one SHALL appear
+only once it is complete, with its style, storeys and overlays applied, so no blank or partly drawn
+frame shows in between.
+
+#### Scenario: No flicker
+- **WHEN** the user switches revision
+- **THEN** every frame drawn shows either the previous revision or the finished new one
+
 ### Requirement: Revision keyboard shortcut
 Arrow Right SHALL choose the next enabled entry in the revision picker, and Arrow Left the previous
 one, with the same effect as choosing it. Neither SHALL wrap. The revision picker's tooltip SHALL

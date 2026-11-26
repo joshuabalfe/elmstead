@@ -1460,10 +1460,24 @@ select.addEventListener("change", async () => {
   void show(defaultName(select.value, groups.get(select.value)!));
 });
 
-/** Choose a revision of the shown model, keeping the view, then tell tests it has been drawn. */
+/** Revision switches in flight; the renderer draws only when there are none. */
+let holdingFrame = 0;
+
+/**
+ * Choose a revision of the shown model, keeping the view, then tell tests it has been drawn. The
+ * renderer is paused while the revision loads, so the canvas keeps showing the previous revision
+ * (the drawing buffer is preserved) until the new one is complete: no blank frames while it
+ * converts, and no half-styled ones while its plan style, storeys and overlays are applied.
+ */
 async function applyRevisionChoice(rev: string | null): Promise<void> {
   await exitWalk(); // as a model change does; the view it restores is the one kept
-  await show(joinName(select.value, rev), { keepView: true });
+  holdingFrame++;
+  world.renderer!.enabled = false;
+  try {
+    await show(joinName(select.value, rev), { keepView: true });
+  } finally {
+    world.renderer!.enabled = --holdingFrame === 0;
+  }
   requestAnimationFrame(() => requestAnimationFrame(() => (window.__elmsteadRevisionChanges = (window.__elmsteadRevisionChanges ?? 0) + 1)));
 }
 revisionSelect.addEventListener("change", () => applyRevisionChoice(revisionSelect.value || null));

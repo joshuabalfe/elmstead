@@ -216,6 +216,45 @@ describe("switching revisions keeps the view", () => {
     expect(samePixels(await canvasPixels(), top)).toBe(true);
   }, 180_000);
 
+  it("draws only the old revision and then the new one, with nothing in between", async () => {
+    await open(`model=${COTTAGE}&view=nw&labels=0`);
+    await drawn();
+    // Fingerprint every animation frame of the switch on a small copy of the canvas. A string, so
+    // the bundler's helpers stay out of the page.
+    await page.evaluate(`(() => {
+      const gl = document.querySelector("#container canvas");
+      const c = document.createElement("canvas");
+      c.width = 120;
+      c.height = 80;
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      window.__frames = [];
+      window.__sampling = true;
+      const tick = () => {
+        ctx.clearRect(0, 0, 120, 80);
+        ctx.drawImage(gl, 0, 0, 120, 80);
+        const d = ctx.getImageData(0, 0, 120, 80).data;
+        let h = 0;
+        for (let i = 0; i < d.length; i++) h = (Math.imul(h, 31) + d[i]) | 0;
+        window.__frames.push(h);
+        if (window.__sampling) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    })()`);
+    await drawn();
+    await step("ArrowRight");
+    await page.waitForTimeout(300);
+    const frames = await page.evaluate(() => {
+      const w = window as unknown as { __sampling: boolean; __frames: number[] };
+      w.__sampling = false;
+      return w.__frames;
+    });
+    const distinct = frames.filter((f, i) => i === 0 || f !== frames[i - 1]);
+    // A blank frame while the revision converts, or a half-styled one while its plan style and
+    // overlays are applied, would show up as a third picture.
+    expect(distinct).toHaveLength(2);
+    expect(frames[0]).toBe(distinct[0]);
+  }, 120_000);
+
   it("does not re-apply ?camera= after the camera has moved", async () => {
     await open(`model=${COTTAGE}&view=top&labels=0&camera=16,11,6,5.2,1.5,-4.2`);
     const fromUrl = await canvasPixels();
