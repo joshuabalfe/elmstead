@@ -316,6 +316,48 @@ basement is planned, because it cannot extend underneath. Walls start at their s
 the wall base needs a basement storey (as elmstead has) or a plinth to close the face below it.
 Snapshots frame on everything shown, and a site-wide slab shrinks the house in the picture.
 
+## Half-landing storeys
+
+A half landing is normally a landing segment inside one stair, as in the worked half-turn stair
+above. Nothing can stand on a landing segment, though, and walls always start at their storey's
+floor. When walls or windows belong at the landing's level, make the half landing a storey of its
+own. The usual case is a split-level rear extension whose floors are the stair's half landings.
+
+A half-landing storey sits between the two floors. It has the landing as its slab, no rooms, and
+the walls and openings at its level. The stair splits at it: one stair climbs from the floor below
+to the landing, and another climbs on from the landing to the floor above. The model checks require
+a stair to climb to the next storey up, so a stair can't run past the landing storey anyway.
+
+Put the landing at the lower flight's share of the rise, so both flights keep the same riser.
+Elevations are whole millimetres, so round it; the two risers then differ by a fraction of a
+millimetre.
+
+```ts
+const rise = sub(firstFloor.elevation, ground.elevation); // 3100 mm, over 9 + 8 risers
+const halfLanding: Storey = {
+  id: "storey-half-landing",
+  name: "Half landing",
+  elevation: add(ground.elevation, mm(Math.round((rise * 9) / 17))), // 1641 mm
+  walls: [wall("wall-extension-east-half", pt(m(10.425), m(5.9)), pt(m(10.425), m(8.075)), { thickness: mm(175), height: mm(2909), justification: "left" })],
+  openings: [],
+  slabs: [{ id: "slab-half-landing", name: "Half landing", outline: landingOutline, thickness: mm(150), elevationOffset: mm(0) }],
+  rooms: [],
+  stairs: [stair("stair-upper", firstFloor, [upperFlight])], // 8 risers
+};
+// on the ground storey: stairs: [stair("stair-lower", halfLanding, [lowerFlight])], // 9 risers
+```
+
+Stack split-level walls the way floors stack: each landing's walls rise to the next landing up (or
+the roof), and the floor below keeps only the part under the first landing. Don't also carry slab
+strips over those walls at the main floors' levels, because the walls now run straight past them.
+A half-landing plan shows only its own walls, not the walls of the floors either side that its cut
+passes through.
+
+Keep the landing segment whenever nothing stands on the landing. It exports as one `IfcStair` of
+type `HALF_TURN_STAIR`, where a half-landing storey gives two `STRAIGHT_RUN_STAIR`s and a slab.
+`models/elmstead/` has both half landings as storeys (`ground/stair.ts`, `first/stair.ts`), with the
+extension's walls in `extension.ts`.
+
 ## Helpers
 
 All of these are in `src/model/helpers.ts` and exported from `src/model/index.ts`. They only

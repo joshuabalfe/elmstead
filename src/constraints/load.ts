@@ -1,8 +1,8 @@
-import { existsSync, statSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import type { Issue } from "../checks/issue.js";
-import { revisionOf, schemaIssue } from "../cli/load.js";
+import { schemaIssue, type Issue } from "../checks/issue.js";
+import { constraintsPath, revisionOf } from "../paths.js";
 import { RevisionError } from "../schema/ids.js";
 import { CONSTRAINT_EDITS, type ConstraintEdits } from "./revise.js";
 import { ConstraintsFileSchema, type ConstraintGroup } from "./schema.js";
@@ -20,16 +20,6 @@ export interface LoadedConstraints {
 
 /** `undefined` when the model has no constraints file. */
 export type ConstraintsResult = { ok: true; value: LoadedConstraints | undefined } | { ok: false; path: string; issues: Issue[] };
-
-/**
- * Where a model's constraints live: `constraints.ts` in a folder model (given as the folder or its
- * index.ts), `<name>.constraints.ts` beside a single-file model.
- */
-export function constraintsPath(modelPath: string): string {
-  if (existsSync(modelPath) && statSync(modelPath).isDirectory()) return join(modelPath, "constraints.ts");
-  const name = basename(modelPath).replace(/\.[cm]?[jt]s$/, "");
-  return name === "index" ? join(dirname(modelPath), "constraints.ts") : join(dirname(modelPath), `${name}.constraints.ts`);
-}
 
 /**
  * A model's constraints: its constraints file, evaluated, round-tripped through JSON and validated

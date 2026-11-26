@@ -1,29 +1,38 @@
+import { idNodes, type IdNode, type StoreyKind } from "../schema/ids.js";
 import { openingExtent } from "../geometry/opening.js";
 import { faceOffsets, wallDirection, wallLength, wallPoint } from "../geometry/wall.js";
 import { cross, dot, len, perpLeft, toVec, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";
-import type { IdIndex } from "../schema/ids.js";
-import type { Opening, Room, Wall } from "../schema/schema.js";
-import type { Constraint, CornerPoint, Face, Measure, Point, RoomCornerPoint } from "./schema.js";
+import type { BuildingModel, Room, Wall } from "../schema/schema.js";
+import type { Constraint, CornerPoint, Face, Measure, Point, RoomCornerPoint, WallFace } from "./schema.js";
 
 /** A constraint that cannot be measured: a missing id, a face a wall does not have, and so on. */
 export class ConstraintError extends Error {}
 
-const fail = (message: string): never => {
+function fail(message: string): never {
   throw new ConstraintError(message);
-};
+}
 
-/** Every id in the model, with its kind and storey (see indexIds). */
-export type ModelIndex = IdIndex;
+/** Every id in the model, with its kind and storey. Ids are unique model-wide, so one map will do. */
+export type ModelIndex = Map<string, IdNode>;
 
-/** An element found by id, checked to be one of `kinds`; `label` names what was wanted in the error. */
-export function lookup<T>(ix: ModelIndex, id: string, kinds: readonly string[], label: string): { element: T; storey: string } {
-  const entry = ix.get(id) ?? fail(`${id} is not in the model`);
-  if (!kinds.includes(entry.kind) || entry.storey === undefined) fail(`${id} is a ${entry.kind}, not ${/^[aeiou]/.test(label) ? "an" : "a"} ${label}`);
-  return { element: entry.element as T, storey: entry.storey! };
+export function indexModel(model: BuildingModel): ModelIndex {
+  const ix: ModelIndex = new Map();
+  for (const node of idNodes(model)) {
+    if (!ix.has(node.element.id)) ix.set(node.element.id, node); // a duplicate is reported by checkIds
+  }
+  return ix;
+}
+
+const isOneOf = <K extends IdNode["kind"]>(node: IdNode, kinds: readonly K[]): node is Extract<IdNode, { kind: K }> => (kinds as readonly string[]).includes(node.kind);
+
+/** An element on a storey, found by id and checked to be one of `kinds`; `label` names what was wanted in the error. */
+export function lookup<K extends StoreyKind>(ix: ModelIndex, id: string, kinds: readonly K[], label: string): Extract<IdNode, { kind: K }> {
+  const node = ix.get(id) ?? fail(`${id} is not in the model`);
+  return isOneOf(node, kinds) ? node : fail(`${id} is a ${node.kind}, not ${/^[aeiou]/.test(label) ? "an" : "a"} ${label}`);
 }
 
 const wallOf = (ix: ModelIndex, id: string) => {
-  const found = lookup<Wall>(ix, id, ["wall"], "wall");
+  const found = lookup(ix, id, ["wall"], "wall");
   if (wallLength(found.element) === 0) fail(`${id} has zero length`);
   return found;
 };
@@ -80,10 +89,12 @@ const isRoomCorner = (p: Point): p is RoomCornerPoint => "corner" in p && !Array
 
 export function resolvePoint(ix: ModelIndex, p: Point, scope: Scope): Resolved {
   if (isWallCorner(p)) {
-    const [a, b] = p.corner.map(({ wall, face }) => {
+    const facePoint = ({ wall, face }: WallFace) => {
       const { element: w, storey } = wallOf(ix, wall);
       return { origin: wallPoint(w, 0, faceOffset(w, face)), d: wallDirection(w), ref: { id: wall, storey } };
-    }) as [{ origin: Vec; d: Vec; ref: Resolved["refs"][number] }, { origin: Vec; d: Vec; ref: Resolved["refs"][number] }];
+    };
+    const a = facePoint(p.corner[0]);
+    const b = facePoint(p.corner[1]);
     const denom = cross(a.d, b.d);
     if (Math.abs(denom) < 1e-9) fail(`the faces of ${a.ref.id} and ${b.ref.id} are parallel, so they do not meet`);
     const t = cross(vsub(b.origin, a.origin), b.d) / denom;
@@ -91,7 +102,7 @@ export function resolvePoint(ix: ModelIndex, p: Point, scope: Scope): Resolved {
   }
   if (isRoomCorner(p)) {
     const id = p.room ?? (scope.kind === "room" ? scope.id : fail("a room corner outside a room group needs a room"));
-    const { element: room, storey } = lookup<Room>(ix, id, ["room"], "room");
+    const { element: room, storey } = lookup(ix, id, ["room"], "room");
     return { at: roomVertex(room, p.corner), refs: [{ id, storey }] };
   }
   if ("wall" in p) {
@@ -99,7 +110,7 @@ export function resolvePoint(ix: ModelIndex, p: Point, scope: Scope): Resolved {
     const along = p.end === "start" ? 0 : wallLength(w);
     return { at: wallPoint(w, along, p.face ? faceOffset(w, p.face) : 0), refs: [{ id: p.wall, storey }] };
   }
-  const { element: o, storey } = lookup<Opening>(ix, p.opening, ["door", "window"], "opening");
+  const { element: o, storey } = lookup(ix, p.opening, ["door", "window"], "opening");
   const host = wallOf(ix, o.wallId).element;
   const side = p.face ? faceSide(host, p.face) : undefined;
   const across = side ? faceOffsets(host)[side] : 0;

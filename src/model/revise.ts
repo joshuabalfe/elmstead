@@ -3,7 +3,7 @@
  * changes `base`. Every edit names ids, so a revision fails loudly when its base changes under it.
  */
 import type { z } from "zod";
-import { indexIds, RevisionError, type ComponentCollection, type IdEntry, type StoreyCollection } from "../schema/ids.js";
+import { idNodes, RevisionError, type ComponentCollection, type IdNode, type IdPlace, type StoreyCollection } from "../schema/ids.js";
 import {
   DoorComponentSchema,
   OpeningSchema,
@@ -63,24 +63,27 @@ function accepted(collection: StoreyCollection | ComponentCollection, value: unk
   return structuredClone(value);
 }
 
-/** The editable entry for an id, or why there is none. */
-function editable(model: BuildingModel, id: string, verb: string): IdEntry & { place: NonNullable<IdEntry["place"]> } {
-  const entry = indexIds(model).get(id);
-  if (!entry) throw new RevisionError(id, `cannot ${verb} ${id}: it is not in the model`);
-  if (entry.kind === "storey") throw new RevisionError(id, `cannot ${verb} ${id}: revisions cannot change storeys`);
-  if (!entry.place) throw new RevisionError(id, `cannot ${verb} ${id}: a ${entry.kind} is not edited on its own${entry.kind.startsWith("stair ") ? "; replace its stair" : ""}`);
-  return entry as IdEntry & { place: NonNullable<IdEntry["place"]> };
+/** The model's node for an id; the first, if the id is used twice (checkIds reports that). */
+const nodeOf = (model: BuildingModel, id: string): IdNode | undefined => idNodes(model).find((n) => n.element.id === id);
+
+/** Where the element or component with an id lives, or why it cannot be edited. */
+function editable(model: BuildingModel, id: string, verb: string): IdPlace {
+  const node = nodeOf(model, id);
+  if (!node) throw new RevisionError(id, `cannot ${verb} ${id}: it is not in the model`);
+  if (node.kind === "storey") throw new RevisionError(id, `cannot ${verb} ${id}: revisions cannot change storeys`);
+  if (!("place" in node)) throw new RevisionError(id, `cannot ${verb} ${id}: a ${node.kind} is not edited on its own${node.kind.startsWith("stair ") ? "; replace its stair" : ""}`);
+  return node.place;
 }
 
-/** The array an entry lives in. */
-function arrayOf(model: BuildingModel, place: NonNullable<IdEntry["place"]>): unknown[] {
+/** The array a place is in. */
+function arrayOf(model: BuildingModel, place: IdPlace): unknown[] {
   if ("storey" in place) return model.storeys.find((s) => s.id === place.storey)![place.collection]!;
   return model.components![place.collection];
 }
 
 /** Each added element is in the model before the next is checked, so this also catches a repeat within one edit. */
 function assertNew(model: BuildingModel, id: string): void {
-  if (indexIds(model).has(id)) throw new RevisionError(id, `cannot add ${id}: the id is already in the model`);
+  if (nodeOf(model, id)) throw new RevisionError(id, `cannot add ${id}: the id is already in the model`);
 }
 
 /** A new model: `base` with the edits applied in order. `base` is not changed. */
@@ -90,13 +93,13 @@ export function revise(base: BuildingModel, edits: readonly Edit[]): BuildingMod
     switch (edit.op) {
       case "remove":
         for (const id of edit.ids) {
-          const { place } = editable(model, id, "remove");
+          const place = editable(model, id, "remove");
           arrayOf(model, place).splice(place.index, 1);
         }
         break;
       case "replace":
         for (const element of edit.elements) {
-          const { place } = editable(model, element.id, "replace");
+          const place = editable(model, element.id, "replace");
           arrayOf(model, place)[place.index] = accepted(place.collection, element, element.id, `replace ${element.id}`);
         }
         break;

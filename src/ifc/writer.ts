@@ -12,7 +12,7 @@ import { POST_SIZE, RAIL_DEPTH, RAIL_WIDTH, railingGeometry } from "../geometry/
 import { flightDirection, flightProfile, flightRun, stairLevels, turnBetween, type FlightLevel } from "../geometry/stair.js";
 import { v, type Vec } from "../geometry/vec.js";
 import { faceOffsets, wallDirection, wallHeight, wallLength, wallSideProfile } from "../geometry/wall.js";
-import { GLAZING_BAR_DEPTH, windowDivision, type Rect } from "../geometry/window.js";
+import { GLAZING_BAR_DEPTH, PANEL_THICKNESS, windowDivision, type Rect } from "../geometry/window.js";
 import type { BuildingModel, Door, DoorComponent, Opening, Railing, Room, Slab, Stair, StairFlight, StairLanding, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
 import { ifcGuid } from "./guid.js";
 import { STYLES, type StyleName } from "./styles.js";
@@ -22,8 +22,6 @@ type Line = WebIFC.IfcLineObject;
 
 /** Opening solids extend this far past each wall face so the boolean cut is clean. */
 const OPENING_CLEARANCE = 10;
-/** Thickness of the simple door leaf / glazing panel bodies. */
-export const PANEL_THICKNESS = 50;
 /** web-ifc stamps the current time into FILE_NAME; we fix it so rebuilding is byte-identical. */
 const FIXED_TIMESTAMP = "1970-01-01T00:00:00";
 /** FILE_NAME.authorization must be a STRING; web-ifc writes an empty one as $ (null). */
@@ -44,7 +42,6 @@ function windowPartitioning(design?: Pick<WindowComponent, "glazing">): { value:
   if (columns === 1 && rows === 3) return { value: IFC4.IfcWindowTypePartitioningEnum.TRIPLE_PANEL_HORIZONTAL, userDefined: null };
   return { value: IFC4.IfcWindowTypePartitioningEnum.USERDEFINED, userDefined: `${columns}x${rows} grid` };
 }
-
 
 export interface WriteOptions {
   /** Used for FILE_NAME in the header. */

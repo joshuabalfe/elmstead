@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatJson } from "../src/cli/json-format.js";
-import { loadModel, modelName, revisionOf } from "../src/cli/load.js";
+import { loadModel } from "../src/cli/load.js";
 
 describe("loadModel", () => {
   it("loads and validates the example cottage", async () => {
@@ -15,31 +15,6 @@ describe("loadModel", () => {
     expect(byFolder.ok && byFolder.value.name).toBe("elmstead");
     expect(byIndex.ok && byIndex.value.name).toBe("elmstead");
     expect(byFolder.ok && byIndex.ok && byFolder.value.model).toEqual(byIndex.ok && byIndex.value.model);
-  });
-
-  it("names outputs after the file, or the folder for index files", () => {
-    expect(modelName("tests/fixtures/unconstrained.ts")).toBe("unconstrained");
-    expect(modelName("models/elmstead")).toBe("elmstead");
-    expect(modelName("models/elmstead/")).toBe("elmstead");
-    expect(modelName("models/elmstead/index.ts")).toBe("elmstead");
-  });
-
-  it("names a revision <model>@<revision>, from its file, its folder or its index.ts", () => {
-    expect(modelName("models/elmstead/revisions/rear-extension.ts")).toBe("elmstead@rear-extension");
-    expect(modelName("models/examples/example-cottage/revisions/rear-extension.ts")).toBe("example-cottage@rear-extension");
-    expect(modelName("tests/fixtures/revised/revisions/lean-to")).toBe("revised@lean-to");
-    expect(modelName("tests/fixtures/revised/revisions/lean-to/")).toBe("revised@lean-to");
-    expect(modelName("tests/fixtures/revised/revisions/lean-to/index.ts")).toBe("revised@lean-to");
-    expect(revisionOf("tests/fixtures/revised/revisions/lean-to")).toEqual({ basePath: "tests/fixtures/revised", model: "revised", revision: "lean-to" });
-  });
-
-  it("does not take a model, a helper folder under revisions/ or a module inside a revision for a revision", () => {
-    expect(revisionOf("models/elmstead")).toBeUndefined();
-    expect(revisionOf("models/elmstead/index.ts")).toBeUndefined();
-    expect(revisionOf("tests/fixtures/unconstrained.ts")).toBeUndefined();
-    expect(revisionOf("tests/fixtures/revised/revisions/shared")).toBeUndefined();
-    expect(revisionOf("tests/fixtures/revised/revisions/lean-to/openings.ts")).toBeUndefined();
-    expect(modelName("tests/fixtures/revised/revisions/shared")).toBe("shared");
   });
 
   it("loads a folder revision that imports modules beneath it and beside it", async () => {

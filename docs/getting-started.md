@@ -53,7 +53,7 @@ model files, validator and viewer when run from any directory.
 | File | From |
 |---|---|
 | `out/<name>.building.json` | `build`: the validated model, deterministic formatting |
-| `out/<name>.ifc` | `build`: IFC4, written from the JSON |
+| `out/<name>.ifc` | `build`: IFC4, written from the validated model |
 | `out/<name>.<storey-id>.plan.svg` / `.png` | `render`: one plan per storey |
 | `out/<name>.3d-{sw,se,ne,nw,top}.png` | `render`: 3D snapshots of the IFC |
 

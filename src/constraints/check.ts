@@ -1,8 +1,7 @@
 import type { Vec } from "../geometry/vec.js";
 import type { Issue } from "../checks/issue.js";
-import { indexIds } from "../schema/ids.js";
 import type { BuildingModel } from "../schema/schema.js";
-import { ConstraintError, lookup, measureConstraintPoints, type ConstraintMeasurement, type ModelIndex, type Scope } from "./resolve.js";
+import { ConstraintError, indexModel, lookup, measureConstraintPoints, type ConstraintMeasurement, type ModelIndex, type Scope } from "./resolve.js";
 import { DEFAULT_TOLERANCE, type ConstraintGroup } from "./schema.js";
 
 /** A constraint that measured, with the plan geometry the viewer draws. */
@@ -44,7 +43,7 @@ function scopeOf(ix: ModelIndex, group: ConstraintGroup): Scope | Issue {
  * ERROR against its id, ending with its group's scope; the others still run.
  */
 export function checkConstraints(model: BuildingModel, groups: readonly ConstraintGroup[]): ConstraintsReport {
-  const ix = indexIds(model);
+  const ix = indexModel(model);
   const issues: Issue[] = [];
   const resolved: ResolvedConstraint[] = [];
   let met = 0;

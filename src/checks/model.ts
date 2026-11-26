@@ -4,7 +4,7 @@ import { railingRun } from "../geometry/railing.js";
 import { flightRun } from "../geometry/stair.js";
 import { wallLength, wallTopMin } from "../geometry/wall.js";
 import { toVec, type Vec } from "../geometry/vec.js";
-import { idEntries } from "../schema/ids.js";
+import { idNodes } from "../schema/ids.js";
 import type { BuildingModel, Opening, Polygon, Storey, Wall } from "../schema/schema.js";
 import { checkComponents } from "./components.js";
 import type { Issue } from "./issue.js";
@@ -15,7 +15,7 @@ const isComponent = (kind: string): boolean => kind === "door component" || kind
 export function checkIds(model: BuildingModel): Issue[] {
   const issues: Issue[] = [];
   const seen = new Map<string, string>();
-  for (const { id, kind } of idEntries(model)) {
+  for (const { kind, element: { id } } of idNodes(model)) {
     const first = seen.get(id);
     if (first === undefined) {
       seen.set(id, kind);

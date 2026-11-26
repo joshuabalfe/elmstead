@@ -237,7 +237,9 @@ function roomDimensions(id: string, pts: readonly Vec[], label: Bounds, view: Vi
 
   const longest = (axis: "x" | "y") => {
     const found: { at: number; span: [number, number]; len: number }[] = [];
-    for (let at = b[`min${axis.toUpperCase() as "X" | "Y"}`] + ROOM_DIM_INSET; at <= b[`max${axis.toUpperCase() as "X" | "Y"}`] - ROOM_DIM_INSET; at += ROOM_DIM_STEP) {
+    const low = axis === "x" ? b.minX : b.minY;
+    const high = axis === "x" ? b.maxX : b.maxY;
+    for (let at = low + ROOM_DIM_INSET; at <= high - ROOM_DIM_INSET; at += ROOM_DIM_STEP) {
       for (const span of spans(pts, axis, at)) found.push({ at, span, len: Math.round(span[1] - span[0]) });
     }
     if (!found.length) return undefined;
@@ -516,7 +518,7 @@ function drawStairs(model: BuildingModel, storey: Storey, view: View, opts: Plan
 
 export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptions): string {
   const view = makeView(storey, { railings: true });
-  const walls = [...storey.walls].filter((w) => wallLength(w) > 0);
+  const walls = storey.walls.filter((w) => wallLength(w) > 0);
   const wallById = new Map(walls.map((w) => [w.id, w]));
   const out: Node[] = [];
 

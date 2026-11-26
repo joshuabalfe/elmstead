@@ -23,7 +23,7 @@ flowchart LR
    `schema/building.schema.json` is the same schema exported as JSON Schema (draft 2020-12).
    Before anything is written, the model checks and the model's constraints (real measurements in
    a file beside the model; see [Modelling](modelling.md#constraints)) must pass.
-3. **IFC.** `build` reads the JSON file back, re-parses it and writes IFC4 with
+3. **IFC.** `build` writes IFC4 from the validated model with
    [web-ifc](https://github.com/ThatOpen/engine_web-ifc). IFC is only ever produced by this
    writer, never by hand.
 4. **Verification.**
@@ -63,12 +63,13 @@ flowchart LR
 models/              building models (the only files you normally edit)
 schema/              generated JSON Schema (committed; a test fails if it is stale)
 src/
-  schema/            units (Mm, mm(), m(), deg()) and the zod schema
-  model/             authoring helpers: wall, rectWalls, face, rectRoom, door, window, centredOn
+  schema/            units (Mm, mm(), m(), deg()), the zod schema, and the id walk (ids.ts)
+  model/             authoring helpers: wall, rectWalls, face, rectRoom, door, window, centredOn; revise
   geometry/          2D vector, wall, opening and polygon maths shared by renderers, writer and checks
-  checks/            Issue type and formatting; model-level checks (components.ts so far)
+  checks/            Issue type, formatting and schema-error mapping; model-level checks
   constraints/       constraints beside a model: schema, helpers, loader, point resolution, check
   cli/               command entry point, model loading, deterministic JSON formatting
+  paths.ts           a model's name, entry point and constraints file; a revision's base
   ifc/               IFC writer, GUIDs, round-trip geometry checks, validator bridge
   render/            plan drawing primitives and SVG, PNG rasterising, 3D snapshot driver
 validator/           validate.py (PEP 723 script for uv) and its lockfile
@@ -81,8 +82,8 @@ tests/               vitest suites, fixtures and the plan SVG snapshot
 
 ```mermaid
 flowchart TD
-  cli --> schema & checks & constraints & ifc & render
-  constraints --> schema & geometry & checks
+  cli --> schema & checks & constraints & ifc & render & paths
+  constraints --> schema & geometry & checks & paths
   model --> schema & geometry
   ifc --> schema & geometry & checks
   render --> schema & geometry & checks

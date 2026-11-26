@@ -23,9 +23,8 @@ exit with status 2. A missing command or model path SHALL print the usage and ex
 `build` SHALL load the model and run the model checks. If they report an ERROR, it SHALL stop
 without writing anything. Otherwise it SHALL:
 1. write `out/<name>.building.json`;
-2. re-read and re-parse that file;
-3. write `out/<name>.ifc` from it;
-4. run the geometry round-trip and IfcOpenShell validation.
+2. write `out/<name>.ifc` from the same validated model;
+3. run the geometry round-trip and IfcOpenShell validation.
 
 #### Scenario: Valid model
 - **WHEN** `npm run build models/examples/example-cottage` is run on a valid model

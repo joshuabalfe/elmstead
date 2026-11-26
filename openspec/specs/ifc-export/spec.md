@@ -8,12 +8,13 @@ writer.
 ## Requirements
 
 ### Requirement: Written from the JSON contract
-The IFC SHALL be written from `out/<name>.building.json`, re-parsed with the schema, and not from
-the in-memory TypeScript model.
+The IFC SHALL be written from the validated model: the model's export after its JSON round-trip and
+schema parse, which is the same value written to `out/<name>.building.json`. It SHALL NOT be
+written from the raw TypeScript export.
 
 #### Scenario: Build order
 - **WHEN** `build` runs
-- **THEN** the JSON file is written first and the IFC writer reads its parsed contents
+- **THEN** the JSON and the IFC are both produced from the validated model, and the JSON file is written before the IFC
 
 ### Requirement: Spatial structure and units
 The file SHALL nest `IfcProject` → `IfcSite` → `IfcBuilding` → `IfcBuildingStorey`. Each storey's
