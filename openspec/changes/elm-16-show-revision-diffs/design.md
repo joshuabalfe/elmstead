@@ -11,7 +11,9 @@ See `proposal.md` for the motivation. This change builds on ELM-15, which:
   revision to check that;
 - shares one id walk, `idNodes(model)` in `src/schema/ids.ts` (main's, moved there by ELM-15),
   giving each id's kind, storey, element and, for editable ones, place;
-- gives the viewer a revision picker and a keep-view load;
+- gives the viewer a revision picker and a keep-view load, keeps every shown revision of the
+  current model loaded (`resident` in `viewer/main.ts`), and pauses the renderer for the length of a
+  switch, so a switch shows only the old picture and then the finished new one;
 - moves the example to `models/examples/example-cottage/`, with a `rear-extension` revision.
   `example-two-storey` becomes the test fixture `tests/fixtures/two-storey/`.
 
@@ -118,24 +120,43 @@ Alternatives considered:
 - **Swapping to the IFC style in Diff mode.** It loses the plan-style top view, which is where a
   plan-reader looks first.
 
-### Ghosts come from a second Fragments model of the base
+### Ghosts come from the base model ELM-15 already keeps loaded
 
-When Diff mode turns on and `out/<base>.ifc` exists, the viewer loads it as a second Fragments model,
-guarded by the load epoch like the main model. It hides every item that is not removed, and
-highlights the removed ones in red (`#d64545`) at about 0.45 opacity. This uses the same IFC-to-
-Fragments path as the main model, so a demolished wall shows with its real openings cut.
+ELM-15 keeps every shown revision of the current model loaded, Existing included, in `resident`, and
+disposes them when the model changes. The ghosts reuse that entry rather than loading a second copy:
 
-The base model is cached while the viewer stays on the same model group. Flicking between revisions
-then doesn't re-convert it. It is disposed on a model change or when Diff mode turns off.
+- **Getting the base.** When Diff mode turns on for a revision, the base comes from `resident`. If
+  Existing hasn't been shown yet, it is loaded into `resident` the same way a revision is, from
+  `out/<base>.ifc`, without being shown. It then stays loaded for the rest of the model's session,
+  and is disposed with the rest of the group on a model change.
+- **Showing it.** The base's model object is added to the scene beside the revision. Every item
+  that isn't removed is hidden, and the removed ones are highlighted in red (`#d64545`) at about 0.45
+  opacity. This uses the same IFC-to-Fragments path as the main model, so a demolished wall shows
+  with its real openings cut.
+- **Putting it back.** Turning Diff off, or switching to another revision, takes the ghost model
+  out of the scene again. The base keeps its ghost state while it waits, because the next revision
+  re-applies its own. Showing Existing resets the base first (`resetHighlight` and `resetVisible`),
+  then applies storey visibility as usual, so the existing building never shows ghost colours.
 
-Storey visibility hides ghosts by storey with the same owner map, built from the base JSON. The
-raycaster picks from both models in Diff mode, so hovering a ghost names it. Measurement snapping
-ignores the ghost model: you can't measure to something that isn't being built.
+Storey visibility hides ghosts by storey with the same owner map, built from the base JSON. Hover
+picking asks the ghost model as well as `currentModel` in Diff mode, so hovering a ghost names it.
+Measurement snapping ignores the ghost model: you can't measure to something that isn't being built.
 
 Alternatives considered:
+- **A second, separately loaded and cached copy of the base**, which was this change's first design,
+  written before ELM-15 kept revisions loaded. It would hold the base twice whenever Existing had
+  been shown, and keep a second cache and its own dispose rules in step with `resident`'s.
 - **Drawing removed elements from the base JSON as overlay outlines.** It's lighter, but the result
   isn't the real geometry, and walls would show without their openings.
-- **Loading the base IFC on every revision load.** It wastes time when Diff mode is off.
+
+### Diff is applied while the old picture is held
+
+ELM-15 pauses the renderer for the length of a revision switch, so the canvas keeps the previous
+picture until the new revision is complete. With Diff on, "complete" includes the diff. The
+colours, the faded unchanged elements and the ghosts are all applied inside that held frame, before
+the renderer resumes, so a switch never shows a revision in its normal colours on the way to its diff
+colours. Toggling Diff on or off holds the frame the same way, with the same counter, so the toggle
+also lands in one picture.
 
 ### The panel and the shortcut follow existing patterns
 
@@ -171,8 +192,12 @@ and turned into a WARNING.
 - **[Risk]** The two transparency passes sort badly from some angles. → Faded elements write depth,
   and coloured elements render later. If it still reads badly, drop see-through and keep only the
   greying: the colours alone still carry the diff.
-- **[Trade-off]** A second Fragments model costs memory and load time in Diff mode. → It is only
-  loaded while Diff is on, and cached for the group. These are small models.
+- **[Trade-off]** Turning Diff on before Existing has been shown loads the base, which takes as long
+  as a revision's first switch. → It happens once per model, and is held behind the previous picture
+  like any switch.
+- **[Risk]** The base's ghost state, hidden items and red highlights, leaks into Existing. → `load()`
+  resets the base before showing it as Existing, and a browser test compares Existing after a Diff
+  session with Existing before one, pixel for pixel.
 - **[Trade-off]** A lengthened wall is amber as a whole, not new in part. → It is accepted, and
   stated in the docs; see the non-goals.
 - **[Risk]** Red and green are hard to tell apart for some viewers. → The three colours differ in

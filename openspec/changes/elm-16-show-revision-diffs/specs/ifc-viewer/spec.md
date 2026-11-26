@@ -62,6 +62,27 @@ elements need the base built.
 - **WHEN** Diff mode is turned on and the base model's IFC is not in `out/`
 - **THEN** added and changed elements are coloured, no ghosts are drawn, and the status line says to build the base model
 
+#### Scenario: Existing after a Diff session
+- **WHEN** the user turns Diff mode on for a revision, then switches to "Existing"
+- **THEN** the existing building is drawn exactly as it was before Diff mode was used, with no ghost colours and no elements hidden
+
+#### Scenario: Base loaded once
+- **WHEN** "Existing" has already been shown, and the user then turns Diff mode on for a revision
+- **THEN** the base model's IFC is not fetched again
+
+### Requirement: Diff lands in one picture
+Turning Diff mode on or off, and switching revision with Diff mode on, SHALL keep the previous
+picture drawn until the new one is complete, with its diff colours, faded elements and ghosts
+applied. No frame SHALL show the revision in its normal colours on the way to its diff colours.
+
+#### Scenario: Toggling Diff
+- **WHEN** the user turns Diff mode on
+- **THEN** every frame drawn shows either the picture before or the finished Diff picture
+
+#### Scenario: Switching with Diff on
+- **WHEN** Diff mode is on and the user switches to another revision
+- **THEN** every frame drawn shows either the previous revision's Diff picture or the finished new one
+
 ### Requirement: Changes panel
 In Diff mode the viewer SHALL show a panel with the count of added, changed and removed elements.
 Each category SHALL have a checkbox; unchecking it SHALL draw that category as unchanged, or hide

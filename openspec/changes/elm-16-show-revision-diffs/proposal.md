@@ -22,8 +22,8 @@ revisions.
   `D` key or `?diff=1`:
   - unchanged elements are drawn faded and partly see-through;
   - added elements are green, changed elements amber;
-  - removed elements are shown as a red, see-through ghost taken from the base model's IFC, loaded
-    alongside the revision.
+  - removed elements are shown as a red, see-through ghost taken from the base model, which ELM-15
+    already keeps loaded once shown, drawn alongside the revision.
 - A changes panel in Diff mode gives the counts per category, with a checkbox to show or hide each.
   It also lists every change by storey; clicking one frames the camera on that element.
 - Hovering in Diff mode adds the element's status to the hover label, e.g. `wall-ext-east · added`.
@@ -61,8 +61,8 @@ revisions.
 - `src/cli/`: writing the diff file from the base ELM-15 already loads, the summary line, and Diff
   snapshots in `render`.
 - `src/render/snapshot3d.ts`: the extra Diff views for a revision.
-- `viewer/main.ts`, `viewer/index.html`: a second Fragments model for the base, item colouring,
-  overlay colouring, the panel, the shortcut and hover status.
+- `viewer/main.ts`, `viewer/index.html`: the base from ELM-15's loaded models drawn as ghosts, item
+  colouring, overlay colouring inside ELM-15's held frame, the panel, the shortcut and hover status.
 - `docs/rendering.md`: Diff mode and the diff file.
 - No schema change. Nothing in the building JSON, IFC or plan SVGs changes.
 - Out of scope:

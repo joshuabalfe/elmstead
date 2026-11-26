@@ -20,12 +20,14 @@ Implement after ELM-15 has merged; rebase this branch on it first.
 - [ ] 3.2 Add the **Diff** button, `?diff=1` and the `D` key on the storey shortcut's guard, shown only for a revision; verify browser tests for on, off, a base model, a shared link and walk mode
 - [ ] 3.3 Colour added and changed items and fade unchanged ones through Fragments, and pass a per-id colour map to the plan-style overlays; verify a browser test samples an added wall's top-view pixels as green and an unchanged wall's as faded, and that Diff off restores the normal picture pixel for pixel
 - [ ] 3.4 Keep Diff mode across revision switches and inactive on "Existing", with the camera unmoved; verify a browser test that opens with `?view=sw`, chooses the top view, then toggles Diff and switches to "Existing" and back, and finds the top view's camera state each time (not via `?camera=`, which would hide a jump)
+- [ ] 3.5 Apply the diff colours, faded elements and ghosts inside ELM-15's held frame, and hold the frame for a Diff toggle too; verify a frame-sampling browser test (like ELM-15's no-flicker test) that a toggle, and a switch with Diff on, each draw exactly two pictures
 
 ## 4. Removed-element ghosts
 
-- [ ] 4.1 Load the base IFC as a second Fragments model in Diff mode, under the load epoch, show only removed items in red and see-through, cache it for the model group, and dispose it on a model change or Diff off; verify a browser test that a removed wall is drawn and no other base element is
+- [ ] 4.1 Take the base from ELM-15's `resident` models, loading it there without showing it if Existing hasn't been shown yet; add it to the scene beside the revision with only removed items visible, in red and see-through; take it out of the scene on Diff off or a revision switch; verify browser tests that a removed wall is drawn and no other base element is, and that turning Diff on after Existing was shown fetches no IFC
 - [ ] 4.2 Hide ghosts by storey with the base JSON's owner map, include the ghost model in hover picking and leave it out of measurement snapping; verify browser tests (on the two-storey fixture, with an in-memory revision) for one storey shown, hovering a ghost, and that a measurement click on a ghost picks the geometry behind it
 - [ ] 4.3 Without a base IFC, colour added and changed elements and put a note in the status line; verify a browser test
+- [ ] 4.4 Reset the base (`resetHighlight`, `resetVisible`) before showing it as Existing; verify a browser test that Existing after a Diff session matches Existing before one, pixel for pixel
 
 ## 5. Panel and hover
 
