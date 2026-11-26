@@ -61,7 +61,12 @@ tests table below).
 | `tests/viewer-presentation.test.ts` | the railings, the stair's tread bands, the ground slab's colour, and that no uploaded texture exceeds 1024 × 1024 texels |
 | `tests/window.test.ts` | frames and glazing bars: pane ratios, no overlaps, frame inside the window's size, fit checks, IFC volumes, plan symbol |
 | `tests/checks.test.ts` | schema-issue attribution, component checks plus id, zero-length wall, opening host/fit/overlap and outline rules |
-| `tests/cli.test.ts` | `build`/`check`/`all`, failure fixtures, render-before-build and missing-Chromium warnings, exit statuses |
+| `tests/cli.test.ts` | `build`/`check`/`all`, failure fixtures, render-before-build and missing-Chromium warnings, exit statuses, constraints; a base model draws no Diff snapshots |
+| `tests/cli-revisions.test.ts` | building, checking and rendering revisions, their constraints, and the diff file and summary |
+| `tests/cli-diff-snapshots.test.ts` | a revision's Diff snapshots: drawn with a warning until the base is built, in full after (the slowest CLI tests: each render writes ten 3D pictures) |
+| `tests/viewer-diff-mode.test.ts` | Diff mode in the viewer: the toggles, colours and outlines, the plan drawing and the changes panel |
+| `tests/viewer-diff-ghosts.test.ts` | Diff mode's removed elements (ghosts), Transparency and hover status |
+| `tests/ci-config.test.ts` | the CI matrix's groups, its `rest` excludes and `test:fast`'s excludes name the same heavy files |
 | `tests/validate.test.ts` | validator bridge: non-JSON output, truncated JSON, wrong-shaped lines, summary defaults, crash status and exit 1 with findings (fake `uv`) |
 | `tests/viewer.test.ts` | layer disposal keeping shared materials, path confinement, malformed encoding and `?view=` fallback; measurement maths, snap choice and click slop; element id/name labels; plan-overlay geometry (scale, run order, depth, text placement) |
 | `tests/viewer-identify.test.ts` | the Ids toggle, hover tooltip content, drag/view/walk/storey composition, the `?ids` lifecycle, room-id labels and the snapshot exemption in headless Chromium |
@@ -133,7 +138,10 @@ cancels its stale run. Three kinds of job, all started together:
   runner each, because the browser and CLI tests fight over the cores of a single runner. Each
   heavy test file is named in a group; **rest** runs every file no group names, so a new test
   file is always run. When you add a heavy file, give it a group, add it to rest's `--exclude`
-  list, and add it to `test:fast`'s `--exclude` list in `package.json` too, or **fast** runs it.
+  list, and add it to `test:fast`'s `--exclude` list in `package.json` too, or **fast** runs it;
+  `tests/ci-config.test.ts` fails until all three agree. Keep a group to about two minutes on CI:
+  a file's tests run one after another, so split a longer file (the viewer and CLI files share
+  `tests/support/viewer-page.ts`, `diff-mode-page.ts` and `cli.ts` for this).
 
 The actions are pinned by commit SHA, matching the repo's exact-version rule.
 
