@@ -44,8 +44,8 @@
 
 ## 8. Integration
 
-- [ ] 8.1 Eye-check in the browser: open `example-cottage`, switch to `rear-extension` from a corner view with one storey shown, and back with the arrows, with no camera jump
-- [ ] 8.2 Run `npm test`, `npm run typecheck` and `npx openspec validate --all`, and regenerate any generated file the change touches; verify all pass
+- [x] 8.1 Eye-check in the browser: open `example-cottage`, switch to `rear-extension` from a corner view with one storey shown, and back with the arrows, with no camera jump
+- [x] 8.2 Run `npm test`, `npm run typecheck` and `npx openspec validate --all`, and regenerate any generated file the change touches; verify all pass
 
 ## Workflow follow-up
 
