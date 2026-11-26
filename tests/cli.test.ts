@@ -150,6 +150,35 @@ describe("CLI", () => {
     ]);
   }, 120_000);
 
+  it("builds a file revision under <model>@<revision>, leaving the base's outputs alone", () => {
+    const r = run(["build", "tests/fixtures/revised/revisions/no-kitchen-window.ts"]);
+    expect(r.status, output(r)).toBe(0);
+    expect(r.files).toContain("revised@no-kitchen-window.building.json");
+    expect(r.files).toContain("revised@no-kitchen-window.ifc");
+    expect(r.files.filter((f) => !f.startsWith("revised@no-kitchen-window."))).toEqual([]);
+    expect(r.stdout).toContain("geom    ");
+    expect(r.stdout).toMatch(/valid   .*revised@no-kitchen-window\.ifc: 0 errors/);
+    const json = JSON.parse(readFileSync(join(r.out, "revised@no-kitchen-window.building.json"), "utf8")) as { storeys: { openings: { id: string }[] }[] };
+    expect(json.storeys[0]!.openings.map((o) => o.id)).not.toContain("window-kitchen");
+  }, 120_000);
+
+  it("builds and renders a folder revision, plans and snapshots named after it", () => {
+    const r = run(["all", "tests/fixtures/revised/revisions/lean-to"]);
+    expect(r.status, output(r)).toBe(0);
+    expect(r.files).toContain("revised@lean-to.building.json");
+    expect(r.files).toContain("revised@lean-to.ifc");
+    expect(r.files).toContain("revised@lean-to.storey-ground.plan.svg");
+    expect(r.files).toContain("revised@lean-to.3d-top.png");
+    expect(r.files.filter((f) => !f.startsWith("revised@lean-to."))).toEqual([]);
+  }, 180_000);
+
+  it("rejects a revision whose storeys differ from its base's, writing nothing", () => {
+    const r = run(["build", "tests/fixtures/revised/revisions/extra-storey.ts"]);
+    expect(r.status).toBe(1);
+    expect(output(r)).toContain("ERROR   storey-loft: storey is not in revised; a revision keeps its base's storeys");
+    expect(r.files).toEqual([]);
+  });
+
   it("checks the model's constraints and prints how many were met", () => {
     const r = run(["check", "models/examples/example-cottage"]);
     expect(r.stdout).toContain("constr  models/examples/example-cottage/constraints.ts: 6 of 6 met");

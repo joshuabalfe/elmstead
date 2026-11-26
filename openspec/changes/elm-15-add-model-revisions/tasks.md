@@ -17,9 +17,9 @@
 
 ## 4. Naming and the CLI
 
-- [ ] 4.1 Make `modelName` return `<model>@<revision>` for `revisions/<r>.ts`, `revisions/<r>/` and `revisions/<r>/index.ts` when the parent folder has an `index.ts`, and reject a non-kebab-case name with an ERROR; verify unit tests for each form, a nested base (`models/examples/example-cottage`), a folder under `revisions/` without `index.ts`, and the unchanged base and single-file cases
-- [ ] 4.2 Load the base for a revision and report an ERROR for each missing or extra storey id; verify a CLI test with a hand-built revision that has an extra storey writes nothing and exits 1
-- [ ] 4.3 Verify CLI tests that `build` on a file revision and on a folder revision writes `<model>@<revision>.building.json` and `.ifc` into `ELMSTEAD_OUT_DIR`, passes the round-trip and validation, and leaves the base's outputs untouched; and that `render` names the plans and snapshots the same way
+- [x] 4.1 Make `modelName` return `<model>@<revision>` for `revisions/<r>.ts`, `revisions/<r>/` and `revisions/<r>/index.ts` when the parent folder has an `index.ts`, and reject a non-kebab-case name with an ERROR; verify unit tests for each form, a nested base (`models/examples/example-cottage`), a folder under `revisions/` without `index.ts`, and the unchanged base and single-file cases
+- [x] 4.2 Load the base for a revision and report an ERROR for each missing or extra storey id; verify a CLI test with a hand-built revision that has an extra storey writes nothing and exits 1
+- [x] 4.3 Verify CLI tests that `build` on a file revision and on a folder revision writes `<model>@<revision>.building.json` and `.ifc` into `ELMSTEAD_OUT_DIR`, passes the round-trip and validation, and leaves the base's outputs untouched; and that `render` names the plans and snapshots the same way
 
 ## 5. Revision constraints
 
