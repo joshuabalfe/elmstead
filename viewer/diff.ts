@@ -2,9 +2,11 @@
  * Diff mode's colours and its plan drawing, apart from the viewer so they can be tested without a
  * browser. The scheme is GitHub's: a pale fill with a dark accent of the same hue, context plain.
  */
+import polygonClipping, { type MultiPolygon, type Polygon } from "polygon-clipping";
 import type { DiffStatus, ModelDiff } from "../src/diff/index.js";
 import type { Overlay } from "../src/render/plan.js";
 import type { Node } from "../src/render/svg.js";
+import type { Point, Storey } from "../src/schema/schema.js";
 
 /**
  * Each status's colours: `fill` for an element, `accent` for its outline and plan wall pieces, and
@@ -59,11 +61,42 @@ export function recolourPlan(o: Overlay, status: StatusById): Overlay {
   return { ...o, nodes: o.nodes.map(visit) };
 }
 
-/** Just the floor drawing's added and changed slab and room fills, in their floor tint; null when there are none. */
-export function diffFloor(o: Overlay, status: StatusById): Overlay | null {
+/**
+ * The floor a revision built and the floor it took away on a storey: the union of its slab and room
+ * outlines less the base's, and the other way round, in plan mm. Comparing the whole storey's floor
+ * rather than each room means floor that only changes room, as in a knock-through, is no change.
+ * Only each piece's outer ring is kept: the viewer's fills have no holes.
+ */
+export function floorChange(base: Storey, revision: Storey): { added: Point[][]; removed: Point[][] } {
+  const floor = (s: Storey): Polygon[] => [...s.slabs, ...s.rooms].map((e) => [e.outline.map((p): [number, number] => [p.x, p.y])]);
+  const union = (ps: Polygon[]): MultiPolygon => (ps.length ? polygonClipping.union(ps[0]!, ...ps.slice(1)) : []);
+  const [was, now] = [union(floor(base)), union(floor(revision))];
+  const rings = (m: MultiPolygon): Point[][] => m.map((poly) => poly[0]!.slice(0, -1).map(([x, y]) => ({ x, y }) as Point));
+  return { added: rings(polygonClipping.difference(now, was)), removed: rings(polygonClipping.difference(was, now)) };
+}
+
+/** The floor tints' ids, which `floorPieces` gives each added and removed piece. */
+export const floorPieceStatus = (id: string): DiffStatus | undefined => (id.startsWith("floor-added-") ? "added" : id.startsWith("floor-removed-") ? "removed" : undefined);
+
+/** Each piece of a floor change as a room-shaped outline, to draw with the plan's floor drawing. */
+export function floorPieces(change: { added: Point[][]; removed: Point[][] }): { id: string; name: string; outline: Point[] }[] {
+  return (["added", "removed"] as const).flatMap((s) => change[s].map((outline, i) => ({ id: `floor-${s}-${i}`, name: "", outline })));
+}
+
+/** A drawing of floor pieces (see floorPieces) in their floor tint; null when there are none. */
+export function diffFloor(o: Overlay): Overlay | null {
+  const nodes = o.nodes.flatMap((n): Node[] => {
+    const s = floorPieceStatus(idOf(n) ?? "");
+    return n.tag === "polygon" && s ? [{ ...n, attrs: { ...n.attrs, fill: DIFF_COLOURS[s].floor } }] : [];
+  });
+  return nodes.length ? { ...o, nodes } : null;
+}
+
+/** The floor drawing's added and changed slabs and rooms as outlines in their accent; null when there are none. */
+export function floorOutlines(o: Overlay, status: StatusById): Overlay | null {
   const nodes = o.nodes.flatMap((n): Node[] => {
     const s = status.get(idOf(n) ?? "");
-    return n.tag === "polygon" && (s === "added" || s === "changed") ? [{ ...n, attrs: { ...n.attrs, fill: DIFF_COLOURS[s].floor } }] : [];
+    return n.tag === "polygon" && (s === "added" || s === "changed") ? [{ ...n, attrs: { ...n.attrs, fill: "none", stroke: DIFF_COLOURS[s].accent, "stroke-width": 1.5 } }] : [];
   });
   return nodes.length ? { ...o, nodes } : null;
 }

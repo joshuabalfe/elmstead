@@ -1006,20 +1006,30 @@ Glazing SHALL keep its transparency. Unchanged elements SHALL keep their normal 
 ### Requirement: Diff in the plan drawing
 In Diff mode the plan-style drawing SHALL carry the diff, so it shows from above. Added and
 changed walls SHALL be drawn in their status's dark colour; their window symbols and door gaps in
-the pale colour with a dark outline; their slab and room fills in a subtler tint (`#e6ffec` added,
-`#fff8c5` changed), over the floor.
+the pale colour with a dark outline. Added and changed slabs and rooms SHALL be outlined in their
+status's dark colour, and their floor tinted only as *Floor change in the plan drawing* says.
 
 #### Scenario: Top view of an extension
 - **WHEN** Diff mode is on in the top view of a revision that adds a lean-to and widens a window
 - **THEN** the lean-to's walls are dark green and its floor pale green, and the window symbol is pale yellow with a dark amber outline
 
-#### Scenario: Changed room
-- **WHEN** Diff mode is on and the revision reshapes `room-living`
-- **THEN** that room's floor is drawn in the subtle yellow tint, fainter than a changed window symbol, and the door swings on it still show
-
 #### Scenario: Plan without Diff
 - **WHEN** Diff mode is off
 - **THEN** the plan drawing is exactly the normal plan
+
+### Requirement: Floor change in the plan drawing
+In Diff mode each storey's floor, the union of its slab and room outlines, SHALL be compared with
+the base storey's. Floor only in the revision SHALL be tinted `#e6ffec` and floor only in the base
+`#ffebe9`, with the door swings drawn over the tints. Floor that only changes room SHALL NOT be
+tinted.
+
+#### Scenario: Floor that only changes room
+- **WHEN** Diff mode is on and the revision knocks the kitchen into `room-living`, or moves the wall between the bedroom and bathroom
+- **THEN** those rooms' floors have no tint, and each reshaped room is outlined in dark amber
+
+#### Scenario: Room extended outwards
+- **WHEN** Diff mode is on and the revision extends a room past the base's floor
+- **THEN** only the new floor is tinted pale green, and floor the revision takes away is tinted pale red
 
 ### Requirement: Removed elements in the plan drawing
 In Diff mode the plan-style drawing SHALL show what the revision removed, drawn from the base model

@@ -41,7 +41,7 @@ import { elementLabel, type ElementLabel } from "./identify.js";
 import { SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap, type MeasurementValues, type Point3, type SnapCandidate } from "./measure.js";
 import { diffModels, type DiffStatus, type ModelDiff } from "../src/diff/index.js";
 import { styleOfColour } from "./style-of.js";
-import { DIFF_COLOURS, diffFloor, doorSwings, recolourPlan, removedPlan, statusById, type StatusById } from "./diff.js";
+import { DIFF_COLOURS, diffFloor, doorSwings, floorChange, floorOutlines, floorPieces, recolourPlan, removedPlan, statusById, type StatusById } from "./diff.js";
 import { defaultName, groupModels, joinName, splitName, stepRevision, type ModelGroup } from "./revisions.js";
 import { cameraForView, cornerLabel, labelHeading, parseOrient, parseView, turnedTopFit } from "./view.js";
 import { WALK_AXES, entryPosition, headingBasis, movementOffset, walkRequested, walkStep } from "./walk.js";
@@ -474,9 +474,10 @@ function wallTopOverlays(storey: Storey, model: BuildingModel): THREE.Object3D[]
 }
 
 /**
- * The diff's own plan layers for a storey, while Diff mode is on: the added and changed floor fills,
+ * The diff's own plan layers for a storey, while Diff mode is on: the floor built and taken away,
  * 1 mm above the floor (coplanar fills in one floor layer do not reliably stack in drawing order: a
- * room fill can lose to the slab fill under it), the door swings again above them, and what the
+ * room fill can lose to the slab fill under it), the door swings and the added and changed slab
+ * and room outlines above them, and what the
  * revision removed, from the base, 2 mm above its wall tops so a bricked-up window shows over the
  * wall that now runs through it.
  */
@@ -484,12 +485,15 @@ function diffPlanLayers(storey: Storey, floor: Overlay): THREE.Object3D[] {
   if (!shownDiff) return [];
   const { status, base } = shownDiff;
   const out: THREE.Object3D[] = [];
-  const fills = diffFloor(floor, status);
-  if (fills) {
-    out.push(planGeometry(fills, (storey.elevation + FLOOR_LIFT + 1) / 1000, { kind: "floor", renderOrder: -1 }));
-    out.push(planGeometry(doorSwings(floor), (storey.elevation + FLOOR_LIFT + 2) / 1000, { kind: "overlay", renderOrder: -1 }));
-  }
   const was = base.storeys.find((s) => s.id === storey.id);
+  // The floor built and taken away, drawn as rooms of this storey so they share its plan's scale;
+  // its own rooms and slabs only as outlines, so floor that just changed room has no tint.
+  const pieces = was ? floorPieces(floorChange(was, storey)) : [];
+  const fills = pieces.length ? diffFloor(renderFloor({ ...storey, slabs: [], rooms: pieces, openings: [] })) : null;
+  if (fills) out.push(planGeometry(fills, (storey.elevation + FLOOR_LIFT + 1) / 1000, { kind: "floor", renderOrder: -1 }));
+  const outlines = floorOutlines(floor, status);
+  if (fills || outlines) out.push(planGeometry(doorSwings(floor), (storey.elevation + FLOOR_LIFT + 2) / 1000, { kind: "overlay", renderOrder: -1 }));
+  if (outlines) out.push(planGeometry(outlines, (storey.elevation + FLOOR_LIFT + 2) / 1000, { kind: "overlay", renderOrder: -1 }));
   if (was) {
     const removed = (id: string) => status.get(id) === "removed";
     const walls = was.walls.filter((w) => !w.profile && (removed(w.id) || was.openings.some((o) => o.wallId === w.id && removed(o.id))));

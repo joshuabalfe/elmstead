@@ -218,7 +218,7 @@ describe("CLI", () => {
     expect(diff.base).toBe("example-cottage");
     expect(diff.revision).toBe("example-cottage@rear-extension");
     expect(diff.removed.map((e) => e.id)).toEqual(["wall-living-kitchen", "window-kitchen", "room-kitchen"]);
-    expect(diff.changed.map((e) => e.id)).toEqual(["window-living", "room-living"]);
+    expect(diff.changed.map((e) => e.id)).toEqual(["wall-bedroom-bathroom", "door-bedroom", "door-bathroom", "window-living", "room-living", "room-bedroom", "room-bathroom"]);
     const folder = run(["build", "tests/fixtures/revised/revisions/lean-to"]);
     expect(folder.files).toContain("revised@lean-to.diff.json");
     const base = run(["build", "models/examples/example-cottage"]);
@@ -243,7 +243,7 @@ describe("CLI", () => {
   });
 
   it("prints the diff summary for a revision in build, check and all, without changing the exit status", () => {
-    const line = "diff    example-cottage@rear-extension: 6 added, 2 changed, 3 removed\n";
+    const line = "diff    example-cottage@rear-extension: 6 added, 7 changed, 3 removed\n";
     for (const command of ["check", "build"]) {
       const r = run([command, "models/examples/example-cottage/revisions/rear-extension.ts"]);
       expect(r.status, command).toBe(0);

@@ -24,7 +24,7 @@ describe("diffModels", () => {
     expect(ids(diffModels(base(), model(rearExtension)))).toEqual({
       added: ["wall-lean-to-east", "wall-lean-to-north", "wall-lean-to-west", "doorway-lean-to", "slab-lean-to", "room-lean-to"],
       removed: ["wall-living-kitchen", "window-kitchen", "room-kitchen"],
-      changed: ["window-living", "room-living"],
+      changed: ["wall-bedroom-bathroom", "door-bedroom", "door-bathroom", "window-living", "room-living", "room-bedroom", "room-bathroom"],
     });
   });
 

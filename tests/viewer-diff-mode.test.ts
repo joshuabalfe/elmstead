@@ -287,25 +287,15 @@ describe("Diff mode", () => {
 });
 
 describe("Diff in the plan drawing", () => {
-  it("colours the walls, floors and symbols from above, door swings included", async () => {
+  it("colours the walls, new floor and symbols from above, and leaves floor that only changed room untinted", async () => {
     await open(`${REV}&view=top`);
     const plain = await pixels();
     await viewChange(() => page.click("#diff"));
     const top = await pixels();
     expect(count(top, darkGreen).n).toBeGreaterThan(500); // the lean-to's wall pieces
     expect(count(top, addedFloor).n).toBeGreaterThan(3000); // its floor
-    const yellow = count(top, changedFloor);
-    expect(yellow.n).toBeGreaterThan(5000); // the knocked-through room's floor
-    // The two hall doors swing into that room: their lines are still drawn over the yellow floor.
-    const { x0, y0, x1, y1 } = yellow.box;
-    const inside = { ...top, data: Buffer.from(top.data) };
-    let dark = 0;
-    for (let y = y0 + 4; y < y1 - 4; y++)
-      for (let x = x0 + 4; x < x1 - 4; x++) {
-        const i = (y * top.width + x) * 4;
-        if (inside.data[i]! < 110 && inside.data[i + 1]! < 110 && inside.data[i + 2]! < 110) dark++;
-      }
-    expect(dark).toBeGreaterThan(20);
+    // The knocked-through room only changed which room its floor is in: no tint, just its outline.
+    expect(count(top, changedFloor).n).toBeLessThan(100);
     // The demolished wall and the bricked-up window, in the removed fill, dashed red round them.
     expect(count(top, (r, g, b) => r > 235 && g > 185 && g < 220 && b > 180 && b < 215).n).toBeGreaterThan(150);
     expect(count(top, (r, g, b) => r > 170 && g < 80 && b < 90).n).toBeGreaterThan(30);
@@ -400,7 +390,7 @@ describe("Changes panel", () => {
     await open(`${REV}&view=se&diff=1`);
     const text = await page.textContent("#changes");
     expect(text).toContain("6 added");
-    expect(text).toContain("2 changed");
+    expect(text).toContain("7 changed");
     expect(text).toContain("3 removed");
     await viewChange(() => page.uncheck('#changes input[data-status="added"]'));
     expect(count(await pixels(), greenish).n).toBe(0);
