@@ -9,8 +9,8 @@ See `proposal.md` for the motivation. This change builds on ELM-15, which:
   revisions;
 - requires a revision to have exactly its base's storey ids, and has the CLI load the base for a
   revision to check that;
-- extracts one id index, `indexIds(model)` in `src/schema/ids.ts`, giving each id's kind,
-  collection, storey and element;
+- shares one id walk, `idNodes(model)` in `src/schema/ids.ts` (main's, moved there by ELM-15),
+  giving each id's kind, storey, element and, for editable ones, place;
 - gives the viewer a revision picker and a keep-view load;
 - moves the example to `models/examples/example-cottage/`, with a `rear-extension` revision.
   `example-two-storey` becomes the test fixture `tests/fixtures/two-storey/`.
@@ -51,7 +51,7 @@ diffModels(base: BuildingModel, revision: BuildingModel) -> {
 }
 ```
 
-Both models go through ELM-15's `indexIds`. The diff adds the element's JSON, serialised with the
+Both models go through the shared `idNodes` walk, indexed by id. The diff adds the element's JSON, serialised with the
 deterministic formatter, to each entry. Storeys are serialised with their element arrays left out, so
 a storey only changes when its own fields do. Since storey ids match by ELM-15's rule, a storey can
 only ever be changed, never added or removed.

@@ -50,13 +50,13 @@ revisions.
   - revisions as files or folders;
   - `<model>@<revision>` naming;
   - the same-storeys rule;
-  - the shared `indexIds` in `src/schema/ids.ts`;
+  - the shared `idNodes` walk in `src/schema/ids.ts`;
   - the base model the CLI already loads for a revision;
   - the revision picker;
   - the moved `models/examples/example-cottage` and its `rear-extension` revision.
 
   Implement after it merges.
-- `src/diff/` (new): the pure diff function over two `BuildingModel`s, built on `indexIds`, and its
+- `src/diff/` (new): the pure diff function over two `BuildingModel`s, built on `idNodes`, and its
   JSON output.
 - `src/cli/`: writing the diff file from the base ELM-15 already loads, the summary line, and Diff
   snapshots in `render`.
