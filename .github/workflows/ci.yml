@@ -65,7 +65,9 @@ jobs:
       matrix:
         include:
           - group: plan-vs-3d
-            args: tests/plan-vs-3d.test.ts
+            args: tests/plan-vs-3d.test.ts tests/plan-vs-3d-elmstead.test.ts
+          - group: viewer-storey-selection
+            args: tests/viewer-storey-selection.test.ts
           - group: viewer-storey-keys
             args: tests/viewer-storey-keys.test.ts
           - group: viewer-presentation
@@ -74,23 +76,31 @@ jobs:
             args: tests/viewer-revisions.test.ts
           - group: viewer-diff-mode
             args: tests/viewer-diff-mode.test.ts
+          - group: viewer-diff-ghosts
+            args: tests/viewer-diff-ghosts.test.ts
           - group: viewer-identify
             args: tests/viewer-identify.test.ts tests/viewer-measure.test.ts
-          - group: cli-ifc
-            args: tests/cli.test.ts tests/ifc.test.ts tests/toolchain.test.ts tests/snapshot.test.ts
+          - group: cli
+            args: tests/cli.test.ts
+          - group: cli-revisions
+            args: tests/cli-revisions.test.ts
+          - group: cli-diff-snapshots
+            args: tests/cli-diff-snapshots.test.ts
           - group: rest
             args: >-
               --exclude tests/plan-vs-3d.test.ts
+              --exclude tests/plan-vs-3d-elmstead.test.ts
+              --exclude tests/viewer-storey-selection.test.ts
               --exclude tests/viewer-storey-keys.test.ts
               --exclude tests/viewer-presentation.test.ts
               --exclude tests/viewer-revisions.test.ts
               --exclude tests/viewer-diff-mode.test.ts
+              --exclude tests/viewer-diff-ghosts.test.ts
               --exclude tests/viewer-identify.test.ts
               --exclude tests/viewer-measure.test.ts
               --exclude tests/cli.test.ts
-              --exclude tests/ifc.test.ts
-              --exclude tests/toolchain.test.ts
-              --exclude tests/snapshot.test.ts
+              --exclude tests/cli-revisions.test.ts
+              --exclude tests/cli-diff-snapshots.test.ts
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
