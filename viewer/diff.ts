@@ -92,11 +92,19 @@ export function diffFloor(o: Overlay): Overlay | null {
   return nodes.length ? { ...o, nodes } : null;
 }
 
-/** The floor drawing's added and changed slabs and rooms as outlines in their accent; null when there are none. */
+/**
+ * A changed room's or slab's outline colour: a bright yellow, as the dark amber accent all but
+ * vanishes against the charcoal walls the outline runs along. An added one keeps its green accent.
+ * Wide, as the walls drawn over it hide the half outside the room.
+ */
+export const CHANGED_OUTLINE = "#ffd33d";
+
+/** The floor drawing's added and changed slabs and rooms as outlines (see CHANGED_OUTLINE); null when there are none. */
 export function floorOutlines(o: Overlay, status: StatusById): Overlay | null {
   const nodes = o.nodes.flatMap((n): Node[] => {
     const s = status.get(idOf(n) ?? "");
-    return n.tag === "polygon" && (s === "added" || s === "changed") ? [{ ...n, attrs: { ...n.attrs, fill: "none", stroke: DIFF_COLOURS[s].accent, "stroke-width": 1.5 } }] : [];
+    const stroke = s === "changed" ? CHANGED_OUTLINE : s === "added" ? DIFF_COLOURS.added.accent : undefined;
+    return n.tag === "polygon" && stroke ? [{ ...n, attrs: { ...n.attrs, fill: "none", stroke, "stroke-width": 5 } }] : [];
   });
   return nodes.length ? { ...o, nodes } : null;
 }

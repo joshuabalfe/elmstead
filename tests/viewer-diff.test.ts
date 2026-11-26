@@ -5,7 +5,7 @@ import { diffModels } from "../src/diff/index.js";
 import { renderFloor, renderWallTops } from "../src/render/plan.js";
 import type { Node } from "../src/render/svg.js";
 import { BuildingModelSchema, type BuildingModel, type Point, type Storey } from "../src/schema/schema.js";
-import { DIFF_COLOURS, diffFloor, doorSwings, floorChange, floorOutlines, floorPieces, recolourPlan, removedPlan, statusById } from "../viewer/diff.js";
+import { CHANGED_OUTLINE, DIFF_COLOURS, diffFloor, doorSwings, floorChange, floorOutlines, floorPieces, recolourPlan, removedPlan, statusById } from "../viewer/diff.js";
 
 const model = (source: unknown): BuildingModel => BuildingModelSchema.parse(JSON.parse(JSON.stringify(source)));
 const base = model(cottage);
@@ -95,10 +95,11 @@ describe("diffFloor, floorOutlines and doorSwings", () => {
     expect(diffFloor(renderFloor(base.storeys[0]!, base.components))).toBeNull();
   });
 
-  it("outlines the added and changed slabs and rooms in their accent, unfilled", () => {
+  it("outlines the changed slabs and rooms in bright yellow and the added ones in green, unfilled", () => {
     const o = floorOutlines(floor, status)!;
     expect(o.nodes.map((n) => n.attrs["data-id"])).toEqual(["slab-lean-to", "room-living", "room-bedroom", "room-bathroom", "room-lean-to"]);
-    expect(paintOf(o.nodes, "room-living")).toMatchObject({ fills: [], strokes: [DIFF_COLOURS.changed.accent] });
+    expect(paintOf(o.nodes, "room-living")).toMatchObject({ fills: [], strokes: [CHANGED_OUTLINE] });
+    expect(paintOf(o.nodes, "room-lean-to")).toMatchObject({ fills: [], strokes: [DIFF_COLOURS.added.accent] });
   });
 
   it("picks the door swings out of the floor drawing", () => {

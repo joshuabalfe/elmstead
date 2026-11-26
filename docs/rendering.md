@@ -230,7 +230,8 @@ openings cut, doors and glazing in place, colours applied.
       tint, as a diff line's background is subtler than its changed words. This compares each
       storey's whole floor (its slabs and rooms together), so floor that only changes room, as in a
       knock-through or a moved partition, has no tint. Door swings are still drawn over the tints;
-    - added and changed slabs and rooms are outlined in the dark colour;
+    - added slabs and rooms are outlined in dark green, and changed ones in bright yellow, which
+      shows against the walls the outline runs along;
     - removed walls and openings are drawn from the base in pale red with a dashed red outline.
   - **The changes panel** gives each category's count, with a checkbox to hide it, and lists the shown
     storeys' changes. Clicking one frames it.
