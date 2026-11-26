@@ -4,7 +4,7 @@ import { writeFileAtomic } from "../io.js";
 import type { BuildingModel } from "../schema/schema.js";
 import { renderPlan, type PlanOptions } from "./plan.js";
 import { svgToPng } from "./png.js";
-import { snapshot3d } from "./snapshot3d.js";
+import { DIFF, PLAIN, snapshot3d } from "./snapshot3d.js";
 import type { Issue } from "../checks/issue.js";
 
 /** Writes out/<name>.<storey-id>.plan.{svg,png}; returns the paths written. */
@@ -25,9 +25,10 @@ export function renderAll(name: string, model: BuildingModel, outDir: string, op
  * 3D PNGs of out/<name>.ifc from the viewer. Needs Chromium for Playwright: missing Chromium is a
  * warning (plans still render) with the one-line fix; any other viewer failure is an ERROR.
  */
-export async function render3d(name: string, outDir: string): Promise<{ written: string[]; issues: Issue[] }> {
+/** The 3D snapshots, and for a revision (`diff`) the same views again in Diff mode. */
+export async function render3d(name: string, outDir: string, { diff = false }: { diff?: boolean } = {}): Promise<{ written: string[]; issues: Issue[] }> {
   try {
-    return { written: await snapshot3d(name, outDir), issues: [] };
+    return { written: await snapshot3d(name, outDir, undefined, diff ? [PLAIN, DIFF] : [PLAIN]), issues: [] };
   } catch (e) {
     const msg = String((e as Error).message ?? e);
     if (/Executable doesn't exist|playwright install/i.test(msg)) {

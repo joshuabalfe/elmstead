@@ -211,6 +211,42 @@ openings cut, doors and glazing in place, colours applied.
     stopping at either end. They work while any of the bar's pickers has focus, in place of the
     browser's own arrow keys for that picker, and are ignored where the storey shortcut is, and
     for a model with no revisions.
+- **Diff** (shown only for a revision; `D`, or `?diff=1`) colours what the revision changes against
+  Existing, in GitHub's diff colours, a pale fill with a dark outline of the same hue:
+
+  | | Fill | Outline | Floor |
+  |---|---|---|---|
+  | added | `#aceebb` | `#1a7f37` | `#e6ffec` |
+  | changed | `#fae17d` | `#9a6700` | `#fff8c5` |
+  | removed | `#ffcecb` | `#cf222e` | — |
+
+  - **In 3D:** added and changed elements take the fill, with outlines along their edges. Glazing
+    stays see-through. Removed elements are drawn from the base model as see-through ghosts where
+    they stood. Unchanged elements keep their normal colours.
+  - **In the plan drawing**, so the diff shows from the top too:
+    - added and changed wall pieces are in the dark colour, and window symbols and door gaps in the
+      fill;
+    - floor the revision built is tinted pale green, and floor it took away pale red, the subtler
+      tint, as a diff line's background is subtler than its changed words. This compares each
+      storey's whole floor (its slabs and rooms together), so floor that only changes room, as in a
+      knock-through or a moved partition, has no tint. Door swings are still drawn over the tints;
+    - added slabs and rooms are outlined in dark green, and changed ones in bright yellow, which
+      shows against the walls the outline runs along;
+    - removed walls and openings are drawn from the base in pale red with a dashed red outline.
+  - **The changes panel** gives each category's count, with a checkbox to hide it, and lists the shown
+    storeys' changes. Clicking one frames it.
+  - **Hovering** with **Ids** on adds the status to the label, for example `wall-lean-to-north · added`.
+  - **Missing base:** if the base model's IFC hasn't been built, there are no ghosts, and the status
+    line says so. Without its JSON there is no diff at all.
+
+  Diff stays on across revisions of a model, is inactive on Existing, and never moves the camera.
+  What counts as a change is in [the diff](modelling.md#what-a-revision-changes-the-diff).
+- **Transparency** (`?xray=1`) draws elements see-through, on any model, Existing included: an X-ray
+  of the building. With Diff on, it fades only the unchanged elements, so the changes stay solid. In
+  plan style it fades the plan drawing too, so it also works from the top. It stays on across model
+  and revision switches.
+- Each Diff, Transparency or panel change lands in one picture: the previous picture stays drawn
+  until the new one is complete, as for a revision switch.
 - The **Up to:** selector lists the model's storeys lowest first; choosing one shows that storey and
   every storey below it, hiding those above, and the topmost choice shows everything. A choice
   updates the loaded model in place without moving the camera, so floors compare from one viewpoint;
