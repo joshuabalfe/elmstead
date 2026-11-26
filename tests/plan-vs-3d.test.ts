@@ -84,17 +84,20 @@ async function selectStorey(id: string) {
   await page.waitForFunction((n: number) => (window.__elmsteadStoreyChanges ?? 0) > n, before, { timeout: 60_000 });
 }
 
-/** The viewer's Top view in plan style, labels off, as raw pixels from its WebGL canvas. */
+/**
+ * The viewer's Top view in plan style, labels off, as raw pixels from its WebGL canvas. Plan +y up
+ * (`orient=project`), as the plan is drawn here, so walls lie along pixel rows and columns.
+ */
 async function topView(name: string, storeyId?: string): Promise<Raster> {
   const storeys = storeyId ? `&storeys=${encodeURIComponent(storeyId)}` : "";
-  return viewOf(name, `view=top&snapshot=1&labels=0&style=plan${storeys}`);
+  return viewOf(name, `view=top&snapshot=1&labels=0&style=plan&orient=project${storeys}`);
 }
 
 /** The plan's drawing area only: the sheet furniture (title, north arrow, scale bar) is ink that
  * antialiases through the wall grey and would inflate the comparator's wall box, which the viewer's
  * top view has no equivalent of. Margins are in SVG px; the raster is PNG_ZOOM times that. */
 const planPixels = (m: BuildingModel, storey: Storey = m.storeys[0]!): Raster => {
-  const full = svgToPixels(renderPlan(m, storey, { ids: false }));
+  const full = svgToPixels(renderPlan(m, storey, { ids: false, orientation: "project" }));
   const x0 = MARGIN.left * PNG_ZOOM;
   const y0 = MARGIN.top * PNG_ZOOM;
   const x1 = full.width - MARGIN.right * PNG_ZOOM;

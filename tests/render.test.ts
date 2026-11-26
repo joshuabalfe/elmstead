@@ -68,15 +68,69 @@ describe("plan renderer", () => {
     expect(figures).toEqual([2100, 1600]);
   });
 
-  it("turns the north arrow to site.northAngle and keeps the N upright beyond its tip", () => {
-    const turned = { ...model, site: { ...model.site, northAngle: 135 } } as typeof model;
-    const out = renderPlan(turned, storey, { ids: false });
-    expect(out).toContain("rotate(-135)");
-    // 135° counter-clockwise from up is down-left on screen, so the N sits left of and below the centre.
-    const [, x, y] = out.match(/<text x="([\d.]+)" y="([\d.]+)"[^>]*>N<\/text>/)!.map(Number);
-    const at = { x: Number(out.match(/width="(\d+)"/)![1]) - 35, y: 40 };
-    expect(x).toBeLessThan(at.x);
-    expect(y).toBeGreaterThan(at.y);
+  describe("true north up", () => {
+    const turned = (northAngle: number) => ({ ...model, site: { ...model.site, northAngle } }) as typeof model;
+    const arrowAt = (out: string) => ({ x: Number(out.match(/width="(\d+)"/)![1]) - 35, y: 40 });
+    const nAt = (out: string) => out.match(/<text x="([\d.]+)" y="([\d.]+)"[^>]*>N<\/text>/)!.slice(1).map(Number);
+    /** Every corner of every wall piece, in sheet px. */
+    const wallPoints = (out: string, id?: string) =>
+      [...out.matchAll(/<polygon points="([^"]+)" class="wall" data-id="([^"]+)"/g)]
+        .filter((x) => !id || x[2] === id)
+        .flatMap((x) => x[1]!.split(" ").map((p) => p.split(",").map(Number) as [number, number]));
+    const centre = (pts: [number, number][]) => pts.reduce(([x, y], [px, py]) => [x + px / pts.length, y + py / pts.length], [0, 0]);
+
+    it("points the north arrow straight up on a turned sheet", () => {
+      const out = renderPlan(turned(135), storey, { ids: false });
+      expect(out).toContain("rotate(0)");
+      const [x, y] = nAt(out);
+      expect(x).toBe(arrowAt(out).x);
+      expect(y).toBeLessThan(arrowAt(out).y);
+    });
+
+    it("keeps plan +y up in project orientation, with the arrow turned to site.northAngle", () => {
+      const out = renderPlan(turned(135), storey, { ids: false, orientation: "project" });
+      // Apart from the north arrow, it is the plan of a model with no north angle.
+      const arrowless = (svg: string) => svg.replace(/rotate\(-?[\d.]+\)/, "").replace(/<text[^>]*>N<\/text>/, "");
+      expect(arrowless(out)).toBe(arrowless(renderPlan(model, storey, { ids: false })));
+      // 135° counter-clockwise from up is down-left on screen, so the N sits left of and below the centre.
+      const [x, y] = nAt(out);
+      expect(x).toBeLessThan(arrowAt(out).x);
+      expect(y).toBeGreaterThan(arrowAt(out).y);
+    });
+
+    it("turns the drawing so plan +y points along site.northAngle's opposite", () => {
+      // At 135° plan +y is true south-east: down and to the right on a north-up sheet.
+      const out = renderPlan(turned(135), storey, { ids: false });
+      const [nx, ny] = centre(wallPoints(out, "wall-north"));
+      const [sx, sy] = centre(wallPoints(out, "wall-south"));
+      expect(nx).toBeGreaterThan(sx);
+      expect(ny).toBeGreaterThan(sy);
+    });
+
+    it("sizes the sheet to the turned drawing and keeps every wall inside its margins", () => {
+      const plain = renderPlan(model, storey, { ids: false });
+      const size = (out: string): [number, number] => [Number(out.match(/width="(\d+)"/)![1]), Number(out.match(/height="(\d+)"/)![1])];
+      const [w, h] = size(plain);
+      const [w90, h90] = size(renderPlan(turned(90), storey, { ids: false }));
+      expect(w90 - 170).toBeCloseTo(h - 190, -1); // a quarter turn swaps the drawing's width and depth
+      expect(h90 - 190).toBeCloseTo(w - 170, -1);
+      const out = renderPlan(turned(135), storey, { ids: false });
+      const [W, H] = size(out);
+      for (const [x, y] of wallPoints(out)) {
+        expect(x).toBeGreaterThanOrEqual(59);
+        expect(x).toBeLessThanOrEqual(W - 109);
+        expect(y).toBeGreaterThanOrEqual(69);
+        expect(y).toBeLessThanOrEqual(H - 119);
+      }
+    });
+
+    it("keeps room names and areas horizontal on a turned sheet", () => {
+      const out = renderPlan(turned(135), storey, { ids: false });
+      for (const r of storey.rooms) {
+        const label = out.match(new RegExp(`<text[^>]*>${r.name}</text>`))![0];
+        expect(label, r.id).not.toContain("transform");
+      }
+    });
   });
 
   it("draws one symbol per door and window, and every room", () => {

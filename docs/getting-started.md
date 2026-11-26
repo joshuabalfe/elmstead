@@ -88,7 +88,8 @@ npm run view
 
 This opens a local [ThatOpen](https://github.com/ThatOpen) viewer (Vite dev server, normally
 http://localhost:5173) that loads the IFC files in `out/`. It has a model picker and
-SW/SE/NE/NW/Top camera buttons, and opens in the Top view. It shows the plan's room labels and
+four corner camera buttons and a Top button, and opens in the Top view. The Top view is drawn true
+north up, like the plans, and each corner button is named for the true direction it looks from. It shows the plan's room labels and
 dimensions at ceiling height, the model's measured constraints as red labels and dotted spans, and
 a compass pointing to true north. The **Labels** button hides the room text, and the
 **Constraints** button shows or hides the red constraints, which start hidden. The **Ids**
