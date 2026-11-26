@@ -12,8 +12,10 @@ revisions.
 ## What Changes
 
 - Compute a revision's diff against its base model, by element id: **added** (in the revision only),
-  **removed** (in the base only) and **changed** (in both, but different). An opening whose
-  component changed counts as changed. Storeys and components are compared too.
+  **removed** (in the base only) and **changed** (in both, but different). An opening also counts
+  as changed when its component or its host wall changed, because either moves or reshapes it
+  without touching its own JSON. Components are compared too. A revision has its base's storeys
+  (ELM-15), so storeys are never added or removed.
 - `build` on a revision also writes `out/<model>@<revision>.diff.json`, deterministic like the
   building JSON, and prints a one-line summary: `diff    elmstead@rear-extension: 7 added, 3 changed, 2 removed`.
 - Add a Diff mode to the viewer, available while a revision is shown, toggled by a Diff button, the
@@ -44,10 +46,19 @@ revisions.
 
 ## Impact
 
-- Depends on ELM-15 (revisions, `<model>@<revision>` naming, the revision picker). Implement after it
-  merges.
-- `src/diff/` (new): the pure diff function over two `BuildingModel`s, and its JSON output.
-- `src/cli/`: loading the base for a revision, writing the diff file, the summary line, and Diff
+- **Depends on ELM-15:**
+  - revisions as files or folders;
+  - `<model>@<revision>` naming;
+  - the same-storeys rule;
+  - the shared `indexIds` in `src/schema/ids.ts`;
+  - the base model the CLI already loads for a revision;
+  - the revision picker;
+  - the moved `models/examples/example-cottage` and its `rear-extension` revision.
+
+  Implement after it merges.
+- `src/diff/` (new): the pure diff function over two `BuildingModel`s, built on `indexIds`, and its
+  JSON output.
+- `src/cli/`: writing the diff file from the base ELM-15 already loads, the summary line, and Diff
   snapshots in `render`.
 - `src/render/snapshot3d.ts`: the extra Diff views for a revision.
 - `viewer/main.ts`, `viewer/index.html`: a second Fragments model for the base, item colouring,

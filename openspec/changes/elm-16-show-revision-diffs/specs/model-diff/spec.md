@@ -49,17 +49,30 @@ is identical. The component SHALL be listed as changed too.
 - **WHEN** a revision replaces the `front-window` component with a different design and leaves the windows that use it alone
 - **THEN** the diff lists `front-window` and every opening using it as changed
 
+### Requirement: Host wall changes reach their openings
+An opening whose host wall is changed SHALL be listed as changed, even when the opening's own JSON
+is identical, because its position in space is measured along that wall.
+
+#### Scenario: Wall start moved
+- **WHEN** a revision replaces `wall-north` with a wall whose start is 500 mm further west, and leaves `window-kitchen` on it alone
+- **THEN** the diff lists `wall-north` and `window-kitchen` as changed
+
+#### Scenario: Wall removed
+- **WHEN** a revision removes a wall and re-hosts its door on a new wall
+- **THEN** the diff lists the wall as removed, the new wall as added and the door as changed
+
 ### Requirement: Storeys compare their own fields
-A storey SHALL be changed only when its own fields, such as its name or elevation, differ. A change
-to an element on a storey SHALL NOT make the storey itself changed.
+A revision has its base's storeys (ELM-15), so storeys SHALL never be added or removed. A storey
+SHALL be changed only when its own fields, such as its name or elevation, differ. A change to an
+element on a storey SHALL NOT make the storey itself changed.
 
 #### Scenario: Edit on a storey
 - **WHEN** a revision adds a wall to `storey-ground` and changes nothing else about the storey
 - **THEN** the diff lists the wall as added and does not list `storey-ground`
 
-#### Scenario: New storey
-- **WHEN** a revision adds a storey with walls
-- **THEN** the diff lists the storey and each of its elements as added
+#### Scenario: Hand-built revision with a raised storey
+- **WHEN** a revision's default export keeps every storey id but raises one storey's elevation
+- **THEN** the diff lists that storey as changed
 
 ### Requirement: Diff file
 When `build` writes a revision's outputs, it SHALL also write `out/<model>@<revision>.diff.json`.
@@ -71,6 +84,10 @@ the build writes nothing.
 #### Scenario: Revision build
 - **WHEN** `npm run build models/elmstead/revisions/rear-extension.ts` succeeds
 - **THEN** `out/elmstead@rear-extension.diff.json` lists the revision's added, removed and changed elements
+
+#### Scenario: Folder revision
+- **WHEN** `npm run build models/examples/example-cottage/revisions/rear-extension` succeeds on a folder revision
+- **THEN** `out/example-cottage@rear-extension.diff.json` is written
 
 #### Scenario: Base build
 - **WHEN** `npm run build models/elmstead` succeeds

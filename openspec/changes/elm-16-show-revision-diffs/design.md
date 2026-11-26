@@ -3,10 +3,17 @@
 ## Context
 
 See `proposal.md` for the motivation. This change builds on ELM-15, which:
-- names revisions `<model>@<revision>` and builds them through the ordinary pipeline;
+- names revisions `<model>@<revision>`, whether they are a file (`revisions/<r>.ts`) or a folder
+  (`revisions/<r>/index.ts`), and builds them through the ordinary pipeline;
 - keeps element ids, and therefore IFC GlobalIds and `Tag`s, the same across a model and its
   revisions;
-- gives the viewer a revision picker and a keep-view load.
+- requires a revision to have exactly its base's storey ids, and has the CLI load the base for a
+  revision to check that;
+- extracts one id index, `indexIds(model)` in `src/schema/ids.ts`, giving each id's kind,
+  collection, storey and element;
+- gives the viewer a revision picker and a keep-view load;
+- moves the example to `models/examples/example-cottage/`, with a `rear-extension` revision.
+  `example-two-storey` becomes the test fixture `tests/fixtures/two-storey/`.
 
 What exists to build on:
 - **The JSON is deterministic** (`src/cli/json-format.ts`), so serialising an element and comparing
@@ -44,12 +51,23 @@ diffModels(base: BuildingModel, revision: BuildingModel) -> {
 }
 ```
 
-Both models are indexed by id into `{ kind, storey, json }`, where `json` is the element serialised
-with the deterministic formatter. Storeys are indexed with their element arrays left out, so a storey
-only changes when its own fields do. Components are indexed under kind `component`. Afterwards, any
-opening whose `componentId` is in the changed or added component set, and is not already listed, is
-added to `changed`. Ordering follows each model's own order, so the output is deterministic without
-sorting, and it reads in the same order as the model files.
+Both models go through ELM-15's `indexIds`. The diff adds the element's JSON, serialised with the
+deterministic formatter, to each entry. Storeys are serialised with their element arrays left out, so
+a storey only changes when its own fields do. Since storey ids match by ELM-15's rule, a storey can
+only ever be changed, never added or removed.
+
+Two propagation passes follow the direct comparison. An opening that isn't already listed is added to
+`changed` when:
+1. its `componentId` is a changed or added component;
+2. its `wallId` is a changed wall.
+
+The second pass exists because an opening is placed by `offsetAlongWall` from its wall's start.
+Replacing a wall with one whose start has moved shifts every opening in it, while the openings' own
+JSON stays the same. Lengthening a wall at its end amber-marks its openings too. That is
+conservative, but it's never wrong to look again at an opening in a wall that changed.
+
+Ordering follows each model's own order, so the output is deterministic without sorting, and it
+reads in the same order as the model files.
 
 `src/diff/` depends only on `schema` and the JSON formatter, so the viewer can import it as it
 already imports the plan renderers. The viewer computes the diff from the two building JSONs it
@@ -63,10 +81,11 @@ Alternatives considered:
   doubles the output for the first version. The element-level result is enough to colour, and the
   JSON files can be diffed by hand for detail.
 
-### The CLI loads the base from the revision's folder
+### The CLI reuses the base ELM-15 already loads
 
-For `<folder>/revisions/<r>.ts`, the CLI loads `<folder>` with the existing `loadModel`. This needs no
-build and no checks: the base is evaluated anyway, because the revision imports it. `build` writes
+ELM-15's CLI loads the base model (`<folder>`) for every revision, to check its storeys, for both file
+and folder revisions. The diff takes that same loaded base. It needs no build and no checks of its
+own. `build` writes
 `diff.json` with the other outputs in the same atomic step. `check` and `all` print the summary line
 too. The diff never reports issues, because a revision adding or removing things is the point, not a
 problem.
@@ -134,11 +153,20 @@ the guard ignores the shortcut in walk mode, so the two never meet.
 as with the other controls. A missing base IFC is reported back by the page (`window.__elmsteadNote`)
 and turned into a WARNING.
 
+### Test models
+
+- **`example-cottage@rear-extension`** from ELM-15 is the end-to-end case for the CLI, the diff file
+  and the snapshots. It has one storey, so it can't exercise storey visibility.
+- **The storey-visibility and fly-to-a-hidden-storey tests** use the two-storey fixture with a revision
+  built in the test with `revise`. The viewer tests already publish JSON and IFC from in-memory
+  models, so this needs no model file. The same in-memory approach covers a missing base IFC: publish
+  the revision and leave the base out.
+
 ## Risks / Trade-offs
 
 - **[Risk]** Fragments' highlight and the viewer's own material patching (plan style patches
   materials for slab tops and stair banding) may fight. → Highlight works per item while the patching
-  works per material. Task 3.1 starts with a spike that confirms this on a two-storey model, before
+  works per material. Task 3.1 starts with a spike that confirms this on the two-storey fixture, before
   building on it.
 - **[Risk]** The two transparency passes sort badly from some angles. → Faded elements write depth,
   and coloured elements render later. If it still reads badly, drop see-through and keep only the
