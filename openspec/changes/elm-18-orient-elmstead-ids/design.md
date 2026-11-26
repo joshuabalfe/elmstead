@@ -3,16 +3,16 @@
 ## Context
 
 elmstead's plan has x east and y north, as `docs/modelling.md` requires of every model. "North" is
-the top of the owner's drawing, which has no north arrow. `site.northAngle` is `deg(135)`, so true
-north points towards the plan's south-west corner. Each plan side therefore faces a true
-intercardinal direction:
+the top of the owner's drawing, which has no north arrow. `site.northAngle` is `deg(135)` today,
+but a street map gives about 153° (see Decisions), with true north 27° clockwise of the plan's −y.
+At 153° each plan side faces:
 
 | Plan side | Building side | Faces (true, approx.) | Construction |
 |---|---|---|---|
-| west (−x) | front, onto the street | north-east | 450 mm stone, front door and bay |
-| east (+x) | rear, onto the garden | south-west | 350 mm stone, extension and garden doors |
-| north (+y) | party wall, on the front-door side | south-east | 350 mm stone, continues across the extension |
-| south (−y) | end wall, by the wrap-around pavement | north-west | 250 mm stone, exposed gable |
+| west (−x) | front, onto Picton Rd | ≈063° (ENE) | 450 mm stone, front door and bay |
+| east (+x) | rear, onto the garden | ≈243° (WSW) | 350 mm stone, extension and garden doors |
+| north (+y) | party wall, on the front-door side | ≈153° (SSE) | 350 mm stone, continues across the extension |
+| south (−y) | end wall, by the wrap-around pavement | ≈333° (NNW) | 250 mm stone, exposed gable |
 
 Seen from the street, facing the front wall, plan north is on the left and plan south is on the
 right.
@@ -21,7 +21,7 @@ right.
 
 **Goals:**
 - Every direction word in an elmstead id, name, note or comment is true of the real building.
-- The words keep working if `northAngle` is refined, since 135° is described as "roughly".
+- The words keep working if `northAngle` is refined again; 153° is only measured to about ±2°.
 
 **Non-Goals:**
 - Changing src's plan-axis vocabulary (`face`, `faceSide`, `roomCorner`, `wallEnd` faces). Those
@@ -32,8 +32,8 @@ right.
 
 ## Decisions
 
-**Building-relative words, not true compass words.** At exactly 135°, every wall faces an
-intercardinal direction, and the owner's figure is only approximate. Front/rear/party/end
+**Building-relative words, not true compass words.** No wall faces a compass point cleanly (the
+front faces about 063°), and the angle is only measured to about ±2°. Front/rear/party/end
 describes the house without depending on that angle. Alternatives considered: true intercardinals
 (`wall-north-east`) are correct but depend on the angle, and they are long. Nearest cardinal is
 wrong by 45°.
@@ -46,6 +46,13 @@ example, `wall-bathroom-left` (an internal wall) can't be mistaken for the party
 `wall-north-extension` is the party wall continuing across the extension, so it becomes
 `wall-party-extension`. The extension's own side wall, `wall-extension-south`, is not the end wall,
 so it becomes `wall-extension-right`.
+
+**Correct `northAngle` to 153° from the street map.** The owner's map of Picton Rd shows the
+terrace frontage, and a line drawn along it, at about 27° off the map's vertical. The frontage
+therefore bears about 153°/333°, and the front faces the road at about 063°. The front is plan −x,
+so `northAngle` = 063° + 90° = 153°. The figure assumes the map is north-up and is read off a
+screenshot, so it is good to about ±2°. It is recorded as `deg(153)`, with a comment giving the map
+as its source. It is not a constraint, so no constraint changes.
 
 **Keep each id's existing order and suffixes.** Only the direction word changes, and the storey
 suffixes (`-basement`, `-first`, `-attic`, `-main-half-landing`, `-attic-half-landing`) stay. That

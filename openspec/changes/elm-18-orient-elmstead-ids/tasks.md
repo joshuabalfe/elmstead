@@ -2,8 +2,10 @@
 
 ## 1. Orientation note
 
-- [ ] 1.1 Add a header paragraph to `models/elmstead/shared.ts` that maps plan axes to building sides (west front, east rear, north party/left, south end/right, seen from the street) and gives true facings (front ≈ north-east); point `models/elmstead/index.ts`'s orientation note at it; verify it agrees with `northAngle: deg(135)`
+- [ ] 1.1 Add a header paragraph to `models/elmstead/shared.ts` that maps plan axes to building sides (west front, east rear, north party/left, south end/right, seen from the street) and gives true facings (front ≈ 063°, east-north-east); point `models/elmstead/index.ts`'s orientation note at it; verify it agrees with `northAngle: deg(153)`
 - [ ] 1.2 Correct the "north and south party walls" prose in `shared.ts` and `attic/walls.ts`: plan north is the party wall, plan south is the exposed end wall, and both are gable ends; verify no prose still calls plan south a party wall
+
+- [ ] 1.3 Set `site.northAngle` to `deg(153)` in `models/elmstead/index.ts`, with a comment: measured from a north-up street map of Picton Rd (frontage ≈ 153°/333°, front faces ≈ 063°), about ±2°. Verify the plan's north arrow points 27° clockwise of the plan's −y.
 
 ## 2. Rename ids
 
