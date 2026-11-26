@@ -596,6 +596,30 @@ An opening is placed by `offsetAlongWall` from its wall's start. Replacing a wal
 start has moved shifts every opening in it, although the openings themselves aren't edited.
 Lengthen a wall at its end, or re-place its openings in the same revision.
 
+### What a revision changes: the diff
+
+`check`, `build` and `all` on a revision print its diff against the base in one line:
+
+```
+diff    example-cottage@rear-extension: 6 added, 2 changed, 3 removed
+```
+
+`build` also writes `out/<model>@<revision>.diff.json`, listing each element's id, kind and storey,
+which the viewer's Diff mode draws:
+
+- **Added** elements are in the revision only, and **removed** ones in the base only. A renamed
+  element is both: its old id is removed and its new id added.
+- **Changed** elements are in both, but their JSON differs, or they moved to another storey. A storey
+  is changed only when its own fields, such as its elevation, change. Editing what's on it doesn't
+  count.
+- **An opening is also changed** when its host wall or its component changes, since either moves or
+  reshapes it without touching its own JSON.
+- **A stair** is compared as a whole, its flights and landings included.
+
+The diff is per element. A lengthened wall is changed as a whole, with no record of which part is
+new; the JSON files can be compared by hand for that. The diff never reports a problem and never
+changes the exit status: adding and removing things is what a revision is for.
+
 ### When to make the base parametric instead
 
 Edits act on the values the base produced, not on the dimensions they were derived from. That suits

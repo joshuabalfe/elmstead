@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { formatIssue, hasErrors, type Issue } from "../checks/issue.js";
 import { checkModel } from "../checks/model.js";
 import { checkConstraints, type ResolvedConstraint } from "../constraints/check.js";
+import { diffModels, type ModelDiff } from "../diff/index.js";
 import { loadConstraints, type LoadedConstraints } from "../constraints/load.js";
 import { writeIfc } from "../ifc/writer.js";
 import { roundTripChecks } from "../ifc/roundtrip.js";
@@ -55,21 +56,34 @@ function runChecks(loaded: LoadedModel, constraints: LoadedConstraints | undefin
   return { ok: !hasErrors(checked), resolved };
 }
 
+/** A revision's diff against its base, printed as one line; undefined for a base model. */
+function printDiff(loaded: LoadedModel): ModelDiff | undefined {
+  if (!loaded.base) return undefined;
+  const d = diffModels(loaded.base.model, loaded.model);
+  console.log(`diff    ${loaded.name}: ${d.added.length} added, ${d.changed.length} changed, ${d.removed.length} removed`);
+  return d;
+}
+
 /** Returns true when the build wrote its files without an ERROR. */
 async function runBuild(loaded: LoadedModel, constraints: LoadedConstraints | undefined, out: string, issues: Issue[]): Promise<boolean> {
   const checked = runChecks(loaded, constraints, issues);
+  const diff = printDiff(loaded); // informational: a revision adding and removing things is the point
   if (!checked.ok) return false; // nothing written: fix the model first
   // Build every artefact in memory first, so a writer failure cannot leave new JSON beside an old IFC.
   const json = formatJson(loaded.model);
   const resolvedJson = constraints ? formatJson(checked.resolved) : undefined;
+  const base = loaded.base ? (loaded.name.split("@")[0] ?? loaded.name) : undefined;
+  const diffJson = diff && base ? formatJson({ base, revision: loaded.name, ...diff }) : undefined;
   const ifc = await writeIfc(loaded.model, { fileName: `${loaded.name}.ifc` });
   mkdirSync(out, { recursive: true });
   const jsonPath = join(out, `${loaded.name}.building.json`);
   const ifcPath = join(out, `${loaded.name}.ifc`);
   const resolvedPath = join(out, `${loaded.name}.constraints.json`);
+  const diffPath = join(out, `${loaded.name}.diff.json`);
   writeFileAtomic(jsonPath, json);
   writeFileAtomic(ifcPath, ifc);
   if (resolvedJson !== undefined) writeFileAtomic(resolvedPath, resolvedJson);
+  if (diffJson !== undefined) writeFileAtomic(diffPath, diffJson);
   console.log(`json    ${jsonPath}`);
   console.log(`ifc     ${ifcPath}`);
   await verifyIfc(loaded.model, ifc, ifcPath, issues);
@@ -127,6 +141,7 @@ async function main(argv: string[]): Promise<number> {
         break;
       case "check":
         runChecks(loaded, constraints, issues);
+        printDiff(loaded);
         break;
       case "all":
         if (await runBuild(loaded, constraints, out, issues)) await runRender(loaded, undefined, out, flags, issues);

@@ -10,9 +10,9 @@ Implement after ELM-15 has merged; rebase this branch on it first.
 
 ## 2. CLI output
 
-- [ ] 2.1 Diff against the base that ELM-15's CLI already loads for a revision, and write `out/<model>@<revision>.diff.json` in `build`'s atomic output step; verify CLI tests that a file revision and a folder revision both write it, a base build does not, a failed build leaves it untouched, and two builds are byte-identical
-- [ ] 2.2 Print the `diff` summary line in `build`, `check` and `all` for a revision without affecting the exit status; verify CLI tests match the exact line on `models/examples/example-cottage/revisions/rear-extension.ts`
-- [ ] 2.3 Document the diff, what counts as changed, and the diff file in `docs/rendering.md` (or `docs/modelling.md` for the rules), with the lengthened-wall limitation
+- [x] 2.1 Diff against the base that ELM-15's CLI already loads for a revision, and write `out/<model>@<revision>.diff.json` in `build`'s atomic output step; verify CLI tests that a file revision and a folder revision both write it, a base build does not, a failed build leaves it untouched, and two builds are byte-identical
+- [x] 2.2 Print the `diff` summary line in `build`, `check` and `all` for a revision without affecting the exit status; verify CLI tests match the exact line on `models/examples/example-cottage/revisions/rear-extension.ts`
+- [x] 2.3 Document the diff, what counts as changed, and the diff file in `docs/rendering.md` (or `docs/modelling.md` for the rules), with the lengthened-wall limitation
 
 ## 3. Diff colours in the viewer
 
