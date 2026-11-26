@@ -43,7 +43,7 @@ import { diffModels, type DiffStatus, type ModelDiff } from "../src/diff/index.j
 import { styleOfColour } from "./style-of.js";
 import { DIFF_COLOURS, diffFloor, doorSwings, recolourPlan, removedPlan, statusById, type StatusById } from "./diff.js";
 import { defaultName, groupModels, joinName, splitName, stepRevision, type ModelGroup } from "./revisions.js";
-import { cameraForView, labelHeading, parseView } from "./view.js";
+import { cameraForView, cornerLabel, labelHeading, parseOrient, parseView, turnedTopFit } from "./view.js";
 import { WALK_AXES, entryPosition, headingBasis, movementOffset, walkRequested, walkStep } from "./walk.js";
 declare global {
   interface Window {
@@ -365,8 +365,9 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
   lowestElevation = null;
   modelJson = model;
   window.__elmsteadRoomLabels = [];
-  if (!model) return; // no JSON next to the IFC: show the IFC without labels
+  if (!model) return labelCornerButtons(); // no JSON next to the IFC: show the IFC without labels
   northAngle = model.site.northAngle ?? 0;
+  labelCornerButtons();
   const constraintsRes = await fetch(`/out/${name}.constraints.json`);
   if (epoch !== loadEpoch) return;
   const resolved = constraintsRes.ok ? ((await constraintsRes.json()) as ResolvedConstraint[]) : [];
@@ -655,6 +656,8 @@ function shownBox(): THREE.Box3 {
  * - White background, no grid.
  */
 type Style = "ifc" | "plan";
+/** ?orient=project keeps the views on plan axes, for the plan-versus-3D comparison; otherwise they follow true north. */
+const orient = parseOrient(params.get("orient"));
 const styleParam = params.get("style"); // ?style=ifc|plan overrides the default
 const style: Style = styleParam === "ifc" || styleParam === "plan" ? styleParam : snapshot ? "ifc" : "plan";
 
@@ -810,7 +813,8 @@ async function setView(view: View) {
     }
   }
   const centre = frame.getCenter(new THREE.Vector3());
-  const { direction, projection } = cameraForView(view, snapshot);
+  const angle = orient === "project" ? 0 : (northAngle ?? 0);
+  const { direction, projection } = cameraForView(view, snapshot, angle);
   await world.camera.projection.set(projection);
   // Start well outside the model, then fit to its bounding sphere: fitToSphere keeps the viewing
   // direction (fitToBox would snap to the nearest face).
@@ -820,7 +824,11 @@ async function setView(view: View) {
   // Top looks straight down the height, so its sphere is loose and takes a tighter factor; the
   // corner views fit the whole sphere plus a little air, so no corner of the building is cropped.
   // Interactive views sit a touch looser than the snapshots the PNGs were rendered with.
-  sphere.radius *= view === "top" ? (snapshot ? 0.78 : 1) : snapshot ? 0.92 : 1.1;
+  // A turned Top view widens the plan box on screen, so the snapshot's tight factor widens with it.
+  const { clientWidth, clientHeight } = world.renderer!.three.domElement;
+  const size = frame.getSize(new THREE.Vector3());
+  const turned = turnedTopFit(size.x / 2, size.z / 2, angle, clientWidth / clientHeight);
+  sphere.radius *= view === "top" ? (snapshot ? 0.78 * turned : 1) : snapshot ? 0.92 : 1.1;
   await world.camera.controls.fitToSphere(sphere, false);
   await fragments.core.update(true);
   updateCompass();
@@ -1814,6 +1822,20 @@ constraintsButton.addEventListener("click", () => {
   constraints.visible = !constraints.visible;
   constraintsButton.setAttribute("aria-pressed", String(constraints.visible));
 });
+
+/**
+ * Name each corner button for the true direction its camera looks from (the cameras stay on the
+ * plan corners), or for its plan corner without a north angle or with ?orient=project.
+ */
+function labelCornerButtons() {
+  const angle = orient === "project" ? 0 : (northAngle ?? 0);
+  document.querySelectorAll<HTMLButtonElement>("[data-view]").forEach((b) => {
+    const view = parseView(b.dataset.view ?? null);
+    if (view === "top") return;
+    b.textContent = cornerLabel(view, angle);
+    b.title = `Plan ${view.toUpperCase()} corner, seen from true ${cornerLabel(view, northAngle ?? 0)}`;
+  });
+}
 
 document.querySelectorAll<HTMLButtonElement>("[data-view]").forEach((b) =>
   b.addEventListener("click", async () => {

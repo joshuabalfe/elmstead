@@ -12,19 +12,26 @@ import { el, group, line, num, polygon, polyline, serialise, text, type Attrs, t
 export interface PlanOptions {
   /** Draw element ids as small labels. */
   ids: boolean;
+  /**
+   * `north` (the default) turns the sheet by the site's northAngle so true north points up, as on a
+   * site location plan; `project` keeps plan +y up, for comparisons that align on pixel rows.
+   */
+  orientation?: "north" | "project";
 }
 
-/** Plan (mm, y north) → SVG (px, y down). */
+/** Plan (mm, y north) → SVG (px, y down), turned clockwise by `turn` degrees. */
 interface View {
   toPx(p: Vec): Vec;
   toMm(p: Vec): Vec;
-  /** mm extent of the drawing, before margins */
+  /** mm extent of the drawing along plan x and y, before margins */
   extent: Bounds;
+  /** Degrees the sheet is turned clockwise from plan +y up. */
+  turn: number;
   width: number;
   height: number;
 }
 
-function makeView(storey: Storey, { railings = false }: { railings?: boolean } = {}): View {
+function makeView(storey: Storey, { railings = false, turn = 0 }: { railings?: boolean; turn?: number } = {}): View {
   const pts: Vec[] = [
     ...storey.walls.flatMap((w) => (wallLength(w) > 0 ? wallSegmentFootprint(w, 0, wallLength(w)) : [toVec(w.start)])),
     ...storey.slabs.flatMap((s) => s.outline.map(toVec)),
@@ -34,14 +41,26 @@ function makeView(storey: Storey, { railings = false }: { railings?: boolean } =
     ...(railings ? (storey.railings ?? []).flatMap((r) => [toVec(r.start), toVec(r.end)]) : []),
   ];
   const extent = pts.length ? bounds(pts) : { minX: 0, minY: 0, maxX: 1000, maxY: 1000 };
-  const toPx = (p: Vec) => v(MARGIN.left + (p.x - extent.minX) * PX_PER_MM, MARGIN.top + (extent.maxY - p.y) * PX_PER_MM);
-  const toMm = (p: Vec) => v(extent.minX + (p.x - MARGIN.left) / PX_PER_MM, extent.maxY - (p.y - MARGIN.top) / PX_PER_MM);
+  // Turn plan mm clockwise about the origin, so a north angle of `turn` points up the sheet.
+  const a = (turn * Math.PI) / 180;
+  const [cos, sin] = [Math.cos(a), Math.sin(a)];
+  const rot = (p: Vec) => (turn === 0 ? p : v(p.x * cos + p.y * sin, p.y * cos - p.x * sin));
+  const unrot = (p: Vec) => (turn === 0 ? p : v(p.x * cos - p.y * sin, p.x * sin + p.y * cos));
+  // The sheet holds the turned drawing and the corners of its plan extent, where the overall dimensions run.
+  const { minX, minY, maxX, maxY } = extent;
+  const sheet = turn === 0 ? extent : bounds([...pts, v(minX, minY), v(maxX, minY), v(maxX, maxY), v(minX, maxY)].map(rot));
+  const toPx = (p: Vec) => {
+    const q = rot(p);
+    return v(MARGIN.left + (q.x - sheet.minX) * PX_PER_MM, MARGIN.top + (sheet.maxY - q.y) * PX_PER_MM);
+  };
+  const toMm = (p: Vec) => unrot(v(sheet.minX + (p.x - MARGIN.left) / PX_PER_MM, sheet.maxY - (p.y - MARGIN.top) / PX_PER_MM));
   return {
     toPx,
     toMm,
     extent,
-    width: Math.ceil(MARGIN.left + MARGIN.right + (extent.maxX - extent.minX) * PX_PER_MM),
-    height: Math.ceil(MARGIN.top + MARGIN.bottom + (extent.maxY - extent.minY) * PX_PER_MM),
+    turn,
+    width: Math.ceil(MARGIN.left + MARGIN.right + (sheet.maxX - sheet.minX) * PX_PER_MM),
+    height: Math.ceil(MARGIN.top + MARGIN.bottom + (sheet.maxY - sheet.minY) * PX_PER_MM),
   };
 }
 
@@ -229,10 +248,12 @@ const ROOM_DIM_CLEAR = 20;
  */
 function roomDimensions(id: string, pts: readonly Vec[], label: Bounds, view: View, look: Look = {}): Node[] {
   const b = bounds(pts);
-  // Label box in plan mm, widened by the clearance.
+  // Label box in plan mm, widened by the clearance. On a turned sheet its corners map to a turned
+  // box, so take the plan bounds of all four.
   const pad = ROOM_DIM_CLEAR / PX_PER_MM;
-  const lo = vsub(view.toMm(v(label.minX, label.maxY)), v(pad, pad));
-  const hi = vadd(view.toMm(v(label.maxX, label.minY)), v(pad, pad));
+  const box = bounds([v(label.minX, label.minY), v(label.maxX, label.minY), v(label.maxX, label.maxY), v(label.minX, label.maxY)].map(view.toMm));
+  const lo = vsub(v(box.minX, box.minY), v(pad, pad));
+  const hi = vadd(v(box.maxX, box.maxY), v(pad, pad));
   const c = vscale(vadd(lo, hi), 0.5);
 
   const longest = (axis: "x" | "y") => {
@@ -517,7 +538,8 @@ function drawStairs(model: BuildingModel, storey: Storey, view: View, opts: Plan
 }
 
 export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptions): string {
-  const view = makeView(storey, { railings: true });
+  const northAngle = model.site.northAngle ?? 0;
+  const view = makeView(storey, { railings: true, turn: opts.orientation === "project" ? 0 : northAngle });
   const walls = storey.walls.filter((w) => wallLength(w) > 0);
   const wallById = new Map(walls.map((w) => [w.id, w]));
   const out: Node[] = [];
@@ -568,7 +590,7 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
   out.push(text(v(MARGIN.left, 28), title, { "font-size": 18, "font-weight": "bold", fill: C.ink }));
   out.push(text(v(MARGIN.left, 46), sub, { "font-size": 11, fill: C.dim }));
   // Top right, clear of the overall dimension line below it whichever way the "N" falls.
-  out.push(northArrow(v(view.width - 35, 40), model.site.northAngle ?? 0));
+  out.push(northArrow(v(view.width - 35, 40), northAngle - view.turn));
   out.push(scaleBar(v(MARGIN.left, view.height - 40)));
 
   return [

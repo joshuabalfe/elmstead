@@ -78,7 +78,9 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
   storeys. The lower storey's clear ceiling is then the slab's underside, and a stair rises the
   floor-to-floor distance — ceiling plus structure — not the clear ceiling alone.
 - `site.northAngle` (optional) is the angle of true north, counter-clockwise from plan +y. Leave
-  it out if north is straight up the plan.
+  it out if north is straight up the plan. It doesn't change the model's coordinates. `render`
+  turns each plan sheet by it, so true north points up the sheet as on a site location plan, and
+  the viewer's Top view turns to match.
 
 ## Ids
 
