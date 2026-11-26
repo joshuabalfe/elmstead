@@ -14,7 +14,7 @@ import { mm, face, pt, stairFlight, sub, wall, type Mm, type Stair, type Storey 
 import { atticHalfLandingWalls } from "../extension.js";
 import { atticFloor, atticHalfLanding, atticStairRisers, coreW, studT } from "../shared.js";
 import { bathNorth, northIn, spine, spineEndX, spineY } from "../ground/walls.js";
-import { stairArrivalX, stairNorthY, stairSouthY } from "./walls.js";
+import { stairArrivalX, stairEastX, stairNorthY, stairSouthY } from "./walls.js";
 
 // The flights keep the main stair's centrelines and width, so each sits over the flight below it.
 const mid = (a: Mm, b: Mm): Mm => mm((a + b) / 2);
@@ -53,6 +53,14 @@ export const atticHalfLandingStorey: Storey = {
     id: "slab-attic-half-landing",
     name: "Attic half landing",
     outline: [pt(landingWest, stairSouthY), pt(coreW, stairSouthY), pt(coreW, stairNorthY), pt(landingWest, stairNorthY)],
+    thickness: mm(150),
+    elevationOffset: mm(0),
+  }, {
+    // The reduced-height space behind the back wall, under the extension roof, floored at the
+    // landing's level out to the extension walls' inner faces; the back wall stands on it.
+    id: "slab-attic-half-landing-behind",
+    name: "Attic half landing, behind the wall",
+    outline: [pt(coreW, stairSouthY), pt(stairEastX, stairSouthY), pt(stairEastX, stairNorthY), pt(coreW, stairNorthY)],
     thickness: mm(150),
     elevationOffset: mm(0),
   }],

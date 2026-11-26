@@ -468,6 +468,17 @@ describe("Elmstead's attic stair", () => {
     expect([back!.start.y, back!.end.y]).toEqual([stairSouthY, stairNorthY]);
     expect(half.elevation + back!.height!).toBe(attic.elevation);
   });
+
+  it("floors the reduced-height space behind the back wall, out to the extension walls", () => {
+    const floor = half.slabs.find((s) => s.id === "slab-attic-half-landing-behind");
+    expect(floor).toBeDefined();
+    const xs = floor!.outline.map((p) => p.x);
+    const ys = floor!.outline.map((p) => p.y);
+    const extEast = half.walls.find((w) => w.id === "wall-extension-east-attic-half-landing")!;
+    expect([Math.min(...xs), Math.max(...xs)]).toEqual([coreW, face(extEast, "west")]);
+    expect([Math.min(...ys), Math.max(...ys)]).toEqual([stairSouthY, stairNorthY]);
+    expect(floor!.elevationOffset).toBe(0);
+  });
 });
 
 describe("Elmstead's front steps", () => {
