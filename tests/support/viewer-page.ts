@@ -44,16 +44,22 @@ export async function publish(name: string, m: BuildingModel) {
 
 /** The viewer's canvas as raw pixels. */
 export async function canvasPixels(): Promise<Raster> {
-  const { width, height, b64 } = await page.evaluate(() => {
+  const { width, height, b64 } = await page.evaluate(async () => {
     const gl = document.querySelector<HTMLCanvasElement>("#container canvas")!;
     const c = document.createElement("canvas");
     [c.width, c.height] = [gl.width, gl.height];
     const ctx = c.getContext("2d")!;
     ctx.drawImage(gl, 0, 0);
     const d = ctx.getImageData(0, 0, c.width, c.height).data;
-    let s = "";
-    for (let i = 0; i < d.length; i += 0x8000) s += String.fromCharCode(...d.subarray(i, i + 0x8000));
-    return { width: c.width, height: c.height, b64: btoa(s) };
+    // A FileReader's data URL is base64 made natively: about twice as fast as building the string
+    // by hand from 7.7 MB of pixels.
+    const url = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(new Blob([d]));
+    });
+    return { width: c.width, height: c.height, b64: url.slice(url.indexOf(",") + 1) };
   });
   return { width, height, data: new Uint8Array(Buffer.from(b64, "base64")) };
 }
