@@ -9,8 +9,8 @@
  *   first/        first floor: traced from the owner's first-floor plan, with the stair well open
  *   attic/        attic (top storey): empty floor and open stair well, layout awaiting the owner's plan
  *
- * The half landing and the stair flights still wait for the stair change; the stair well and half
- * landing are already left open in the first-floor slab.
+ * The main stair (ground/stair.ts) climbs to the first floor, and the attic stair (first/stair.ts)
+ * climbs over it to the attic, each through a well left open in the slab above.
  *
  * Plan axes follow the traced drawing: "north" in element ids (wall-north etc.) means the top of
  * the drawing. True north is roughly towards the plan's south-west corner, the one nearest the

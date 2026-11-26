@@ -4,8 +4,8 @@
  * dining/bedroom partition keep the ground floor's measured positions.
  *
  * The stair runs up the south flight, turns on the half landing in the extension, and comes back
- * west along the north flight to the landing. The stair well is left open; the flights themselves
- * belong to the stair change.
+ * west along the north flight to the landing. The stair well is left open; the flights are in
+ * ../ground/stair.ts, and the attic stair above them in ./stair.ts.
  */
 import { add, face, mm, pt, sub, wall } from "../../../src/model/index.js";
 import { atticRidgeHeight, atticRidgeX, brickT, coreD, coreW, extEastX, extSouthY, externalRuns, externalWall, firstFloor, partT, studT, westT } from "../shared.js";

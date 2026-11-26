@@ -15,6 +15,8 @@
  *   |                  |        Bedroom        |
  *   +------------------+-----------------------+
  *
+ * stair.ts holds the provisional half-turn stair up to the attic, over the stair well.
+ *
  * The slab is two rectangles around the stair well and the half landing, because a slab outline is
  * a simple polygon and the stair well is a hole in the middle of the floor. The half landing's
  * window belongs to the stair and half-landing model, not this storey.
@@ -23,6 +25,7 @@ import { mm, pt, type Polygon, type Storey } from "../../../src/model/index.js";
 import { coreD, coreW, extEastX, extSouthY, firstFloor, firstFloorStructure } from "../shared.js";
 import { openings } from "./openings.js";
 import { rooms } from "./rooms.js";
+import { stairs } from "./stair.js";
 import { bayFrontNorthY, bayFrontSouthY, bayNorthY, bayOutX, baySouthY, stairArrivalX, stairEastX, stairNorthY, stairSouthY, stairWestX, walls } from "./walls.js";
 
 /** The hole in the first floor: the stair well and the half landing in the extension. */
@@ -89,4 +92,5 @@ export const first: Storey = {
   openings,
   slabs,
   rooms,
+  stairs,
 };
