@@ -47,7 +47,8 @@ Glazing SHALL keep its transparency. Unchanged elements SHALL keep their normal 
 ### Requirement: Diff in the plan drawing
 In Diff mode the plan-style drawing SHALL carry the diff, so it shows from above. Added and
 changed walls SHALL be drawn in their status's dark colour; their window symbols and door gaps in
-the pale colour with a dark outline; their slab and room fills in the pale colour, over the floor.
+the pale colour with a dark outline; their slab and room fills in a subtler tint (`#e6ffec` added,
+`#fff8c5` changed), over the floor.
 
 #### Scenario: Top view of an extension
 - **WHEN** Diff mode is on in the top view of a revision that adds a lean-to and widens a window
@@ -55,7 +56,7 @@ the pale colour with a dark outline; their slab and room fills in the pale colou
 
 #### Scenario: Changed room
 - **WHEN** Diff mode is on and the revision reshapes `room-living`
-- **THEN** that room's floor is drawn pale yellow, and the door swings on it still show
+- **THEN** that room's floor is drawn in the subtle yellow tint, fainter than a changed window symbol, and the door swings on it still show
 
 #### Scenario: Plan without Diff
 - **WHEN** Diff mode is off

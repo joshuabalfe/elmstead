@@ -59,10 +59,11 @@ describe("recolourPlan", () => {
 describe("diffFloor and doorSwings", () => {
   const floor = renderFloor(revision.storeys[0]!, revision.components);
 
-  it("keeps just the added and changed slab and room fills, in their fill colour", () => {
+  it("keeps just the added and changed slab and room fills, in their subtler floor tint", () => {
     const d = diffFloor(floor, status)!;
     expect(d.nodes.map((n) => n.attrs["data-id"])).toEqual(["slab-lean-to", "room-living", "room-lean-to"]);
-    expect(paintOf(d.nodes, "room-living").fills).toEqual([DIFF_COLOURS.changed.fill]);
+    expect(paintOf(d.nodes, "room-living").fills).toEqual([DIFF_COLOURS.changed.floor]);
+    expect(paintOf(d.nodes, "room-lean-to").fills).toEqual([DIFF_COLOURS.added.floor]);
   });
 
   it("is null for a storey with no floor changes", () => {
@@ -93,9 +94,8 @@ describe("diff colours and plan style", () => {
   it("are recognised as no IFC presentation colour, so plan style never patches a diff material", async () => {
     const THREE = await import("three");
     const { styleOfColour } = await import("../viewer/style-of.js");
-    for (const { fill, accent } of Object.values(DIFF_COLOURS)) {
-      expect(styleOfColour(new THREE.Color(fill)), fill).toBeUndefined();
-      expect(styleOfColour(new THREE.Color(accent)), accent).toBeUndefined();
+    for (const colours of Object.values(DIFF_COLOURS)) {
+      for (const hex of Object.values(colours)) expect(styleOfColour(new THREE.Color(hex)), hex).toBeUndefined();
     }
   });
 

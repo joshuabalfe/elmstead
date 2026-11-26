@@ -203,11 +203,11 @@ openings cut, doors and glazing in place, colours applied.
 - **Diff** (shown only for a revision; `D`, or `?diff=1`) colours what the revision changes against
   Existing, in GitHub's diff colours, a pale fill with a dark outline of the same hue:
 
-  | | Fill | Outline |
-  |---|---|---|
-  | added | `#aceebb` | `#1a7f37` |
-  | changed | `#fae17d` | `#9a6700` |
-  | removed | `#ffcecb` | `#cf222e` |
+  | | Fill | Outline | Floor |
+  |---|---|---|---|
+  | added | `#aceebb` | `#1a7f37` | `#e6ffec` |
+  | changed | `#fae17d` | `#9a6700` | `#fff8c5` |
+  | removed | `#ffcecb` | `#cf222e` | — |
 
   - **In 3D:** added and changed elements take the fill, with outlines along their edges. Glazing
     stays see-through. Removed elements are drawn from the base model as see-through ghosts where
@@ -215,7 +215,8 @@ openings cut, doors and glazing in place, colours applied.
   - **In the plan drawing**, so the diff shows from the top too:
     - added and changed wall pieces are in the dark colour, and window symbols and door gaps in the
       fill;
-    - slab and room fills take the fill colour, with door swings still drawn over them;
+    - slab and room fills take the subtler floor tint, as a diff line's background is subtler than its
+      changed words, with door swings still drawn over them;
     - removed walls and openings are drawn from the base in pale red with a dashed red outline.
   - **The changes panel** gives each category's count, with a checkbox to hide it, and lists the shown
     storeys' changes. Clicking one frames it.

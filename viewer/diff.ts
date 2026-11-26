@@ -6,10 +6,16 @@ import type { DiffStatus, ModelDiff } from "../src/diff/index.js";
 import type { Overlay } from "../src/render/plan.js";
 import type { Node } from "../src/render/svg.js";
 
-export const DIFF_COLOURS: Record<DiffStatus, { fill: string; accent: string }> = {
-  added: { fill: "#aceebb", accent: "#1a7f37" },
-  changed: { fill: "#fae17d", accent: "#9a6700" },
-  removed: { fill: "#ffcecb", accent: "#cf222e" },
+/**
+ * Each status's colours: `fill` for an element, `accent` for its outline and plan wall pieces, and
+ * `floor` for a slab or room fill in the plan drawing. A whole floor in an element's fill is far
+ * more prominent than a window symbol in it, so floors take GitHub's subtler line-background tint,
+ * as a diff line's background is subtler than its changed words.
+ */
+export const DIFF_COLOURS: Record<DiffStatus, { fill: string; accent: string; floor: string }> = {
+  added: { fill: "#aceebb", accent: "#1a7f37", floor: "#e6ffec" },
+  changed: { fill: "#fae17d", accent: "#9a6700", floor: "#fff8c5" },
+  removed: { fill: "#ffcecb", accent: "#cf222e", floor: "#ffebe9" },
 };
 
 /** Each listed element's status, for the categories shown (the changes panel can hide each). */
@@ -53,11 +59,11 @@ export function recolourPlan(o: Overlay, status: StatusById): Overlay {
   return { ...o, nodes: o.nodes.map(visit) };
 }
 
-/** Just the floor drawing's added and changed slab and room fills, in their fill colour; null when there are none. */
+/** Just the floor drawing's added and changed slab and room fills, in their floor tint; null when there are none. */
 export function diffFloor(o: Overlay, status: StatusById): Overlay | null {
   const nodes = o.nodes.flatMap((n): Node[] => {
     const s = status.get(idOf(n) ?? "");
-    return n.tag === "polygon" && (s === "added" || s === "changed") ? [{ ...n, attrs: { ...n.attrs, fill: DIFF_COLOURS[s].fill } }] : [];
+    return n.tag === "polygon" && (s === "added" || s === "changed") ? [{ ...n, attrs: { ...n.attrs, fill: DIFF_COLOURS[s].floor } }] : [];
   });
   return nodes.length ? { ...o, nodes } : null;
 }

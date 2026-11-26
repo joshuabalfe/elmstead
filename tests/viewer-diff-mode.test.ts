@@ -118,7 +118,9 @@ const greenish = (r: number, g: number, b: number) => g - r > 35 && g - b > 20;
 const darkGreen = (r: number, g: number, b: number) => g > 90 && g < 150 && r < 60 && b < 80;
 /** Any green at all, however faint: a faded stair in the IFC's safe green over a pale background. */
 const faintGreen = (r: number, g: number, b: number) => g - r > 8 && g - b > 10;
-const paleYellow = (r: number, g: number, b: number) => r > 220 && g > 200 && b < 150;
+/** The floor tints, GitHub's subtle line backgrounds: `#fff8c5` changed, `#e6ffec` added. Not the cream floor. */
+const changedFloor = (r: number, g: number, b: number) => r > 248 && g > 238 && b > 180 && b < 212;
+const addedFloor = (r: number, g: number, b: number) => g > 248 && g - r > 15 && g - b > 10;
 
 /** Record every frame drawn while `act` runs, as small fingerprints, and return how many distinct pictures there were. */
 async function picturesDuring(act: () => Promise<unknown>): Promise<number> {
@@ -291,8 +293,8 @@ describe("Diff in the plan drawing", () => {
     await viewChange(() => page.click("#diff"));
     const top = await pixels();
     expect(count(top, darkGreen).n).toBeGreaterThan(500); // the lean-to's wall pieces
-    expect(count(top, greenish).n).toBeGreaterThan(3000); // its floor
-    const yellow = count(top, paleYellow);
+    expect(count(top, addedFloor).n).toBeGreaterThan(3000); // its floor
+    const yellow = count(top, changedFloor);
     expect(yellow.n).toBeGreaterThan(5000); // the knocked-through room's floor
     // The two hall doors swing into that room: their lines are still drawn over the yellow floor.
     const { x0, y0, x1, y1 } = yellow.box;

@@ -100,11 +100,16 @@ Settled with a spike on `example-cottage@rear-extension`, after a first try with
 amber read as too strong. The scheme follows GitHub's diffs: a pale fill with a dark accent of the
 same hue, and unchanged context left plain.
 
-| Status | Fill | Accent |
-|---|---|---|
-| added | `#aceebb` | `#1a7f37` |
-| changed | `#fae17d` | `#9a6700` |
-| removed | `#ffcecb` | `#cf222e` |
+| Status | Fill | Accent | Floor |
+|---|---|---|---|
+| added | `#aceebb` | `#1a7f37` | `#e6ffec` |
+| changed | `#fae17d` | `#9a6700` | `#fff8c5` |
+| removed | `#ffcecb` | `#cf222e` | `#ffebe9` |
+
+Floors take GitHub's subtler line-background tint. A whole floor in an element's fill was far more
+prominent than a window symbol in it: the knocked-through room's floor read as the loudest change in
+the plan. GitHub draws a changed line's background subtler than its changed words for the same
+reason.
 
 In 3D:
 1. The diff maps each status to Fragments local ids through the existing Tag/Name lookup.
@@ -148,7 +153,7 @@ above. So the diff has to be in the drawing:
   - Added and changed wall pieces take their status's accent, since plan walls are solid poché and a
     pale wall would vanish against the floor.
   - Window symbols and door gaps take the fill, with accent strokes.
-  - Slab and room fills take the fill.
+  - Slab and room fills take the floor tint.
 
   The renderer itself stays colour-agnostic, and the plan SVGs are unchanged.
 - **Diff floor fills are their own layer, 1 mm above the floor.** The spike found that coplanar fills

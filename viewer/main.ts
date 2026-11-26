@@ -1779,7 +1779,7 @@ async function flyToChange(id: string, status: DiffStatus, storey: string) {
 }
 
 /** The diff's colours, as three.js hex strings, so Transparency can leave the diff's drawing solid. */
-const DIFF_HEX = new Set(Object.values(DIFF_COLOURS).flatMap((c) => [c.fill, c.accent].map((h) => h.slice(1).toLowerCase())));
+const DIFF_HEX = new Set(Object.values(DIFF_COLOURS).flatMap((c) => [c.fill, c.accent, c.floor].map((h) => h.slice(1).toLowerCase())));
 
 /**
  * Transparency on the plan drawing: every plan-style layer's materials faded, or back as they were.
