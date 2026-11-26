@@ -30,6 +30,7 @@ const VIEWPORT = { width: 1200, height: 900 };
 const COTTAGE = "test-dm-cottage";
 const TWO = "test-dm-two";
 const NOBASE = "test-dm-nobase";
+const ELM = "test-dm-elmstead";
 
 let outDir: string;
 let server: ViteDevServer | undefined;
@@ -115,6 +116,8 @@ function count(r: Raster, test: (red: number, green: number, blue: number) => bo
 /** Diff's pale green fill, however lit, and its dark green accent. Nothing else in these models is green. */
 const greenish = (r: number, g: number, b: number) => g - r > 35 && g - b > 20;
 const darkGreen = (r: number, g: number, b: number) => g > 90 && g < 150 && r < 60 && b < 80;
+/** Any green at all, however faint: a faded stair in the IFC's safe green over a pale background. */
+const faintGreen = (r: number, g: number, b: number) => g - r > 8 && g - b > 10;
 const paleYellow = (r: number, g: number, b: number) => r > 220 && g > 200 && b < 150;
 
 /** Record every frame drawn while `act` runs, as small fingerprints, and return how many distinct pictures there were. */
@@ -181,6 +184,7 @@ beforeAll(async () => {
   const upperWall = two.storeys[1]!.walls.find((w) => !two.storeys[1]!.openings.some((o) => o.wallId === w.id))!;
   const shed = wall("wall-shed", pt(mm(-2000), mm(0)), pt(mm(-2000), mm(2000)), { thickness: mm(200), height: mm(2400) });
   await publish(`${TWO}@both-floors`, revise(two, [remove(upperWall.id), addTo(two.storeys[0]!.id, { walls: [shed] })]));
+  await publish(ELM, await model("models/elmstead")); // stairs, for Transparency's stair presentation
   // A base with its JSON but no IFC, and a revision of it.
   await publish(NOBASE, cottage, { ifc: false });
   await publish(`${NOBASE}@rear-extension`, await model("models/examples/example-cottage/revisions/rear-extension.ts"));
@@ -371,6 +375,12 @@ describe("Transparency", () => {
       expect(same(await pixels(), plain), view).toBe(true);
     }
   }, 180_000);
+
+  it("keeps a faded stair's tread bands rather than the IFC's safe green", async () => {
+    // Fading gives every material a new copy; the stair's must get the stair presentation too.
+    await open(`model=${ELM}&view=nw&storeys=storey-basement,storey-street,storey-ground&xray=1`);
+    expect(count(await pixels(), faintGreen).n).toBe(0);
+  }, 120_000);
 
   it("keeps the changes solid with Diff on, and stays on across switches", async () => {
     await open(`${REV}&view=se&diff=1`);

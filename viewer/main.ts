@@ -109,6 +109,10 @@ fragments.core.models.materials.list.onItemSet.add(({ value: material }) => {
     material.polygonOffsetUnits = 1;
     material.polygonOffsetFactor = 1;
   }
+  // Fragments also creates materials after a model has loaded: a faded copy of each one for
+  // Transparency's setOpacity, for example. Patch each as it arrives, or a faded stair shows the IFC's
+  // safe green instead of its tread bands.
+  if (material instanceof THREE.MeshLambertMaterial) patchMaterial(material);
 });
 
 const ifcLoader = components.get(OBC.IfcLoader);
@@ -683,16 +687,17 @@ function patchTops(m: THREE.MeshLambertMaterial, mode: 1 | 2) {
 }
 
 /** Apply plan colouring to the model's materials once it has loaded (see `style`). */
+/** The viewer's presentation on one material, by the IFC colour it carries: plan-style tops, stair bands. */
+function patchMaterial(m: THREE.MeshLambertMaterial) {
+  const name = styleOf(m);
+  if (style === "plan" && name === "wall") patchTops(m, 1);
+  if (style === "plan" && (name === "slab" || name === "ground")) patchTops(m, 2);
+  if (name === "stair") patchStairBands(m);
+}
+
 function applyStyle() {
   const plan = style === "plan";
-  if (plan) {
-    for (const m of fragments.core.models.materials.list.values()) {
-      if (!(m instanceof THREE.MeshLambertMaterial)) continue;
-      const name = styleOf(m);
-      if (name === "wall") patchTops(m, 1);
-      if (name === "slab" || name === "ground") patchTops(m, 2);
-    }
-  }
+  for (const m of fragments.core.models.materials.list.values()) if (m instanceof THREE.MeshLambertMaterial) patchMaterial(m);
   applyStairPresentation();
   world.scene.three.background = new THREE.Color(plan ? C.paper : 0xf4f4f2);
   grid.three.visible = !plan;
