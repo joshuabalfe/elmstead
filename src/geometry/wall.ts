@@ -4,7 +4,7 @@ import { len, perpLeft, toVec, unit, v, vadd, vscale, vsub, type Vec } from "./v
 
 export const wallLength = (w: Wall): number => len(vsub(toVec(w.end), toVec(w.start)));
 
-/** Unit vector from start to end. Undefined for zero-length walls; callers check first. */
+/** Unit vector from start to end; its components are NaN for zero-length walls, which callers check first. */
 export const wallDirection = (w: Wall): Vec => unit(vsub(toVec(w.end), toVec(w.start)));
 
 /** Signed offsets of the wall's two faces from its start→end line, positive to the left. */

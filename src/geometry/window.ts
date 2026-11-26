@@ -2,6 +2,8 @@ import type { Window, WindowComponent } from "../schema/schema.js";
 
 /** Depth (mm, across the wall) of frames and glazing bars; deeper than the glass so they stand proud of it. */
 export const GLAZING_BAR_DEPTH = 70;
+/** Thickness of the simple door leaf / glazing panel bodies. */
+export const PANEL_THICKNESS = 50;
 
 /** A rectangle in the window's own elevation: x from its left edge, z up from its sill, mm. */
 export interface Rect {

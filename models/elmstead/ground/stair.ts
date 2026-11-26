@@ -11,7 +11,7 @@
  * climbs from the ground floor to the half landing, and the upper flight from the half landing to
  * the first floor. No elevations are stored here: measuring the levels later re-derives the riser.
  */
-import { centredOn, face, m, mm, pt, stairFlight, window, type Mm, type Stair, type Storey } from "../../../src/model/index.js";
+import { centredOn, face, m, mid, mm, pt, stairFlight, window, type Stair, type Storey } from "../../../src/model/index.js";
 import { crossBarWindow } from "../components/index.js";
 import { stairwellOutline } from "../first/index.js";
 import { stairArrivalX } from "../first/walls.js";
@@ -30,7 +30,6 @@ const north = mm(Math.max(...ys));
 const landingWest = spineEndX;
 
 const spineNorth = face(spine, "north"); //    7165: north flight's south edge, the spine's far face
-const mid = (a: Mm, b: Mm): Mm => mm((a + b) / 2);
 const southY = mid(face(bathNorth, "north"), spineY); // 6535: centreline south of the spine
 const northY = mid(spineNorth, northIn); //              7620: centreline north of the spine
 const width = mm(910); // both flights, from the owner

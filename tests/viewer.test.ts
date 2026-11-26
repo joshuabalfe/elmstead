@@ -1,11 +1,15 @@
 import { resolve } from "node:path";
 import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import * as THREE from "three";
-import { describe, expect, it } from "vitest";
+import { Line2 } from "three/addons/lines/Line2.js";
+import { LineGeometry } from "three/addons/lines/LineGeometry.js";
+import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+import { describe, expect, it, vi } from "vitest";
 import { C } from "../src/render/style.js";
 import { group, line, polygon, polyline, text } from "../src/render/svg.js";
 import type { ResolvedConstraint } from "../src/constraints/check.js";
 import { constraintLabels } from "../viewer/constraints.js";
+import { disposeTree } from "../viewer/dispose.js";
 import { elementLabel } from "../viewer/identify.js";
 import { CLICK_SLOP_PX, SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap } from "../viewer/measure.js";
 import { M_PER_PX, dashOf, overlayGroup, placeText, toRuns, toScene } from "../viewer/overlay.js";
@@ -285,5 +289,44 @@ describe("plan overlay geometry", () => {
 
   it("refuses plan-sheet furniture an overlay never draws", () => {
     expect(() => toRuns([text(p(0, 0), "x", {}), { tag: "rect", attrs: {} }])).toThrow(/<rect>/);
+  });
+});
+
+describe("disposeTree", () => {
+  it("frees every geometry, material and texture under an object except the shared ones", () => {
+    const sharedMaterial = new LineMaterial();
+    const sharedGeometry = new THREE.SphereGeometry();
+    const ownMaterial = new LineMaterial();
+    const lines = [new Line2(new LineGeometry(), sharedMaterial), new Line2(new LineGeometry(), sharedMaterial), new Line2(new LineGeometry(), ownMaterial)];
+    const marker = new THREE.Mesh(sharedGeometry, new THREE.MeshBasicMaterial());
+    const texture = new THREE.Texture();
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture }));
+    const root = new THREE.Group();
+    const nested = new THREE.Group();
+    nested.add(lines[2]!, sprite);
+    root.add(lines[0]!, lines[1]!, marker, nested);
+    const spies = [
+      ...lines.map((l) => vi.spyOn(l.geometry, "dispose")),
+      vi.spyOn(ownMaterial, "dispose"),
+      vi.spyOn(marker.material, "dispose"),
+      vi.spyOn(sprite.material, "dispose"),
+      vi.spyOn(texture, "dispose"),
+    ];
+    const sharedSpies = [vi.spyOn(sharedMaterial, "dispose"), vi.spyOn(sharedGeometry, "dispose")];
+
+    disposeTree(root, new Set([sharedMaterial, sharedGeometry]));
+
+    for (const spy of spies) expect(spy).toHaveBeenCalledOnce();
+    for (const spy of sharedSpies) expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("frees a lone sprite's material and texture without a shared set", () => {
+    const texture = new THREE.Texture();
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture }));
+    const material = vi.spyOn(sprite.material, "dispose");
+    const map = vi.spyOn(texture, "dispose");
+    disposeTree(sprite);
+    expect(material).toHaveBeenCalledOnce();
+    expect(map).toHaveBeenCalledOnce();
   });
 });

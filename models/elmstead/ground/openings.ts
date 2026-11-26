@@ -6,7 +6,7 @@
  * (about 440 mm) uses the owner's 768 mm internal-door width. The front window, fanlight, front door
  * opening and frame, and the bedroom window's sill and head, are the owner's.
  */
-import { add, centredOn, deg, div, divRound, door, doorway, face, m, mm, scale, sub, window, type Opening } from "../../../src/model/index.js";
+import { add, centredOn, deg, div, divRound, door, doorway, face, m, mid, mm, scale, sub, window, type Opening } from "../../../src/model/index.js";
 import { fanlight, framedWindow, frontDoor, frontWindow, internalDoor, smallPaneWindow } from "../components/index.js";
 import { living } from "./rooms.js";
 import { bathWestX, bedroomBathroom, bedroomWallY, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, lobbyScreenLobbyStart, lobbyScreenLobbyVisibleLength, northIn, partitionEast, southIn, west } from "./walls.js";
@@ -30,10 +30,10 @@ const frontWindowSize = { width: m(2.5), height: sub(frontHead, mm(500)), sillHe
 const fanlightWidth = sub(front.width, scale(frontDoorFrame, 2));
 const fanlightOffset = add(frontDoorOffset, frontDoorFrame);
 const fanlightSill = add(front.height, transom);
-const frontWindowCentreY = mm(Math.round((living.outline[1]!.y + living.outline[2]!.y) / 2)); // centred on the living room
+const frontWindowCentreY = mid(living.outline[1]!.y, living.outline[2]!.y); // centred on the living room
 const bathroomDoorOffset = mm(135);
 const bathroomDoorY = add(face(bedroomBathroom, "north"), bathroomDoorOffset); // the living-room door sits opposite it
-const lobbyCentreX = mm(Math.round((partitionEast + bathWestX) / 2));
+const lobbyCentreX = mid(partitionEast, bathWestX);
 // The lobby doorway is centred on the screen's lobby-side face, with a jamb each side.
 const lobbyDoorwayOffset = add(lobbyScreenLobbyStart, divRound(sub(lobbyScreenLobbyVisibleLength, internal.width), 2));
 // Window returns splay out at about 45° on the inside. The frame is taken as sitting in the middle

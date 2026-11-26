@@ -16,6 +16,7 @@ import {
   doorComponent,
   face,
   m,
+  mid,
   mm,
   pt,
   rectRoom,
@@ -71,8 +72,7 @@ const kitchen = rectRoom("room-kitchen", "Kitchen", { west: westIn, east: face(h
 const bedroom = rectRoom("room-bedroom", "Bedroom", { west: face(hallEast, "east"), east: eastIn, south: southIn, north: face(bedroomBathroom, "south") });
 const bathroom = rectRoom("room-bathroom", "Bathroom", { west: face(hallEast, "east"), east: eastIn, south: face(bedroomBathroom, "north"), north: northIn });
 
-/** Centre of a room's outline in one axis — used to centre windows and doors on rooms. */
-const mid = (a: number, b: number) => mm(Math.round((a + b) / 2));
+/** Room-outline centres in each axis — used to centre windows and doors on rooms. */
 const xMid = (r: typeof hall) => mid(r.outline[0]!.x, r.outline[1]!.x);
 const yMid = (r: typeof hall) => mid(r.outline[1]!.y, r.outline[2]!.y);
 
