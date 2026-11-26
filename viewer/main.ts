@@ -30,6 +30,7 @@ import { wallHeight } from "../src/geometry/wall.js";
 import { renderFloor, renderPlanAnnotations, renderWallTops, roomTags, type Overlay } from "../src/render/plan.js";
 import { C, PX_PER_MM, ROOM_LABEL } from "../src/render/style.js";
 import type { View } from "../src/render/views.js";
+import { idNodes } from "../src/schema/ids.js";
 import type { BuildingModel, Storey } from "../src/schema/schema.js";
 import type { ResolvedConstraint } from "../src/constraints/check.js";
 import { constraintLabels } from "./constraints.js";
@@ -38,6 +39,9 @@ import { overlayGroup, type OverlayLayer } from "./overlay.js";
 import { labelTexture, type BillboardLine } from "./text.js";
 import { elementLabel, type ElementLabel } from "./identify.js";
 import { SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap, type MeasurementValues, type Point3, type SnapCandidate } from "./measure.js";
+import { diffModels, type DiffStatus, type ModelDiff } from "../src/diff/index.js";
+import { styleOfColour } from "./style-of.js";
+import { DIFF_COLOURS, diffFloor, doorSwings, floorChange, floorOutlines, floorPieces, recolourPlan, removedPlan, statusById, type StatusById } from "./diff.js";
 import { defaultName, groupModels, joinName, splitName, stepRevision, type ModelGroup } from "./revisions.js";
 import { cameraForView, cornerLabel, labelHeading, parseOrient, parseView, turnedTopFit } from "./view.js";
 import { WALK_AXES, entryPosition, headingBasis, movementOffset, walkRequested, walkStep } from "./walk.js";
@@ -49,8 +53,18 @@ declare global {
     __elmsteadStoreyChanges?: number;
     /** Increments after a revision choice has been loaded and drawn; tests wait on it. */
     __elmsteadRevisionChanges?: number;
+    /** Increments after a Diff, Transparency or changes-panel choice has been applied and drawn. */
+    __elmsteadViewChanges?: number;
+    /** The shown diff's ids by status while Diff mode is on, for tests; null otherwise. */
+    __elmsteadDiff?: Record<DiffStatus, string[]> | null;
+    /** Why part of the view could not be drawn (a base model not built), for snapshots; "" when none. */
+    __elmsteadNote?: string;
+    /** Outline pieces drawn per diff status, for tests. */
+    __elmsteadOutlines?: Record<DiffStatus, number>;
+    /** The base elements drawn as ghosts, by id, for tests. */
+    __elmsteadGhosts?: string[];
     __elmsteadMeasurements?: { id: number; from: Point3; to: Point3; values: MeasurementValues }[];
-    __elmsteadHover?: { id: string; name: string | null } | null;
+    __elmsteadHover?: { id: string; name: string | null; status?: DiffStatus } | null;
     /** The text lines of each room label, in storey order; tests read it. */
     __elmsteadRoomLabels?: string[][];
   }
@@ -95,6 +109,10 @@ fragments.core.models.materials.list.onItemSet.add(({ value: material }) => {
     material.polygonOffsetUnits = 1;
     material.polygonOffsetFactor = 1;
   }
+  // Fragments also creates materials after a model has loaded: a faded copy of each one for
+  // Transparency's setOpacity, for example. Patch each as it arrives, or a faded stair shows the IFC's
+  // safe green instead of its tread bands.
+  if (material instanceof THREE.MeshLambertMaterial) patchMaterial(material);
 });
 
 const ifcLoader = components.get(OBC.IfcLoader);
@@ -136,6 +154,31 @@ const measureMarkerMaterial = new THREE.MeshBasicMaterial({ color: C.measure, de
 
 /** The loaded Fragments model, so a storey choice can update it without a reload. */
 let currentModel: FragmentsModel | null = null;
+
+/** The two view toggles, from `?diff=1` and `?xray=1`: Diff (revisions only) and Transparency. */
+const viewState = { diff: params.get("diff") === "1", xray: params.get("xray") === "1" };
+/** Which diff categories the changes panel shows. */
+const shownCategories: Record<DiffStatus, boolean> = { added: true, changed: true, removed: true };
+/** Opacity of what Transparency fades. */
+const FADE = 0.35;
+/** The shown revision's diff while Diff mode is on: its base, the diff, and each listed id's status. */
+let shownDiff: { baseName: string; base: BuildingModel; diff: ModelDiff; status: StatusById } | null = null;
+/** Each base model's JSON once fetched, for diffing its revisions. */
+const baseJson = new Map<string, BuildingModel | null>();
+/** The diff outlines, one group per storey so they hide with it. */
+const diffOutlines = new Map<string, THREE.Group>();
+/** The base model drawn as removed-element ghosts, while it is. */
+let ghostModel: FragmentsModel | null = null;
+/** Ghost item ids by storey, so the ghosts hide with their storey. */
+let ghostItems = new Map<string, number[]>();
+/** Model id per ghost item, for hover. */
+const ghostLabels = new Map<number, ElementLabel>();
+/** Status-line note for what Diff could not draw. */
+let diffNote = "";
+window.__elmsteadDiff = null;
+window.__elmsteadNote = "";
+window.__elmsteadOutlines = { added: 0, changed: 0, removed: 0 };
+window.__elmsteadGhosts = [];
 let loadEpoch = 0;
 let measureEpoch = 0;
 let measuring = false;
@@ -367,7 +410,9 @@ function buildStoreyLayers(storey: Storey, model: BuildingModel, resolved: reado
   // see is the topmost one, and it hides the storeys below. Opaque, not blended, so it stays in the
   // opaque pass that runs before the walls. Built even while hidden, so the selector can show a
   // storey again without rebuilding it.
-  layerGroup.add(planGeometry(renderFloor(storey, model.components), (storey.elevation + FLOOR_LIFT) / 1000, { kind: "floor", renderOrder: -1 }));
+  const floor = renderFloor(storey, model.components);
+  layerGroup.add(planGeometry(floor, (storey.elevation + FLOOR_LIFT) / 1000, { kind: "floor", renderOrder: -1 }));
+  for (const layer of diffPlanLayers(storey, floor)) layerGroup.add(layer);
   // Constraints live in their own per-storey group inside the constraints layer, so the
   // Constraints button and the storey selection compose.
   const constraintGroup = new THREE.Group();
@@ -423,8 +468,43 @@ function wallTopOverlays(storey: Storey, model: BuildingModel): THREE.Object3D[]
   return [...byHeight].map(([h, walls]) => {
     const ids = new Set(walls.map((w) => w.id));
     const groupStorey = { ...storey, walls, openings: storey.openings.filter((o) => ids.has(o.wallId)) };
-    return planGeometry(renderWallTops(groupStorey, model.components), (storey.elevation + h + WALL_TOP_LIFT) / 1000, { kind: "overlay", renderOrder: 0 });
+    const tops = renderWallTops(groupStorey, model.components);
+    return planGeometry(shownDiff ? recolourPlan(tops, shownDiff.status) : tops, (storey.elevation + h + WALL_TOP_LIFT) / 1000, { kind: "overlay", renderOrder: 0 });
   });
+}
+
+/**
+ * The diff's own plan layers for a storey, while Diff mode is on: the floor built and taken away,
+ * 1 mm above the floor (coplanar fills in one floor layer do not reliably stack in drawing order: a
+ * room fill can lose to the slab fill under it), the door swings and the added and changed slab
+ * and room outlines above them, and what the
+ * revision removed, from the base, 2 mm above its wall tops so a bricked-up window shows over the
+ * wall that now runs through it.
+ */
+function diffPlanLayers(storey: Storey, floor: Overlay): THREE.Object3D[] {
+  if (!shownDiff) return [];
+  const { status, base } = shownDiff;
+  const out: THREE.Object3D[] = [];
+  const was = base.storeys.find((s) => s.id === storey.id);
+  // The floor built and taken away, drawn as rooms of this storey so they share its plan's scale;
+  // its own rooms and slabs only as outlines, so floor that just changed room has no tint.
+  const pieces = was ? floorPieces(floorChange(was, storey)) : [];
+  const fills = pieces.length ? diffFloor(renderFloor({ ...storey, slabs: [], rooms: pieces, openings: [] })) : null;
+  if (fills) out.push(planGeometry(fills, (storey.elevation + FLOOR_LIFT + 1) / 1000, { kind: "floor", renderOrder: -1 }));
+  const outlines = floorOutlines(floor, status);
+  if (fills || outlines) out.push(planGeometry(doorSwings(floor), (storey.elevation + FLOOR_LIFT + 2) / 1000, { kind: "overlay", renderOrder: -1 }));
+  if (outlines) out.push(planGeometry(outlines, (storey.elevation + FLOOR_LIFT + 2) / 1000, { kind: "overlay", renderOrder: -1 }));
+  if (was) {
+    const removed = (id: string) => status.get(id) === "removed";
+    const walls = was.walls.filter((w) => !w.profile && (removed(w.id) || was.openings.some((o) => o.wallId === w.id && removed(o.id))));
+    if (walls.length) {
+      const hosts = new Set(walls.map((w) => w.id));
+      const drawn = removedPlan(renderWallTops({ ...was, walls, openings: was.openings.filter((o) => hosts.has(o.wallId)) }, base.components), status);
+      const h = Math.max(...walls.map((w) => wallHeight(w)));
+      if (drawn) out.push(planGeometry(drawn, (storey.elevation + h + WALL_TOP_LIFT + 2) / 1000, { kind: "overlay", renderOrder: 0 }));
+    }
+  }
+  return out;
 }
 
 let box = new THREE.Box3();
@@ -543,6 +623,9 @@ async function applyStoreyVisibility(model: FragmentsModel) {
   }
   for (const [storey, ids] of storeyItems) await model.setVisible(ids, isShown(storey));
   for (const [id, groups] of storeyLayers) for (const g of groups) g.visible = isShown(id);
+  for (const [id, group] of diffOutlines) group.visible = isShown(id);
+  if (ghostModel) for (const [id, ids] of ghostItems) await ghostModel.setVisible(ids, isShown(id));
+  renderChangesPanel();
 }
 
 /** Bounding box of the shown storeys' plan geometry, so the walk pose centres on what is visible. */
@@ -583,17 +666,7 @@ const styleParam = params.get("style"); // ?style=ifc|plan overrides the default
 const style: Style = styleParam === "ifc" || styleParam === "plan" ? styleParam : snapshot ? "ifc" : "plan";
 
 /** Which of the IFC's presentation colours (src/ifc/styles.ts) a material carries, if any. */
-function styleOf(material: THREE.MeshLambertMaterial): keyof typeof STYLES | undefined {
-  const c = material.color;
-  let best: keyof typeof STYLES | undefined;
-  let bestDist = 0.02; // the IFC colours survive the round trip to within about 1/255
-  for (const [name, { rgb }] of Object.entries(STYLES) as [keyof typeof STYLES, (typeof STYLES)[keyof typeof STYLES]][]) {
-    const ifc = new THREE.Color().setRGB(rgb[0], rgb[1], rgb[2], THREE.SRGBColorSpace);
-    const d = Math.hypot(ifc.r - c.r, ifc.g - c.g, ifc.b - c.b);
-    if (d < bestDist) [best, bestDist] = [name, d];
-  }
-  return best;
-}
+const styleOf = (material: THREE.MeshLambertMaterial): keyof typeof STYLES | undefined => styleOfColour(material.color);
 
 const wallTop = new THREE.Color(C.wall); // linear, as the shader works in linear
 
@@ -621,16 +694,17 @@ function patchTops(m: THREE.MeshLambertMaterial, mode: 1 | 2) {
 }
 
 /** Apply plan colouring to the model's materials once it has loaded (see `style`). */
+/** The viewer's presentation on one material, by the IFC colour it carries: plan-style tops, stair bands. */
+function patchMaterial(m: THREE.MeshLambertMaterial) {
+  const name = styleOf(m);
+  if (style === "plan" && name === "wall") patchTops(m, 1);
+  if (style === "plan" && (name === "slab" || name === "ground")) patchTops(m, 2);
+  if (name === "stair") patchStairBands(m);
+}
+
 function applyStyle() {
   const plan = style === "plan";
-  if (plan) {
-    for (const m of fragments.core.models.materials.list.values()) {
-      if (!(m instanceof THREE.MeshLambertMaterial)) continue;
-      const name = styleOf(m);
-      if (name === "wall") patchTops(m, 1);
-      if (name === "slab" || name === "ground") patchTops(m, 2);
-    }
-  }
+  for (const m of fragments.core.models.materials.list.values()) if (m instanceof THREE.MeshLambertMaterial) patchMaterial(m);
   applyStairPresentation();
   world.scene.three.background = new THREE.Color(plan ? C.paper : 0xf4f4f2);
   grid.three.visible = !plan;
@@ -1238,25 +1312,33 @@ async function runHoverPicks() {
       const epoch = hoverEpoch;
       const model = currentModel;
       if (!identifying || snapshot || savedView || !model) continue;
-      const hit = await model.raycast({ camera: world.camera.three, mouse: new THREE.Vector2(next.x, next.y), dom: canvas });
+      const ray = { camera: world.camera.three, mouse: new THREE.Vector2(next.x, next.y), dom: canvas };
+      const ghost = ghostModel;
+      // In Diff mode the removed elements' ghosts are picked too, and the nearer hit wins.
+      const [own, removed] = await Promise.all([model.raycast(ray), ghost ? ghost.raycast(ray) : Promise.resolve(null)]);
       if (epoch !== hoverEpoch || currentModel !== model || !identifying || savedView) continue;
-      const label = hit ? elementLabels.get(hit.localId) : undefined;
+      const ghostHit = removed && ghostLabels.has(removed.localId) && (!own || removed.distance < own.distance);
+      const hit = ghostHit ? removed : own;
+      const label = hit ? (ghostHit ? ghostLabels : elementLabels).get(hit.localId) : undefined;
       if (!hit || !label) {
         hideHover();
         continue;
       }
-      window.__elmsteadHover = { id: label.id, name: label.name };
+      const diffStatus = ghostHit ? "removed" : shownDiff?.status.get(label.id);
+      window.__elmsteadHover = { id: label.id, name: label.name, ...(diffStatus ? { status: diffStatus } : {}) };
       // Constraint-label styling, but depth-untested like the measurement readout: on top of everything.
-      if (!hoverSprite || hoverSprite.userData.id !== label.id) {
+      const key = `${label.id}${diffStatus ?? ""}`;
+      if (!hoverSprite || hoverSprite.userData.id !== key) {
         disposeHoverSprite();
-        const texts = label.name ? [label.id, label.name] : [label.id];
+        const first = diffStatus ? `${label.id} · ${diffStatus}` : label.id;
+        const texts = label.name ? [first, label.name] : [first];
         hoverSprite = billboard(
           texts.map((text, i) => ({ text, size: 11, bold: true, dy: (i - (texts.length - 1) / 2) * 14 })),
           C.constraint,
           11,
           false,
         );
-        hoverSprite.userData.id = label.id;
+        hoverSprite.userData.id = key;
         world.scene.three.add(hoverSprite);
       }
       hoverSprite.position.copy(hit.point);
@@ -1298,6 +1380,28 @@ interface Resident {
 const resident = new Map<string, Resident>();
 /** The model group the latest load is for, so a load overtaken by a model change can clean up. */
 let loadingGroup = "";
+
+/**
+ * A model of this group, loaded once and kept (see `resident`), not added to the scene; null when its
+ * IFC is not in out/. `fresh` says it was loaded now, so its stair outlines are still to add.
+ */
+async function loadResident(name: string, group: string): Promise<{ entry: Resident; fresh: boolean } | null> {
+  const kept = resident.get(name);
+  if (kept) return { entry: kept, fresh: false };
+  const res = await fetch(`/out/${name}.ifc`);
+  if (!res.ok) return null;
+  const model = await ifcLoader.load(new Uint8Array(await res.arrayBuffer()), true, name);
+  model.useCamera(world.camera.three);
+  // Always full geometry. By default Fragments draws items it judges small on screen as lines (its
+  // LOD), and glazing bars and window frames qualify even close up: they showed as thin lines you
+  // could see through. Our models are small enough not to need it.
+  await model.setLodMode(LodMode.ALL_VISIBLE);
+  const entry = { model, stairs: [] };
+  resident.set(name, entry);
+  // Overtaken by a change to another model: this one will not be shown, so let it go.
+  if (loadingGroup !== group) await disposeResident(name);
+  return { entry, fresh: true };
+}
 
 async function disposeResident(name: string) {
   const r = resident.get(name);
@@ -1348,22 +1452,13 @@ async function load(name: string, { keepView = false }: { keepView?: boolean } =
       if (to && total > 0) stairRiser = Math.max(stairRiser, (to.elevation - s.elevation) / total / 1000);
     }
   }
-  let entry = resident.get(name);
-  const fresh = !entry;
-  if (!entry) {
-    const buffer = new Uint8Array(await (await fetch(`/out/${name}.ifc`)).arrayBuffer());
-    const model = await ifcLoader.load(buffer, true, name);
-    model.useCamera(world.camera.three);
-    // Always full geometry. By default Fragments draws items it judges small on screen as lines (its
-    // LOD), and glazing bars and window frames qualify even close up: they showed as thin lines you
-    // could see through. Our models are small enough not to need it.
-    await model.setLodMode(LodMode.ALL_VISIBLE);
-    entry = { model, stairs: [] };
-    resident.set(name, entry);
-    // Overtaken by a change to another model: this one will not be shown, so let it go.
-    if (loadingGroup !== group) await disposeResident(name);
-  }
+  const loaded = await loadResident(name, group);
+  if (!loaded) throw new Error(`out/${name}.ifc not found`);
+  const { entry, fresh } = loaded;
   if (epoch !== loadEpoch) return; // a newer load owns the scene; this model stays loaded, out of it
+  // The diff decides how the plan layers below are drawn, so it is worked out first.
+  await refreshDiff(name, json);
+  if (epoch !== loadEpoch) return;
   const { model } = entry;
   world.scene.three.add(model.object);
   currentModel = model;
@@ -1393,8 +1488,328 @@ async function load(name: string, { keepView = false }: { keepView?: boolean } =
     if (params.get("camera")) await setCamera(params.get("camera")!);
   }
   if (epoch !== loadEpoch) return;
-  status.textContent = `${name}.ifc${storeysNote}`;
+  await dressModel(model, name);
+  if (epoch !== loadEpoch) return;
+  status.textContent = `${name}.ifc${storeysNote}${diffNote}`;
+  window.__elmsteadNote = diffNote;
   repickHover();
+}
+
+/**
+ * The diff of revision `name` against its base, while Diff mode is on: fetched and computed, with
+ * each listed id's status for the categories the panel shows. Null on a base model or with Diff off.
+ */
+async function refreshDiff(name: string, json: BuildingModel | null) {
+  const { model: baseName, revision: rev } = splitName(name);
+  diffNote = "";
+  if (!viewState.diff || rev === null || !json) {
+    shownDiff = null;
+  } else {
+    if (!baseJson.has(baseName)) {
+      const res = await fetch(`/out/${baseName}.building.json`);
+      baseJson.set(baseName, res.ok ? ((await res.json()) as BuildingModel) : null);
+    }
+    const base = baseJson.get(baseName) ?? null;
+    if (!base) {
+      shownDiff = null;
+      diffNote = ` · Diff needs ${baseName} built`;
+    } else {
+      const diff = diffModels(base, json);
+      shownDiff = { baseName, base, diff, status: statusById(diff, shownCategories) };
+    }
+  }
+  window.__elmsteadDiff = shownDiff ? { added: shownDiff.diff.added.map((e) => e.id), changed: shownDiff.diff.changed.map((e) => e.id), removed: shownDiff.diff.removed.map((e) => e.id) } : null;
+  renderChangesPanel();
+}
+
+/** Every outline, ghost and fade from the last dressing removed, and the ghost model out of the scene. */
+async function undress(model: FragmentsModel) {
+  await model.resetHighlight();
+  await model.resetOpacity(undefined);
+  for (const g of diffOutlines.values()) {
+    g.removeFromParent();
+    disposeTree(g, new Set(Object.values(outlineMaterials)));
+  }
+  diffOutlines.clear();
+  window.__elmsteadOutlines = { added: 0, changed: 0, removed: 0 };
+  window.__elmsteadGhosts = [];
+  if (ghostModel && ghostModel !== model) world.scene.three.remove(ghostModel.object);
+  ghostModel = null;
+  ghostItems = new Map();
+  ghostLabels.clear();
+}
+
+const outlineMaterials: Record<DiffStatus, THREE.LineBasicMaterial> = {
+  added: new THREE.LineBasicMaterial({ color: DIFF_COLOURS.added.accent }),
+  changed: new THREE.LineBasicMaterial({ color: DIFF_COLOURS.changed.accent }),
+  removed: new THREE.LineBasicMaterial({ color: DIFF_COLOURS.removed.accent }),
+};
+
+/**
+ * Outlines round items in a status's accent. Fragments draws every item of one material as one mesh
+ * and drops its CPU copy of the geometry once it is on the GPU, so the outlines are built from
+ * `getItemsGeometry`, each item's own positions, indices and transform.
+ */
+async function outline(model: FragmentsModel, byStorey: Map<string, number[]>, status: DiffStatus) {
+  for (const [storey, ids] of byStorey) {
+    if (!ids.length) continue;
+    let group = diffOutlines.get(storey);
+    if (!group) {
+      group = new THREE.Group();
+      group.visible = isShown(storey);
+      diffOutlines.set(storey, group);
+    }
+    for (const meshes of await model.getItemsGeometry(ids)) {
+      for (const m of meshes) {
+        if (!m.positions || !m.indices) continue;
+        const g = new THREE.BufferGeometry();
+        g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(m.positions), 3));
+        g.setIndex(new THREE.BufferAttribute(m.indices, 1));
+        const edges = new THREE.LineSegments(new THREE.EdgesGeometry(g, 30), outlineMaterials[status]);
+        g.dispose();
+        edges.applyMatrix4(m.transform);
+        group.add(edges);
+        window.__elmsteadOutlines![status]++;
+      }
+    }
+    model.object.add(group);
+  }
+}
+
+/** Fragments items by status and storey, from their Tag (Name for spaces), for the ids in `status`. */
+async function itemsByStatus(model: FragmentsModel, status: StatusById, storeyOf: (id: string) => string | undefined) {
+  const out: Record<DiffStatus, Map<string, number[]>> = { added: new Map(), changed: new Map(), removed: new Map() };
+  const plain: number[] = [];
+  for (const [localId, item] of await model.getItems()) {
+    const key = (item.data.Tag?.value ?? item.data.Name?.value) as string | undefined;
+    if (!key) continue;
+    const s = status.get(key);
+    const storey = storeyOf(key);
+    if (!s || !storey) {
+      plain.push(localId);
+      continue;
+    }
+    out[s].set(storey, [...(out[s].get(storey) ?? []), localId]);
+  }
+  return { byStatus: out, plain };
+}
+
+/** Each element id's storey in a model, from its JSON. */
+const storeyIndex = (m: BuildingModel): Map<string, string> => new Map(idNodes(m).flatMap((n) => ("storey" in n ? [[n.element.id, n.storey] as const] : [])));
+
+/**
+ * The shown model drawn as Diff and Transparency now require: reset first, so a kept revision never
+ * keeps an earlier session's colours; then the diff's highlights, outlines and ghosts; then
+ * Transparency, on the IFC and on the plan drawing.
+ */
+async function dressModel(model: FragmentsModel, name: string) {
+  await undress(model);
+  const isRevision = splitName(name).revision !== null;
+  diffButton.hidden = !isRevision;
+  diffButton.setAttribute("aria-pressed", String(viewState.diff && isRevision));
+  xrayButton.setAttribute("aria-pressed", String(viewState.xray));
+  const coloured = new Set<number>();
+  if (shownDiff && modelJson) {
+    const here = storeyIndex(modelJson);
+    const { byStatus } = await itemsByStatus(model, shownDiff.status, (id) => here.get(id));
+    // Glazing keeps its transparency: windows are highlighted apart, see-through.
+    const windows = new Set<number>();
+    for (const [localId, item] of await model.getItems()) if (String((item as { category?: string }).category) === "IFCWINDOW") windows.add(localId);
+    for (const status of ["added", "changed"] as const) {
+      const ids = [...byStatus[status].values()].flat();
+      if (!ids.length) continue;
+      const solid = ids.filter((id) => !windows.has(id));
+      const glazed = ids.filter((id) => windows.has(id));
+      if (solid.length) await model.highlight(solid, { color: new THREE.Color(DIFF_COLOURS[status].fill), renderedFaces: 1, opacity: 1, transparent: false, customId: `diff-${status}` });
+      if (glazed.length) await model.highlight(glazed, { color: new THREE.Color(DIFF_COLOURS[status].fill), renderedFaces: 1, opacity: 0.5, transparent: true, customId: `diff-${status}-glazing` });
+      for (const id of ids) coloured.add(id);
+      await outline(model, byStatus[status], status);
+    }
+    await dressGhosts(model);
+  }
+  if (viewState.xray) {
+    const all = [...(await model.getItems()).keys()];
+    const faded = all.filter((id) => !coloured.has(id));
+    if (faded.length) await model.setOpacity(faded, FADE);
+  }
+  fadePlan(viewState.xray);
+  await fragments.core.update(true);
+}
+
+/** The removed elements, drawn from the base model in the removed fill, see-through and outlined. */
+async function dressGhosts(model: FragmentsModel) {
+  if (!shownDiff) return;
+  const removed = new Map([...shownDiff.status].filter(([, s]) => s === "removed"));
+  if (!removed.size) return;
+  const loaded = await loadResident(shownDiff.baseName, splitName(shownDiff.baseName).model);
+  if (!loaded) {
+    diffNote = ` · removed elements need ${shownDiff.baseName} built`;
+    return;
+  }
+  const ghost = loaded.entry.model;
+  if (ghost === model) return;
+  await ghost.resetHighlight();
+  await ghost.resetOpacity(undefined);
+  const there = storeyIndex(shownDiff.base);
+  const { byStatus, plain } = await itemsByStatus(ghost, removed, (id) => there.get(id));
+  if (plain.length) await ghost.setVisible(plain, false);
+  ghostItems = byStatus.removed;
+  const ids = [...ghostItems.values()].flat();
+  for (const [storey, storeyIds] of ghostItems) await ghost.setVisible(storeyIds, isShown(storey));
+  if (ids.length) await ghost.highlight(ids, { color: new THREE.Color(DIFF_COLOURS.removed.fill), renderedFaces: 1, opacity: 0.5, transparent: true, customId: "diff-removed" });
+  for (const [localId, item] of await ghost.getItems()) {
+    const label = elementLabel(item.data);
+    if (label && ids.includes(localId)) ghostLabels.set(localId, label);
+  }
+  window.__elmsteadGhosts = [...new Set([...ghostLabels.values()].map((l) => l.id))].sort();
+  world.scene.three.add(ghost.object);
+  ghostModel = ghost;
+  await outline(ghost, ghostItems, "removed");
+}
+
+const diffButton = document.getElementById("diff") as HTMLButtonElement;
+const xrayButton = document.getElementById("xray") as HTMLButtonElement;
+const changesPanel = document.getElementById("changes") as HTMLDivElement;
+
+const setFlag = (key: string, on: boolean) => {
+  if (on) params.set(key, "1");
+  else params.delete(key);
+  history.replaceState(null, "", `?${params}`);
+};
+
+/** View changes run one after another, so two quick clicks can't interleave their dressing. */
+let viewChain: Promise<void> = Promise.resolve();
+
+/**
+ * Apply a change to the view (a toggle, a panel checkbox) to the shown model, with the old picture
+ * held until the new one is complete, then tell tests it has been drawn.
+ */
+function applyViewChange(change: () => void): Promise<void> {
+  viewChain = viewChain.then(async () => {
+    const model = currentModel;
+    holdingFrame++;
+    world.renderer!.enabled = false;
+    try {
+      change();
+      if (model && modelJson) {
+        const epoch = loadEpoch;
+        await refreshDiff(model.modelId, modelJson);
+        await loadLabels(model.modelId, modelJson, epoch);
+        if (epoch !== loadEpoch) return;
+        applyStyle();
+        await dressModel(model, model.modelId);
+        status.textContent = `${model.modelId}.ifc${storeysNote}${diffNote}`;
+        window.__elmsteadNote = diffNote;
+      }
+    } finally {
+      world.renderer!.enabled = --holdingFrame === 0;
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => (window.__elmsteadViewChanges = (window.__elmsteadViewChanges ?? 0) + 1)));
+  });
+  return viewChain;
+}
+
+const toggleDiff = () => applyViewChange(() => setFlag("diff", (viewState.diff = !viewState.diff)));
+diffButton.addEventListener("click", () => void toggleDiff());
+xrayButton.addEventListener("click", () => void applyViewChange(() => setFlag("xray", (viewState.xray = !viewState.xray))));
+
+// D toggles Diff mode, with the storey shortcut's exceptions: not in walk mode (D strafes there), with
+// a modifier held, on auto-repeat, in snapshots, or while typing in a form control.
+window.addEventListener("keydown", (e) => {
+  if (e.code !== "KeyD" || snapshot || savedView || diffButton.hidden || e.repeat || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+  const target = e.target;
+  if (target instanceof HTMLElement && target.matches("input, select, textarea")) return;
+  e.preventDefault();
+  void toggleDiff();
+});
+
+const SIGN: Record<DiffStatus, string> = { added: "+", changed: "~", removed: "−" };
+
+/**
+ * The changes panel, while Diff mode is on: each category's count with a checkbox to show or hide it,
+ * then every change of the shown storeys, by storey, each framing its element when clicked.
+ */
+function renderChangesPanel() {
+  if (!shownDiff || snapshot) {
+    changesPanel.hidden = true;
+    changesPanel.replaceChildren();
+    return;
+  }
+  const { diff, base } = shownDiff;
+  const rows: HTMLElement[] = [];
+  for (const s of ["added", "changed", "removed"] as const) {
+    const label = document.createElement("label");
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = shownCategories[s];
+    box.dataset.status = s;
+    box.addEventListener("change", () => void applyViewChange(() => (shownCategories[s] = box.checked)));
+    const swatch = document.createElement("span");
+    swatch.className = "swatch";
+    swatch.style.background = DIFF_COLOURS[s].fill;
+    swatch.style.borderColor = DIFF_COLOURS[s].accent;
+    label.append(box, swatch, `${diff[s].length} ${s}`);
+    rows.push(label);
+  }
+  const storeys = modelJson?.storeys ?? base.storeys;
+  for (const storey of storeys) {
+    if (!isShown(storey.id)) continue;
+    const entries = (["added", "changed", "removed"] as const).flatMap((s) => (shownCategories[s] ? diff[s].filter((e) => e.storey === storey.id).map((e) => ({ ...e, status: s })) : []));
+    if (!entries.length) continue;
+    const heading = document.createElement("h3");
+    heading.textContent = storey.name; // text, never markup
+    const list = document.createElement("ul");
+    for (const e of entries) {
+      const li = document.createElement("li");
+      const b = document.createElement("button");
+      b.textContent = `${SIGN[e.status]} ${e.id}`;
+      b.dataset.id = e.id;
+      b.style.color = DIFF_COLOURS[e.status].accent;
+      b.addEventListener("click", () => void flyToChange(e.id, e.status, storey.id));
+      li.append(b);
+      list.append(li);
+    }
+    rows.push(heading, list);
+  }
+  changesPanel.replaceChildren(...rows);
+  changesPanel.hidden = false;
+}
+
+/** Frame the camera on a change, in the direction it is looking, showing its storey first if hidden. */
+async function flyToChange(id: string, status: DiffStatus, storey: string) {
+  if (!isShown(storey)) await applyStoreyChoice(storey);
+  const model = status === "removed" ? ghostModel : currentModel;
+  if (!model) return;
+  const ids: number[] = [];
+  for (const [localId, item] of await model.getItems()) if ((item.data.Tag?.value ?? item.data.Name?.value) === id) ids.push(localId);
+  if (!ids.length) return;
+  const sphere = (await model.getMergedBox(ids)).getBoundingSphere(new THREE.Sphere());
+  sphere.radius = Math.max(sphere.radius * 1.8, 1.5); // some context round it
+  await world.camera.controls.fitToSphere(sphere, false);
+  await fragments.core.update(true);
+  requestAnimationFrame(() => requestAnimationFrame(() => (window.__elmsteadViewChanges = (window.__elmsteadViewChanges ?? 0) + 1)));
+}
+
+/** The diff's colours, as three.js hex strings, so Transparency can leave the diff's drawing solid. */
+const DIFF_HEX = new Set(Object.values(DIFF_COLOURS).flatMap((c) => [c.fill, c.accent, c.floor].map((h) => h.slice(1).toLowerCase())));
+
+/**
+ * Transparency on the plan drawing: every plan-style layer's materials faded, or back as they were.
+ * The diff's own colours stay solid, as the changes do in 3D.
+ */
+function fadePlan(on: boolean) {
+  planLayers.traverse((o) => {
+    const material = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+    if (!material) return;
+    for (const m of Array.isArray(material) ? material : [material]) {
+      const colour = (m as THREE.MeshBasicMaterial).color;
+      if (colour && DIFF_HEX.has(colour.getHexString())) continue;
+      const was = (m.userData.unfaded ??= { opacity: m.opacity, transparent: m.transparent }) as { opacity: number; transparent: boolean };
+      m.opacity = on ? was.opacity * FADE : was.opacity;
+      m.transparent = on || was.transparent;
+      m.needsUpdate = true;
+    }
+  });
 }
 
 const labelsButton = document.getElementById("labels") as HTMLButtonElement;
