@@ -4,9 +4,9 @@ Implement after ELM-15 has merged; rebase this branch on it first.
 
 ## 1. The diff
 
-- [ ] 1.1 Add `diffModels(base, revision)` in `src/diff/` on the shared `idNodes` walk in `src/schema/ids.ts`, matching by id over walls, openings, slabs, rooms, stairs, railings, storeys (own fields only, never added or removed) and components, ordered by each model's own order; verify unit tests for added, removed, changed, moved to another storey, a renamed element, a raised storey and a revision with no edits
-- [ ] 1.2 Count an opening as changed when its component was changed or added, or its host wall was changed; verify tests where only the component is replaced, where a wall's start moves with its window untouched, and where a door is re-hosted on a new wall
-- [ ] 1.3 Verify a test that every collection `idNodes` walks is covered by the diff, so a new element type fails until it is mapped
+- [x] 1.1 Add `diffModels(base, revision)` in `src/diff/` on the shared `idNodes` walk in `src/schema/ids.ts`, matching by id over walls, openings, slabs, rooms, stairs, railings, storeys (own fields only, never added or removed) and components, ordered by each model's own order; verify unit tests for added, removed, changed, moved to another storey, a renamed element, a raised storey and a revision with no edits
+- [x] 1.2 Count an opening as changed when its component was changed or added, or its host wall was changed; verify tests where only the component is replaced, where a wall's start moves with its window untouched, and where a door is re-hosted on a new wall
+- [x] 1.3 Verify a test that every collection `idNodes` walks is covered by the diff, so a new element type fails until it is mapped
 
 ## 2. CLI output
 
