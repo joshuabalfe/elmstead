@@ -65,7 +65,9 @@ jobs:
       matrix:
         include:
           - group: plan-vs-3d
-            args: tests/plan-vs-3d.test.ts
+            args: tests/plan-vs-3d.test.ts tests/plan-vs-3d-elmstead.test.ts
+          - group: viewer-storey-selection
+            args: tests/viewer-storey-selection.test.ts
           - group: viewer-storey-keys
             args: tests/viewer-storey-keys.test.ts
           - group: viewer-presentation
@@ -87,6 +89,8 @@ jobs:
           - group: rest
             args: >-
               --exclude tests/plan-vs-3d.test.ts
+              --exclude tests/plan-vs-3d-elmstead.test.ts
+              --exclude tests/viewer-storey-selection.test.ts
               --exclude tests/viewer-storey-keys.test.ts
               --exclude tests/viewer-presentation.test.ts
               --exclude tests/viewer-revisions.test.ts

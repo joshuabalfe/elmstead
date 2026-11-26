@@ -56,7 +56,9 @@ tests table below).
 | `tests/guid.test.ts` | UUIDv5 and IFC GUID compression against reference vectors; fixed GlobalIds for known ids |
 | `tests/io.test.ts` | atomic writes leave the previous file and no temp file after a failure |
 | `tests/ifc.test.ts` | byte-identical IFC, GlobalId stability, door and window types, window partitioning, round-trip volumes, validator pass and fail cases |
-| `tests/plan-vs-3d.test.ts` | the viewer's Top view shows the same walls, rooms and openings as the plan, for each model; that the check catches a room outline run to a wall's centreline; storey selection: the status note for an unknown id, hidden storeys' geometry, the selector and the camera |
+| `tests/plan-vs-3d.test.ts` | the viewer's Top view shows the same walls, rooms and openings as the plan, for the example cottage and the two-storey fixture |
+| `tests/plan-vs-3d-elmstead.test.ts` | the same for each Elmstead storey, and that the check catches a room outline run to a wall's centreline |
+| `tests/viewer-storey-selection.test.ts` | the floor picker: the status note for an unknown storey id, hidden storeys' geometry, the selector and the camera |
 | `tests/viewer-storey-keys.test.ts` | the storey keyboard shortcut: stepping through floors, the ends, the selector's focus, modifiers, single-storey models, snapshots and walk mode |
 | `tests/viewer-presentation.test.ts` | the railings, the stair's tread bands, the ground slab's colour, and that no uploaded texture exceeds 1024 × 1024 texels |
 | `tests/window.test.ts` | frames and glazing bars: pane ratios, no overlaps, frame inside the window's size, fit checks, IFC volumes, plan symbol |
@@ -79,7 +81,7 @@ The three viewer files above share Chromium, the viewer's server and the pixel h
 after another on one page, so a file is the unit CI can run in parallel: keep a new viewer file
 to about two minutes on CI, and split it when it grows past that.
 
-`tests/plan-vs-3d.test.ts` builds each model into a temporary folder, serves it with the viewer
+The `plan-vs-3d` files build each model into a temporary folder, serves it with the viewer
 (`ELMSTEAD_OUT_DIR`), reads the WebGL canvas back and compares it with the plan's pixels
 (`tests/support/plan-vs-3d.ts`):
 
