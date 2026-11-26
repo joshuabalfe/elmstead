@@ -4,61 +4,77 @@
 
 See `proposal.md` for the motivation. The pieces this change builds on:
 
-- `src/cli/load.ts`: `modelName(path)` gives the output name, the file name or, for `index.ts`, the
-  folder name. `loadModel` imports the module and validates its default export through JSON.
-- `src/constraints/load.ts`: `constraintsPath(modelPath)` finds `constraints.ts` or
-  `<name>.constraints.ts`. Every constraint point names an element by id. A group can also be scoped
-  to a storey or a room by id.
-- `viewer/vite.config.ts` serves `/models.json` as the base name of every `out/*.ifc`. The snapshot
-  driver opens `?model=<name>`. `viewer/main.ts`'s `load(name)` disposes the current Fragments model,
-  loads the new IFC and JSON, then frames the camera from `?view=`.
-- Element ids are stable and give the IFC GlobalIds. If a revision keeps an element's id, that
-  element keeps its GlobalId in the revision's IFC as well.
+- **`src/cli/load.ts`.** `modelName(path)` gives the output name: the file name or, for `index.ts`,
+  the folder name. `loadModel` imports the module and validates its default export through JSON.
+- **`src/constraints/load.ts`.** `constraintsPath(modelPath)` already gives `constraints.ts` inside a
+  folder and `<name>.constraints.ts` beside a file. For a revision path it therefore already finds
+  the revision's own constraints file. Constraint ids are kebab-case and unique within a file. Each
+  point names elements by id (`src/constraints/resolve.ts`).
+- **Ids already have two indexes.** `indexModel` in `src/constraints/resolve.ts` and `idEntries` in
+  `src/checks/model.ts` each walk every id in a model. `checkIds` rejects a duplicate id anywhere in
+  the model, because ids are the IFC GlobalId keyspace.
+- **The viewer.** `viewer/vite.config.ts` serves `/models.json` as the base name of every `out/*.ifc`,
+  and the snapshot driver opens `?model=<name>`. `viewer/main.ts`'s `load(name)`:
+  - disposes the current Fragments model;
+  - loads the IFC and JSON;
+  - sets `box` and the grid height from the new model;
+  - calls `setView(?view=)`, then re-applies `?camera=` if it is present (`viewer/main.ts:1342-1348`).
+- **Example models.** `models/example-cottage/` is already a folder model, with `index.ts` and
+  `constraints.ts`. `models/example-two-storey/` has no doors or windows. It exists as the stair
+  fixture for `tests/ifc.test.ts`, `plan-vs-3d.test.ts`, `render.test.ts`, `stair.test.ts`,
+  `viewer-identify.test.ts` and `fixtures/bad-stair.ts`.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Write a revision as a short list of edits that reads like a description of the works.
+- Write a revision as an explicit list of edits to geometry and to constraints, so that it reads like
+  a description of the works and every departure from the measured building is written down.
 - Make a revision an ordinary model to every stage after loading: no schema, IFC or render changes.
+- Let a large revision be structured like a large model.
 - Switch revisions in the viewer from one viewpoint.
-- Lay the naming and loading that ELM-16's diff needs: base and revision are two named outputs whose
-  elements share ids.
+- Lay the naming, loading and id index that ELM-16's diff needs.
 
 **Non-Goals:**
 - Computing or drawing the difference between a revision and its base (ELM-16).
+- Revisions that add, remove or change storeys.
 - A schema-level patch format, or recording a revision's base inside the JSON or IFC.
 - Merging revisions, ordering them into phases, or revisions of revisions.
 
 ## Decisions
 
-### A revision is TypeScript that edits the base, not a JSON patch or a copy
+### One id index, in `src/schema/ids.ts`
 
-`models/<model>/revisions/<revision>.ts` imports the base model's default export and returns
-`revise(base, [...edits])`:
+`indexModel` and `idEntries` become one function, `indexIds(model)`. It returns, for every id, its
+kind, its collection path (storey and array, or `components.doors` and so on) and its element.
+`checkIds`, constraint resolution and `revise` all use it, and ELM-16's diff will too. It lives in
+`schema` because it depends only on the types, and `schema` already sits beneath every other module.
+It is a pure refactor and lands first, with the existing tests unchanged.
+
+### A revision is TypeScript that edits the base, with explicit collections
+
+A revision imports the base model's default export and returns `revise(base, [...edits])`:
 
 ```ts
-import base from "../index.js";
-import { revise, remove, replace, add, wall, door } from "../../../src/model/index.js";
+import base from "../index.js"; // "../../index.js" from a folder revision
+import { revise, remove, replace, add, addComponents, wall, door } from "../../../src/model/index.js";
 
 export default revise(base, [
-  remove("wall-rear-kitchen", "door-rear-kitchen"),
+  remove("door-rear-kitchen", "wall-rear-kitchen"),
   replace(wall("wall-east", ...)),
-  add("storey-ground", wall("wall-ext-north", ...), door("door-ext", ...)),
+  add("storey-ground", { walls: [wall("wall-ext-north", ...)], openings: [door("door-ext", ...)] }),
 ]);
 ```
 
-`revise` deep-clones the base and applies the edits in order. It indexes every id-bearing element,
-storeys and components included, with its collection and storey. That gives each edit its errors
-(unknown id, duplicate id, kind mismatch) and lets `replace` keep an element in its place in its
-array, so a revision's JSON lists elements in the base's order and diffs stay small. An edit that
-adds an element to a storey appends it to the right collection for its kind. The collection is read
-from the value's shape (`kind` for openings and stair segments; the fields that only walls, slabs,
-rooms, stairs and railings carry). `add` therefore takes ordinary helper output and needs no
-per-kind variants.
+`revise` deep-clones the base and applies the edits in order, using the id index for every lookup.
 
-Revisions can also use the base's own helper modules. An extension's walls can be built from
-`shared.ts`'s thicknesses and faces, which is the real reason to write revisions in TypeScript
-rather than JSON.
+- **`add`** names the collection explicitly (`walls`, `openings`, `slabs`, `rooms`, `stairs`,
+  `railings`), so there's no guessing from a value's shape. Today a wall and a railing differ only by
+  `thickness`.
+- **`replace`** puts the new value at the old one's array index, in the old one's collection, so a
+  revision's JSON lists elements in the base's order and diffs stay small.
+- **Schema validation.** The value a `replace` puts in a collection is checked against that
+  collection's schema when the revision's JSON is validated. The error is reported against the id.
+- **Storeys.** `remove` and `replace` reject a storey id, and there is no storey-adding edit.
 
 Alternatives considered:
 - **A full copy per revision.** It drifts from the base the first time the base is corrected.
@@ -67,6 +83,31 @@ Alternatives considered:
 - **Fields on each element saying which phase it belongs to.** This makes one model hold every
   proposal at once and needs a filter at every stage. It is a bigger schema change for the same
   result.
+- **Inferring the collection from a value's shape.** Rejected as above: fragile today, and wrong as
+  soon as two element types share a shape.
+
+### Edits act on values; parametric changes belong in the base
+
+`revise` edits the finished values the base produced, not the variables they were derived from.
+That fits additions and demolitions, which are most of what a proposal does. It fits parametric
+changes poorly. Moving Elmstead's rear wall 3 m would mean replacing:
+- the wall;
+- every room traced along it;
+- the slabs;
+- the opening offsets.
+
+All of that is derived from one variable in `shared.ts`.
+
+The documented answer is to make the base parametric where a revision needs it. The base module
+exports a function of the dimensions in question, its default export calls it with the measured
+values, and the revision calls it with the proposed ones, then applies `revise` for the rest. This
+needs no new machinery, and it keeps the existing building as the default.
+
+There is one hazard to document, which ELM-16 must also handle. An opening is placed by
+`offsetAlongWall` from its wall's start. If a revision replaces a wall and moves its start, every
+opening in it moves in space while the opening's own JSON stays the same.
+- Constraints catch this, because an opening point resolves through its host wall.
+- ELM-16's diff must count an opening as changed when its host wall changed.
 
 ### Removal does not cascade
 
@@ -75,46 +116,73 @@ demolition explicit. If it doesn't, the existing host-wall check reports the orp
 its id. Cascading would hide removals from the person reading the revision file, and from ELM-16's
 change list.
 
-### The output name is `<model>@<revision>`, derived from the path
+### Revisions are files or folders under `revisions/`; the name is `<model>@<revision>`
 
-`modelName` recognises `<folder>/revisions/<file>.ts` and returns `<folder>@<file>`. `@` cannot
-appear in a kebab-case name, so the split is unambiguous. It is also safe in file names on every
-platform the repo runs on, and needs no escaping beyond what `URLSearchParams` already does.
+`modelName` recognises three forms, where `<folder>/index.ts` exists:
+- `<folder>/revisions/<r>.ts`;
+- `<folder>/revisions/<r>/`;
+- `<folder>/revisions/<r>/index.ts`.
+
+It returns `<basename(folder)>@<r>`. Files deeper inside a folder revision are never entry points.
+A folder under `revisions/` without an `index.ts` isn't a revision, so revisions can share helper
+modules from, say, `revisions/shared/`.
+
+`@` cannot appear in a kebab-case name, so the split is unambiguous. It is also safe in file names on
+every platform the repo runs on, and needs no escaping beyond what `URLSearchParams` already does.
 Everything downstream (`out/` paths, `/models.json`, `?model=`, the snapshot driver, plan file names)
 treats it as an opaque name and needs no change.
 
 The JSON's `project` and `building` ids stay as in the base. Nothing records the revision's base
-except the name. A field such as `basedOn` would be schema for the viewer's convenience only, and it
+except the name: a field such as `basedOn` would be schema for the viewer's convenience only, and it
 could disagree with the folder the revision actually sits in.
+
+The CLI also loads the base model (`<folder>`) for a revision and compares storey ids, reporting
+missing and extra ones. `revise` already prevents storey edits, so this catches only a revision built
+by hand. It keeps the same-storeys assumption checked, rather than just assumed, for the viewer and
+ELM-16.
 
 Alternatives considered: a separate `?revision=` parameter (two parameters to keep in step, and the
 snapshot driver would need to learn it); `--` as a separator (ambiguous with kebab-case names).
 
-### Which constraints a revision inherits
+### Constraints are inherited whole and edited explicitly
 
-The constraints loader learns two things:
+The constraints loader resolves, for a revision:
 
-1. **The base constraints file.** For `<folder>/revisions/<r>.ts`, this is `<folder>/constraints.ts`.
-2. **The ids each constraint references.** This covers both points' element ids, the host wall of
-   an opening point, and its group's room scope. A group's storey scope is not an element: the
-   storey only has to exist in the revision. If it had to serialise identically, any edit on that
-   storey would skip all of its constraints.
+1. **The revision's own file**, found by the existing `constraintsPath(revisionPath)`. If it exists,
+   its groups are the revision's constraints. It normally imports the base's groups and returns
+   `reviseConstraints(base, [...edits])`:
 
-A base constraint is checked on the revision when every element it references exists in both
-models and serialises identically. Otherwise it is skipped and counted. Comparing serialised JSON
-is exact because the JSON is deterministic. It also means a constraint on a wall stays live even
-when the revision adds openings to that wall, since an opening is a separate element.
+   ```ts
+   import base from "../../constraints.js";
+   import { reviseConstraints, removeConstraint, replaceConstraint, addGroups, inRoom, ... } from ".../src/constraints/index.js";
 
-The revision's own `<r>.constraints.ts` is loaded with the existing loader and checked normally.
+   export default reviseConstraints(base, [
+     removeConstraint("kitchen-rear-wall-length", "rear wall demolished for the extension"),
+     addGroups(inRoom("room-extension", [{ id: "extension-width", note: "architect's drawing A-102 rev C", ... }])),
+   ]);
+   ```
 
-`<model>@<revision>.constraints.json` concatenates the checked inherited constraints and the own
-ones, so the viewer's constraint layer needs no change.
+2. **Otherwise the base's file**, `<folder>/constraints.ts`, used unchanged.
+
+`reviseConstraints` mirrors `revise`. Removing or replacing an unknown id throws, and so does adding
+an existing one. A removal needs a non-empty note. The removal notes are not written anywhere else:
+they're for the person reading the file, as every other constraint note is.
+
+Nothing is skipped automatically. Every constraint the revision ends up with is checked, and a
+failure gates the command. The ERROR for a constraint that comes from the base file adds "remove or
+replace it in `<revision constraints path>`".
+
+The summary line names whichever file supplied the groups. When that is the revision's own file, it
+adds the removed, replaced and added counts, which `reviseConstraints` records alongside the groups
+it returns. A non-enumerable property keeps them out of the JSON round-trip, and the loader reads
+them before the round-trip.
 
 Alternatives considered:
-- **Check every base constraint and report failures as WARNINGs.** Noisy, and it hides a real
-  regression on an untouched wall among expected failures.
-- **Ignore base constraints entirely.** A revision could then silently move an existing wall it
-  never meant to touch.
+- **Skip, automatically, constraints that reference changed elements.** This was the first draft. It
+  silently drops checks on any element a revision touches. It also over-skipped: a reshaped room
+  would have taken every wall-only constraint in its group with it, and Elmstead has 13 room-scoped
+  groups. Explicit edits replace the referenced-ids machinery entirely.
+- **A fully separate constraints file per revision.** It drifts from the base's real measurements.
 
 ### The viewer splits names, and loads a revision in place
 
@@ -122,47 +190,78 @@ Alternatives considered:
 lists the groups; a second `<select id="revision">` lists "Existing" and the group's revisions in
 name order.
 
-`load(name)` gains a `keepView` flag. When set, it skips framing and the projection reset, keeps
-`?storeys=` (filtered against the new JSON by the existing `parseStoreysParam` fallback), and keeps
-Ids mode. A revision switch passes the flag; a model switch does not. Measurements are still cleared,
-because their snapped points belong to the old geometry. The load epoch already guards against a
-quick double switch.
+`load(name, { keepView })`, for a revision switch:
+- still updates `box`, the grid height and the compass from the new model;
+- skips `setView` and the `?camera=` re-application;
+- keeps `?storeys=` and Ids mode.
 
-Arrow Left and Arrow Right reuse the storey shortcut's guard, with the revision picker standing in
-for the storey selector. Walk mode already owns all four arrows, so the guard's walk-mode exit covers
-it.
+Storeys are identical across a model's revisions, so the storey selection carries over as it is.
+Measurements are still cleared, because their snapped points belong to the old geometry. Changing
+the picker calls `exitWalk()` first, as the model picker does. The load epoch already guards against
+a quick double switch.
 
-Alternatives considered: keeping every revision's Fragments model loaded and toggling visibility.
-That would switch faster, but costs memory per revision and complicates hover, ids and storey
-visibility, which all assume one model. ELM-16 needs the base loaded alongside a revision for its
-ghosts and can introduce a second model there, where it is needed.
+Arrow Left and Arrow Right follow the storey shortcut's guard, with one difference: while any of the
+viewer's `<select>`s has focus, the handler calls `preventDefault`. On Windows and Linux a focused,
+closed `<select>` changes its own value on Left and Right. Without `preventDefault`, pressing Right
+with the storey selector focused would change the storey as well as the revision. Walk mode already
+owns all four arrows, and the guard's walk-mode check covers it.
 
-### An example revision on `example-two-storey`
+Alternatives considered:
+- **Keeping every revision's Fragments model loaded and toggling visibility.** That would switch
+  faster, but costs memory per revision and complicates hover, ids and storey visibility, which all
+  assume one model. ELM-16 needs the base loaded alongside a revision for its ghosts, and can bring
+  in a second model there, where it's needed.
+- **`[` and `]` as the shortcut.** These need no `preventDefault`, but they are awkward on non-UK and
+  non-US layouts, and the arrows pair naturally with the storey shortcut.
 
-The tests need a revision on a real folder model. `example-two-storey` is small and already
-exercises two storeys and a stair. Its revision removes an external wall's window, adds a
-single-storey lean-to with a door through the existing wall, and widens one ground-floor window.
-That covers remove, add and replace in a few lines. A small `example-two-storey/constraints.ts`
-gives the inheritance rule something to skip and something to keep.
+### Example models
+
+- **`example-cottage` moves to `models/examples/example-cottage/`.** Its name, and therefore its
+  outputs, are unchanged. Every reference moves with it: `README.md`, `docs/`, the tests and their
+  fixtures, and the `cli` spec's scenarios.
+- **It gets `revisions/rear-extension.ts`,** which:
+  - knocks the living room and kitchen through, removing `wall-living-kitchen` and replacing the two
+    rooms with one;
+  - removes `window-kitchen`;
+  - adds a lean-to off the north wall, with a doorway through `wall-north` into it;
+  - widens `window-bedroom` by replacing it.
+
+  That covers remove, replace and add, and it breaks some of the cottage's constraints.
+- **It gets `revisions/rear-extension.constraints.ts`,** which removes the constraints the revision
+  invalidates, with notes, and adds one extension dimension marked as illustrative, like the
+  cottage's own constraints.
+- **`example-two-storey` moves to `tests/fixtures/two-storey/`.** It is no longer a model, but its
+  six tests keep their stair coverage. `docs/modelling.md`'s stair example points at the fixture, or
+  at Elmstead's `ground/stair.ts`.
 
 ## Risks / Trade-offs
 
-- **[Risk]** A revision importing `../index.js` runs the base module twice in one process if a
-  command loads both. → `import()` caches modules, and `revise` clones before editing, so the base
-  object is never mutated.
-- **[Risk]** Inferring the collection from a value's shape could misfile a future element type. →
-  Inference lives in one function beside the schema, and a test asserts that every schema collection
-  is covered, so a new type fails the test until it is mapped.
+- **[Risk]** A revision importing the base evaluates the base module, and a command that also loads
+  the base, for the storey check, evaluates it again. → `import()` caches modules, and `revise`
+  clones before editing, so the base object is never mutated.
+- **[Risk]** A revision author mutates a base module's exported object, for example
+  `ground.walls.push(...)`, instead of using `revise`. That would corrupt the base within the same
+  process. → Document it. `revise`'s clone protects against everything else; freezing the base
+  object is a possible follow-up.
+- **[Trade-off]** Explicit constraint edits mean a revision that breaks base constraints must list
+  them before it builds. → This is intended: it is the same "fix the model, not the constraint"
+  discipline, with the edit visible in the revision.
 - **[Trade-off]** Building every revision is one command per revision. → Acceptable for now. `all`
-  over a folder of revisions is an easy follow-up if the friction is real.
-- **[Trade-off]** Measurements do not survive a revision switch, so the same distance can't be read
-  in both versions without measuring twice. → Snapping is tied to the loaded geometry. Re-snapping
-  points across models is ELM-16 territory, if wanted at all.
-- **[Risk]** A rebuild of the base while a revision is shown triggers a full reload. → The URL keeps
+  over a folder of revisions is an easy follow-up.
+- **[Trade-off]** Measurements do not survive a revision switch. → Snapping is tied to the loaded
+  geometry.
+- **[Risk]** A rebuild while a revision is shown triggers a full page reload. → The URL keeps
   `?model=` and `?storeys=`, so the reload returns to the same revision. The camera is re-framed, as
   it is today for any rebuild.
+- **[Risk]** Moving the example models touches many files. → It's a mechanical rename with no
+  behaviour change, landed as its own commit before any revision work, with `npm test` passing.
 
 ## Migration Plan
 
-Additive. Existing models, outputs and URLs are unchanged. A model without a `revisions/` folder
-behaves exactly as before, and the revision picker stays hidden.
+1. Move `example-two-storey` into `tests/fixtures/` and `example-cottage` into `models/examples/`.
+   Update the references and commit with `npm test` passing.
+2. Extract `indexIds`, a refactor that leaves the existing tests unchanged.
+3. Add revisions, revision constraints, then the viewer.
+
+Existing model outputs and URLs are unchanged. A model without a `revisions/` folder behaves exactly
+as before, and the revision picker stays hidden.
