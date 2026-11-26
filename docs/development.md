@@ -132,8 +132,8 @@ cancels its stale run. Three kinds of job, all started together:
   IfcOpenShell validator and the 3D-versus-plan comparison. It runs as a matrix of groups, one
   runner each, because the browser and CLI tests fight over the cores of a single runner. Each
   heavy test file is named in a group; **rest** runs every file no group names, so a new test
-  file is always run. When you add a heavy file, give it a group and add it to rest's `--exclude`
-  list.
+  file is always run. When you add a heavy file, give it a group, add it to rest's `--exclude`
+  list, and add it to `test:fast`'s `--exclude` list in `package.json` too, or **fast** runs it.
 
 The actions are pinned by commit SHA, matching the repo's exact-version rule.
 
