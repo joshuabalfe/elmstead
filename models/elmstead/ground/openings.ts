@@ -7,7 +7,7 @@
  * opening and frame, and the bedroom window's sill and head, are the owner's.
  */
 import { add, centredOn, deg, div, divRound, door, doorway, face, m, mid, mm, scale, sub, window, type Opening } from "../../../src/model/index.js";
-import { fanlight, frontDoor, frontWindow, internalDoor, smallPaneWindow, standardWindow } from "../components/index.js";
+import { fanlight, framedWindow, frontDoor, frontWindow, internalDoor, smallPaneWindow } from "../components/index.js";
 import { living } from "./rooms.js";
 import { bathWestX, bedroomBathroom, bedroomWallY, east, extEast, livingBedroom, lobbyBathroom, lobbyScreen, lobbyScreenLobbyStart, lobbyScreenLobbyVisibleLength, northIn, partitionEast, southIn, west } from "./walls.js";
 
@@ -64,5 +64,7 @@ export const openings: Opening[] = [
   doorway("door-lobby", lobbyScreen, lobbyDoorwayOffset, internal),
 
   window("window-bedroom", east, bedroomWindowOffset, smallPaneWindow, bedroomWindowSize, insideReveal),
-  window("window-rear-hall", extEast, mm(700), standardWindow, { ...standard, width: mm(950) }),
+  // Lowered to sit under the main half landing, where the extension wall stops; its position awaits
+  // the rear-hall plan, which drops the rear hall to the basement half landing.
+  window("window-rear-hall", extEast, mm(700), framedWindow, { ...standard, sillHeight: mm(200), width: mm(950) }),
 ];

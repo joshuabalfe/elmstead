@@ -4,11 +4,11 @@
  * dining/bedroom partition keep the ground floor's measured positions.
  *
  * The stair runs up the south flight, turns on the half landing in the extension, and comes back
- * west along the north flight to the landing. The stair well is left open; the flights themselves
- * belong to the stair change.
+ * west along the north flight to the landing. The stair well is left open; the flights are in
+ * ../ground/stair.ts, and the attic stair above them in ./stair.ts.
  */
 import { add, face, mm, pt, sub, wall } from "../../../src/model/index.js";
-import { atticRidgeHeight, atticRidgeX, brickT, coreD, coreW, extEastX, extSouthY, externalRuns, externalWall, firstFloor, partT, studT, westT } from "../shared.js";
+import { brickT, coreD, coreW, extEastX, extSouthY, externalRuns, externalWall, firstFloor, partT, studT, westT } from "../shared.js";
 import { livingBreast, partitionEast, partitionX } from "../ground/walls.js";
 
 export const wallH = firstFloor.ceilingHeight;
@@ -41,18 +41,8 @@ export const ensuiteSouthY = mm(3815); // bedroom face of the ensuite's south wa
 export const ensuiteSouthFaceY = add(ensuiteSouthY, partT);
 
 // ── External walls, on the ground floor's walls below ───────────────────────
-// The extension roof continues the attic's east slope down from the full ceiling where the extension
-// starts (coreW), tapering the extension walls' tops; the core and ensuite stay flat.
-const roofPitch = atticRidgeHeight / atticRidgeX; // the attic gable's rise per mm
-const extTopAt = (x: number) => mm(Math.round(wallH - roofPitch * (x - coreW)));
-const extEaves = extTopAt(extEastX);
-
+// The extension's walls stand on the half landings instead (../extension.ts): it is split level.
 export const north = wall("wall-north-first", pt(coreW, coreD), pt(mm(0), coreD), { thickness: externalRuns.north.thickness, height: wallH, justification: externalRuns.north.justification });
-export const northExt = wall("wall-north-extension-first", pt(extEastX, coreD), pt(coreW, coreD), {
-  thickness: externalRuns.north.thickness,
-  justification: externalRuns.north.justification,
-  profile: [{ along: mm(0), up: extEaves }, { along: sub(extEastX, coreW), up: wallH }],
-});
 export const south = externalWall("wall-south-first", externalRuns.south, wallH);
 export const southIn = face(south, "north");
 export const northIn = face(north, "south");
@@ -65,15 +55,6 @@ export const westIn = face(westNorth, "east");
 
 export const east = externalWall("wall-east-first", externalRuns.east, wallH);
 export const eastIn = face(east, "west");
-export const extEast = externalWall("wall-extension-east-first", externalRuns.extEast, extEaves);
-// Run out to the east wall's outer face (not the canonical run's inner-face end) so the taper meets
-// the flat east wall flush at the eaves, as the north extension wall does on its side.
-export const extSouth = wall("wall-extension-south-first", externalRuns.extSouth.start, pt(extEastX, extSouthY), {
-  thickness: externalRuns.extSouth.thickness,
-  justification: externalRuns.extSouth.justification,
-  profile: [{ along: mm(0), up: wallH }, { along: sub(extEastX, coreW), up: extEaves }],
-});
-
 // ── Bay window, west side of the dining room ────────────────────────────────
 // Lines are the bay's outer edge; its sides meet the west wall's outer face. Its ceiling is
 // 150 mm below the room's, and the lights run up to it, so no wall shows above them.
@@ -118,13 +99,10 @@ export const breastBedroom = wall("wall-breast-bedroom-first", pt(bedroomBreastW
 
 export const walls = [
   north,
-  northExt,
   south,
   westNorth,
   westSouth,
   east,
-  extEast,
-  extSouth,
   bayNorth,
   bayFront,
   baySouth,

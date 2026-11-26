@@ -126,3 +126,15 @@ export const atticFloor = {
   elevation: add(add(firstFloor.elevation, firstFloor.ceilingHeight), atticFloorStructure),
   ceilingHeight: atticRidgeHeight,
 };
+/**
+ * Each half landing is a storey of its own, so walls and openings can stand on it. Its level is the
+ * lower flight's share of the stair's risers, so both flights keep (almost) the same riser: the main
+ * stair is 9 + 8 risers (owner), the attic stair 8 + 8 (owner). The main landing rounds to the mm,
+ * leaving its two flights about 0.05 mm apart per riser.
+ */
+export const mainStairRisers = { lower: 9, upper: 8 };
+export const atticStairRisers = { lower: 8, upper: 8 };
+const halfLandingLevel = (bottom: Mm, top: Mm, risers: { lower: number; upper: number }): Mm =>
+  add(bottom, mm(Math.round(((top - bottom) * risers.lower) / (risers.lower + risers.upper))));
+export const mainHalfLanding = { elevation: halfLandingLevel(groundFloor.elevation, firstFloor.elevation, mainStairRisers) };
+export const atticHalfLanding = { elevation: halfLandingLevel(firstFloor.elevation, atticFloor.elevation, atticStairRisers) };

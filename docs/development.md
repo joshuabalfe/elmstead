@@ -78,6 +78,10 @@ tests table below).
   of its tile.
 - A failure lists the tiles in metres from the outer walls' south-west corner, so you can find the
   spot on the plan.
+- Some storeys are skipped. A storey with a pitched wall is skipped because a sloped top's cut
+  differs from its top view. A storey whose walls span less than 2 m in either direction, such as a
+  half landing framed by a narrow extension or by one wall, is skipped because the alignment counts
+  only rows and columns with a whole floor's worth of wall, and those walls don't have enough.
 
 If you change the plan renderer on purpose, review the new SVG and update the snapshot with
 `npx vitest run -u`.
