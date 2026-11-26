@@ -1,5 +1,5 @@
 /**
- * Elmstead. 9.025 m × 8.425 m stone core with a brick extension at the rear, north-east corner.
+ * Elmstead. 9.025 m × 8.425 m stone core with a brick extension at the rear, on the party-wall side.
  *
  *   shared.ts     outline, external wall runs, thicknesses and floor levels used by every floor
  *   street.ts     external works: street level, ground slab and front steps
@@ -14,9 +14,9 @@
  * climbs over it to the attic, each through a well left open in the slab above. Each stair's half
  * landing is a storey of its own, defined with its stair, so walls can stand on it.
  *
- * Plan axes follow the traced drawing: "north" in element ids (wall-north etc.) means the top of
- * the drawing. True north is roughly towards the plan's south-west corner, the one nearest the
- * large front window: 135° counter-clockwise from plan +y.
+ * Plan axes follow the traced drawing, and ids use building sides (front, rear, party, end, left,
+ * right); shared.ts maps one to the other. True north is 153° counter-clockwise from plan +y, so
+ * the front faces about 063° (east-north-east).
  */
 import { defineBuilding, deg } from "../../src/model/index.js";
 import { attic } from "./attic/index.js";
@@ -30,7 +30,9 @@ import { street } from "./street.js";
 
 export default defineBuilding({
   project: { id: "project-elmstead", name: "Elmstead" },
-  site: { id: "site-default", name: "Default site", northAngle: deg(135) },
+  // Measured from a north-up street map of Picton Rd: the terrace frontage bears about 153°/333°,
+  // so the front faces about 063° (east-north-east). Good to about ±2°.
+  site: { id: "site-default", name: "Default site", northAngle: deg(153) },
   building: { id: "building-elmstead", name: "Elmstead" },
   components,
   storeys: [basement, street, ground, mainHalfLandingStorey, first, atticHalfLandingStorey, attic],

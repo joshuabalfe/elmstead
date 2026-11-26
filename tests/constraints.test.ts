@@ -235,7 +235,7 @@ describe("corner, wall end and opening points", () => {
     expect(error(() => at(wallEnd("door-front", "start")))).toBe("door-front is a door, not a wall");
     const withStairs = indexModel(BuildingModelSchema.parse(JSON.parse(JSON.stringify(elmstead))));
     expect(error(() => resolvePoint(withStairs, wallEnd("stair-flight-front", "start"), ground))).toBe("stair-flight-front is a stair flight, not a wall");
-    expect(error(() => resolvePoint(withStairs, wallEnd("railing-front-north", "start"), ground))).toBe("railing-front-north is a railing, not a wall");
+    expect(error(() => resolvePoint(withStairs, wallEnd("railing-front-left", "start"), ground))).toBe("railing-front-left is a railing, not a wall");
     expect(error(() => at(corner({ wall: "wall-south", face: "north" }, { wall: "wall-north", face: "south" })))).toBe("the faces of wall-south and wall-north are parallel, so they do not meet");
   });
 });

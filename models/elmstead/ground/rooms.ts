@@ -2,92 +2,92 @@
 import { face, faceCrossing, mm, pt, rectRoom, type Room } from "../../../src/model/index.js";
 import { coreW } from "../shared.js";
 import {
-  bathNorthY,
+  bathLeftY,
   bedroomBathroom,
   bedroomWallY,
   breastBedroom,
   breastLiving,
-  east,
-  eastIn,
-  extEast,
-  extSouth,
+  rear,
+  rearIn,
+  extRear,
+  extRight,
   hallLiving,
   hallWallY,
   lobbyBathroom,
   lobbyScreen,
-  northIn,
-  partitionEast,
+  partyIn,
+  partitionRear,
   partitionX,
   spine,
-  spineEastX,
-  westIn,
+  spineRearX,
+  frontIn,
 } from "./walls.js";
 
-const hallNorthFace = face(hallLiving, "north");
-const spineNorth = face(spine, "north");
-const stairWestX = mm(5675); // where the stair footprint starts north of the spine
-const bathWestFace = face(lobbyBathroom, "east");
-const bedBathNorth = face(bedroomBathroom, "north");
-const rearHallEastX = mm(10000); // east face of the rear hall, where it meets the extension
+const hallLeftFace = face(hallLiving, "north");
+const spineLeft = face(spine, "north");
+const stairFrontX = mm(5675); // where the stair footprint starts left of the spine
+const bathFrontFace = face(lobbyBathroom, "east");
+const bedBathLeft = face(bedroomBathroom, "north");
+const rearHallRearX = mm(10000); // rear face of the rear hall, where it meets the extension
 
 // Starts at the front of the chimney breast: the alcoves either side of it are built-ins, not floor space.
-export const living = rectRoom("room-living", "Living room", { west: westIn, east: partitionX, south: face(breastLiving, "north"), north: hallWallY });
+export const living = rectRoom("room-living", "Living room", { west: frontIn, east: partitionX, south: face(breastLiving, "north"), north: hallWallY });
 
 export const rooms: Room[] = [
   living,
   {
     id: "room-hallway",
     name: "Hallway",
-    // Along the lobby screen's hall-side face (its left), from the hall wall to the spine's north corner.
+    // Along the lobby screen's hall-side face (its left), from the hall wall to the spine's left corner.
     outline: [
-      pt(westIn, hallNorthFace),
-      faceCrossing(lobbyScreen, "left", "y", hallNorthFace),
-      faceCrossing(lobbyScreen, "left", "y", spineNorth),
-      pt(stairWestX, spineNorth),
-      pt(stairWestX, northIn),
-      pt(westIn, northIn),
+      pt(frontIn, hallLeftFace),
+      faceCrossing(lobbyScreen, "left", "y", hallLeftFace),
+      faceCrossing(lobbyScreen, "left", "y", spineLeft),
+      pt(stairFrontX, spineLeft),
+      pt(stairFrontX, partyIn),
+      pt(frontIn, partyIn),
     ],
   },
   {
     id: "room-lobby",
     name: "Lobby",
     outline: [
-      pt(partitionEast, bedBathNorth),
-      pt(face(lobbyBathroom, "west"), bedBathNorth),
+      pt(partitionRear, bedBathLeft),
+      pt(face(lobbyBathroom, "west"), bedBathLeft),
       pt(face(lobbyBathroom, "west"), face(spine, "south")),
       // Along the lobby screen's lobby-side face (its right), from the spine to the partition.
       faceCrossing(lobbyScreen, "right", "y", face(spine, "south")),
-      faceCrossing(lobbyScreen, "right", "x", partitionEast),
+      faceCrossing(lobbyScreen, "right", "x", partitionRear),
     ],
   },
   {
     id: "room-bedroom",
     name: "Bedroom",
     outline: [
-      pt(partitionEast, face(breastBedroom, "north")),
-      pt(eastIn, face(breastBedroom, "north")),
-      pt(eastIn, bedroomWallY),
-      pt(partitionEast, bedroomWallY),
+      pt(partitionRear, face(breastBedroom, "north")),
+      pt(rearIn, face(breastBedroom, "north")),
+      pt(rearIn, bedroomWallY),
+      pt(partitionRear, bedroomWallY),
     ],
   },
   {
     id: "room-bathroom",
     name: "Bathroom",
-    outline: [pt(bathWestFace, bedBathNorth), pt(eastIn, bedBathNorth), pt(eastIn, bathNorthY), pt(bathWestFace, bathNorthY)],
+    outline: [pt(bathFrontFace, bedBathLeft), pt(rearIn, bedBathLeft), pt(rearIn, bathLeftY), pt(bathFrontFace, bathLeftY)],
   },
   {
     id: "room-rear-hall",
     name: "Rear hall",
-    // Steps around the east wall's head, which sits just north of the extension's south wall face.
+    // Steps around the rear wall's head, which sits just left of the extension's right wall face.
     outline: [
-      pt(coreW, face(extSouth, "north")),
-      pt(face(extEast, "west"), face(extSouth, "north")),
-      pt(face(extEast, "west"), northIn),
-      pt(rearHallEastX, northIn),
-      pt(rearHallEastX, spineNorth),
-      pt(spineEastX, spineNorth),
-      pt(spineEastX, east.end.y),
-      pt(coreW, east.end.y),
+      pt(coreW, face(extRight, "north")),
+      pt(face(extRear, "west"), face(extRight, "north")),
+      pt(face(extRear, "west"), partyIn),
+      pt(rearHallRearX, partyIn),
+      pt(rearHallRearX, spineLeft),
+      pt(spineRearX, spineLeft),
+      pt(spineRearX, rear.end.y),
+      pt(coreW, rear.end.y),
     ],
   },
 ];

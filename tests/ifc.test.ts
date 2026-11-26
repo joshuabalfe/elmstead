@@ -481,9 +481,9 @@ describe("elmstead external storey", () => {
     const text = new TextDecoder().decode(ifc);
     expect(text).toMatch(/IFCSURFACESTYLE\('ground'/);
     expect(text.match(/IFCRAILING\(/g) ?? []).toHaveLength(4);
-    expect(text).toMatch(/railing-front-north/);
-    expect(text).toMatch(/railing-front-south/);
-    expect(text).toMatch(/railing-front-facade-south/);
+    expect(text).toMatch(/railing-front-left/);
+    expect(text).toMatch(/railing-front-right/);
+    expect(text).toMatch(/railing-front-facade-right/);
     expect(text).toMatch(/railing-front-corner/);
     expect(text.match(/\.HANDRAIL\./g) ?? []).toHaveLength(2);
     expect(text.match(/\.GUARDRAIL\./g) ?? []).toHaveLength(2);
