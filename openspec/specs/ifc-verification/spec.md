@@ -76,9 +76,9 @@ issue with the prefix `ifc:`, against the model id of the element that owns the 
 - **THEN** build reports an ERROR "validator crashed" with the last lines of its stderr
 
 ### Requirement: Validator output is parsed defensively
-The validator bridge SHALL parse each stdout line as one JSON object. A line that is not valid JSON
-SHALL become an ERROR issue containing the offending line, and SHALL NOT throw or hide the
-validator's summary.
+The validator bridge SHALL parse each stdout line as one JSON object of the expected shape. A line
+that is not valid JSON, or whose fields have the wrong types, SHALL become an ERROR issue
+containing the offending line, and SHALL NOT throw or hide the validator's summary.
 
 #### Scenario: Non-JSON warning on stdout
 - **WHEN** the validator prints `warning: something changed` before its JSON lines
@@ -87,6 +87,10 @@ validator's summary.
 #### Scenario: Malformed JSON finding
 - **WHEN** a finding line is truncated JSON
 - **THEN** build reports an ERROR quoting the line instead of throwing a syntax error
+
+#### Scenario: Finding line with the wrong shape
+- **WHEN** a line is valid JSON but not a validator line, such as `[1]` or `{"level":5}`
+- **THEN** build reports an ERROR "validator line has an unexpected shape" quoting the line
 
 ### Requirement: Validator invocation is location-independent
 The validator SHALL be found relative to the project root, not the process working directory. The

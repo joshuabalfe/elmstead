@@ -10,11 +10,9 @@ import { revealSplay } from "../geometry/opening.js";
 import { area as polygonArea } from "../geometry/polygon.js";
 import { railingGeometry } from "../geometry/railing.js";
 import { flightProfileArea, stairLevels } from "../geometry/stair.js";
-import { toVec } from "../geometry/vec.js";
 import { wallSideArea } from "../geometry/wall.js";
-import { GLAZING_BAR_DEPTH, windowDivision } from "../geometry/window.js";
-import type { BuildingModel } from "../schema/schema.js";
-import { PANEL_THICKNESS } from "./writer.js";
+import { GLAZING_BAR_DEPTH, PANEL_THICKNESS, windowDivision, type Rect } from "../geometry/window.js";
+import type { BuildingModel, Storey } from "../schema/schema.js";
 
 /** Relative tolerance on volumes; triangulation of boxes is exact, so this only absorbs float noise. */
 const VOLUME_TOLERANCE = 1e-3;
@@ -88,19 +86,82 @@ export async function ifcGeometry(ifc: Uint8Array): Promise<Map<string, ElementG
   return out;
 }
 
+/** A volume the model says an IFC element should have, and what the element is, for messages. */
+export interface ExpectedVolume {
+  id: string;
+  volume: number;
+  what: string;
+}
+
+function wallVolumes(s: Storey): ExpectedVolume[] {
+  return s.walls.map((w) => {
+    // Each opening's plan area within the wall: a splayed reveal adds a triangle at each jamb.
+    const cut = s.openings.filter((o) => o.wallId === w.id).reduce((sum, o) => sum + (o.width + revealSplay(w, o) / 2) * w.thickness * o.height, 0);
+    return { id: w.id, volume: wallSideArea(w) * w.thickness - cut, what: "wall (after opening cuts)" };
+  });
+}
+
+const rectArea = (rs: readonly Rect[]): number => rs.reduce((a, r) => a + r.w * r.h, 0);
+
+function openingVolumes(model: BuildingModel, s: Storey): ExpectedVolume[] {
+  const doorDesigns = new Map((model.components?.doors ?? []).map((c) => [c.id, c]));
+  const windowDesigns = new Map((model.components?.windows ?? []).map((c) => [c.id, c]));
+  const out: ExpectedVolume[] = [];
+  for (const o of s.openings) {
+    if (o.kind === "door") {
+      if (o.doorway) continue;
+      const { leaf, frame } = doorDivision(o, o.componentId ? doorDesigns.get(o.componentId) : undefined);
+      out.push({ id: o.id, volume: leaf.w * leaf.h * PANEL_THICKNESS + rectArea(frame) * GLAZING_BAR_DEPTH, what: frame.length ? "door (frame and leaf)" : "door panel" });
+      continue;
+    }
+    // Frame, panes and bars never overlap, so their volumes add up.
+    const { panes, bars, frame } = windowDivision(o, o.componentId ? windowDesigns.get(o.componentId) : undefined);
+    const solid = [...frame, ...bars];
+    out.push({ id: o.id, volume: rectArea(panes) * PANEL_THICKNESS + rectArea(solid) * GLAZING_BAR_DEPTH, what: solid.length ? "window (frame, panes and bars)" : "window panel" });
+  }
+  return out;
+}
+
+function stairVolumes(model: BuildingModel, s: Storey): ExpectedVolume[] {
+  const out: ExpectedVolume[] = [];
+  for (const stair of s.stairs ?? []) {
+    const to = model.storeys.find((x) => x.id === stair.toStoreyId);
+    if (!to) continue; // a missing target is a check error, which gates the build
+    const levels = stairLevels(stair, to.elevation - s.elevation);
+    for (const l of levels.segments) {
+      if (l.kind === "flight") out.push({ id: l.segment.id, volume: flightProfileArea(l.segment, l.going, levels.riser) * l.segment.width, what: "stair flight" });
+      else out.push({ id: l.segment.id, volume: polygonArea(l.segment.outline) * l.segment.thickness, what: "stair landing" });
+    }
+    // The IfcStair container is deliberately left out: it has no body, so its geometry is counted
+    // once, through the flights and landings above.
+  }
+  return out;
+}
+
+/** Every element volume the model implies, for comparison with what web-ifc builds from the IFC. */
+export function expectedVolumes(model: BuildingModel): ExpectedVolume[] {
+  return model.storeys.flatMap((s) => [
+    ...wallVolumes(s),
+    ...s.slabs.map((sl) => ({ id: sl.id, volume: polygonArea(sl.outline) * sl.thickness, what: "slab" })),
+    ...openingVolumes(model, s),
+    ...stairVolumes(model, s),
+    ...(s.railings ?? []).map((r) => ({ id: r.id, volume: railingGeometry(r).volume, what: "railing" })),
+  ]);
+}
+
 /** Expected volumes from the model vs what web-ifc actually builds from the IFC. */
 export async function roundTripChecks(model: BuildingModel, ifc: Uint8Array): Promise<Issue[]> {
   const geom = await ifcGeometry(ifc);
   const issues: Issue[] = [];
-  const expect = (id: string, expected: number, what: string) => {
+  for (const { id, volume: expected, what } of expectedVolumes(model)) {
     const g = geom.get(id);
     if (!g) {
       issues.push({ level: "ERROR", id, message: `round-trip: web-ifc produced no geometry for this ${what}` });
-      return;
+      continue;
     }
     if (!Number.isFinite(g.volume) || expected <= 0) {
       issues.push({ level: "ERROR", id, message: `round-trip: ${what} volume is not a finite positive number (got ${g.volume}, expected ${expected})` });
-      return;
+      continue;
     }
     const rel = Math.abs(g.volume - expected) / expected;
     if (rel > VOLUME_TOLERANCE) {
@@ -110,48 +171,6 @@ export async function roundTripChecks(model: BuildingModel, ifc: Uint8Array): Pr
         message: `round-trip: ${what} volume is ${(g.volume / 1e9).toFixed(4)} m³ in IFC, expected ${(expected / 1e9).toFixed(4)} m³ from the model`,
       });
     }
-  };
-  for (const s of model.storeys) {
-    for (const w of s.walls) {
-      // Each opening's plan area within the wall: a splayed reveal adds a triangle at each jamb.
-      const cut = s.openings.filter((o) => o.wallId === w.id).reduce((sum, o) => sum + (o.width + revealSplay(w, o) / 2) * w.thickness * o.height, 0);
-      expect(w.id, wallSideArea(w) * w.thickness - cut, "wall (after opening cuts)");
-    }
-    for (const sl of s.slabs) {
-      const a = Math.abs(sl.outline.reduce((acc, p, i) => {
-        const q = sl.outline[(i + 1) % sl.outline.length]!;
-        return acc + p.x * q.y - q.x * p.y;
-      }, 0)) / 2;
-      expect(sl.id, a * sl.thickness, "slab");
-    }
-    const doorDesigns = new Map((model.components?.doors ?? []).map((c) => [c.id, c]));
-    const windowDesigns = new Map((model.components?.windows ?? []).map((c) => [c.id, c]));
-    for (const o of s.openings) {
-      if (o.kind === "door") {
-        if (o.doorway) continue;
-        const { leaf, frame } = doorDivision(o, o.componentId ? doorDesigns.get(o.componentId) : undefined);
-        const area = (rs: typeof frame) => rs.reduce((a, r) => a + r.w * r.h, 0);
-        expect(o.id, leaf.w * leaf.h * PANEL_THICKNESS + area(frame) * GLAZING_BAR_DEPTH, frame.length ? "door (frame and leaf)" : "door panel");
-        continue;
-      }
-      // Frame, panes and bars never overlap, so their volumes add up.
-      const { panes, bars, frame } = windowDivision(o, o.componentId ? windowDesigns.get(o.componentId) : undefined);
-      const area = (rs: typeof panes) => rs.reduce((a, r) => a + r.w * r.h, 0);
-      const solid = [...frame, ...bars];
-      expect(o.id, area(panes) * PANEL_THICKNESS + area(solid) * GLAZING_BAR_DEPTH, solid.length ? "window (frame, panes and bars)" : "window panel");
-    }
-    for (const stair of s.stairs ?? []) {
-      const to = model.storeys.find((x) => x.id === stair.toStoreyId);
-      if (!to) continue; // a missing target is a check error, which gates the build
-      const levels = stairLevels(stair, to.elevation - s.elevation);
-      for (const l of levels.segments) {
-        if (l.kind === "flight") expect(l.segment.id, flightProfileArea(l.segment, l.going, levels.riser) * l.segment.width, "stair flight");
-        else expect(l.segment.id, polygonArea(l.segment.outline.map(toVec)) * l.segment.thickness, "stair landing");
-      }
-      // The IfcStair container is deliberately left out: it has no body, so its geometry is counted
-      // once, through the flights and landings above.
-    }
-    for (const railing of s.railings ?? []) expect(railing.id, railingGeometry(railing).volume, "railing");
   }
   return issues;
 }

@@ -21,8 +21,9 @@ export const bayWindow = windowComponent("window-type-bay", "Bay window", {
   glazing: { columns: [1, 1], rows: [1, 1], barWidth: mm(60) },
 });
 /**
- * The bay's side lights: the front window's 100 mm frame and 60 mm bars, with a single horizontal
- * bar and no vertical bars, so two panes.
+ * The bay's side lights, the first-floor bedroom window and the main half landing's window: the
+ * front window's 100 mm frame and 60 mm bars, with a single horizontal bar and no vertical bars, so
+ * two panes.
  */
 export const crossBarWindow = windowComponent("window-type-cross-bar", "Cross-bar window", {
   frame: { width: mm(100) },
@@ -33,8 +34,13 @@ export const crossWindow = windowComponent("window-type-cross", "Cross window", 
   frame: { width: mm(100) },
   glazing: { columns: [1, 1], rows: [1, 1], barWidth: mm(60) },
 });
-/** The bedroom and rear-hall windows. */
+/** The basement guest-room windows. */
 export const standardWindow = windowComponent("window-type-standard", "Standard window");
+/**
+ * The rear-hall window: a frame (owner) around a single pane, with no bars. The frame takes the
+ * other windows' 100 mm width.
+ */
+export const framedWindow = windowComponent("window-type-framed", "Framed window", { frame: { width: mm(100) } });
 /**
  * The ground-floor bedroom window: the other windows' 100 mm frame, with twelve small panes in a
  * 3 x 4 grid. Its bars are slimmer than the other windows' 60 mm, at 30 mm.

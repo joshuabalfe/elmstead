@@ -108,7 +108,7 @@ export default defineConstraints([
       id: "rear-hall-depth",
       note: "Rear hall depth from the owner: 2 m, extension south wall to north wall",
       from: corner({ wall: "wall-extension-south", face: "north" }, { wall: "wall-extension-east", face: "west" }),
-      to: corner({ wall: "wall-north", face: "south" }, { wall: "wall-extension-east", face: "west" }),
+      to: corner({ wall: "wall-north-extension", face: "south" }, { wall: "wall-extension-east", face: "west" }),
       measure: "y",
       distance: m(2),
     },

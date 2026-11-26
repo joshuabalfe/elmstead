@@ -10,7 +10,7 @@ import { validateIfc } from "../ifc/validate.js";
 import { writeFileAtomic } from "../io.js";
 import { render3d, renderAll } from "../render/index.js";
 import { outDir } from "../root.js";
-import { BuildingModelSchema, type BuildingModel } from "../schema/schema.js";
+import type { BuildingModel } from "../schema/schema.js";
 import { formatJson } from "./json-format.js";
 import { loadModel, type LoadedModel } from "./load.js";
 
@@ -57,8 +57,7 @@ async function runBuild(loaded: LoadedModel, constraints: LoadedConstraints | un
   // Build every artefact in memory first, so a writer failure cannot leave new JSON beside an old IFC.
   const json = formatJson(loaded.model);
   const resolvedJson = constraints ? formatJson(checked.resolved) : undefined;
-  const model = BuildingModelSchema.parse(JSON.parse(json));
-  const ifc = await writeIfc(model, { fileName: `${loaded.name}.ifc` });
+  const ifc = await writeIfc(loaded.model, { fileName: `${loaded.name}.ifc` });
   mkdirSync(out, { recursive: true });
   const jsonPath = join(out, `${loaded.name}.building.json`);
   const ifcPath = join(out, `${loaded.name}.ifc`);
@@ -68,7 +67,7 @@ async function runBuild(loaded: LoadedModel, constraints: LoadedConstraints | un
   if (resolvedJson !== undefined) writeFileAtomic(resolvedPath, resolvedJson);
   console.log(`json    ${jsonPath}`);
   console.log(`ifc     ${ifcPath}`);
-  await verifyIfc(model, ifc, ifcPath, issues);
+  await verifyIfc(loaded.model, ifc, ifcPath, issues);
   return !hasErrors(issues);
 }
 

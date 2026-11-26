@@ -3,8 +3,8 @@
  * size, and which way doors swing. Rooms are traced from the owner's first-floor plan; sizes and
  * sill heights are typical unless the owner gives them.
  *
- * The half landing's window in the extension's east wall is left out: the half landing sits below
- * this floor, so the window belongs to the stair and half-landing model, not this storey.
+ * The half landing's window in the extension's east wall is on the main half landing's storey
+ * (../ground/stair.ts), which holds the extension's walls at that level.
  */
 import { wallLength } from "../../../src/geometry/wall.js";
 import { add, divRound, door, doorway, m, mm, sub, window, type Opening } from "../../../src/model/index.js";

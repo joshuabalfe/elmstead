@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
+import { z } from "zod";
 import type { Issue } from "../checks/issue.js";
 import { PROJECT_ROOT } from "../root.js";
 
@@ -9,16 +10,29 @@ export interface IfcValidation {
   warnings: number;
 }
 
-interface ValidatorLine {
-  level?: string;
-  id?: string | null;
-  entity?: string | null;
-  message?: string;
-  errors?: number;
-  warnings?: number;
-}
+const ValidatorLineSchema = z.object({
+  level: z.string().optional(),
+  id: z.string().nullish(),
+  entity: z.string().nullish(),
+  message: z.string().optional(),
+  errors: z.number().optional(),
+  warnings: z.number().optional(),
+});
+type ValidatorLine = z.infer<typeof ValidatorLineSchema>;
 
 const stderrTail = (stderr: string): string => stderr.trim().split("\n").slice(-5).join(" | ");
+
+/** One stdout line as a typed validator line, or the message explaining why it is malformed. */
+function parseValidatorLine(raw: string): { line: ValidatorLine } | { malformed: string } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { malformed: `validator output is not JSON: ${raw}` };
+  }
+  const result = ValidatorLineSchema.safeParse(parsed);
+  return result.success ? { line: result.data } : { malformed: `validator line has an unexpected shape: ${raw}` };
+}
 
 /** Runs validator/validate.py (IfcOpenShell) through uv and maps its JSON lines to Issues. */
 export function validateIfc(ifcPath: string): IfcValidation {
@@ -32,18 +46,15 @@ export function validateIfc(ifcPath: string): IfcValidation {
   let malformed = 0;
   for (const raw of r.stdout.split("\n")) {
     if (!raw.trim()) continue;
-    let line: ValidatorLine;
-    try {
-      const parsed: unknown = JSON.parse(raw);
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("not an object");
-      line = parsed as ValidatorLine;
-    } catch {
+    const parsed = parseValidatorLine(raw);
+    if ("malformed" in parsed) {
       malformed++;
-      issues.push({ level: "ERROR", id: ifcPath, message: `validator output is not JSON: ${raw}` });
+      issues.push({ level: "ERROR", id: ifcPath, message: parsed.malformed });
       continue;
     }
+    const { line } = parsed;
     if (line.level === "SUMMARY") {
-      summary = { errors: Number(line.errors) || 0, warnings: Number(line.warnings) || 0 };
+      summary = { errors: line.errors ?? 0, warnings: line.warnings ?? 0 };
       continue;
     }
     const where = line.entity ? `${line.entity}: ` : "";
