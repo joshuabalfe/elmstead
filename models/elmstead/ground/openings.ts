@@ -64,5 +64,7 @@ export const openings: Opening[] = [
   doorway("door-lobby", lobbyScreen, lobbyDoorwayOffset, internal),
 
   window("window-bedroom", east, bedroomWindowOffset, smallPaneWindow, bedroomWindowSize, insideReveal),
-  window("window-rear-hall", extEast, mm(700), standardWindow, { ...standard, width: mm(950) }),
+  // Lowered to sit under the main half landing, where the extension wall stops; its position awaits
+  // the rear-hall plan, which drops the rear hall to the basement half landing.
+  window("window-rear-hall", extEast, mm(700), standardWindow, { ...standard, sillHeight: mm(200), width: mm(950) }),
 ];

@@ -7,6 +7,7 @@
  *   basement/     basement: traced from the owner's basement plan, stair well left open
  *   ground/       ground floor: walls, openings, rooms, traced from the owner's plan image
  *   first/        first floor: traced from the owner's first-floor plan, with the stair well open
+ *   extension.ts  the split-level rear extension's walls, on the half-landing storeys
  *   attic/        attic (top storey): empty floor and open stair well, layout awaiting the owner's plan
  *
  * The main stair (ground/stair.ts) climbs to the first floor, and the attic stair (first/stair.ts)

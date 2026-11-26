@@ -11,6 +11,7 @@
  * (../ground/stair.ts), and the wall at the back of the landing stands on it.
  */
 import { mm, face, pt, stairFlight, sub, wall, type Mm, type Stair, type Storey } from "../../../src/model/index.js";
+import { atticHalfLandingWalls } from "../extension.js";
 import { atticFloor, atticHalfLanding, atticStairRisers, coreW, studT } from "../shared.js";
 import { bathNorth, northIn, spine, spineEndX, spineY } from "../ground/walls.js";
 import { stairArrivalX, stairNorthY, stairSouthY } from "./walls.js";
@@ -45,7 +46,7 @@ export const atticHalfLandingStorey: Storey = {
   id: "storey-attic-half-landing",
   name: "Attic half landing",
   elevation: atticHalfLanding.elevation,
-  walls: [backWall],
+  walls: [backWall, ...atticHalfLandingWalls],
   openings: [],
   // The attic well stops at the core's east edge, so this half landing stays out of the extension.
   slabs: [{

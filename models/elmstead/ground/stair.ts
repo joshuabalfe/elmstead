@@ -14,6 +14,7 @@
 import { face, mm, pt, stairFlight, type Mm, type Stair, type Storey } from "../../../src/model/index.js";
 import { stairwellOutline } from "../first/index.js";
 import { stairArrivalX } from "../first/walls.js";
+import { mainHalfLandingWalls } from "../extension.js";
 import { mainHalfLanding, mainStairRisers } from "../shared.js";
 import { bathNorth, northIn, spine, spineEastX, spineEndX, spineY } from "./walls.js";
 
@@ -47,7 +48,7 @@ export const mainHalfLandingStorey: Storey = {
   id: "storey-main-half-landing",
   name: "Main half landing",
   elevation: mainHalfLanding.elevation,
-  walls: [],
+  walls: mainHalfLandingWalls,
   openings: [],
   // The half landing wraps around the spine's traced east end: the spine strip is notched out of
   // its west part so the wall keeps its full length without passing through the landing.

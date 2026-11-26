@@ -147,9 +147,15 @@ describe("3D Top view against the plan", () => {
     // A storey with pitched walls is skipped: this compares the plan's horizontal cut poché with the
     // 3D top view, which agree for flat-topped walls but not for a sloped top (its cut footprint and
     // its top projection differ). Comparing pitched walls against a top-view plan is a follow-up.
-    // The comparator aligns the two pictures on the walls' extent, so a storey needs walls running
-    // both ways; a lone wall (the back of Elmstead's attic half landing) gives it nothing to align on.
-    for (const storey of source.storeys.filter((s) => s.walls.length > 1 && !s.walls.some((w) => w.profile))) {
+    // The comparator aligns the two pictures on the walls' extent, counting only pixel rows and
+    // columns with walls a whole floor's worth across. A storey whose walls span less than 2 m either
+    // way (Elmstead's half landings, framed by the 1.4 m extension) gives it nothing to align on.
+    const span = (s: Storey, axis: "x" | "y") => {
+      const v = s.walls.flatMap((w) => [w.start[axis], w.end[axis]]);
+      return Math.max(...v) - Math.min(...v);
+    };
+    const comparable = (s: Storey) => s.walls.length > 0 && span(s, "x") >= 2000 && span(s, "y") >= 2000 && !s.walls.some((w) => w.profile);
+    for (const storey of source.storeys.filter(comparable)) {
       it(`shows the same walls, rooms and openings as the plan: ${path} ${storey.id}`, async () => {
         const m = structuredClone(source) as BuildingModel;
         const name = `test-${path.replace(/\W+/g, "-")}`;

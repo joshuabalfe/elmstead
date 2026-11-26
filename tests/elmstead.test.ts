@@ -57,28 +57,46 @@ describe("Elmstead's floor structure", () => {
     }
   });
 
-  it("tapers the first-floor extension roof from the full ceiling where the extension starts", () => {
+  it("tapers the extension roof from the first-floor ceiling where the extension starts", () => {
+    // The extension is split level, so its top walls stand on the attic half landing.
+    const half = elmstead.storeys.find((s) => s.id === "storey-attic-half-landing");
     const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
-    if (!first) throw new Error("Elmstead has no first floor");
+    if (!half || !first) throw new Error("Elmstead needs the first floor and the attic half landing");
     const wall = (id: string) => {
-      const w = first.walls.find((wall) => wall.id === id);
-      if (!w) throw new Error(`Elmstead's first floor has no ${id}`);
+      const w = half.walls.find((wall) => wall.id === id);
+      if (!w) throw new Error(`Elmstead's attic half landing has no ${id}`);
       return w;
     };
-    const northExt = wall("wall-north-extension-first");
-    const extSouth = wall("wall-extension-south-first");
-    const extEast = wall("wall-extension-east-first");
-    // Full 2.7 m ceiling at the extension start (coreW), falling towards the extension east.
-    expect(northExt.profile!.at(-1)!.up).toBe(mm(2700));
-    expect(extSouth.profile![0]!.up).toBe(mm(2700));
+    const northExt = wall("wall-north-extension-attic-half-landing");
+    const extSouth = wall("wall-extension-south-attic-half-landing");
+    const extEast = wall("wall-extension-east-attic-half-landing");
+    const ceiling = first.elevation + 2700; // the first floor's 2.7 m ceiling, owner
+    const level = (up: number) => half.elevation + up;
+    // Full ceiling at the extension start (coreW), falling towards the extension east.
+    expect(level(northExt.profile!.at(-1)!.up)).toBe(ceiling);
+    expect(level(extSouth.profile![0]!.up)).toBe(ceiling);
     expect(northExt.profile![0]!.up).toBe(extEast.height);
     expect(extSouth.profile!.at(-1)!.up).toBe(extEast.height); // south slope meets the east wall flush too
     // The taper continues the attic gable's pitch, derived from the attic ridge rather than hardcoded.
     const attic = elmstead.storeys.find((s) => s.id === "storey-attic")!;
     const ridge = attic.walls.find((w) => w.id === "wall-south-attic")!.profile![1]!;
     const pitch = ridge.up / ridge.along;
-    expect(extEast.height).toBe(mm(Math.round(2700 - pitch * (extEastX - coreW))));
-    expect(extSouth.profile!.at(-1)!.up).toBe(mm(Math.round(2700 - pitch * (extSouth.end.x - coreW))));
+    expect(level(extEast.height!)).toBe(Math.round(ceiling - pitch * (extEastX - coreW)));
+  });
+
+  it("stands the extension's walls on the half landings, one above the other", () => {
+    const storey = (id: string) => elmstead.storeys.find((s) => s.id === id)!;
+    const ground = storey("storey-ground");
+    const main = storey("storey-main-half-landing");
+    const attic = storey("storey-attic-half-landing");
+    const top = (s: Storey, id: string) => s.elevation + wallHeight(s.walls.find((w) => w.id === id)!);
+    for (const side of ["east", "south"]) {
+      expect(top(ground, `wall-extension-${side}`), side).toBe(main.elevation);
+      expect(top(main, `wall-extension-${side}-main-half-landing`), side).toBe(attic.elevation);
+    }
+    expect(top(ground, "wall-north-extension")).toBe(main.elevation);
+    expect(top(main, "wall-north-extension-main-half-landing")).toBe(attic.elevation);
+    expect(storey("storey-first-floor").walls.some((w) => w.id.includes("extension"))).toBe(false);
   });
 
   it("pins the attic's gable geometry: floor-to-ridge gables, front parapet, core slab with the stair well open", () => {
@@ -289,7 +307,8 @@ describe("Elmstead's floor structure", () => {
     const ys = stairwellOutline.map((p) => p.y);
     // The landing overhang sets the well's west edge, 165 mm east of the longer ensuite's east face.
     expect(Math.min(...xs)).toBe(stairArrivalX);
-    expect(Math.max(...xs)).toBe(face(wall("wall-extension-east-first"), "west"));
+    const main = elmstead.storeys.find((s) => s.id === "storey-main-half-landing")!;
+    expect(Math.max(...xs)).toBe(face(main.walls.find((w) => w.id === "wall-extension-east-main-half-landing")!, "west"));
     expect(Math.min(...ys)).toBe(face(wall("wall-ensuite-north-first"), "north"));
     expect(Math.max(...ys)).toBe(face(wall("wall-north-first"), "south"));
   });
