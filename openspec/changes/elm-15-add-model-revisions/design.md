@@ -56,18 +56,18 @@ A revision imports the base model's default export and returns `revise(base, [..
 
 ```ts
 import base from "../index.js"; // "../../index.js" from a folder revision
-import { revise, remove, replace, add, addComponents, wall, door } from "../../../src/model/index.js";
+import { revise, remove, replace, addTo, addComponents, wall, door } from "../../../src/model/index.js";
 
 export default revise(base, [
   remove("door-rear-kitchen", "wall-rear-kitchen"),
   replace(wall("wall-east", ...)),
-  add("storey-ground", { walls: [wall("wall-ext-north", ...)], openings: [door("door-ext", ...)] }),
+  addTo("storey-ground", { walls: [wall("wall-ext-north", ...)], openings: [door("door-ext", ...)] }),
 ]);
 ```
 
 `revise` deep-clones the base and applies the edits in order, using the id index for every lookup.
 
-- **`add`** names the collection explicitly (`walls`, `openings`, `slabs`, `rooms`, `stairs`,
+- **`addTo`** (not `add`, which `src/model` already exports for millimetres) names the collection explicitly (`walls`, `openings`, `slabs`, `rooms`, `stairs`,
   `railings`), so there's no guessing from a value's shape. Today a wall and a railing differ only by
   `thickness`.
 - **`replace`** puts the new value at the old one's array index, in the old one's collection, so a

@@ -11,7 +11,7 @@
 
 ## 3. The `revise` helper
 
-- [x] 3.1 Add `revise(base, edits)` with `remove`, `replace`, `add(storeyId, { walls, openings, ... })` and `addComponents` to `src/model/`, cloning the base and keeping replaced elements at their index; verify unit tests cover each edit, the order edits apply in, and that the base object is unchanged afterwards
+- [x] 3.1 Add `revise(base, edits)` with `remove`, `replace`, `addTo(storeyId, { walls, openings, ... })` and `addComponents` to `src/model/`, cloning the base and keeping replaced elements at their index; verify unit tests cover each edit, the order edits apply in, and that the base object is unchanged afterwards
 - [x] 3.2 Make an unknown id, a duplicate id, an unknown storey, a storey id passed to `remove` or `replace`, and a replacement that the collection's schema rejects each fail loading with one ERROR naming the id; verify each case through `loadModel`, and that an orphaned opening is reported by the existing host-wall check
 - [x] 3.3 Document writing a revision in `docs/modelling.md`: the edits, the no-cascade rule, not mutating base modules, the moved-wall-start hazard for openings, and when to make the base parametric instead; verify the doc's examples type-check as written
 
