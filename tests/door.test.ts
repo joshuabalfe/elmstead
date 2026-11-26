@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import cottage from "../models/example-cottage/index.js";
+import cottage from "../models/examples/example-cottage/index.js";
 import { checkComponents } from "../src/checks/components.js";
 import { checkOpenings } from "../src/checks/model.js";
 import { doorDivision } from "../src/geometry/door.js";

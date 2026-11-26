@@ -80,10 +80,10 @@ beforeAll(async () => {
   }
   outDir = mkdtempSync(join(tmpdir(), "elmstead-identify-"));
   process.env.ELMSTEAD_OUT_DIR = outDir;
-  const cottage = await loadModel("models/example-cottage");
+  const cottage = await loadModel("models/examples/example-cottage");
   if (!cottage.ok) throw new Error(cottage.issues.map((i) => i.message).join("\n"));
   cottageModel = cottage.value.model;
-  const two = await loadModel("models/example-two-storey");
+  const two = await loadModel("tests/fixtures/two-storey");
   if (!two.ok) throw new Error(two.issues.map((i) => i.message).join("\n"));
   twoModel = two.value.model;
   await publish(MODEL_A, cottageModel);

@@ -4,7 +4,7 @@ import { loadModel, modelName } from "../src/cli/load.js";
 
 describe("loadModel", () => {
   it("loads and validates the example cottage", async () => {
-    const r = await loadModel("models/example-cottage");
+    const r = await loadModel("models/examples/example-cottage");
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.value.name).toBe("example-cottage");
   });

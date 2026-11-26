@@ -2,8 +2,8 @@
 
 ## 1. Example models
 
-- [ ] 1.1 Move `models/example-two-storey/` to `tests/fixtures/two-storey/` and update its imports in the six tests and `fixtures/bad-stair.ts`, and the stair example in `docs/modelling.md`; verify `npm test` passes with the same test count
-- [ ] 1.2 Move `models/example-cottage/` to `models/examples/example-cottage/` and update `README.md`, `docs/`, the tests and their fixtures; verify `npm test` passes, the outputs are still named `example-cottage`, and `git grep "models/example-cottage"` finds nothing outside `openspec/changes/archive/`
+- [x] 1.1 Move `models/example-two-storey/` to `tests/fixtures/two-storey/` and update its imports in the six tests and `fixtures/bad-stair.ts`, and the stair example in `docs/modelling.md`; verify `npm test` passes with the same test count
+- [x] 1.2 Move `models/example-cottage/` to `models/examples/example-cottage/` and update `README.md`, `docs/`, the tests and their fixtures; verify `npm test` passes, the outputs are still named `example-cottage`, and `git grep "models/example-cottage"` finds nothing outside `openspec/changes/archive/`
 
 ## 2. One id index
 

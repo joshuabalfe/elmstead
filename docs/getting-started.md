@@ -25,10 +25,10 @@ npm install
 Every command takes the path to a model: a single file, or a folder for a multi-file model:
 
 ```sh
-npm run build  models/example-cottage       # model → JSON → IFC, then validate the IFC
-npm run check  models/example-cottage       # run the model checks only; writes nothing
-npm run render models/example-cottage       # plan SVG/PNG per storey, then 3D PNGs from the IFC
-npm run all    models/example-cottage       # build, then render if the build succeeded
+npm run build  models/examples/example-cottage       # model → JSON → IFC, then validate the IFC
+npm run check  models/examples/example-cottage       # run the model checks only; writes nothing
+npm run render models/examples/example-cottage       # plan SVG/PNG per storey, then 3D PNGs from the IFC
+npm run all    models/examples/example-cottage       # build, then render if the build succeeded
 npm run build  models/elmstead              # same as models/elmstead/index.ts
 ```
 

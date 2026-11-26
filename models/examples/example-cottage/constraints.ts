@@ -4,7 +4,7 @@
  *
  * When one fails, fix the model, not the constraint.
  */
-import { corner, defineConstraints, inRoom, inStorey, jamb, m, mm, roomCorner, wallEnd } from "../../src/constraints/index.js";
+import { corner, defineConstraints, inRoom, inStorey, jamb, m, mm, roomCorner, wallEnd } from "../../../src/constraints/index.js";
 
 const livingSouthWest = corner({ wall: "wall-west", face: "east" }, { wall: "wall-south", face: "north" });
 

@@ -36,7 +36,7 @@ let page: Page;
 let baseUrl = "";
 
 async function cottage(): Promise<BuildingModel> {
-  const r = await loadModel("models/example-cottage");
+  const r = await loadModel("models/examples/example-cottage");
   if (!r.ok) throw new Error(r.issues.map((i) => i.message).join("\n"));
   return r.value.model;
 }

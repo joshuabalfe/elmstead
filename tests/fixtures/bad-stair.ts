@@ -1,4 +1,4 @@
-import twoStorey from "../../models/example-two-storey/index.js";
+import twoStorey from "./two-storey/index.js";
 
 // Same as the two-storey model, with its half landing slid 100 mm east, off both flights' ends.
 const broken = structuredClone(twoStorey) as any;

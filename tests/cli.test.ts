@@ -41,7 +41,7 @@ const output = (r: Result): string => r.stdout + r.stderr;
 
 describe("CLI", () => {
   it("builds a valid model into ELMSTEAD_OUT_DIR", () => {
-    const r = run(["build", "models/example-cottage"]);
+    const r = run(["build", "models/examples/example-cottage"]);
     expect(r.status).toBe(0);
     expect(r.files).toEqual(["example-cottage.building.json", "example-cottage.constraints.json", "example-cottage.ifc"]);
     expect(r.stdout).toContain("ifc");
@@ -49,7 +49,7 @@ describe("CLI", () => {
   }, 120_000);
 
   it("publishes resolved constraints for the viewer", () => {
-    const r = run(["build", "models/example-cottage"]);
+    const r = run(["build", "models/examples/example-cottage"]);
     expect(r.status).toBe(0);
     const list = JSON.parse(readFileSync(join(r.out, "example-cottage.constraints.json"), "utf8")) as {
       id: string;
@@ -108,14 +108,14 @@ describe("CLI", () => {
   });
 
   it("warns but still writes plans when render runs before build", () => {
-    const r = run(["render", "models/example-cottage"]);
+    const r = run(["render", "models/examples/example-cottage"]);
     expect(r.status).toBe(0);
     expect(r.stdout).toContain("no IFC yet — run build first");
     expect(r.files).toEqual(["example-cottage.storey-ground.plan.png", "example-cottage.storey-ground.plan.svg"]);
   }, 120_000);
 
   it("checks a valid model without writing anything", () => {
-    const r = run(["check", "models/example-cottage"]);
+    const r = run(["check", "models/examples/example-cottage"]);
     expect(r.status).toBe(0);
     expect(r.stdout).not.toContain("ERROR");
     expect(r.files).toEqual([]);
@@ -131,7 +131,7 @@ describe("CLI", () => {
   it("warns and keeps the plans when Chromium is missing", () => {
     const browsers = mkdtempSync(join(tmpdir(), "elmstead-no-chromium-"));
     dirs.push(browsers);
-    const r = run(["all", "models/example-cottage"], { PLAYWRIGHT_BROWSERS_PATH: browsers });
+    const r = run(["all", "models/examples/example-cottage"], { PLAYWRIGHT_BROWSERS_PATH: browsers });
     expect(r.status).toBe(0);
     expect(output(r)).toContain("3D snapshots skipped: Chromium missing");
     expect(r.files).toContain("example-cottage.storey-ground.plan.png");
@@ -139,7 +139,7 @@ describe("CLI", () => {
   }, 120_000);
 
   it("runs build and render for all, skipping 3D when asked", () => {
-    const r = run(["all", "models/example-cottage", "--no-3d"]);
+    const r = run(["all", "models/examples/example-cottage", "--no-3d"]);
     expect(r.status).toBe(0);
     expect(r.files).toEqual([
       "example-cottage.building.json",
@@ -151,8 +151,8 @@ describe("CLI", () => {
   }, 120_000);
 
   it("checks the model's constraints and prints how many were met", () => {
-    const r = run(["check", "models/example-cottage"]);
-    expect(r.stdout).toContain("constr  models/example-cottage/constraints.ts: 6 of 6 met");
+    const r = run(["check", "models/examples/example-cottage"]);
+    expect(r.stdout).toContain("constr  models/examples/example-cottage/constraints.ts: 6 of 6 met");
   });
 
   it("prints no constraints line for a model without a constraints file", () => {
@@ -187,7 +187,7 @@ describe("CLI", () => {
   });
 
   it("checks constraints once in all", () => {
-    const r = run(["all", "models/example-cottage", "--no-3d"]);
+    const r = run(["all", "models/examples/example-cottage", "--no-3d"]);
     expect(r.status).toBe(0);
     expect(r.stdout.match(/^constr /gm)).toHaveLength(1);
   }, 120_000);

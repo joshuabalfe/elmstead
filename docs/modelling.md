@@ -1,7 +1,7 @@
 # Modelling
 
 A model is a TypeScript module in `models/` that default-exports a `BuildingModel`. Start from
-[`models/example-cottage/`](../models/example-cottage/), a full working example: an `index.ts` and
+[`models/examples/example-cottage/`](../models/examples/example-cottage/), a full working example: an `index.ts` and
 its `constraints.ts`.
 
 A larger model splits across more files in its folder, as in
@@ -253,7 +253,7 @@ landing sits one riser below the street. Move that storey and the whole stair fo
 lengths are plain numbers rather than the branded integer `Mm`: rounding 190.625 to 191 would put
 sixteen risers at 3056 mm, past the storey the stair climbs to.
 
-`models/example-two-storey/index.ts` is a worked half-turn stair:
+The two-storey test fixture, [`tests/fixtures/two-storey/index.ts`](../tests/fixtures/two-storey/index.ts), is a worked half-turn stair:
 
 ```ts
 const rise = m(3.05); // 3050 mm over 16 risers: 190.625 mm each
@@ -361,7 +361,7 @@ inside corner", so that no later edit can quietly break it. Every `check`, `buil
 `all` measures the model's constraints. If one is broken, the command writes nothing and exits 1:
 
 ```
-constr  models/example-cottage/constraints.ts: 5 of 6 met
+constr  models/examples/example-cottage/constraints.ts: 5 of 6 met
 ERROR   living-corner-to-window: is 1200 mm, should be 1175 ±10 mm (room-living)
 ```
 
@@ -402,7 +402,7 @@ export default defineConstraints([
 ]);
 ```
 
-[`models/example-cottage/constraints.ts`](../models/example-cottage/constraints.ts) uses every
+[`models/examples/example-cottage/constraints.ts`](../models/examples/example-cottage/constraints.ts) uses every
 kind of point and measure.
 
 ### Points
