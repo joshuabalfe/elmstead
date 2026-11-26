@@ -12,8 +12,10 @@ don't, such as a door swinging the wrong way.
 
 ## Plans
 
-One SVG per storey, at 1 px = 10 mm in the SVG and rasterised at 2× to PNG. The plan is drawn in
-this order:
+One SVG per storey, at 1 px = 10 mm in the SVG and rasterised at 2× to PNG. Like a site location
+plan, the sheet is turned by `site.northAngle` so true north points up, and it is sized to the
+turned drawing. Text stays horizontal and dimension figures read along their lines. A model with no
+north angle draws with plan +y up. The plan is drawn in this order:
 
 1. slab fill, cream (the ground colour for `material: "ground"`) with a dashed outline
 2. room fills (the same cream, on top of the slab)
@@ -29,11 +31,11 @@ this order:
    walking-direction arrow, and each landing's outline. The cut height only decides which openings
    are cut, so a half landing above it is drawn like any other geometry
 7. room labels (name and area in m²) and room dimensions: the longest clear wall-to-wall span
-   east–west and north–south of the room's `dimensionOutline` when it has one (otherwise its
+   along plan x and along plan y of the room's `dimensionOutline` when it has one (otherwise its
    `outline`), in mm, drawn as dimension lines inside the room and kept clear of the label where
    the room is wide enough
 8. element ids in red, only with `--ids`
-9. overall dimensions
+9. overall dimensions, along plan x and plan y
 10. title, north arrow and a 5 m scale bar
 
 Every element is an SVG group with `class` (`wall`, `door`, `window`, `room`, `room-dimensions`,
@@ -66,8 +68,9 @@ SVG in `tests/__snapshots__/`.
 `render` starts the viewer (below) on a free port, opens it in headless Chromium through
 Playwright, and saves a 1200 × 900 PNG for each of five cameras:
 
-- `sw`, `se`, `ne`, `nw`: perspective views from each corner, looking down
-- `top`: an orthographic plan view
+- `sw`, `se`, `ne`, `nw`: perspective views from each plan corner, looking down. The names are plan
+  corners whatever `site.northAngle` is, so a file keeps showing the same corner.
+- `top`: an orthographic plan view, true north up like the plan sheets
 
 The snapshots show the IFC file, not the model, so they confirm what other IFC viewers will show:
 openings cut, doors and glazing in place, colours applied.
@@ -92,16 +95,24 @@ openings cut, doors and glazing in place, colours applied.
   and `add`, so an atomic IFC rename is noticed too.
 - `main.ts` loads the IFC through ThatOpen's IFC loader and sets up the camera views.
   - In the scene Y is up and plan north is −Z.
-  - The **SW**, **SE**, **NE** and **NW** buttons show true isometric views: an orthographic camera
-    from that corner, 45° round and 35.26° above the ground, so parallel edges stay parallel and
-    the building reads like a video-game diorama. The Top view is orthographic straight down.
-    Snapshots keep the perspective corner cameras (see [3D snapshots](#3d-snapshots)).
+  - The four corner buttons show true isometric views: an orthographic camera from a plan corner,
+    45° round and 35.26° above the ground, so parallel edges stay parallel and the building reads
+    like a video-game diorama. Each button is labelled with the nearest of the eight compass points
+    to the true direction it looks from (`site.northAngle`), and its tooltip names the plan corner:
+    elmstead's `sw`, `se`, `ne` and `nw` read N, W, S and E. With no north angle they read SW, SE,
+    NE and NW. The Top view is orthographic straight down, turned so true north is up the screen,
+    like the plan sheets. Snapshots keep the perspective corner cameras (see
+    [3D snapshots](#3d-snapshots)).
   - The loader keeps IFC coordinates as they are (`COORDINATE_TO_ORIGIN: false`), so anything
     drawn from the model lines up with the IFC.
   - Every model is drawn as full geometry (`setLodMode(LodMode.ALL_VISIBLE)`). By default
     Fragments draws items it judges small on screen as lines, and thin parts such as glazing bars
     and window frames qualify even close up.
   - `?view=` accepts only `sw`, `se`, `ne`, `nw` and `top`; any other value falls back to `top`.
+    The corner values are plan corners, whatever their buttons read.
+  - `?orient=project` ignores `site.northAngle` when orienting the views: the Top view keeps plan +y
+    up and the corner buttons keep their plan names. The compass still points to true north. The
+    plan-versus-3D test uses it, because its comparison aligns walls with pixel rows and columns.
     The model picker is built with `textContent`, so a file name containing markup is shown
     literally.
   - `?camera=px,py,pz,tx,ty,tz` places a perspective camera at p looking at t, in the scene's

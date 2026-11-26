@@ -83,10 +83,13 @@ export async function selectStorey(id: string) {
   await page.waitForFunction((n: number) => (window.__elmsteadStoreyChanges ?? 0) > n, before, { timeout: 60_000 });
 }
 
-/** The viewer's Top view in plan style, labels off, as raw pixels from its WebGL canvas. */
+/**
+ * The viewer's Top view in plan style, labels off, as raw pixels from its WebGL canvas. Plan +y up
+ * (`orient=project`), as the plan is drawn here, so walls lie along pixel rows and columns.
+ */
 export async function topView(name: string, storeyId?: string): Promise<Raster> {
   const storeys = storeyId ? `&storeys=${encodeURIComponent(storeyId)}` : "";
-  return viewOf(name, `view=top&snapshot=1&labels=0&style=plan${storeys}`);
+  return viewOf(name, `view=top&snapshot=1&labels=0&style=plan&orient=project${storeys}`);
 }
 
 /** How many pixels are within `tol` of `rgb` on every channel. */

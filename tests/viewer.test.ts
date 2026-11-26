@@ -14,7 +14,7 @@ import { elementLabel } from "../viewer/identify.js";
 import { CLICK_SLOP_PX, SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap } from "../viewer/measure.js";
 import { M_PER_PX, dashOf, overlayGroup, placeText, toRuns, toScene } from "../viewer/overlay.js";
 import { confinedPath } from "../viewer/serve.js";
-import { cameraForView, labelHeading, parseView } from "../viewer/view.js";
+import { cameraForView, cornerLabel, labelHeading, parseOrient, parseView, turnedTopFit } from "../viewer/view.js";
 
 const dir = "/tmp/elmstead-out";
 
@@ -59,6 +59,49 @@ describe("cameraForView", () => {
     expect(cameraForView("sw", true)).toEqual({ direction: [-1, 0.7, 1], projection: "Perspective" });
     expect(cameraForView("top", true)).toEqual({ direction: [0, 1, 0.0001], projection: "Orthographic" });
     expect(cameraForView("top", false)).toEqual({ direction: [0, 1, 0.0001], projection: "Orthographic" });
+  });
+});
+
+describe("true north views", () => {
+  it("keeps the corner cameras on the plan corners whatever the north angle", () => {
+    for (const view of ["sw", "se", "ne", "nw"] as const) {
+      for (const snapshot of [false, true]) expect(cameraForView(view, snapshot, 153)).toEqual(cameraForView(view, snapshot));
+    }
+  });
+
+  it("puts true north up the screen in the top view", () => {
+    // At 153° true south is plan (sin a, −cos a): plan +x and +y, scene +X and −Z.
+    const [x, y, z] = cameraForView("top", false, 153).direction;
+    expect(y).toBe(1);
+    expect(x).toBeCloseTo(0.0001 * Math.sin((153 * Math.PI) / 180), 12);
+    expect(z).toBeCloseTo(0.0001 * Math.cos((153 * Math.PI) / 180), 12);
+    expect(cameraForView("top", false, 0)).toEqual(cameraForView("top", false));
+  });
+
+  it("labels each corner with the true direction it looks from", () => {
+    const labels = (angle?: number) => (["sw", "se", "ne", "nw"] as const).map((v) => cornerLabel(v, angle));
+    expect(labels()).toEqual(["SW", "SE", "NE", "NW"]);
+    expect(labels(153)).toEqual(["N", "W", "S", "E"]); // elmstead: plan SW stands at true 018°
+    expect(labels(135)).toEqual(["N", "W", "S", "E"]);
+    expect(labels(90)).toEqual(["NW", "SW", "SE", "NE"]); // true north is plan −x
+  });
+
+  it("breaks a tie between compass points clockwise", () => {
+    // At 22.5° plan SW stands at 247.5°, halfway between SW and W.
+    expect(cornerLabel("sw", 22.5)).toBe("W");
+  });
+
+  it("widens the Top view's framing to fit the turned plan box", () => {
+    expect(turnedTopFit(5, 4, 0, 4 / 3)).toBe(1);
+    expect(turnedTopFit(4, 3, 90, 4 / 3)).toBeCloseTo(4 / 3, 9); // 8 × 6 turns to 6 × 8: height-bound
+    expect(turnedTopFit(5, 4, 135, 4 / 3)).toBeGreaterThan(1);
+  });
+
+  it("reads ?orient=, defaulting to true north", () => {
+    expect(parseOrient("project")).toBe("project");
+    expect(parseOrient("north")).toBe("north");
+    expect(parseOrient("sideways")).toBe("north");
+    expect(parseOrient(null)).toBe("north");
   });
 });
 

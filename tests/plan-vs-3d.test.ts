@@ -25,7 +25,7 @@ useViewer();
  * antialiases through the wall grey and would inflate the comparator's wall box, which the viewer's
  * top view has no equivalent of. Margins are in SVG px; the raster is PNG_ZOOM times that. */
 const planPixels = (m: BuildingModel, storey: Storey = m.storeys[0]!): Raster => {
-  const full = svgToPixels(renderPlan(m, storey, { ids: false }));
+  const full = svgToPixels(renderPlan(m, storey, { ids: false, orientation: "project" }));
   const x0 = MARGIN.left * PNG_ZOOM;
   const y0 = MARGIN.top * PNG_ZOOM;
   const x1 = full.width - MARGIN.right * PNG_ZOOM;

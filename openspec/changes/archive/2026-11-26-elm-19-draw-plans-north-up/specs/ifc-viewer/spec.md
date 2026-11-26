@@ -16,23 +16,28 @@ compass SHALL point straight up. A model with no `northAngle` SHALL look as befo
 - **WHEN** the viewer shows the Top view of a model with no `northAngle`
 - **THEN** plan +y points up the screen, as before
 
-### Requirement: Corner views use true directions
-The `sw`, `se`, `ne` and `nw` views SHALL look at the model from that true compass direction, turned
-from plan axes by the model's `northAngle`. That applies to the buttons, `?view=` and the snapshot
-cameras. A model with no `northAngle` SHALL keep its current corner views.
+### Requirement: Corner buttons name their true direction
+The `sw`, `se`, `ne` and `nw` views SHALL keep looking at the model's plan corners. Each corner
+button SHALL be labelled with the nearest of the eight compass points to its true viewing direction,
+from the model's `northAngle`, with ties going clockwise. `?view=` values and snapshot names SHALL
+keep the plan-corner ids. A model with no `northAngle` SHALL keep the labels SW, SE, NE and NW.
 
-#### Scenario: North-east view of a turned model
-- **WHEN** the viewer shows the `ne` view of a model whose `northAngle` is 135°
-- **THEN** the camera stands to the model's true north-east, which is plan −x, looking at its centre
+#### Scenario: Corner buttons of a turned model
+- **WHEN** the viewer loads a model whose `northAngle` is 153°
+- **THEN** the `sw`, `se`, `ne` and `nw` buttons read N, W, S and E, and each view looks from the same plan corner as before
 
-#### Scenario: Corner view without a north angle
-- **WHEN** the viewer shows the `ne` view of a model with no `northAngle`
-- **THEN** the camera stands to plan +x, +y, as before
+#### Scenario: Corner buttons without a north angle
+- **WHEN** the viewer loads a model with no `northAngle`
+- **THEN** the corner buttons read SW, SE, NE and NW
+
+#### Scenario: Links keep their meaning
+- **WHEN** the viewer is opened with `?view=ne` on a turned model
+- **THEN** it shows the same plan corner as before this change, under the button labelled with its true direction
 
 ### Requirement: Project orientation override
 `?orient=project` SHALL make the viewer ignore `northAngle` when it orients its views. The Top view
-SHALL keep plan +y up and the corner views SHALL use plan directions. The compass SHALL still point
-to true north. Any other value, or none, SHALL mean true north orientation.
+SHALL keep plan +y up and the corner buttons SHALL keep their plan-corner labels. The compass SHALL
+still point to true north. Any other value, or none, SHALL mean true north orientation.
 
 #### Scenario: Project-oriented Top view
 - **WHEN** the viewer is opened with `?view=top&orient=project` on a model whose `northAngle` is 135°
@@ -54,8 +59,8 @@ orientation, plan +y up, so walls align with pixel rows and columns whatever the
 ## MODIFIED Requirements
 
 ### Requirement: Snapshot cameras
-The snapshot cameras SHALL be perspective `sw`, `se`, `ne` and `nw`, each looking from that true
-compass direction, and an orthographic `top`, true north up.
+The snapshot cameras SHALL be perspective `sw`, `se`, `ne` and `nw`, at the model's plan corners,
+and an orthographic `top`, true north up.
 Snapshots SHALL show the IFC's own colours with labels off, apart from the stair readability
 presentation, which snapshots keep so the steps read there too.
 
@@ -65,5 +70,5 @@ presentation, which snapshots keep so the steps read there too.
   readability presentation) with no room labels or dimensions
 
 #### Scenario: Snapshots of a turned model
-- **WHEN** `render` writes the snapshots of a model whose `northAngle` is 135°
-- **THEN** `3d-ne.png` shows the model from its true north-east, and `3d-top.png` has true north up
+- **WHEN** `render` writes the snapshots of a model whose `northAngle` is 153°
+- **THEN** `3d-top.png` has true north up, and the corner snapshots show the same plan corners as before
