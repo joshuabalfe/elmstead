@@ -15,7 +15,8 @@
  *   |                  |        Bedroom        |
  *   +------------------+-----------------------+
  *
- * stair.ts holds the provisional half-turn stair up to the attic, over the stair well.
+ * stair.ts holds the provisional half-turn stair up to the attic, over the stair well, and its
+ * half-landing storey.
  *
  * The slab is two rectangles around the stair well and the half landing, because a slab outline is
  * a simple polygon and the stair well is a hole in the middle of the floor. The half landing's

@@ -262,8 +262,9 @@ describe("Elmstead's floor structure", () => {
     expect(fanlight.width).toBe(mm(900));
   });
 
-  // Only built storeys carry the next floor on their walls; the street level is external.
-  const built = storeys.filter((s) => s.walls.length > 0);
+  // Only built floors carry the next floor on their walls; the street level is external, and the
+  // half landings are platforms in the stair wells rather than floors.
+  const built = storeys.filter((s) => s.walls.length > 0 && !s.id.endsWith("-half-landing"));
   for (let i = 1; i < built.length; i++) {
     const lower = built[i - 1]!;
     const upper = built[i]!;
@@ -365,15 +366,19 @@ describe("Elmstead's floor structure", () => {
 });
 
 describe("Elmstead's stair", () => {
-  const ground = elmstead.storeys.find((s) => s.id === "storey-ground")!;
-  const first = elmstead.storeys.find((s) => s.id === "storey-first-floor")!;
-  const stair = ground.stairs?.[0];
+  const storey = (id: string) => elmstead.storeys.find((s) => s.id === id)!;
+  const ground = storey("storey-ground");
+  const half = storey("storey-main-half-landing");
+  const first = storey("storey-first-floor");
+  const lowerStair = ground.stairs?.[0];
+  const upperStair = half.stairs?.[0];
+  const parts = [half.slabs[0]!.outline, ...[lowerStair, upperStair].flatMap((s) => s?.segments ?? []).map((seg) => (seg.kind === "flight" ? flightFootprint(seg) : seg.outline))];
 
   // The well is a rectangle; outset it 1 mm so corners that lie exactly on its edge count as inside.
   // The stair bottom sits west of the well's traced edge, under the landing overhang, so include it.
   const xs = stairwellOutline.map((p) => p.x);
   const ys = stairwellOutline.map((p) => p.y);
-  const bottom = stair?.segments[0];
+  const bottom = lowerStair?.segments[0];
   const west = Math.min(...xs, bottom?.kind === "flight" ? bottom.start.x : Infinity);
   const well = [
     { x: west - 1, y: Math.min(...ys) - 1 },
@@ -382,30 +387,55 @@ describe("Elmstead's stair", () => {
     { x: west - 1, y: Math.max(...ys) + 1 },
   ];
 
-  it("climbs to the first floor inside the reserved stairwell", () => {
-    expect(stair).toBeDefined();
-    expect(stair!.toStoreyId).toBe(first.id);
-    for (const seg of stair!.segments) {
-      const poly = seg.kind === "flight" ? flightFootprint(seg) : seg.outline;
-      for (const p of poly) {
-        expect(contains(well, p), `${seg.id} corner (${p.x}, ${p.y}) is outside the stairwell`).toBe(true);
-      }
+  it("climbs to the first floor by its half landing, inside the reserved stairwell", () => {
+    expect(lowerStair?.toStoreyId).toBe(half.id);
+    expect(upperStair?.toStoreyId).toBe(first.id);
+    for (const poly of parts) {
+      for (const p of poly) expect(contains(well, p), `corner (${p.x}, ${p.y}) is outside the stairwell`).toBe(true);
     }
   });
 
-  it("derives the owner's 17 risers and 320 mm goings, landing on the first floor", () => {
-    const rise = first.elevation - ground.elevation;
-    const levels = stairLevels(stair!, rise);
-    const top = levels.segments[levels.segments.length - 1]!;
-    expect(top.kind).toBe("flight");
-    expect(top.kind === "flight" ? top.top : top.level).toBe(rise);
-    expect(levels.totalRisers).toBe(17); // owner
-    expect(levels.riser).toBeGreaterThan(170); // ~180 mm, owner
-    expect(levels.riser).toBeLessThan(190);
-    for (const seg of levels.segments) {
-      // owner: 320 mm steps on the lower flight, 280 mm on the upper
-      if (seg.kind === "flight") expect(seg.going).toBe(seg.segment.id === "stair-flight-lower" ? 320 : 280);
+  it("derives the owner's 9 + 8 risers and 320 mm goings, landing on each storey", () => {
+    const flights = [
+      { stair: lowerStair!, from: ground, to: half, risers: 9, going: 320 },
+      { stair: upperStair!, from: half, to: first, risers: 8, going: 280 }, // owner: 280 mm steps above
+    ];
+    for (const f of flights) {
+      const rise = f.to.elevation - f.from.elevation;
+      const levels = stairLevels(f.stair, rise);
+      const top = levels.segments.at(-1)!;
+      expect(top.kind === "flight" ? top.top : top.level).toBe(rise);
+      expect(levels.totalRisers).toBe(f.risers); // owner: 17 in all
+      expect(levels.riser).toBeGreaterThan(170); // ~180 mm, owner
+      expect(levels.riser).toBeLessThan(190);
+      for (const seg of levels.segments) if (seg.kind === "flight") expect(seg.going).toBe(f.going);
     }
+  });
+});
+
+describe("Elmstead's attic stair", () => {
+  const storey = (id: string) => elmstead.storeys.find((s) => s.id === id)!;
+  const first = storey("storey-first-floor");
+  const half = storey("storey-attic-half-landing");
+  const attic = storey("storey-attic");
+
+  it("climbs the owner's 8 + 8 risers by a half landing inside the core", () => {
+    expect(first.stairs?.[0]?.toStoreyId).toBe(half.id);
+    expect(half.stairs?.[0]?.toStoreyId).toBe(attic.id);
+    const lower = stairLevels(first.stairs![0]!, half.elevation - first.elevation);
+    const upper = stairLevels(half.stairs![0]!, attic.elevation - half.elevation);
+    expect([lower.totalRisers, upper.totalRisers]).toEqual([8, 8]); // owner
+    expect(lower.riser).toBe(upper.riser);
+    // The smaller half landing stays inside the core, under the attic's well.
+    expect(Math.max(...half.slabs[0]!.outline.map((p) => p.x))).toBe(coreW);
+  });
+
+  it("has a wall at the back of the half landing, up to the attic floor", () => {
+    const back = half.walls.find((w) => w.id === "wall-attic-half-landing-back");
+    expect(back).toBeDefined();
+    expect([back!.start.x, back!.end.x]).toEqual([coreW, coreW]);
+    expect([back!.start.y, back!.end.y]).toEqual([stairSouthY, stairNorthY]);
+    expect(half.elevation + back!.height!).toBe(attic.elevation);
   });
 });
 

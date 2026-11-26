@@ -14,7 +14,7 @@
  *   walls.ts      walls, and the plan positions everything else derives from
  *   openings.ts   doors and windows: component, wall, position, swing
  *   rooms.ts      room outlines along the wall faces
- *   stair.ts      the provisional half-turn stair to the first floor
+ *   stair.ts      the provisional half-turn stair to the first floor, and its half-landing storey
  *
  * Left out for now: hearths, radiators and rainwater pipes. The alcoves beside the
  * living-room chimney breast are built-ins, so they are not part of the room.

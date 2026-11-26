@@ -147,7 +147,9 @@ describe("3D Top view against the plan", () => {
     // A storey with pitched walls is skipped: this compares the plan's horizontal cut poché with the
     // 3D top view, which agree for flat-topped walls but not for a sloped top (its cut footprint and
     // its top projection differ). Comparing pitched walls against a top-view plan is a follow-up.
-    for (const storey of source.storeys.filter((s) => s.walls.length > 0 && !s.walls.some((w) => w.profile))) {
+    // The comparator aligns the two pictures on the walls' extent, so a storey needs walls running
+    // both ways; a lone wall (the back of Elmstead's attic half landing) gives it nothing to align on.
+    for (const storey of source.storeys.filter((s) => s.walls.length > 1 && !s.walls.some((w) => w.profile))) {
       it(`shows the same walls, rooms and openings as the plan: ${path} ${storey.id}`, async () => {
         const m = structuredClone(source) as BuildingModel;
         const name = `test-${path.replace(/\W+/g, "-")}`;
@@ -195,7 +197,7 @@ describe("storey selection", () => {
     // This identity is about storey geometry, so compare a stair-less copy: a stair's parts are
     // aggregated under an IfcStair and fragments does not hide them per-item with their storey, so
     // stair visibility across storeys is a separate follow-up. Hide the top storey (the attic)
-    // above the basement, street, ground and first floor, and compare with a model that never had it.
+    // above every other storey, and compare with a model that never had it.
     const m = structuredClone(await model("models/elmstead"));
     for (const s of m.storeys) s.stairs = [];
     await publish("test-hidden-storey", m);
@@ -205,7 +207,7 @@ describe("storey selection", () => {
     // A fixed camera keeps the framing identical regardless of the hidden storey's bounds, so the
     // comparison isolates geometry hiding rather than sub-pixel drift in the auto-framing.
     const camera = "16,11,6,5.2,1.5,-4.2";
-    const hidden = await viewOf("test-hidden-storey", `view=se&snapshot=1&labels=0&style=ifc&camera=${camera}&storeys=storey-basement,storey-street,storey-ground,storey-first-floor`);
+    const hidden = await viewOf("test-hidden-storey", `view=se&snapshot=1&labels=0&style=ifc&camera=${camera}&storeys=storey-basement,storey-street,storey-ground,storey-main-half-landing,storey-first-floor,storey-attic-half-landing`);
     const absent = await viewOf("test-below-top", `view=se&snapshot=1&labels=0&style=ifc&camera=${camera}`);
     // Hiding a storey must be the same picture as a model that never had it: same pixels, every one
     // of them. The camera is pinned by the URL, so this proves geometry hiding but not hiding under
@@ -244,7 +246,7 @@ describe("storey selection", () => {
 });
 
 describe("storey keyboard shortcut", () => {
-  const ALL = ["storey-basement", "storey-street", "storey-ground", "storey-first-floor", "storey-attic"];
+  const ALL = ["storey-basement", "storey-street", "storey-ground", "storey-main-half-landing", "storey-first-floor", "storey-attic-half-landing", "storey-attic"];
   // A fixed camera makes a re-frame detectable: every picture must come from the same viewpoint.
   const camera = "16,11,6,5.2,1.5,-4.2";
   const open = (query = "") => viewOf("test-storey-keys", `view=top&labels=0&style=plan&camera=${camera}${query}`);
@@ -303,7 +305,7 @@ describe("storey keyboard shortcut", () => {
     await open();
     await step("ArrowDown");
     const stepped = await canvasPixels();
-    const chosen = await open(`&storeys=${ALL.slice(0, 4).join(",")}`);
+    const chosen = await open(`&storeys=${ALL.slice(0, -1).join(",")}`);
     expect(samePixels(stepped, chosen)).toBe(true);
   }, 120_000);
 
@@ -311,8 +313,8 @@ describe("storey keyboard shortcut", () => {
     await open("&storeys=storey-first-floor");
     expect(await selected()).toBe("");
     await step("ArrowDown");
-    expect(await selected()).toBe("storey-ground");
-    expect(storeysParam()).toBe("storey-basement,storey-street,storey-ground");
+    expect(await selected()).toBe("storey-main-half-landing");
+    expect(storeysParam()).toBe("storey-basement,storey-street,storey-ground,storey-main-half-landing");
 
     await open("&storeys=storey-street");
     await step("ArrowUp");
@@ -334,7 +336,7 @@ describe("storey keyboard shortcut", () => {
     await page.waitForTimeout(500);
     expect(await page.evaluate(() => (window as unknown as { __prevented: boolean[] }).__prevented)).toEqual([true]);
     expect(await changes()).toBe(before + 1);
-    expect(await selected()).toBe("storey-first-floor");
+    expect(await selected()).toBe("storey-attic-half-landing");
 
     // Auto-repeat after the first press is ignored until the key is released.
     await page.keyboard.down("ArrowDown");
@@ -343,7 +345,7 @@ describe("storey keyboard shortcut", () => {
     await page.keyboard.down("ArrowDown");
     await page.keyboard.up("ArrowDown");
     await page.waitForTimeout(500);
-    expect(await selected()).toBe("storey-ground");
+    expect(await selected()).toBe("storey-first-floor");
     expect(await changes()).toBe(before + 2);
   }, 120_000);
 
