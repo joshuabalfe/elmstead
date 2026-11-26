@@ -19,16 +19,23 @@ revisions.
 - `build` on a revision also writes `out/<model>@<revision>.diff.json`, deterministic like the
   building JSON, and prints a one-line summary: `diff    elmstead@rear-extension: 7 added, 3 changed, 2 removed`.
 - Add a Diff mode to the viewer, available while a revision is shown, toggled by a Diff button, the
-  `D` key or `?diff=1`:
-  - unchanged elements are drawn faded and partly see-through;
-  - added elements are green, changed elements amber;
-  - removed elements are shown as a red, see-through ghost taken from the base model, which ELM-15
-    already keeps loaded once shown, drawn alongside the revision.
+  `D` key or `?diff=1`. It uses GitHub's diff colours, a pale fill with a dark outline of the same
+  hue:
+  - added elements are pale green, changed elements pale yellow, both outlined;
+  - removed elements are shown as a pale red, see-through ghost taken from the base model, which
+    ELM-15 already keeps loaded once shown, drawn alongside the revision;
+  - unchanged elements keep their normal colours.
+- The plan-style drawing carries the diff too, so it shows from the top. Added and changed walls,
+  window symbols, door gaps and floors take their colours, and removed walls and openings are drawn
+  from the base with a dashed red outline.
+- Add a **Transparency** toggle, for any model including Existing (`?xray=1`). It draws elements
+  see-through, the plan drawing included. With Diff on, it fades only the unchanged elements, so the
+  changes stay solid.
 - A changes panel in Diff mode gives the counts per category, with a checkbox to show or hide each.
   It also lists every change by storey; clicking one frames the camera on that element.
 - Hovering in Diff mode adds the element's status to the hover label, e.g. `wall-ext-east · added`.
-- Diff colours follow storey visibility, apply to the plan-style wall tops and room fills as well as
-  the IFC geometry, and are kept when switching revisions.
+- Diff and Transparency follow storey visibility, apply in one step with no half-drawn frame, and are
+  kept when switching revisions.
 - `render` on a revision also writes Diff-mode 3D snapshots, so a proposal's changes can be reviewed
   as PNGs in a pull request.
 

@@ -24,35 +24,66 @@ SHALL toggle it, ignored where the storey shortcut is ignored, or when no revisi
 - **THEN** the camera, projection and framing are exactly as they were
 
 ### Requirement: Diff colours
-In Diff mode, using the revision's diff, added elements SHALL be drawn green and changed elements
-amber. Unchanged elements SHALL be drawn faded and partly see-through. The colours SHALL apply to
-the IFC geometry and to the plan-style wall tops and room fills drawn for those elements.
+In Diff mode each added element SHALL be drawn in pale green (`#aceebb`) outlined in dark green
+(`#1a7f37`), and each changed element in pale yellow (`#fae17d`) outlined in dark amber (`#9a6700`).
+Glazing SHALL keep its transparency. Unchanged elements SHALL keep their normal colours.
 
 #### Scenario: Added wall
 - **WHEN** Diff mode is on and `wall-ext-north` is added by the revision
-- **THEN** `wall-ext-north` is drawn green, its wall top included in plan style
+- **THEN** `wall-ext-north` is drawn pale green with a dark green outline along its edges
 
 #### Scenario: Changed window
 - **WHEN** Diff mode is on and a window is changed by the revision
-- **THEN** the window is drawn amber
+- **THEN** the window is drawn pale yellow and see-through, with a dark amber outline
 
 #### Scenario: Unchanged context
-- **WHEN** Diff mode is on
-- **THEN** every unchanged element is drawn faded and partly see-through, so changed elements behind it show through
+- **WHEN** Diff mode is on and Transparency is off
+- **THEN** every unchanged element is drawn in its normal colours
 
 #### Scenario: Diff off
 - **WHEN** Diff mode is turned off
-- **THEN** every element is drawn in its normal colours again
+- **THEN** every element is drawn in its normal colours, with no outlines
+
+### Requirement: Diff in the plan drawing
+In Diff mode the plan-style drawing SHALL carry the diff, so it shows from above. Added and
+changed walls SHALL be drawn in their status's dark colour; their window symbols and door gaps in
+the pale colour with a dark outline; their slab and room fills in the pale colour, over the floor.
+
+#### Scenario: Top view of an extension
+- **WHEN** Diff mode is on in the top view of a revision that adds a lean-to and widens a window
+- **THEN** the lean-to's walls are dark green and its floor pale green, and the window symbol is pale yellow with a dark amber outline
+
+#### Scenario: Changed room
+- **WHEN** Diff mode is on and the revision reshapes `room-living`
+- **THEN** that room's floor is drawn pale yellow, and the door swings on it still show
+
+#### Scenario: Plan without Diff
+- **WHEN** Diff mode is off
+- **THEN** the plan drawing is exactly the normal plan
+
+### Requirement: Removed elements in the plan drawing
+In Diff mode the plan-style drawing SHALL show what the revision removed, drawn from the base model
+where it stood: walls, window symbols and door gaps in pale red (`#ffcecb`) with a dashed red
+(`#cf222e`) outline, above the revision's own wall tops, so a bricked-up window shows over the wall
+that now runs through it.
+
+#### Scenario: Demolished wall from above
+- **WHEN** Diff mode is on in the top view and the revision removes `wall-rear-kitchen`
+- **THEN** that wall's outline is drawn pale red, dashed in red, where it stood
+
+#### Scenario: Bricked-up window
+- **WHEN** the revision removes a window from a wall it keeps
+- **THEN** the window symbol is drawn in red over the wall
 
 ### Requirement: Removed elements as ghosts
 In Diff mode the viewer SHALL load the base model's IFC alongside the revision. It SHALL draw only
-the removed elements from it, red and see-through, in place. If the base IFC is not in `out/`, Diff
-mode SHALL still colour added and changed elements, and the status line SHALL say that removed
-elements need the base built.
+the removed elements from it, in pale red (`#ffcecb`) and see-through, outlined in red (`#cf222e`).
+If the base IFC is not in `out/`, Diff mode SHALL still colour added and changed elements, and the
+status line SHALL say that removed elements need the base built.
 
 #### Scenario: Demolished wall
 - **WHEN** Diff mode is on and the revision removes `wall-rear-kitchen`
-- **THEN** that wall is drawn red and see-through where it stood in the base model
+- **THEN** that wall is drawn pale red, see-through and outlined in red where it stood in the base model
 
 #### Scenario: Only removed elements
 - **WHEN** Diff mode is on
@@ -70,14 +101,48 @@ elements need the base built.
 - **WHEN** "Existing" has already been shown, and the user then turns Diff mode on for a revision
 - **THEN** the base model's IFC is not fetched again
 
+### Requirement: Transparency
+The viewer SHALL offer a **Transparency** button, for any model, that draws elements see-through.
+In Diff mode it SHALL fade only the unchanged elements, so the changes stay solid. In plan style it
+SHALL fade the plan drawing too, so it shows in the top view. `?xray=1` SHALL turn it on at load.
+
+#### Scenario: Existing building
+- **WHEN** the viewer shows a base model and the user presses **Transparency**
+- **THEN** every element is drawn see-through, and the URL has `xray=1`
+
+#### Scenario: With Diff
+- **WHEN** Diff mode and Transparency are both on
+- **THEN** added and changed elements are drawn solid in their diff colours, and every other element is see-through
+
+#### Scenario: Top view
+- **WHEN** Transparency is turned on in the top view in plan style
+- **THEN** the plan drawing is drawn faded, and the picture changes
+
+#### Scenario: Kept across switches
+- **WHEN** Transparency is on and the user switches revision or chooses Existing
+- **THEN** the newly shown model is drawn see-through too
+
+### Requirement: Shown models start clean
+A model the viewer shows SHALL be drawn exactly as its current Diff and Transparency settings
+require, whatever it showed before. A revision kept loaded from an earlier Diff or Transparency
+session SHALL NOT keep that session's colours, fading or outlines once they are turned off.
+
+#### Scenario: Diff turned off, then back to a revision
+- **WHEN** the user views a revision in Diff mode, turns Diff off, switches to another revision and back
+- **THEN** the first revision is drawn in its normal colours, with no outlines
+
 ### Requirement: Diff lands in one picture
-Turning Diff mode on or off, and switching revision with Diff mode on, SHALL keep the previous
-picture drawn until the new one is complete, with its diff colours, faded elements and ghosts
-applied. No frame SHALL show the revision in its normal colours on the way to its diff colours.
+Turning Diff mode or Transparency on or off, and switching revision with either on, SHALL keep the
+previous picture drawn until the new one is complete, with its colours, outlines, fading, ghosts and
+plan drawing applied. No frame SHALL show a half-applied picture.
 
 #### Scenario: Toggling Diff
 - **WHEN** the user turns Diff mode on
 - **THEN** every frame drawn shows either the picture before or the finished Diff picture
+
+#### Scenario: Toggling Transparency
+- **WHEN** the user turns Transparency on
+- **THEN** every frame drawn shows either the picture before or the finished see-through picture
 
 #### Scenario: Switching with Diff on
 - **WHEN** Diff mode is on and the user switches to another revision
@@ -86,8 +151,8 @@ applied. No frame SHALL show the revision in its normal colours on the way to it
 ### Requirement: Changes panel
 In Diff mode the viewer SHALL show a panel with the count of added, changed and removed elements.
 Each category SHALL have a checkbox; unchecking it SHALL draw that category as unchanged, or hide
-the ghosts for removed. Below, the panel SHALL list every change by storey, with its status and
-id. Clicking one SHALL frame the camera on that element.
+the ghosts and plan outlines for removed. Below, the panel SHALL list every change by storey, with
+its status and id. Clicking one SHALL frame the camera on that element.
 
 #### Scenario: Counts
 - **WHEN** Diff mode is on for a revision that adds 7 elements, changes 3 and removes 2
@@ -95,7 +160,7 @@ id. Clicking one SHALL frame the camera on that element.
 
 #### Scenario: Hide a category
 - **WHEN** the user unchecks "removed"
-- **THEN** the red ghosts are hidden and added and changed elements keep their colours
+- **THEN** the red ghosts and red plan outlines are hidden, and added and changed elements keep their colours
 
 #### Scenario: Fly to a change
 - **WHEN** the user clicks `wall-ext-north` in the list
@@ -106,13 +171,13 @@ id. Clicking one SHALL frame the camera on that element.
 - **THEN** the panel is not shown
 
 ### Requirement: Diff follows the view
-Diff colours, ghosts and the panel's list SHALL follow storey visibility. Diff mode SHALL stay on
-when switching between revisions of the same model, and SHALL be inactive while "Existing" is shown,
-returning when a revision is chosen again.
+Diff colours, ghosts, the plan drawing and the panel's list SHALL follow storey visibility. Diff
+mode SHALL stay on when switching between revisions of the same model, and SHALL be inactive while
+"Existing" is shown, returning when a revision is chosen again.
 
 #### Scenario: One storey shown
 - **WHEN** Diff mode is on and only the ground storey is shown
-- **THEN** only the ground storey's elements and ghosts are drawn, and the list shows only ground-storey changes
+- **THEN** only the ground storey's elements, ghosts and plan changes are drawn, and the list shows only ground-storey changes
 
 #### Scenario: Switching revision
 - **WHEN** Diff mode is on and the user switches to another revision

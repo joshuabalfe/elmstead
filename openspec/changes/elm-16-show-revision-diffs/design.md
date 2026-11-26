@@ -18,8 +18,8 @@ See `proposal.md` for the motivation. This change builds on ELM-15, which:
   `example-two-storey` becomes the test fixture `tests/fixtures/two-storey/`.
 
 What exists to build on:
-- **The JSON is deterministic** (`src/cli/json-format.ts`), so serialising an element and comparing
-  the strings is an exact equality test.
+- **Both models come from schema-validated JSON**, so the same element serialises to the same string
+  with `JSON.stringify`, which makes comparing the strings an exact equality test.
 - **The viewer maps IFC items to model ids** by `Tag`, or by `Name` for spaces
   (`applyStoreyVisibility` in `viewer/main.ts`). It hides storeys with `setVisible`.
 - **The pinned `@thatopen/fragments` 3.6.1 colours items in place.** `FragmentsModel` has
@@ -53,8 +53,10 @@ diffModels(base: BuildingModel, revision: BuildingModel) -> {
 }
 ```
 
-Both models go through the shared `idNodes` walk, indexed by id. The diff adds the element's JSON, serialised with the
-deterministic formatter, to each entry. Storeys are serialised with their element arrays left out, so
+Both models go through the shared `idNodes` walk, indexed by id. The diff adds the element's
+`JSON.stringify` to each entry. Both models come from schema-validated JSON, so their keys are in the
+same order, and the comparison is exact without the CLI's formatter. The viewer imports the diff, so
+importing `src/cli` from it would make the viewer depend on the CLI. Storeys are serialised with their element arrays left out, so
 a storey only changes when its own fields do. Since storey ids match by ELM-15's rule, a storey can
 only ever be changed, never added or removed.
 
@@ -71,7 +73,7 @@ conservative, but it's never wrong to look again at an opening in a wall that ch
 Ordering follows each model's own order, so the output is deterministic without sorting, and it
 reads in the same order as the model files.
 
-`src/diff/` depends only on `schema` and the JSON formatter, so the viewer can import it as it
+`src/diff/` depends only on `schema`, so the viewer can import it as it
 already imports the plan renderers. The viewer computes the diff from the two building JSONs it
 fetches. `diff.json` exists for people, pull requests and tools, not as the viewer's input. That
 avoids a third file that could be stale against the IFCs it describes.
@@ -92,33 +94,97 @@ own. `build` writes
 too. The diff never reports issues, because a revision adding or removing things is the point, not a
 problem.
 
-### Diff colours are applied to Fragments items and to the overlay drawing
+### Diff colours: GitHub's scheme, a pale fill and a dark outline
 
-On entering Diff mode the viewer:
+Settled with a spike on `example-cottage@rear-extension`, after a first try with solid green and
+amber read as too strong. The scheme follows GitHub's diffs: a pale fill with a dark accent of the
+same hue, and unchanged context left plain.
 
-1. computes the diff and maps each status to Fragments local ids through the existing Tag/Name
-   lookup;
-2. calls `highlight` per status: green (`#2e9e4f`) for added, amber (`#e0a100`) for changed, and a
-   pale grey at about 0.35 opacity for unchanged;
-3. rebuilds the plan-style overlays for the shown storeys with a per-id colour map passed to
-   `renderFloor` and `renderWallTops`. Added and changed tops and fills take their status colour;
-   unchanged ones take a lighter tint of their normal colour.
+| Status | Fill | Accent |
+|---|---|---|
+| added | `#aceebb` | `#1a7f37` |
+| changed | `#fae17d` | `#9a6700` |
+| removed | `#ffcecb` | `#cf222e` |
 
-Leaving Diff mode calls `resetHighlight` and rebuilds the overlays without the map.
+In 3D:
+1. The diff maps each status to Fragments local ids through the existing Tag/Name lookup.
+2. `highlight` paints each status's items in its fill, once per status and kind, with a `customId`
+   such as `diff-added`. Glazing keeps its transparency (`opacity` 0.5, `transparent`).
+3. Each changed item is outlined in its accent. Fragments draws every item of one material as a
+   single mesh, and it drops the CPU copy of its geometry once it is on the GPU, so the outlines
+   can't come from what it draws. They are built from `getItemsGeometry(localIds)`, which returns
+   each item's positions, indices and transform: an `EdgesGeometry` per piece, in one group under
+   the model's object, rebuilt on each apply.
 
-Opening voids carry no Tag and stay uncoloured. A new door shows green in a wall that otherwise stays
-grey, and that marks the opening well enough.
+Leaving Diff mode resets the highlights and removes the outline group.
 
-Unchanged elements are see-through, not just greyed, so that an amber window on the far side of the
-building can be seen from a corner view. Faded elements still write depth, so the scene doesn't turn
-into an unordered stack of transparent surfaces. Added and changed elements are drawn after them.
-How well the two transparency passes sort is the main thing to eye-check.
+Opening voids carry no Tag and stay uncoloured. A doorway with no leaf therefore has nothing to colour
+in 3D. It shows in the plan drawing instead (next decision).
+
+The spike also settled one worry: highlighting replaces an item's material with a new one that
+plan style's shader patches never saw (wall-top colour, slab-top discard, stair bands). Measured
+pixel by pixel, re-applying the patches to the new materials changed nothing in any view. The plan
+drawing covers the tops from above, and the inside faces of walls hide the floor from a corner. The
+one visible loss is the stair banding: a highlighted flight is drawn in its plain fill, but its edge
+outlines keep the steps readable. So no re-patching.
 
 Alternatives considered:
-- **`setColor` only.** It leaves unchanged elements at full strength, and they hide the changes.
-- **Hiding unchanged elements.** It loses the context that makes an extension legible.
-- **Swapping to the IFC style in Diff mode.** It loses the plan-style top view, which is where a
-  plan-reader looks first.
+- **Solid saturated colours** (green `#2e9e4f`, amber `#e0a100`). These were tried and read as too
+  strong.
+- **Tinting each element's own colour towards the status colour.** Paler, but a tinted window turned
+  mauve, and walls of different colours ended up different greens.
+- **1 px outlines.** WebGL ignores line widths, so the outlines are thin. `Line2`, which the measuring
+  tool uses, can thicken them if they turn out too faint on a large model.
+
+### The plan drawing carries the diff
+
+In plan style the top view isn't the 3D model: the plan drawing, built from the JSON by
+`renderWallTops` and `renderFloor`, covers it. The spike measured highlighting changing 0 pixels from
+above. So the diff has to be in the drawing:
+
+- **Drawing nodes carry ids.** Every wall piece, window symbol and door gap already has its
+  element's `data-id`. `renderFloor`'s slab and room fills gain one.
+- **The viewer recolours by id before `planGeometry`.**
+  - Added and changed wall pieces take their status's accent, since plan walls are solid poché and a
+    pale wall would vanish against the floor.
+  - Window symbols and door gaps take the fill, with accent strokes.
+  - Slab and room fills take the fill.
+
+  The renderer itself stays colour-agnostic, and the plan SVGs are unchanged.
+- **Diff floor fills are their own layer, 1 mm above the floor.** The spike found that coplanar fills
+  in the floor layer don't reliably stack in drawing order: a yellow room fill lost to the cream slab
+  fill under it, despite being a later run with a larger polygon offset, and lifting it 1 mm fixed it.
+  The normal plan never shows this, because room and slab fills are the same cream. Its root cause is
+  outside this change; working around it is not.
+- **Door swings are drawn above the diff floor layer.** They are part of `renderFloor` and would
+  otherwise be hidden, which is what the spike's single raised layer did to the living kitchen's two
+  swings.
+- **Removed walls and openings** are drawn from the base model's storey, rendered with
+  `renderWallTops` and filtered to the removed ids. They are pale red with a dashed red outline (the
+  overlay renderer already reads `stroke-dasharray`), 2 mm above the revision's own wall tops, so a
+  bricked-up window shows over the wall that now runs through it.
+- **Rebuilding.** Turning Diff on or off rebuilds the plan layers for the shown model. That takes a
+  few milliseconds, inside the held frame.
+
+### Transparency is its own control, for any model
+
+Transparency is useful without a diff, as an X-ray of the existing building, so it is a separate
+toggle rather than part of Diff mode:
+
+- **What it fades.** `setOpacity(ids, 0.35)` on every item that Diff hasn't coloured: all of them on
+  Existing or with Diff off, only the unchanged ones with Diff on.
+- **In plan style,** the plan drawing's materials are faded to the same opacity, so the toggle shows
+  from the top too. On a single storey that looks washed out; with several storeys, the floors above
+  become see-through.
+- **It carries over:** it is kept across model and revision switches, set by `?xray=1`, and has no
+  keyboard shortcut.
+
+### Every shown model is reset, then dressed
+
+ELM-15 keeps revisions loaded. A model coming back must not keep the highlights, fading or outlines of
+an earlier session. So applying the view state always starts from `resetHighlight`, `resetOpacity`
+and removing the outline group, then applies Diff and Transparency as they now stand. That one apply
+function runs at the end of every `load()` and on every toggle.
 
 ### Ghosts come from the base model ELM-15 already keeps loaded
 
@@ -130,8 +196,8 @@ disposes them when the model changes. The ghosts reuse that entry rather than lo
   `out/<base>.ifc`, without being shown. It then stays loaded for the rest of the model's session,
   and is disposed with the rest of the group on a model change.
 - **Showing it.** The base's model object is added to the scene beside the revision. Every item
-  that isn't removed is hidden, and the removed ones are highlighted in red (`#d64545`) at about 0.45
-  opacity. This uses the same IFC-to-Fragments path as the main model, so a demolished wall shows
+  that isn't removed is hidden, and the removed ones are highlighted in the removed fill (`#ffcecb`)
+  at about 0.5 opacity, outlined in `#cf222e` like the other statuses. This uses the same IFC-to-Fragments path as the main model, so a demolished wall shows
   with its real openings cut.
 - **Putting it back.** Turning Diff off, or switching to another revision, takes the ghost model
   out of the scene again. The base keeps its ghost state while it waits, because the next revision
@@ -139,7 +205,8 @@ disposes them when the model changes. The ghosts reuse that entry rather than lo
   then applies storey visibility as usual, so the existing building never shows ghost colours.
 
 Storey visibility hides ghosts by storey with the same owner map, built from the base JSON. Hover
-picking asks the ghost model as well as `currentModel` in Diff mode, so hovering a ghost names it.
+picking asks the ghost model as well as `currentModel` in Diff mode and takes the nearer hit, so
+hovering a ghost names it.
 Measurement snapping ignores the ghost model: you can't measure to something that isn't being built.
 
 Alternatives considered:
@@ -185,10 +252,11 @@ and turned into a WARNING.
 
 ## Risks / Trade-offs
 
-- **[Risk]** Fragments' highlight and the viewer's own material patching (plan style patches
-  materials for slab tops and stair banding) may fight. → Highlight works per item while the patching
-  works per material. Task 3.1 starts with a spike that confirms this on the two-storey fixture, before
-  building on it.
+- **[Risk]** `applyStyle` recognises plan-style materials by colour, across every material
+  Fragments holds, and highlight materials join that list. → The diff fills are far from every
+  `STYLES` entry. A test asserts each one is classified as no style.
+- **[Trade-off]** A highlighted stair loses its tread banding. → Its edge outlines still show the
+  steps, and the stair is only highlighted when it is added or changed.
 - **[Risk]** The two transparency passes sort badly from some angles. → Faded elements write depth,
   and coloured elements render later. If it still reads badly, drop see-through and keep only the
   greying: the colours alone still carry the diff.
