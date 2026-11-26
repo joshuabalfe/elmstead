@@ -56,7 +56,9 @@ tests table below).
 | `tests/guid.test.ts` | UUIDv5 and IFC GUID compression against reference vectors; fixed GlobalIds for known ids |
 | `tests/io.test.ts` | atomic writes leave the previous file and no temp file after a failure |
 | `tests/ifc.test.ts` | byte-identical IFC, GlobalId stability, door and window types, window partitioning, round-trip volumes, validator pass and fail cases |
-| `tests/plan-vs-3d.test.ts` | the viewer's Top view shows the same walls, rooms and openings as the plan, for each model; that the check catches a room outline run to a wall's centreline; and that no uploaded texture exceeds 1024 × 1024 texels |
+| `tests/plan-vs-3d.test.ts` | the viewer's Top view shows the same walls, rooms and openings as the plan, for each model; that the check catches a room outline run to a wall's centreline; storey selection: the status note for an unknown id, hidden storeys' geometry, the selector and the camera |
+| `tests/viewer-storey-keys.test.ts` | the storey keyboard shortcut: stepping through floors, the ends, the selector's focus, modifiers, single-storey models, snapshots and walk mode |
+| `tests/viewer-presentation.test.ts` | the railings, the stair's tread bands, the ground slab's colour, and that no uploaded texture exceeds 1024 × 1024 texels |
 | `tests/window.test.ts` | frames and glazing bars: pane ratios, no overlaps, frame inside the window's size, fit checks, IFC volumes, plan symbol |
 | `tests/checks.test.ts` | schema-issue attribution, component checks plus id, zero-length wall, opening host/fit/overlap and outline rules |
 | `tests/cli.test.ts` | `build`/`check`/`all`, failure fixtures, render-before-build and missing-Chromium warnings, exit statuses |
@@ -66,6 +68,11 @@ tests table below).
 | `tests/viewer-measure.test.ts` | snapped picks, drag/tap handling, Clear/Escape, model changes and the snapshot exemption in headless Chromium |
 | `tests/snapshot.test.ts` | a viewer failure is an ERROR and the server closes |
 | `tests/toolchain.test.ts` | web-ifc and uv/IfcOpenShell are available |
+
+The three viewer files above share Chromium, the viewer's server and the pixel helpers through
+`tests/support/viewer-page.ts` (call `useViewer()` at the top of the file). Their tests run one
+after another on one page, so a file is the unit CI can run in parallel: keep a new viewer file
+to about two minutes on CI, and split it when it grows past that.
 
 `tests/plan-vs-3d.test.ts` builds each model into a temporary folder, serves it with the viewer
 (`ELMSTEAD_OUT_DIR`), reads the WebGL canvas back and compares it with the plan's pixels
@@ -111,12 +118,22 @@ Both serve this checkout's `out/`, so build the model first.
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs two jobs:
+`.github/workflows/ci.yml` runs on pull requests and on pushes to `main` (a branch with a pull
+request runs once, not once for the push and once for the PR). A new push to a pull request
+cancels its stale run. Three kinds of job, all started together:
 
+- **scope**: decides whether **full** is needed. A pull request that only changes `docs/`,
+  `openspec/`, `.agents/` or `*.md` skips it; pushes to `main` always run it. It needs no
+  checkout, so it finishes in seconds.
 - **fast**: `npm ci`, `npm run typecheck`, a schema freshness check
-  (`npm run schema && git diff --exit-code schema/`) and `npm run test:fast`.
+  (`npm run schema && git diff --exit-code schema/`) and `npm run test:fast`. It is the quick
+  signal; **full** does not wait for it.
 - **full**: installs uv and Chromium's system libraries, then runs `npm test`, including the
-  IfcOpenShell validator and the 3D-versus-plan comparison.
+  IfcOpenShell validator and the 3D-versus-plan comparison. It runs as a matrix of groups, one
+  runner each, because the browser and CLI tests fight over the cores of a single runner. Each
+  heavy test file is named in a group; **rest** runs every file no group names, so a new test
+  file is always run. When you add a heavy file, give it a group, add it to rest's `--exclude`
+  list, and add it to `test:fast`'s `--exclude` list in `package.json` too, or **fast** runs it.
 
 The actions are pinned by commit SHA, matching the repo's exact-version rule.
 

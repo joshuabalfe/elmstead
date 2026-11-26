@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -210,6 +210,72 @@ describe("CLI", () => {
     expect(output(r)).toContain("ERROR   hall-width: revision: cannot remove constraint hall-width: say why in its note");
     expect(output(r)).toContain("FAILED  tests/fixtures/revised/revisions/unnoted.constraints.ts: constraints did not validate");
   });
+
+  it("writes a revision's diff, file or folder, and none for a base model", () => {
+    const file = run(["build", "models/examples/example-cottage/revisions/rear-extension.ts"]);
+    expect(file.status, output(file)).toBe(0);
+    const diff = JSON.parse(readFileSync(join(file.out, "example-cottage@rear-extension.diff.json"), "utf8")) as { base: string; revision: string; added: { id: string }[]; removed: { id: string }[]; changed: { id: string }[] };
+    expect(diff.base).toBe("example-cottage");
+    expect(diff.revision).toBe("example-cottage@rear-extension");
+    expect(diff.removed.map((e) => e.id)).toEqual(["wall-living-kitchen", "window-kitchen", "room-kitchen"]);
+    expect(diff.changed.map((e) => e.id)).toEqual(["wall-bedroom-bathroom", "door-bedroom", "door-bathroom", "window-living", "room-living", "room-bedroom", "room-bathroom"]);
+    const folder = run(["build", "tests/fixtures/revised/revisions/lean-to"]);
+    expect(folder.files).toContain("revised@lean-to.diff.json");
+    const base = run(["build", "models/examples/example-cottage"]);
+    expect(base.files.some((f) => f.endsWith(".diff.json"))).toBe(false);
+  }, 180_000);
+
+  it("writes a byte-identical diff on every build", () => {
+    const a = run(["build", "tests/fixtures/revised/revisions/no-kitchen-window.ts"]);
+    const b = run(["build", "tests/fixtures/revised/revisions/no-kitchen-window.ts"]);
+    const read = (r: Result) => readFileSync(join(r.out, "revised@no-kitchen-window.diff.json"), "utf8");
+    expect(read(a)).toBe(read(b));
+  }, 180_000);
+
+  it("leaves an earlier diff file alone when a revision's build fails", () => {
+    const out = mkdtempSync(join(tmpdir(), "elmstead-cli-"));
+    dirs.push(out);
+    const earlier = join(out, "revised@no-east-wall.diff.json");
+    writeFileSync(earlier, "earlier\n");
+    const r = run(["build", "tests/fixtures/revised/revisions/no-east-wall.ts"], { ELMSTEAD_OUT_DIR: out });
+    expect(r.status).toBe(1);
+    expect(readFileSync(earlier, "utf8")).toBe("earlier\n");
+  });
+
+  it("prints the diff summary for a revision in build, check and all, without changing the exit status", () => {
+    const line = "diff    example-cottage@rear-extension: 6 added, 7 changed, 3 removed\n";
+    for (const command of ["check", "build"]) {
+      const r = run([command, "models/examples/example-cottage/revisions/rear-extension.ts"]);
+      expect(r.status, command).toBe(0);
+      expect(r.stdout.split(line).length - 1, command).toBe(1);
+    }
+    const all = run(["all", "models/examples/example-cottage/revisions/rear-extension.ts", "--no-3d"]);
+    expect(all.stdout.split(line).length - 1).toBe(1);
+    expect(run(["check", "models/examples/example-cottage"]).stdout).not.toContain("diff    ");
+  }, 240_000);
+
+  it("snapshots a revision in Diff mode too, and warns when its base isn't built", () => {
+    const out = mkdtempSync(join(tmpdir(), "elmstead-cli-"));
+    dirs.push(out);
+    const env = { ELMSTEAD_OUT_DIR: out };
+    const rev = "models/examples/example-cottage/revisions/rear-extension.ts";
+    expect(run(["build", rev], env).status).toBe(0);
+    const alone = run(["render", rev], env);
+    expect(alone.status, output(alone)).toBe(0);
+    expect(output(alone)).toContain("Diff snapshots drawn without removed elements: no example-cottage.ifc yet");
+    expect(run(["build", "models/examples/example-cottage"], env).status).toBe(0);
+    const both = run(["render", rev], env);
+    expect(both.status, output(both)).toBe(0);
+    expect(output(both)).not.toContain("WARNING");
+    const files = readdirSync(out);
+    for (const view of ["sw", "se", "ne", "nw", "top"]) {
+      expect(files).toContain(`example-cottage@rear-extension.3d-${view}.png`);
+      expect(files).toContain(`example-cottage@rear-extension.3d-diff-${view}.png`);
+    }
+    const base = run(["render", "models/examples/example-cottage"], env);
+    expect(base.status).toBe(0);
+    expect(readdirSync(out).filter((f) => f.startsWith("example-cottage.3d-diff-"))).toEqual([]);
+  }, 600_000);
 
   it("checks the model's constraints and prints how many were met", () => {
     const r = run(["check", "models/examples/example-cottage"]);
