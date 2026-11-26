@@ -9,7 +9,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit && tsc --noEmit -p viewer",
     "test": "vitest run",
-    "test:fast": "vitest run --exclude tests/cli.test.ts --exclude tests/ifc.test.ts --exclude tests/toolchain.test.ts --exclude tests/snapshot.test.ts --exclude tests/plan-vs-3d.test.ts --exclude tests/viewer-measure.test.ts --exclude tests/viewer-identify.test.ts --exclude tests/viewer-revisions.test.ts --exclude tests/viewer-diff-mode.test.ts",
+    "test:fast": "vitest run --exclude tests/cli.test.ts --exclude tests/ifc.test.ts --exclude tests/toolchain.test.ts --exclude tests/snapshot.test.ts --exclude tests/plan-vs-3d.test.ts --exclude tests/viewer-presentation.test.ts --exclude tests/viewer-storey-keys.test.ts --exclude tests/viewer-measure.test.ts --exclude tests/viewer-identify.test.ts --exclude tests/viewer-revisions.test.ts --exclude tests/viewer-diff-mode.test.ts",
     "schema": "tsx scripts/export-json-schema.ts",
     "build": "tsx src/cli/index.ts build",
     "render": "tsx src/cli/index.ts render",

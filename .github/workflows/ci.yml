@@ -15,26 +15,17 @@ permissions:
   contents: read
 
 jobs:
-  fast:
+  # The full suite takes minutes; a pull request that only touches docs, OpenSpec changes,
+  # markdown or agent skills can't change what it tests (openspec.test.ts is in test:fast).
+  # Anything else, and every push to main, runs it. This job needs no checkout or install, so
+  # the heavy jobs below start seconds after the run does rather than after fast has finished.
+  scope:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
       pull-requests: read
     outputs:
       full: ${{ steps.scope.outputs.full }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: "22"
-          cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run schema && git diff --exit-code schema/
-      - run: npm run test:fast
-      # The full suite takes minutes; a pull request that only touches docs, OpenSpec changes,
-      # markdown or agent skills can't change what it tests (openspec.test.ts is in test:fast).
-      # Anything else, and every push to main, runs it.
       - id: scope
         env:
           GH_TOKEN: ${{ github.token }}
@@ -47,13 +38,26 @@ jobs:
           fi
           echo "full=$full" >> "$GITHUB_OUTPUT"
 
+  fast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run schema && git diff --exit-code schema/
+      - run: npm run test:fast
+
   # The browser and CLI tests are the cost, and on one 4-core runner they fight over the cores
   # (swiftshader WebGL, tsx subprocesses). One job per group of heavy files keeps each fed; "rest"
   # runs every other file, so a new test file is always run. Keep rest's --exclude list equal to
   # the other groups' files.
   full:
-    needs: fast
-    if: needs.fast.outputs.full == 'true'
+    needs: scope
+    if: needs.scope.outputs.full == 'true'
     name: full (${{ matrix.group }})
     runs-on: ubuntu-latest
     strategy:
@@ -62,19 +66,27 @@ jobs:
         include:
           - group: plan-vs-3d
             args: tests/plan-vs-3d.test.ts
-          - group: viewer-diff
-            args: tests/viewer-diff-mode.test.ts tests/viewer-measure.test.ts
+          - group: viewer-storey-keys
+            args: tests/viewer-storey-keys.test.ts
+          - group: viewer-presentation
+            args: tests/viewer-presentation.test.ts
           - group: viewer-revisions
-            args: tests/viewer-revisions.test.ts tests/viewer-identify.test.ts
+            args: tests/viewer-revisions.test.ts
+          - group: viewer-diff-mode
+            args: tests/viewer-diff-mode.test.ts
+          - group: viewer-identify
+            args: tests/viewer-identify.test.ts tests/viewer-measure.test.ts
           - group: cli-ifc
             args: tests/cli.test.ts tests/ifc.test.ts tests/toolchain.test.ts tests/snapshot.test.ts
           - group: rest
             args: >-
               --exclude tests/plan-vs-3d.test.ts
-              --exclude tests/viewer-diff-mode.test.ts
-              --exclude tests/viewer-measure.test.ts
+              --exclude tests/viewer-storey-keys.test.ts
+              --exclude tests/viewer-presentation.test.ts
               --exclude tests/viewer-revisions.test.ts
+              --exclude tests/viewer-diff-mode.test.ts
               --exclude tests/viewer-identify.test.ts
+              --exclude tests/viewer-measure.test.ts
               --exclude tests/cli.test.ts
               --exclude tests/ifc.test.ts
               --exclude tests/toolchain.test.ts
