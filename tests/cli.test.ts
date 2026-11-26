@@ -254,6 +254,29 @@ describe("CLI", () => {
     expect(run(["check", "models/examples/example-cottage"]).stdout).not.toContain("diff    ");
   }, 240_000);
 
+  it("snapshots a revision in Diff mode too, and warns when its base isn't built", () => {
+    const out = mkdtempSync(join(tmpdir(), "elmstead-cli-"));
+    dirs.push(out);
+    const env = { ELMSTEAD_OUT_DIR: out };
+    const rev = "models/examples/example-cottage/revisions/rear-extension.ts";
+    expect(run(["build", rev], env).status).toBe(0);
+    const alone = run(["render", rev], env);
+    expect(alone.status, output(alone)).toBe(0);
+    expect(output(alone)).toContain("Diff snapshots drawn without removed elements: no example-cottage.ifc yet");
+    expect(run(["build", "models/examples/example-cottage"], env).status).toBe(0);
+    const both = run(["render", rev], env);
+    expect(both.status, output(both)).toBe(0);
+    expect(output(both)).not.toContain("WARNING");
+    const files = readdirSync(out);
+    for (const view of ["sw", "se", "ne", "nw", "top"]) {
+      expect(files).toContain(`example-cottage@rear-extension.3d-${view}.png`);
+      expect(files).toContain(`example-cottage@rear-extension.3d-diff-${view}.png`);
+    }
+    const base = run(["render", "models/examples/example-cottage"], env);
+    expect(base.status).toBe(0);
+    expect(readdirSync(out).filter((f) => f.startsWith("example-cottage.3d-diff-"))).toEqual([]);
+  }, 600_000);
+
   it("checks the model's constraints and prints how many were met", () => {
     const r = run(["check", "models/examples/example-cottage"]);
     expect(r.stdout).toContain("constr  models/examples/example-cottage/constraints.ts: 6 of 6 met");

@@ -164,7 +164,7 @@ its status and id. Clicking one SHALL frame the camera on that element.
 
 #### Scenario: Fly to a change
 - **WHEN** the user clicks `wall-ext-north` in the list
-- **THEN** the camera frames that wall, and the storey selection shows its storey if it was hidden
+- **THEN** the camera frames that wall, looking in the direction it was
 
 #### Scenario: Panel hidden
 - **WHEN** Diff mode is off

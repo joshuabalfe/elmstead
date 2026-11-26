@@ -99,7 +99,12 @@ async function runRender(loaded: LoadedModel, constraints: LoadedConstraints | u
     issues.push({ level: "WARNING", id: loaded.name, message: "3D snapshots skipped: no IFC yet — run build first" });
     return;
   }
-  const r = await render3d(loaded.name, out);
+  // A revision is also snapshotted in Diff mode; its removed elements' ghosts need the base's IFC.
+  const base = loaded.base ? loaded.name.split("@")[0]! : undefined;
+  if (base && !existsSync(join(out, `${base}.ifc`))) {
+    issues.push({ level: "WARNING", id: loaded.name, message: `Diff snapshots drawn without removed elements: no ${base}.ifc yet — build ${loaded.base!.path} first` });
+  }
+  const r = await render3d(loaded.name, out, { diff: base !== undefined });
   for (const p of r.written) console.log(`render  ${p}`);
   issues.push(...r.issues);
 }

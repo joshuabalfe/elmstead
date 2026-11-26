@@ -227,19 +227,22 @@ also lands in one picture.
 
 ### The panel and the shortcut follow existing patterns
 
-The changes panel reuses the measurement list's styling and position. Clicking a row frames the
-element's bounding box with `fitToBox`, in the same direction the camera is looking. If the element's
-storey is hidden, it first chooses that storey in the storey selector.
+The changes panel reuses the measurement list's styling, at the top right, clear of the
+measurement list and the compass. Clicking a row frames the element in the direction the camera is
+looking: `fitToSphere` round its `getMergedBox`, since `fitToBox` would snap to the nearest face. The
+list holds only the shown storeys' changes, so a clicked change is always on a shown storey.
 
 `D` reuses the storey shortcut's guard. Walk mode already binds `D` to strafe (`viewer/walk.ts`), but
 the guard ignores the shortcut in walk mode, so the two never meet.
 
 ### Diff snapshots are an extra pass in `render`
 
-`snapshot3d` takes an extra query fragment, and `render` calls it a second time for a revision with
-`&diff=1`, writing `<name>.3d-diff-<view>.png`. In snapshot mode the panel and button are not shown,
-as with the other controls. A missing base IFC is reported back by the page (`window.__elmsteadNote`)
-and turned into a WARNING.
+`snapshot3d` takes snapshot variants, each a file-name suffix and URL parameters. For a revision,
+`render` asks for the plain variant and a Diff one (`&diff=1`, writing `<name>.3d-diff-<view>.png`),
+in one server and browser session. In snapshot mode the panel and button are not shown, as with the
+other controls. The CLI checks for the base's IFC itself and reports a WARNING when it is missing,
+since it knows the base's name and the page would only have a note to pass back.
+`window.__elmsteadNote` still carries the page's own note, for tests.
 
 ### Test models
 

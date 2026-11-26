@@ -423,8 +423,8 @@ export function renderWallTops(storey: Storey, components?: Components): Overlay
  */
 export function renderFloor(storey: Storey, components?: Components): Overlay {
   return overlay(storey, (view) => [
-    ...storey.slabs.map((s) => polygon(s.outline.map((p) => view.toPx(toVec(p))), { fill: s.material === "ground" ? C.ground : C.room, stroke: "none" })),
-    ...storey.rooms.map((r) => polygon(r.outline.map((p) => view.toPx(toVec(p))), { fill: C.room, stroke: "none" })),
+    ...storey.slabs.map((s) => polygon(s.outline.map((p) => view.toPx(toVec(p))), { "data-id": s.id, fill: s.material === "ground" ? C.ground : C.room, stroke: "none" })),
+    ...storey.rooms.map((r) => polygon(r.outline.map((p) => view.toPx(toVec(p))), { "data-id": r.id, fill: C.room, stroke: "none" })),
     ...doorSwings(storey, view, components),
   ]);
 }
