@@ -1,12 +1,12 @@
 /** Elmstead's door and window components (the building's `components`), one file per kind. */
 import type { Components } from "../../../src/model/index.js";
 import { frontDoor, internalDoor } from "./doors.js";
-import { bayWindow, crossBarWindow, crossWindow, fanlight, frontWindow, smallPaneWindow, standardWindow } from "./windows.js";
+import { bayWindow, crossBarWindow, crossWindow, fanlight, framedWindow, frontWindow, smallPaneWindow, standardWindow } from "./windows.js";
 
 export * from "./doors.js";
 export * from "./windows.js";
 
 export const components: Components = {
   doors: [frontDoor, internalDoor],
-  windows: [frontWindow, bayWindow, crossBarWindow, crossWindow, fanlight, smallPaneWindow, standardWindow],
+  windows: [frontWindow, bayWindow, crossBarWindow, crossWindow, fanlight, framedWindow, smallPaneWindow, standardWindow],
 };
