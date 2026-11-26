@@ -60,3 +60,13 @@ export function indexIds(model: BuildingModel): IdIndex {
   for (const entry of idEntries(model)) if (!ix.has(entry.id)) ix.set(entry.id, entry);
   return ix;
 }
+
+/** A revision edit, to a model or to its constraints, that cannot be applied. `id` is what it names. */
+export class RevisionError extends Error {
+  constructor(
+    readonly id: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}

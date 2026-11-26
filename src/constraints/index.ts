@@ -6,6 +6,7 @@ import type { Opening, Room, Storey, Wall } from "../schema/schema.js";
 import type { Constraint, ConstraintGroup, Face, Point } from "./schema.js";
 
 export * from "./schema.js";
+export { addGroups, removeConstraint, replaceConstraint, reviseConstraints } from "./revise.js";
 export { m, mm } from "../schema/units.js";
 
 type Ref<T extends { id: string }> = T | string;

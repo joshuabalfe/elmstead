@@ -3,7 +3,7 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { z } from "zod";
 import type { Issue } from "../checks/issue.js";
-import { RevisionError } from "../model/revise.js";
+import { RevisionError } from "../schema/ids.js";
 import { BuildingModelSchema, type BuildingModel } from "../schema/schema.js";
 
 export interface LoadedModel {

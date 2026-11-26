@@ -379,7 +379,8 @@ generated, so don't edit it.
 Constraints sit beside the model, not in it, and never reach `building.json` or the IFC:
 
 - a folder model: `constraints.ts` in its folder, e.g. `models/elmstead/constraints.ts`;
-- a single-file model: `<name>.constraints.ts` beside it.
+- a single-file model: `<name>.constraints.ts` beside it;
+- a revision: its base's, unless it revises them (see [Revisions](#a-revisions-constraints)).
 
 The file default-exports groups of constraints, each for one storey or one room. A model without
 a constraints file has no constraints, and the commands print no `constr` line.
@@ -507,6 +508,45 @@ revision lists each demolished opening and the change stays readable.
 
 Edit through `revise`, never by changing the base's objects. `ground.walls.push(...)` in a revision
 changes the base itself, for every model loaded in the same process.
+
+### A revision's constraints
+
+A revision is checked against its base's constraints, unchanged, so it can't quietly move what was
+measured. When it does change something measured, say so in the revision's own constraints file:
+`revisions/<revision>.constraints.ts` beside a file revision, or `constraints.ts` inside a folder
+revision. It normally edits the base's groups:
+
+```ts
+// models/elmstead/revisions/rear-extension/constraints.ts
+import base from "../../constraints.js";
+import { addGroups, inRoom, mm, removeConstraint, replaceConstraint, reviseConstraints, roomCorner } from "../../../../src/constraints/index.js";
+
+export default reviseConstraints(base, [
+  removeConstraint("kitchen-rear-wall-length", "rear wall demolished for the extension"),
+  replaceConstraint({ id: "living-width", note: "architect's drawing A-102 rev C", from: roomCorner("south-west"), to: roomCorner("north-east"), measure: "x", distance: mm(4200) }),
+  addGroups(inRoom("room-extension", [{ id: "extension-width", note: "architect's drawing A-102 rev C", from: roomCorner("south-west"), to: roomCorner("south-east"), measure: "x", distance: mm(3600) }])),
+]);
+```
+
+| Edit | Does |
+|---|---|
+| `removeConstraint(id, note)` | stops checking a base constraint on this revision; the note, which is required, says why |
+| `replaceConstraint(constraint)` | puts a constraint in the place of the base's with the same id |
+| `addGroups(...groups)` | adds groups, by storey or room, for dimensions the proposal must meet |
+
+Nothing is skipped for you. A base constraint the revision breaks is an ERROR that names the file to
+revise it in:
+
+```
+ERROR   bathroom-corner-to-window-centre: wall-east is not in the model (room-bathroom); the revision can remove or replace it in models/examples/example-cottage/revisions/rear-extension.constraints.ts
+```
+
+A replaced or added constraint is a measurement like any other: take it from a real source, such as
+the proposal drawings, and say which in its `note`. The summary line counts the edits:
+
+```
+constr  models/elmstead/revisions/rear-extension/constraints.ts: 33 of 33 met (2 removed, 1 replaced, 3 added)
+```
 
 ### Openings move with their wall
 

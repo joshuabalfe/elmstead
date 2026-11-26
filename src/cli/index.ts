@@ -42,9 +42,14 @@ function runChecks(loaded: LoadedModel, constraints: LoadedConstraints | undefin
   let resolved: ResolvedConstraint[] = [];
   if (constraints) {
     const report = checkConstraints(loaded.model, constraints.groups);
-    checked.push(...report.issues);
+    const own = constraints.revision?.ownPath;
+    // A revision checked against its base's constraints says where it can take a broken one back.
+    const inherited = own !== undefined && own !== constraints.path;
+    checked.push(...(inherited ? report.issues.map((i) => ({ ...i, message: `${i.message}; the revision can remove or replace it in ${own}` })) : report.issues));
     resolved = report.resolved;
-    console.log(`constr  ${constraints.path}: ${report.met} of ${report.total} met`);
+    const edits = constraints.revision?.edits;
+    const tally = edits ? ` (${edits.removed} removed, ${edits.replaced} replaced, ${edits.added} added)` : "";
+    console.log(`constr  ${constraints.path}: ${report.met} of ${report.total} met${tally}`);
   }
   issues.push(...checked);
   return { ok: !hasErrors(checked), resolved };

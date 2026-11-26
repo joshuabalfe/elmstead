@@ -179,6 +179,38 @@ describe("CLI", () => {
     expect(r.files).toEqual([]);
   });
 
+  it("checks a revision against its base's constraints when it has none of its own", () => {
+    const r = run(["check", "tests/fixtures/revised/revisions/no-kitchen-window.ts"]);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain("constr  tests/fixtures/revised/constraints.ts: 6 of 6 met\n");
+  });
+
+  it("fails a revision that breaks an inherited constraint, naming where to revise it", () => {
+    const r = run(["build", "tests/fixtures/revised/revisions/no-east-wall.ts"]);
+    expect(r.status).toBe(1);
+    expect(output(r)).toContain(
+      "ERROR   bathroom-corner-to-window-centre: wall-east is not in the model (room-bathroom); the revision can remove or replace it in tests/fixtures/revised/revisions/no-east-wall.constraints.ts",
+    );
+    expect(r.files).toEqual([]);
+  });
+
+  it("checks a revision's own constraints, counting its edits, and publishes them", () => {
+    const r = run(["build", "tests/fixtures/revised/revisions/wide-window-revised"]);
+    expect(r.status, output(r)).toBe(0);
+    expect(r.stdout).toContain("constr  tests/fixtures/revised/revisions/wide-window-revised/constraints.ts: 6 of 6 met (1 removed, 1 replaced, 1 added)");
+    const list = JSON.parse(readFileSync(join(r.out, "revised@wide-window-revised.constraints.json"), "utf8")) as { id: string; distance: number }[];
+    expect(list.map((c) => c.id)).toContain("living-window-from-east");
+    expect(list.map((c) => c.id)).not.toContain("living-corner-to-window");
+    expect(list.find((c) => c.id === "living-window-width")!.distance).toBe(1800);
+  }, 120_000);
+
+  it("reports a revision constraint edit that cannot be applied against its id", () => {
+    const r = run(["check", "tests/fixtures/revised/revisions/unnoted.ts"]);
+    expect(r.status).toBe(1);
+    expect(output(r)).toContain("ERROR   hall-width: revision: cannot remove constraint hall-width: say why in its note");
+    expect(output(r)).toContain("FAILED  tests/fixtures/revised/revisions/unnoted.constraints.ts: constraints did not validate");
+  });
+
   it("checks the model's constraints and prints how many were met", () => {
     const r = run(["check", "models/examples/example-cottage"]);
     expect(r.stdout).toContain("constr  models/examples/example-cottage/constraints.ts: 6 of 6 met");

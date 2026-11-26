@@ -174,8 +174,10 @@ replace it in `<revision constraints path>`".
 
 The summary line names whichever file supplied the groups. When that is the revision's own file, it
 adds the removed, replaced and added counts, which `reviseConstraints` records alongside the groups
-it returns. A non-enumerable property keeps them out of the JSON round-trip, and the loader reads
-them before the round-trip.
+it returns under a symbol (`CONSTRAINT_EDITS`). The JSON round-trip drops a symbol, so the counts
+never reach the validated groups, and the loader reads them from the module before the round-trip.
+`RevisionError` lives in `src/schema/ids.ts`, so the model and constraint loaders both report an
+edit that can't be applied against the id it names.
 
 Alternatives considered:
 - **Skip, automatically, constraints that reference changed elements.** This was the first draft. It

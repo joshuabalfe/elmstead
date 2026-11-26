@@ -23,11 +23,11 @@
 
 ## 5. Revision constraints
 
-- [ ] 5.1 For a revision without its own constraints file, check the base's constraints file unchanged, and add "remove or replace it in `<revision constraints path>`" to the ERROR for a failing base constraint; verify CLI tests for an untouched revision (all met) and a revision that removes a measured wall (an ERROR naming the wall and the path, nothing written)
-- [ ] 5.2 Add `reviseConstraints(base, edits)` with `removeConstraint(id, note)`, `replaceConstraint` and `addGroups`, failing on an unknown id, a duplicate id or an empty note; verify unit tests for each edit and each failure
-- [ ] 5.3 Load the revision's own constraints file through the existing `constraintsPath` for both revision forms, and never for the base; verify the base build never reads it
-- [ ] 5.4 Print the summary naming the supplying file, with removed, replaced and added counts for a revision's own file, and write `<model>@<revision>.constraints.json` with the checked constraints; verify CLI tests match both of the spec's summary lines exactly
-- [ ] 5.5 Document revision constraints in `docs/modelling.md#constraints`: inheriting by default, explicit edits, notes on removals, and real sources for added or replaced measurements
+- [x] 5.1 For a revision without its own constraints file, check the base's constraints file unchanged, and add "remove or replace it in `<revision constraints path>`" to the ERROR for a failing base constraint; verify CLI tests for an untouched revision (all met) and a revision that removes a measured wall (an ERROR naming the wall and the path, nothing written)
+- [x] 5.2 Add `reviseConstraints(base, edits)` with `removeConstraint(id, note)`, `replaceConstraint` and `addGroups`, failing on an unknown id, a duplicate id or an empty note; verify unit tests for each edit and each failure
+- [x] 5.3 Load the revision's own constraints file through the existing `constraintsPath` for both revision forms, and never for the base; verify the base build never reads it
+- [x] 5.4 Print the summary naming the supplying file, with removed, replaced and added counts for a revision's own file, and write `<model>@<revision>.constraints.json` with the checked constraints; verify CLI tests match both of the spec's summary lines exactly
+- [x] 5.5 Document revision constraints in `docs/modelling.md#constraints`: inheriting by default, explicit edits, notes on removals, and real sources for added or replaced measurements
 
 ## 6. Example revision
 

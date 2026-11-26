@@ -3,7 +3,7 @@
  * changes `base`. Every edit names ids, so a revision fails loudly when its base changes under it.
  */
 import type { z } from "zod";
-import { indexIds, type ComponentCollection, type IdEntry, type StoreyCollection } from "../schema/ids.js";
+import { indexIds, RevisionError, type ComponentCollection, type IdEntry, type StoreyCollection } from "../schema/ids.js";
 import {
   DoorComponentSchema,
   OpeningSchema,
@@ -18,15 +18,6 @@ import {
   type Storey,
 } from "../schema/schema.js";
 
-/** An edit that cannot be applied. `id` is the element, component or storey it names. */
-export class RevisionError extends Error {
-  constructor(
-    readonly id: string,
-    message: string,
-  ) {
-    super(message);
-  }
-}
 
 /** What `addTo` puts on a storey, by collection. */
 export type StoreyAdditions = { [K in StoreyCollection]?: NonNullable<Storey[K]> };
