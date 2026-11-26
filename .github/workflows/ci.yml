@@ -62,19 +62,27 @@ jobs:
         include:
           - group: plan-vs-3d
             args: tests/plan-vs-3d.test.ts
-          - group: viewer-diff
-            args: tests/viewer-diff-mode.test.ts tests/viewer-measure.test.ts
+          - group: viewer-storey-keys
+            args: tests/viewer-storey-keys.test.ts
+          - group: viewer-presentation
+            args: tests/viewer-presentation.test.ts
           - group: viewer-revisions
-            args: tests/viewer-revisions.test.ts tests/viewer-identify.test.ts
+            args: tests/viewer-revisions.test.ts
+          - group: viewer-diff-mode
+            args: tests/viewer-diff-mode.test.ts
+          - group: viewer-identify
+            args: tests/viewer-identify.test.ts tests/viewer-measure.test.ts
           - group: cli-ifc
             args: tests/cli.test.ts tests/ifc.test.ts tests/toolchain.test.ts tests/snapshot.test.ts
           - group: rest
             args: >-
               --exclude tests/plan-vs-3d.test.ts
-              --exclude tests/viewer-diff-mode.test.ts
-              --exclude tests/viewer-measure.test.ts
+              --exclude tests/viewer-storey-keys.test.ts
+              --exclude tests/viewer-presentation.test.ts
               --exclude tests/viewer-revisions.test.ts
+              --exclude tests/viewer-diff-mode.test.ts
               --exclude tests/viewer-identify.test.ts
+              --exclude tests/viewer-measure.test.ts
               --exclude tests/cli.test.ts
               --exclude tests/ifc.test.ts
               --exclude tests/toolchain.test.ts
