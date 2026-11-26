@@ -21,12 +21,12 @@ fe69535 and 4eff619), so those tasks are already done.
 
 ## 4. Documentation
 
-- [ ] 4.1 Add a "Half-landing storeys" section to `docs/modelling.md` beside the stairs and external-storey sections: when to use a landing segment and when to use a storey, how to derive the landing's elevation, splitting the stair, and split-level walls; verify every model call it shows matches the helpers in `src/model/`
-- [ ] 4.2 Note in `docs/development.md`, where it describes `tests/plan-vs-3d.test.ts`, that storeys whose walls span less than 2 m are skipped; verify the wording matches the test's rule
+- [x] 4.1 Add a "Half-landing storeys" section to `docs/modelling.md` beside the stairs and external-storey sections: when to use a landing segment and when to use a storey, how to derive the landing's elevation, splitting the stair, and split-level walls; verify every model call it shows matches the helpers in `src/model/`
+- [x] 4.2 Note in `docs/development.md`, where it describes `tests/plan-vs-3d.test.ts`, that storeys whose walls span less than 2 m are skipped; verify the wording matches the test's rule
 
 ## 5. Verification
 
-- [ ] 5.1 Run `npx openspec validate --all`, `npm run typecheck` and `npm test`, and regenerate `out/` with `npm run all models/elmstead/index.ts`; verify all pass
+- [x] 5.1 Run `npx openspec validate --all`, `npm run typecheck` and `npm test`, and regenerate `out/` with `npm run all models/elmstead/index.ts`; verify all pass
 
 ## Workflow follow-up
 
