@@ -3,6 +3,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { z } from "zod";
 import type { Issue } from "../checks/issue.js";
+import { RevisionError } from "../model/revise.js";
 import { BuildingModelSchema, type BuildingModel } from "../schema/schema.js";
 
 export interface LoadedModel {
@@ -32,6 +33,8 @@ export async function loadModel(path: string): Promise<LoadResult> {
     const mod = (await import(pathToFileURL(resolve(entryPoint(path))).href)) as { default?: unknown };
     exported = mod.default;
   } catch (e) {
+    // A revision edit names the id it could not apply; report it there, like every other model error.
+    if (e instanceof RevisionError) return { ok: false, issues: [{ level: "ERROR", id: e.id, message: `revision: ${e.message}` }] };
     return { ok: false, issues: [{ level: "ERROR", id: path, message: `model threw while evaluating: ${e instanceof Error ? e.stack ?? e.message : e}` }] };
   }
   if (exported === undefined) {

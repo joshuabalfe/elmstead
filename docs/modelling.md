@@ -446,6 +446,83 @@ of `distance`. The tolerance defaults to 10 mm.
 Every point, and the wall measured along, must be on the group's storey (for a room group, the
 room's storey).
 
+## Revisions
+
+A revision is a named variant of a folder model, such as a proposed extension or alteration. It is
+written as edits on the base model, so a correction to the existing building reaches every revision
+without being made twice. A revision is either one file or a folder, laid out however a large
+project needs:
+
+```
+models/elmstead/
+  index.ts                     the building as it is (the base)
+  constraints.ts
+  revisions/
+    knock-through.ts           a file revision: elmstead@knock-through
+    rear-extension/            a folder revision: elmstead@rear-extension
+      index.ts                 default-exports the revised BuildingModel
+      constraints.ts           (optional) the revision's constraints
+      ground/ ...              any modules index.ts imports
+    shared/                    a folder without index.ts is not a revision: helpers for several
+```
+
+Build, check and render a revision by its path, as you would a model:
+`npm run all models/elmstead/revisions/rear-extension`. Its outputs are named `<model>@<revision>`,
+e.g. `out/elmstead@rear-extension.ifc`. Revision names are kebab-case. A revision has exactly its
+base's storeys: it cannot add, remove or change a storey.
+
+`revise(base, edits)` applies the edits in order to a copy of the base:
+
+```ts
+// models/examples/example-cottage/revisions/rear-extension.ts (a sketch; the real one does more)
+import base from "../index.js";
+import { addTo, door, mm, remove, replace, revise, wall } from "../../../../src/model/index.js";
+
+const north = base.storeys[0]!.walls.find((w) => w.id === "wall-north")!;
+
+export default revise(base, [
+  remove("window-kitchen", "wall-living-kitchen"),
+  replace({ ...north, name: "North wall, now inside the lean-to" }),
+  addTo("storey-ground", {
+    walls: [wall("wall-lean-to-north", { x: mm(0), y: mm(8000) }, { x: mm(8000), y: mm(8000) }, { thickness: mm(200), height: mm(2400) })],
+    openings: [door("doorway-lean-to", north, mm(1500), { width: mm(900), height: mm(2100) })],
+  }),
+]);
+```
+
+| Edit | Does |
+|---|---|
+| `remove(...ids)` | removes elements or components, by id or by the element itself |
+| `replace(...elements)` | puts each element or component in the place of the one with its id |
+| `addTo(storey, { walls, openings, slabs, rooms, stairs, railings })` | adds elements to a storey, by collection |
+| `addComponents({ doors, windows })` | adds door and window designs |
+
+An edit that names an id the model doesn't have, adds an id it already has, adds to a storey it
+doesn't have, touches a storey, or puts a value its collection doesn't accept (a railing in place
+of a wall) fails the revision with an ERROR against that id. So a revision breaks loudly when its
+base changes under it, rather than silently editing something else.
+
+Removing doesn't cascade. Removing a wall leaves its openings, and the checks report them, so the
+revision lists each demolished opening and the change stays readable.
+
+Edit through `revise`, never by changing the base's objects. `ground.walls.push(...)` in a revision
+changes the base itself, for every model loaded in the same process.
+
+### Openings move with their wall
+
+An opening is placed by `offsetAlongWall` from its wall's start. Replacing a wall with one whose
+start has moved shifts every opening in it, although the openings themselves aren't edited.
+Lengthen a wall at its end, or re-place its openings in the same revision.
+
+### When to make the base parametric instead
+
+Edits act on the values the base produced, not on the dimensions they were derived from. That suits
+additions and demolitions. It suits reshaping poorly: moving Elmstead's rear wall means replacing
+the wall, every room traced along it, the slabs and the openings, all derived from one value in
+`shared.ts`. When a revision needs that, have the base module export a function of the dimension,
+make its default export call it with the measured value, and have the revision call it with the
+proposed one before applying `revise` for the rest.
+
 ## Things the schema does not have yet
 
 Room heights (rooms are 2D outlines in IFC), wall types (external or internal), roofs, curved walls,
