@@ -1,1 +1,1 @@
-export { default } from "../../../../../models/example-cottage/constraints.js";
+export { default } from "../../../../../models/examples/example-cottage/constraints.js";

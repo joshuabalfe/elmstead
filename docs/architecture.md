@@ -63,13 +63,13 @@ flowchart LR
 models/              building models (the only files you normally edit)
 schema/              generated JSON Schema (committed; a test fails if it is stale)
 src/
-  schema/            units (Mm, mm(), m(), deg()) and the zod schema
-  model/             authoring helpers: wall, rectWalls, face, rectRoom, door, window, centredOn
+  schema/            units (Mm, mm(), m(), deg()), the zod schema, and the id walk (ids.ts)
+  model/             authoring helpers: wall, rectWalls, face, rectRoom, door, window, centredOn; revise
   geometry/          2D vector, wall, opening and polygon maths shared by renderers, writer and checks
-  checks/            Issue type, formatting and schema-error mapping; the id walk; model-level checks
+  checks/            Issue type, formatting and schema-error mapping; model-level checks
   constraints/       constraints beside a model: schema, helpers, loader, point resolution, check
   cli/               command entry point, model loading, deterministic JSON formatting
-  paths.ts           a model's name, entry point and constraints file
+  paths.ts           a model's name, entry point and constraints file; a revision's base
   ifc/               IFC writer, GUIDs, round-trip geometry checks, validator bridge
   render/            plan drawing primitives and SVG, PNG rasterising, 3D snapshot driver
 validator/           validate.py (PEP 723 script for uv) and its lockfile

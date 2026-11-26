@@ -1,4 +1,4 @@
-import { idNodes, type IdNode, type StoreyKind } from "../checks/ids.js";
+import { idNodes, type IdNode, type StoreyKind } from "../schema/ids.js";
 import { openingExtent } from "../geometry/opening.js";
 import { faceOffsets, wallDirection, wallLength, wallPoint } from "../geometry/wall.js";
 import { cross, dot, len, perpLeft, toVec, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";

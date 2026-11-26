@@ -14,9 +14,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { formatJson } from "../src/cli/json-format.js";
 import { loadModel } from "../src/cli/load.js";
 import { writeIfc } from "../src/ifc/writer.js";
-import cottage from "../models/example-cottage/index.js";
+import cottage from "../models/examples/example-cottage/index.js";
 import elmstead from "../models/elmstead/index.js";
-import twoStorey from "../models/example-two-storey/index.js";
+import twoStorey from "./fixtures/two-storey/index.js";
 import { renderPlan } from "../src/render/plan.js";
 import { svgToPixels } from "../src/render/png.js";
 import { MARGIN, PNG_ZOOM } from "../src/render/style.js";
@@ -140,9 +140,9 @@ describe("3D Top view against the plan", () => {
   // than one storey shown the top view reads as the topmost storey's plan, not the one compared.
   // Wall-less external storeys (the street level) are covered by the ground-presentation test.
   for (const [path, source] of [
-    ["models/example-cottage", cottage],
+    ["models/examples/example-cottage", cottage],
     ["models/elmstead", elmstead],
-    ["models/example-two-storey", twoStorey],
+    ["tests/fixtures/two-storey", twoStorey],
   ] as const) {
     // A storey with pitched walls is skipped: this compares the plan's horizontal cut poché with the
     // 3D top view, which agree for flat-topped walls but not for a sloped top (its cut footprint and
@@ -193,7 +193,7 @@ describe("3D Top view against the plan", () => {
 
 describe("storey selection", () => {
   it("notes an unknown storey id in the status line and shows everything", async () => {
-    const m = await model("models/example-cottage");
+    const m = await model("models/examples/example-cottage");
     await publish("test-unknown-storey", m);
     await viewOf("test-unknown-storey", "view=top&snapshot=1&labels=0&style=plan&storeys=storey-nope");
     expect(await page.textContent("#status")).toContain('no storey "storey-nope"');
@@ -375,7 +375,7 @@ describe("storey keyboard shortcut", () => {
   }, 120_000);
 
   it("does nothing for a single-storey model, in snapshots and in walk mode", async () => {
-    await publish("test-storey-keys-single", await model("models/example-cottage"));
+    await publish("test-storey-keys-single", await model("models/examples/example-cottage"));
     await viewOf("test-storey-keys-single", "view=top&labels=0&style=plan");
     expect(await page.isHidden("#storeys")).toBe(true);
     await ignored("ArrowDown");
@@ -466,11 +466,11 @@ describe("ground presentation", () => {
   const ground: [number, number, number] = [102, 102, 102]; // STYLES.ground, sRGB
 
   it("shows a ground slab in the ground colour and not as concrete", async () => {
-    const m = await model("models/example-cottage");
+    const m = await model("models/examples/example-cottage");
     m.storeys[0]!.slabs[0]!.material = "ground";
     m.storeys[0]!.rooms = []; // expose the slab's fill in the plan-style floor
     await publish("test-ground-presentation", m);
-    const plain = await model("models/example-cottage");
+    const plain = await model("models/examples/example-cottage");
     plain.storeys[0]!.rooms = [];
     await publish("test-ground-concrete", plain);
 

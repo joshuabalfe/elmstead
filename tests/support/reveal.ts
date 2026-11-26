@@ -1,4 +1,4 @@
-import cottage from "../../models/example-cottage/index.js";
+import cottage from "../../models/examples/example-cottage/index.js";
 import { deg } from "../../src/model/index.js";
 import { BuildingModelSchema, type BuildingModel } from "../../src/schema/schema.js";
 
