@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import cottage from "../models/example-cottage/index.js";
+import cottage from "../models/examples/example-cottage/index.js";
 import elmstead from "../models/elmstead/index.js";
 import { area } from "../src/geometry/polygon.js";
 import { expectedVolumes } from "../src/ifc/roundtrip.js";

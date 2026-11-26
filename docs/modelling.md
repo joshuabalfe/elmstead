@@ -1,7 +1,7 @@
 # Modelling
 
 A model is a TypeScript module in `models/` that default-exports a `BuildingModel`. Start from
-[`models/example-cottage/`](../models/example-cottage/), a full working example: an `index.ts` and
+[`models/examples/example-cottage/`](../models/examples/example-cottage/), a full working example: an `index.ts` and
 its `constraints.ts`.
 
 A larger model splits across more files in its folder, as in
@@ -253,7 +253,7 @@ landing sits one riser below the street. Move that storey and the whole stair fo
 lengths are plain numbers rather than the branded integer `Mm`: rounding 190.625 to 191 would put
 sixteen risers at 3056 mm, past the storey the stair climbs to.
 
-`models/example-two-storey/index.ts` is a worked half-turn stair:
+The two-storey test fixture, [`tests/fixtures/two-storey/index.ts`](../tests/fixtures/two-storey/index.ts), is a worked half-turn stair:
 
 ```ts
 const rise = m(3.05); // 3050 mm over 16 risers: 190.625 mm each
@@ -403,7 +403,7 @@ inside corner", so that no later edit can quietly break it. Every `check`, `buil
 `all` measures the model's constraints. If one is broken, the command writes nothing and exits 1:
 
 ```
-constr  models/example-cottage/constraints.ts: 5 of 6 met
+constr  models/examples/example-cottage/constraints.ts: 5 of 6 met
 ERROR   living-corner-to-window: is 1200 mm, should be 1175 ±10 mm (room-living)
 ```
 
@@ -421,7 +421,8 @@ generated, so don't edit it.
 Constraints sit beside the model, not in it, and never reach `building.json` or the IFC:
 
 - a folder model: `constraints.ts` in its folder, e.g. `models/elmstead/constraints.ts`;
-- a single-file model: `<name>.constraints.ts` beside it.
+- a single-file model: `<name>.constraints.ts` beside it;
+- a revision: its base's, unless it revises them (see [Revisions](#a-revisions-constraints)).
 
 The file default-exports groups of constraints, each for one storey or one room. A model without
 a constraints file has no constraints, and the commands print no `constr` line.
@@ -444,7 +445,7 @@ export default defineConstraints([
 ]);
 ```
 
-[`models/example-cottage/constraints.ts`](../models/example-cottage/constraints.ts) uses every
+[`models/examples/example-cottage/constraints.ts`](../models/examples/example-cottage/constraints.ts) uses every
 kind of point and measure.
 
 ### Points
@@ -487,6 +488,122 @@ of `distance`. The tolerance defaults to 10 mm.
 
 Every point, and the wall measured along, must be on the group's storey (for a room group, the
 room's storey).
+
+## Revisions
+
+A revision is a named variant of a folder model, such as a proposed extension or alteration. It is
+written as edits on the base model, so a correction to the existing building reaches every revision
+without being made twice. A revision is either one file or a folder, laid out however a large
+project needs:
+
+```
+models/elmstead/
+  index.ts                     the building as it is (the base)
+  constraints.ts
+  revisions/
+    knock-through.ts           a file revision: elmstead@knock-through
+    rear-extension/            a folder revision: elmstead@rear-extension
+      index.ts                 default-exports the revised BuildingModel
+      constraints.ts           (optional) the revision's constraints
+      ground/ ...              any modules index.ts imports
+    shared/                    a folder without index.ts is not a revision: helpers for several
+```
+
+Build, check and render a revision by its path, as you would a model:
+`npm run all models/elmstead/revisions/rear-extension`. Its outputs are named `<model>@<revision>`,
+e.g. `out/elmstead@rear-extension.ifc`. Revision names are kebab-case. A revision has exactly its
+base's storeys: it cannot add, remove or change a storey.
+
+`revise(base, edits)` applies the edits in order to a copy of the base:
+
+```ts
+// models/examples/example-cottage/revisions/rear-extension.ts (a sketch; the real one does more)
+import base from "../index.js";
+import { addTo, door, mm, remove, replace, revise, wall } from "../../../../src/model/index.js";
+
+const north = base.storeys[0]!.walls.find((w) => w.id === "wall-north")!;
+
+export default revise(base, [
+  remove("window-kitchen", "wall-living-kitchen"),
+  replace({ ...north, name: "North wall, now inside the lean-to" }),
+  addTo("storey-ground", {
+    walls: [wall("wall-lean-to-north", { x: mm(0), y: mm(8000) }, { x: mm(8000), y: mm(8000) }, { thickness: mm(200), height: mm(2400) })],
+    openings: [door("doorway-lean-to", north, mm(1500), { width: mm(900), height: mm(2100) })],
+  }),
+]);
+```
+
+| Edit | Does |
+|---|---|
+| `remove(...ids)` | removes elements or components, by id or by the element itself |
+| `replace(...elements)` | puts each element or component in the place of the one with its id |
+| `addTo(storey, { walls, openings, slabs, rooms, stairs, railings })` | adds elements to a storey, by collection |
+| `addComponents({ doors, windows })` | adds door and window designs |
+
+An edit that names an id the model doesn't have, adds an id it already has, adds to a storey it
+doesn't have, touches a storey, or puts a value its collection doesn't accept (a railing in place
+of a wall) fails the revision with an ERROR against that id. So a revision breaks loudly when its
+base changes under it, rather than silently editing something else.
+
+Removing doesn't cascade. Removing a wall leaves its openings, and the checks report them, so the
+revision lists each demolished opening and the change stays readable.
+
+Edit through `revise`, never by changing the base's objects. `ground.walls.push(...)` in a revision
+changes the base itself, for every model loaded in the same process.
+
+### A revision's constraints
+
+A revision is checked against its base's constraints, unchanged, so it can't quietly move what was
+measured. When it does change something measured, say so in the revision's own constraints file:
+`revisions/<revision>.constraints.ts` beside a file revision, or `constraints.ts` inside a folder
+revision. It normally edits the base's groups:
+
+```ts
+// models/elmstead/revisions/rear-extension/constraints.ts
+import base from "../../constraints.js";
+import { addGroups, inRoom, mm, removeConstraint, replaceConstraint, reviseConstraints, roomCorner } from "../../../../src/constraints/index.js";
+
+export default reviseConstraints(base, [
+  removeConstraint("kitchen-rear-wall-length", "rear wall demolished for the extension"),
+  replaceConstraint({ id: "living-width", note: "architect's drawing A-102 rev C", from: roomCorner("south-west"), to: roomCorner("north-east"), measure: "x", distance: mm(4200) }),
+  addGroups(inRoom("room-extension", [{ id: "extension-width", note: "architect's drawing A-102 rev C", from: roomCorner("south-west"), to: roomCorner("south-east"), measure: "x", distance: mm(3600) }])),
+]);
+```
+
+| Edit | Does |
+|---|---|
+| `removeConstraint(id, note)` | stops checking a base constraint on this revision; the note, which is required, says why |
+| `replaceConstraint(constraint)` | puts a constraint in the place of the base's with the same id |
+| `addGroups(...groups)` | adds groups, by storey or room, for dimensions the proposal must meet |
+
+Nothing is skipped for you. A base constraint the revision breaks is an ERROR that names the file to
+revise it in:
+
+```
+ERROR   bathroom-corner-to-window-centre: wall-east is not in the model (room-bathroom); the revision can remove or replace it in models/examples/example-cottage/revisions/rear-extension.constraints.ts
+```
+
+A replaced or added constraint is a measurement like any other: take it from a real source, such as
+the proposal drawings, and say which in its `note`. The summary line counts the edits:
+
+```
+constr  models/elmstead/revisions/rear-extension/constraints.ts: 33 of 33 met (2 removed, 1 replaced, 3 added)
+```
+
+### Openings move with their wall
+
+An opening is placed by `offsetAlongWall` from its wall's start. Replacing a wall with one whose
+start has moved shifts every opening in it, although the openings themselves aren't edited.
+Lengthen a wall at its end, or re-place its openings in the same revision.
+
+### When to make the base parametric instead
+
+Edits act on the values the base produced, not on the dimensions they were derived from. That suits
+additions and demolitions. It suits reshaping poorly: moving Elmstead's rear wall means replacing
+the wall, every room traced along it, the slabs and the openings, all derived from one value in
+`shared.ts`. When a revision needs that, have the base module export a function of the dimension,
+make its default export call it with the measured value, and have the revision call it with the
+proposed one before applying `revise` for the rest.
 
 ## Things the schema does not have yet
 

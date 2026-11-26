@@ -41,7 +41,7 @@ const output = (r: Result): string => r.stdout + r.stderr;
 
 describe("CLI", () => {
   it("builds a valid model into ELMSTEAD_OUT_DIR", () => {
-    const r = run(["build", "models/example-cottage"]);
+    const r = run(["build", "models/examples/example-cottage"]);
     expect(r.status).toBe(0);
     expect(r.files).toEqual(["example-cottage.building.json", "example-cottage.constraints.json", "example-cottage.ifc"]);
     expect(r.stdout).toContain("ifc");
@@ -49,7 +49,7 @@ describe("CLI", () => {
   }, 120_000);
 
   it("publishes resolved constraints for the viewer", () => {
-    const r = run(["build", "models/example-cottage"]);
+    const r = run(["build", "models/examples/example-cottage"]);
     expect(r.status).toBe(0);
     const list = JSON.parse(readFileSync(join(r.out, "example-cottage.constraints.json"), "utf8")) as {
       id: string;
@@ -108,14 +108,14 @@ describe("CLI", () => {
   });
 
   it("warns but still writes plans when render runs before build", () => {
-    const r = run(["render", "models/example-cottage"]);
+    const r = run(["render", "models/examples/example-cottage"]);
     expect(r.status).toBe(0);
     expect(r.stdout).toContain("no IFC yet — run build first");
     expect(r.files).toEqual(["example-cottage.storey-ground.plan.png", "example-cottage.storey-ground.plan.svg"]);
   }, 120_000);
 
   it("checks a valid model without writing anything", () => {
-    const r = run(["check", "models/example-cottage"]);
+    const r = run(["check", "models/examples/example-cottage"]);
     expect(r.status).toBe(0);
     expect(r.stdout).not.toContain("ERROR");
     expect(r.files).toEqual([]);
@@ -131,7 +131,7 @@ describe("CLI", () => {
   it("warns and keeps the plans when Chromium is missing", () => {
     const browsers = mkdtempSync(join(tmpdir(), "elmstead-no-chromium-"));
     dirs.push(browsers);
-    const r = run(["all", "models/example-cottage"], { PLAYWRIGHT_BROWSERS_PATH: browsers });
+    const r = run(["all", "models/examples/example-cottage"], { PLAYWRIGHT_BROWSERS_PATH: browsers });
     expect(r.status).toBe(0);
     expect(output(r)).toContain("3D snapshots skipped: Chromium missing");
     expect(r.files).toContain("example-cottage.storey-ground.plan.png");
@@ -139,7 +139,7 @@ describe("CLI", () => {
   }, 120_000);
 
   it("runs build and render for all, skipping 3D when asked", () => {
-    const r = run(["all", "models/example-cottage", "--no-3d"]);
+    const r = run(["all", "models/examples/example-cottage", "--no-3d"]);
     expect(r.status).toBe(0);
     expect(r.files).toEqual([
       "example-cottage.building.json",
@@ -150,9 +150,70 @@ describe("CLI", () => {
     ]);
   }, 120_000);
 
+  it("builds a file revision under <model>@<revision>, leaving the base's outputs alone", () => {
+    const r = run(["build", "tests/fixtures/revised/revisions/no-kitchen-window.ts"]);
+    expect(r.status, output(r)).toBe(0);
+    expect(r.files).toContain("revised@no-kitchen-window.building.json");
+    expect(r.files).toContain("revised@no-kitchen-window.ifc");
+    expect(r.files.filter((f) => !f.startsWith("revised@no-kitchen-window."))).toEqual([]);
+    expect(r.stdout).toContain("geom    ");
+    expect(r.stdout).toMatch(/valid   .*revised@no-kitchen-window\.ifc: 0 errors/);
+    const json = JSON.parse(readFileSync(join(r.out, "revised@no-kitchen-window.building.json"), "utf8")) as { storeys: { openings: { id: string }[] }[] };
+    expect(json.storeys[0]!.openings.map((o) => o.id)).not.toContain("window-kitchen");
+  }, 120_000);
+
+  it("builds and renders a folder revision, plans and snapshots named after it", () => {
+    const r = run(["all", "tests/fixtures/revised/revisions/lean-to"]);
+    expect(r.status, output(r)).toBe(0);
+    expect(r.files).toContain("revised@lean-to.building.json");
+    expect(r.files).toContain("revised@lean-to.ifc");
+    expect(r.files).toContain("revised@lean-to.storey-ground.plan.svg");
+    expect(r.files).toContain("revised@lean-to.3d-top.png");
+    expect(r.files.filter((f) => !f.startsWith("revised@lean-to."))).toEqual([]);
+  }, 180_000);
+
+  it("rejects a revision whose storeys differ from its base's, writing nothing", () => {
+    const r = run(["build", "tests/fixtures/revised/revisions/extra-storey.ts"]);
+    expect(r.status).toBe(1);
+    expect(output(r)).toContain("ERROR   storey-loft: storey is not in revised; a revision keeps its base's storeys");
+    expect(r.files).toEqual([]);
+  });
+
+  it("checks a revision against its base's constraints when it has none of its own", () => {
+    const r = run(["check", "tests/fixtures/revised/revisions/no-kitchen-window.ts"]);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain("constr  tests/fixtures/revised/constraints.ts: 6 of 6 met\n");
+  });
+
+  it("fails a revision that breaks an inherited constraint, naming where to revise it", () => {
+    const r = run(["build", "tests/fixtures/revised/revisions/no-east-wall.ts"]);
+    expect(r.status).toBe(1);
+    expect(output(r)).toContain(
+      "ERROR   bathroom-corner-to-window-centre: wall-east is not in the model (room-bathroom); the revision can remove or replace it in tests/fixtures/revised/revisions/no-east-wall.constraints.ts",
+    );
+    expect(r.files).toEqual([]);
+  });
+
+  it("checks a revision's own constraints, counting its edits, and publishes them", () => {
+    const r = run(["build", "tests/fixtures/revised/revisions/wide-window-revised"]);
+    expect(r.status, output(r)).toBe(0);
+    expect(r.stdout).toContain("constr  tests/fixtures/revised/revisions/wide-window-revised/constraints.ts: 6 of 6 met (1 removed, 1 replaced, 1 added)");
+    const list = JSON.parse(readFileSync(join(r.out, "revised@wide-window-revised.constraints.json"), "utf8")) as { id: string; distance: number }[];
+    expect(list.map((c) => c.id)).toContain("living-window-from-east");
+    expect(list.map((c) => c.id)).not.toContain("living-corner-to-window");
+    expect(list.find((c) => c.id === "living-window-width")!.distance).toBe(1800);
+  }, 120_000);
+
+  it("reports a revision constraint edit that cannot be applied against its id", () => {
+    const r = run(["check", "tests/fixtures/revised/revisions/unnoted.ts"]);
+    expect(r.status).toBe(1);
+    expect(output(r)).toContain("ERROR   hall-width: revision: cannot remove constraint hall-width: say why in its note");
+    expect(output(r)).toContain("FAILED  tests/fixtures/revised/revisions/unnoted.constraints.ts: constraints did not validate");
+  });
+
   it("checks the model's constraints and prints how many were met", () => {
-    const r = run(["check", "models/example-cottage"]);
-    expect(r.stdout).toContain("constr  models/example-cottage/constraints.ts: 6 of 6 met");
+    const r = run(["check", "models/examples/example-cottage"]);
+    expect(r.stdout).toContain("constr  models/examples/example-cottage/constraints.ts: 6 of 6 met");
   });
 
   it("prints no constraints line for a model without a constraints file", () => {
@@ -187,7 +248,7 @@ describe("CLI", () => {
   });
 
   it("checks constraints once in all", () => {
-    const r = run(["all", "models/example-cottage", "--no-3d"]);
+    const r = run(["all", "models/examples/example-cottage", "--no-3d"]);
     expect(r.status).toBe(0);
     expect(r.stdout.match(/^constr /gm)).toHaveLength(1);
   }, 120_000);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import cottage from "../models/example-cottage/index.js";
+import cottage from "../models/examples/example-cottage/index.js";
 import elmstead from "../models/elmstead/index.js";
-import twoStorey from "../models/example-two-storey/index.js";
+import twoStorey from "./fixtures/two-storey/index.js";
 import { deg, door, m, mm, pt, railing, wall } from "../src/model/index.js";
 import { doorGeometry, renderFloor, renderPlan, renderPlanAnnotations, renderWallTops } from "../src/render/plan.js";
 import { svgToPng } from "../src/render/png.js";

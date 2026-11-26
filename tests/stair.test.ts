@@ -4,7 +4,7 @@
  * side lives in ifc.test.ts, which needs web-ifc.
  */
 import { describe, expect, it } from "vitest";
-import twoStorey from "../models/example-two-storey/index.js";
+import twoStorey from "./fixtures/two-storey/index.js";
 import type { Issue } from "../src/checks/issue.js";
 import { flightFootprint, flightProfile, flightProfileArea, flightRun, flightTreads, stairLevels, turnBetween } from "../src/geometry/stair.js";
 import { m, mm, pt, stair, stairFlight, stairLanding } from "../src/model/index.js";

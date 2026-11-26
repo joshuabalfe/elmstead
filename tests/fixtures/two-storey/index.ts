@@ -17,7 +17,7 @@
  * Both storeys share one wall layout, so the viewer's top view shows the same charcoal wall tops as
  * the ground-floor plan and the plan-versus-3D comparison still lines up.
  */
-import { defineBuilding, m, mm, pt, rectRoom, rectWalls, stair, stairFlight, stairLanding, sub, type Storey } from "../../src/model/index.js";
+import { defineBuilding, m, mm, pt, rectRoom, rectWalls, stair, stairFlight, stairLanding, sub, type Storey } from "../../../src/model/index.js";
 
 const outerW = m(6);
 const outerD = m(4);

@@ -25,7 +25,7 @@ import {
   window,
   windowComponent,
   type Opening,
-} from "../../src/model/index.js";
+} from "../../../src/model/index.js";
 
 // ── Key dimensions ────────────────────────────────────────────────────────────
 const houseWidth = m(8);
