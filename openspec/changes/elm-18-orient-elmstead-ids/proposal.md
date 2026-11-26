@@ -50,7 +50,9 @@ change sets `skip_specs: true`.
 
 - `models/elmstead/**`: ids, names, comments and constraint notes. No geometry changes.
 - `tests/elmstead.test.ts`: id references.
-- The new `northAngle` turns the north arrow on elmstead's plans and the viewer's compass by 18°.
+- The new `northAngle` turns elmstead's plans, which are drawn true north up (ELM-19), and the
+  viewer's Top view by 18° from today's. The corner buttons keep their labels: N, W, S and E at
+  both 135° and 153°.
 - IFC GlobalIds come from element ids (`src/ifc/guid.ts`), so every renamed element gets a new
   GlobalId. Anything holding an older elmstead IFC will see those elements as removed and re-added.
 - elmstead has no revisions yet, so none need re-pointing.
