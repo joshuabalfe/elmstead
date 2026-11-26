@@ -1,7 +1,7 @@
 /**
- * Elmstead first floor, traced from the owner's first-floor plan (drawing scale about 7.9 mm per px,
- * rounded to 25 mm). External walls stack on the ground floor's; the kitchen/dining wall and the
- * dining/bedroom partition keep the ground floor's measured positions.
+ * Elmstead first floor, traced from the owner's first-floor plan (drawing scale about 7.9 mm per
+ * px, rounded to 25 mm). External walls stack on the ground floor's; the kitchen/dining wall and
+ * the dining/bedroom partition keep the ground floor's measured positions.
  *
  *   +------------------+-----------+-----------+
  *   |     Kitchen      |  Landing  |  stairs   |
@@ -9,7 +9,7 @@
  *   +------------------+           +-----------+
  *   |                  |           |   half    |
  *   |   Dining room    |           |  landing  |
- *   |  (bay to west)   +-----------+  (void)   |
+ *   |  (front bay)     +-----------+  (void)   |
  *   |                  |  Ensuite  |           |
  *   +------------------+-----------+-----------+
  *   |                  |        Bedroom        |
@@ -62,7 +62,7 @@ const slabs = [
     pt(coreW, stairRightY),
     pt(stairFrontX, stairRightY),
   ]),
-  // Where the stair well runs up to the core's north wall, the cut removes the slab band that
+  // Where the stair well runs up to the core's party wall, the cut removes the slab band that
   // normally joins the ground wall top to this floor's wall base, leaving a 200 mm slot between the
   // storeys. Carry the slab over the wall's thickness to close it; the well stays open inside its
   // face. The extension's walls run past this floor unbroken (../extension.ts), so they need none.

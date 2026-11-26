@@ -19,8 +19,8 @@ const extRearIn = face(extRear, "west");
 
 export const rooms: Room[] = [
   // The long hallway: a simple L — in from the entrance, a right turn, then straight down to the
-  // shower door. Its east edge is the central partition's west face; its west edge is the north
-  // bedroom's east wall line, carried straight down past the divide.
+  // shower door. Its rear edge is the central partition's front face; its front edge is the left
+  // bedroom's rear wall line, carried straight down past the divide.
   {
     id: "room-hallway-basement",
     name: "Hallway",
@@ -34,8 +34,8 @@ export const rooms: Room[] = [
     ],
   },
   rectRoom("room-guest-left-basement", "Guest Bedroom 1", { west: frontIn, east: face(leftBedRear, "west"), south: face(bedroomDivide, "north"), north: face(hallRight, "south") }),
-  // Bedroom 2 is L-shaped: its west leg runs beside the shower room, and its north-east leg reaches
-  // the corridor's west edge wall so the door opens flush with the corridor.
+  // Bedroom 2 is L-shaped: its front leg runs beside the shower room, and its rear-left leg reaches
+  // the corridor's front edge wall so the door opens flush with the corridor.
   {
     id: "room-guest-right-basement",
     name: "Guest Bedroom 2",

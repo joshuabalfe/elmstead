@@ -3,8 +3,8 @@
  * size, and which way doors swing.
  *
  * The drawing gives widths only. Door heights are a typical 2.1 m; the bathroom door's drawn gap
- * (about 440 mm) uses the owner's 768 mm internal-door width. The front window, fanlight, front door
- * opening and frame, and the bedroom window's sill and head, are the owner's.
+ * (about 440 mm) uses the owner's 768 mm internal-door width. The front window, fanlight, front
+ * door opening and frame, and the bedroom window's sill and head, are the owner's.
  */
 import { add, centredOn, deg, div, divRound, door, doorway, face, m, mid, mm, scale, sub, window, type Opening } from "../../../src/model/index.js";
 import { fanlight, framedWindow, frontDoor, frontWindow, internalDoor, smallPaneWindow } from "../components/index.js";
@@ -21,7 +21,7 @@ const standard = { height: m(1.2), sillHeight: mm(900) };
 const frontDoorFrame = mm(50);
 export const frontDoorWidth = mm(1000);
 const frontDoorSize = { width: frontDoorWidth, height: doorH };
-export const frontDoorOffset = mm(150); // from the north end of the west wall (owner)
+export const frontDoorOffset = mm(150); // from the party-wall end of the front wall (owner)
 /** Centre of the front door, shared with the step railings and the front facade railing. */
 export const frontDoorCentreY = sub(sub(partyIn, frontDoorOffset), div(frontDoorWidth, 2));
 const frontHead = m(2.6);
@@ -39,7 +39,7 @@ const lobbyDoorwayOffset = add(lobbyScreenLobbyStart, divRound(sub(lobbyScreenLo
 // Window returns splay out at about 45° on the inside. The frame is taken as sitting in the middle
 // of the wall, where the splay starts.
 const insideReveal = { face: "left", angle: deg(45) } as const;
-// Bedroom window hugs the bathroom end of the east wall: 200 mm of wall left to the partition (chosen, not measured).
+// Bedroom window hugs the bathroom end of the rear wall: 200 mm of wall left to the partition (chosen, not measured).
 const bedroomWindowGap = mm(200);
 const bedroomWindowWidth = mm(1200);
 const bedroomWindowOffset = sub(sub(bedroomWallY, bedroomWindowGap), add(endIn, bedroomWindowWidth));
@@ -49,18 +49,18 @@ const bedroomWindowHead = mm(2650);
 const bedroomWindowSize = { width: bedroomWindowWidth, height: sub(bedroomWindowHead, bedroomWindowSill), sillHeight: bedroomWindowSill };
 
 export const openings: Opening[] = [
-  // West wall runs north→south, so "start" is the north end and "left" is inside.
+  // Front wall runs plan north→south, so "start" is its party-wall end and "left" is inside.
   door("door-front", front, frontDoorOffset, frontDoor, frontDoorSize, { hinge: "start", side: "left" }),
   window("window-front-fanlight", front, fanlightOffset, fanlight, { width: fanlightWidth, height: sub(frontHead, fanlightSill), sillHeight: fanlightSill }),
   window("window-living", front, centredOn(front, frontWindowCentreY, frontWindowSize.width), frontWindow, frontWindowSize, insideReveal),
 
-  // Partition runs south→north; "left" is the living room.
+  // Partition runs plan south→north; "left" is the living room.
   door("door-living", livingBedroom, sub(bathroomDoorY, endIn), internalDoor, internal, { hinge: "start", side: "left" }),
-  // Bedroom/bathroom wall runs west→east; "right" is the bedroom. Centred on the lobby.
+  // Bedroom/bathroom wall runs plan west→east; "right" is the bedroom. Centred on the lobby.
   door("door-bedroom", bedroomBathroom, centredOn(bedroomBathroom, lobbyCentreX, internal.width), internalDoor, internal, { hinge: "start", side: "right" }),
-  // Lobby/bathroom wall runs south→north; "right" is the bathroom.
+  // Lobby/bathroom wall runs plan south→north; "right" is the bathroom.
   door("door-bathroom", lobbyBathroom, bathroomDoorOffset, internalDoor, internal, { hinge: "start", side: "right" }),
-  // Screen runs from the hall corner (south-west) to the spine (north-east); "right" is the lobby.
+  // Screen runs from the hall corner (plan south-west) to the spine (plan north-east); "right" is the lobby.
   doorway("door-lobby", lobbyScreen, lobbyDoorwayOffset, internal),
 
   window("window-bedroom", rear, bedroomWindowOffset, smallPaneWindow, bedroomWindowSize, insideReveal),

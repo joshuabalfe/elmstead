@@ -2,10 +2,11 @@
  * Elmstead's provisional half-turn stair, first floor to attic, stacked over the main stair inside
  * the attic's stair well (../attic/index.ts). Owner: 8 + 8 risers and a smaller half landing than
  * the main stair's. Over the provisional 2900 mm rise that is a 181.25 mm riser. You step on from
- * the first-floor landing, where the main stair arrives: the lower flight climbs east above the main
- * stair's lower flight, turns on a half landing at the core's east edge, and the upper flight climbs
- * west back to the attic's well edge. The goings are assumed at 280 mm, the main stair's upper
- * going, which leaves the half landing about 1 m deep; update them when the owner measures them.
+ * the first-floor landing, where the main stair arrives: the lower flight climbs towards the rear
+ * above the main stair's lower flight, turns on a half landing at the core's rear edge, and the
+ * upper flight climbs back towards the front to the attic's well edge. The goings are assumed at
+ * 280 mm, the main stair's upper going, which leaves the half landing about 1 m deep; update them
+ * when the owner measures them.
  *
  * The half landing is a storey of its own (../shared.ts), so the stair is two, as the main stair is
  * (../ground/stair.ts), and the wall at the back of the landing stands on it.
@@ -21,7 +22,7 @@ const rightY = mid(face(bathLeft, "north"), spineY); // 6535
 const leftY = mid(face(spine, "north"), partyIn); //    7620
 const width = mm(910);
 
-// 7 goings of 280 mm on each flight: from the well's west edge to where the main stair turns.
+// 7 goings of 280 mm on each flight: from the well's front edge to where the main stair turns.
 const front = stairArrivalX;
 const landingFront = spineEndX;
 
@@ -32,8 +33,8 @@ export const stairs: Stair[] = [
   { id: "stair-attic-lower", name: "Attic stair, lower flight", toStoreyId: "storey-attic-half-landing", segments: [lower] },
 ];
 
-// The back wall runs across the landing's east edge, just outside it, up to the attic floor level
-// where the attic's east roof slope comes down. It is a light stud wall carried on the landing; it
+// The back wall runs across the landing's rear edge, just outside it, up to the attic floor level
+// where the attic's rear roof slope comes down. It is a light stud wall carried on the landing; it
 // stands over the main half landing, well above head height, so the main stair keeps its headroom.
 const backWall = wall("wall-attic-half-landing-back", pt(coreW, stairRightY), pt(coreW, stairLeftY), {
   thickness: studT,
@@ -47,7 +48,7 @@ export const atticHalfLandingStorey: Storey = {
   elevation: atticHalfLanding.elevation,
   walls: [backWall, ...atticHalfLandingWalls],
   openings: [],
-  // The attic well stops at the core's east edge, so this half landing stays out of the extension.
+  // The attic well stops at the core's rear edge, so this half landing stays out of the extension.
   slabs: [{
     id: "slab-attic-half-landing",
     name: "Attic half landing",

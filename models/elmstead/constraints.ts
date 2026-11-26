@@ -10,7 +10,7 @@ export default defineConstraints([
   inRoom("room-living", [
     {
       id: "living-width",
-      note: "Living room size from the owner (5.8 x 4.2 m): the 4.2 m side, west to east",
+      note: "Living room size from the owner (5.8 x 4.2 m): the 4.2 m side, front to back",
       from: roomCorner("south-west"),
       to: roomCorner("north-east"),
       measure: "x",
@@ -52,7 +52,7 @@ export default defineConstraints([
   inRoom("room-bedroom", [
     {
       id: "bedroom-width",
-      note: "Bedroom size from the owner (3.48 x 3.85 m): the 3.85 m side, west to east",
+      note: "Bedroom size from the owner (3.48 x 3.85 m): the 3.85 m side, front to back",
       from: roomCorner("south-west"),
       to: roomCorner("north-east"),
       measure: "x",
@@ -60,7 +60,7 @@ export default defineConstraints([
     },
     {
       id: "bedroom-depth",
-      note: "Bedroom depth from the owner: 3.3 m plus the 180 mm stair surplus, from the thickened south wall to the bathroom wall",
+      note: "Bedroom depth from the owner: 3.3 m plus the 180 mm stair surplus, from the thickened end wall to the bathroom wall",
       from: roomCorner("south-west"),
       to: roomCorner("north-east"),
       measure: "y",
@@ -78,7 +78,7 @@ export default defineConstraints([
   inRoom("room-bathroom", [
     {
       id: "bathroom-width",
-      note: "Bathroom size from the owner (1.6 x 2.85 m): the 2.85 m side, west to east",
+      note: "Bathroom size from the owner (1.6 x 2.85 m): the 2.85 m side, front to back",
       from: roomCorner("south-west"),
       to: roomCorner("north-east"),
       measure: "x",
@@ -86,7 +86,7 @@ export default defineConstraints([
     },
     {
       id: "bathroom-depth",
-      note: "Bathroom size from the owner (1.6 x 2.85 m): the 1.6 m side, south to north",
+      note: "Bathroom size from the owner (1.6 x 2.85 m): the 1.6 m side, right to left",
       from: roomCorner("south-west"),
       to: roomCorner("north-east"),
       measure: "y",
@@ -106,7 +106,7 @@ export default defineConstraints([
   inRoom("room-rear-hall", [
     {
       id: "rear-hall-depth",
-      note: "Rear hall depth from the owner: 2 m, extension south wall to north wall",
+      note: "Rear hall depth from the owner: 2 m, extension right wall to party wall",
       from: corner({ wall: "wall-extension-right", face: "north" }, { wall: "wall-extension-rear", face: "west" }),
       to: corner({ wall: "wall-party-extension", face: "south" }, { wall: "wall-extension-rear", face: "west" }),
       measure: "y",
@@ -116,7 +116,7 @@ export default defineConstraints([
   inRoom("room-guest-left-basement", [
     {
       id: "guest-left-width-basement",
-      note: "Small (north) guest bedroom width from the owner (3.1 m), west to east",
+      note: "Small (left) guest bedroom width from the owner (3.1 m), front to back",
       from: roomCorner("south-west"),
       to: roomCorner("north-east"),
       measure: "x",
@@ -124,7 +124,7 @@ export default defineConstraints([
     },
     {
       id: "guest-left-depth-basement",
-      note: "Small (north) guest bedroom depth from the owner (2.44 m), south to north",
+      note: "Small (left) guest bedroom depth from the owner (2.44 m), right to left",
       from: roomCorner("south-west"),
       to: roomCorner("north-east"),
       measure: "y",
@@ -144,7 +144,7 @@ export default defineConstraints([
   inRoom("room-shower-basement", [
     {
       id: "shower-width-basement",
-      note: "Shower room width from the owner (1.5 m), west to east",
+      note: "Shower room width from the owner (1.5 m), front to back",
       from: roomCorner("south-west"),
       to: roomCorner("north-east"),
       measure: "x",
@@ -152,7 +152,7 @@ export default defineConstraints([
     },
     {
       id: "shower-depth-basement",
-      note: "Shower room depth from the owner (2.5 m), south to north",
+      note: "Shower room depth from the owner (2.5 m), right to left",
       from: roomCorner("south-west"),
       to: roomCorner("north-east"),
       measure: "y",
@@ -162,7 +162,7 @@ export default defineConstraints([
   inRoom("room-kitchen-first", [
     {
       id: "kitchen-depth",
-      note: "Kitchen size from the owner: 2.75 m from the north wall to its south wall",
+      note: "Kitchen size from the owner: 2.75 m from the party wall to its right wall",
       from: roomCorner(0),
       to: roomCorner(5),
       measure: "y",
@@ -178,7 +178,7 @@ export default defineConstraints([
     },
     {
       id: "kitchen-protrusion",
-      note: "Kitchen's lower east wall protrudes into the kitchen 1.25 m from the dining wall (owner)",
+      note: "Kitchen's lower rear wall protrudes into the kitchen 1.25 m from the dining wall (owner)",
       from: corner({ wall: "wall-kitchen-rear-lower-first", face: "west" }, { wall: "wall-dining-left-first", face: "north" }),
       to: corner({ wall: "wall-kitchen-rear-lower-first", face: "west" }, { wall: "wall-kitchen-step-first", face: "north" }),
       measure: "y",
@@ -194,7 +194,7 @@ export default defineConstraints([
     },
     {
       id: "kitchen-door-offset",
-      note: "Kitchen door sits 50 mm off the north wall (owner)",
+      note: "Kitchen door sits 50 mm off the party wall (owner)",
       from: jamb("door-kitchen-first", "end"),
       to: wallEnd("wall-kitchen-rear-first", "end"),
       measure: { along: "wall-kitchen-rear-first" },
@@ -214,7 +214,7 @@ export default defineConstraints([
   inRoom("room-ensuite-first", [
     {
       id: "ensuite-width",
-      note: "Ensuite width from the owner (1.91 m), across the room to the extension's south wall",
+      note: "Ensuite width from the owner (1.91 m), across the room to the extension's right wall",
       from: roomCorner(0),
       to: roomCorner(2),
       measure: "y",
@@ -222,7 +222,7 @@ export default defineConstraints([
     },
     {
       id: "ensuite-length",
-      note: "Ensuite length from the owner (2.79 m), west to east",
+      note: "Ensuite length from the owner (2.79 m), front to back",
       from: roomCorner(0),
       to: roomCorner(1),
       measure: "x",
@@ -242,7 +242,7 @@ export default defineConstraints([
   inStorey("storey-ground", [
     {
       id: "stair-flight-width",
-      note: "Stair flight width from the owner (both flights 0.91 m); the north flight, spine to north wall",
+      note: "Stair flight width from the owner (both flights 0.91 m); the left flight, spine to party wall",
       from: wallEnd("wall-stair-spine", "end", "north"),
       to: wallEnd("wall-party", "start", "south"),
       measure: "y",
@@ -250,7 +250,7 @@ export default defineConstraints([
     },
     {
       id: "stair-flight-width-right",
-      note: "Stair flight width from the owner (both flights 0.91 m); the south flight, bathroom north wall to spine",
+      note: "Stair flight width from the owner (both flights 0.91 m); the right flight, bathroom left wall to spine",
       from: wallEnd("wall-bathroom-left", "start", "north"),
       to: wallEnd("wall-stair-spine", "end", "south"),
       measure: "y",
@@ -268,7 +268,7 @@ export default defineConstraints([
     },
     {
       id: "front-door-offset",
-      note: "Front door opening starts 150 mm from the north end of the west wall (owner)",
+      note: "Front door opening starts 150 mm from the left end of the front wall (owner)",
       from: wallEnd("wall-front", "start"),
       to: jamb("door-front", "start"),
       measure: { along: "wall-front" },

@@ -25,10 +25,10 @@ import {
 
 const hallLeftFace = face(hallLiving, "north");
 const spineLeft = face(spine, "north");
-const stairFrontX = mm(5675); // where the stair footprint starts north of the spine
+const stairFrontX = mm(5675); // where the stair footprint starts left of the spine
 const bathFrontFace = face(lobbyBathroom, "east");
 const bedBathLeft = face(bedroomBathroom, "north");
-const rearHallRearX = mm(10000); // east face of the rear hall, where it meets the extension
+const rearHallRearX = mm(10000); // rear face of the rear hall, where it meets the extension
 
 // Starts at the front of the chimney breast: the alcoves either side of it are built-ins, not floor space.
 export const living = rectRoom("room-living", "Living room", { west: frontIn, east: partitionX, south: face(breastLiving, "north"), north: hallWallY });
@@ -38,7 +38,7 @@ export const rooms: Room[] = [
   {
     id: "room-hallway",
     name: "Hallway",
-    // Along the lobby screen's hall-side face (its left), from the hall wall to the spine's north corner.
+    // Along the lobby screen's hall-side face (its left), from the hall wall to the spine's left corner.
     outline: [
       pt(frontIn, hallLeftFace),
       faceCrossing(lobbyScreen, "left", "y", hallLeftFace),
@@ -78,7 +78,7 @@ export const rooms: Room[] = [
   {
     id: "room-rear-hall",
     name: "Rear hall",
-    // Steps around the east wall's head, which sits just north of the extension's south wall face.
+    // Steps around the rear wall's head, which sits just left of the extension's right wall face.
     outline: [
       pt(coreW, face(extRight, "north")),
       pt(face(extRear, "west"), face(extRight, "north")),

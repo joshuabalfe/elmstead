@@ -31,7 +31,7 @@ import {
 export const kitchen: Room = {
   id: "room-kitchen-first",
   name: "Kitchen",
-  // L-shaped: the east wall steps out above the dining-room wall, leaving a passage to the landing.
+  // L-shaped: the rear wall steps out above the dining-room wall, leaving a passage to the landing.
   outline: [
     pt(frontIn, kitchenRightY),
     pt(kitchenRearLowerX, kitchenRightY),
@@ -45,16 +45,16 @@ export const kitchen: Room = {
 export const dining: Room = {
   id: "room-dining-first",
   name: "Dining room",
-  // From the kitchen wall to the chimney breast, and from the thick west wall to the partition: the
-  // alcoves beside the breast are built-ins, as in the living room below, and the bay window projects
-  // beyond the west wall without adding to the room's dimensions.
+  // From the kitchen wall to the chimney breast, and from the thick front wall to the partition:
+  // the alcoves beside the breast are built-ins, as in the living room below, and the bay window
+  // projects beyond the front wall without adding to the room's dimensions.
   outline: [pt(frontIn, breastLeftY), pt(partitionX, breastLeftY), pt(partitionX, diningLeftY), pt(frontIn, diningLeftY)],
 };
 
 export const landing: Room = {
   id: "room-landing-first",
   name: "Landing",
-  // Wraps the west and south of the stair well, with the passage to the dining-room door.
+  // Wraps the front and right of the stair well, with the passage to the dining-room door.
   outline: [
     pt(kitchenRearFaceX, partyIn),
     pt(kitchenRearFaceX, stepRightY),
@@ -78,7 +78,7 @@ export const ensuite: Room = {
 export const bedroom: Room = {
   id: "room-bedroom-first",
   name: "Bedroom",
-  // Wraps the ensuite's south and west sides; chimney breast in its south-east corner.
+  // Wraps the ensuite's right and front sides; chimney breast in its rear-right corner.
   outline: [
     pt(partitionRear, endIn),
     pt(bedroomBreastFrontX, endIn),

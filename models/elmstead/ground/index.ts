@@ -1,15 +1,15 @@
 /**
  * Elmstead ground floor, traced from the owner's ground-floor plan image (first pass).
  *
- *   +----------------------------+--------+   north
+ *   +----------------------------+--------+   party wall
  *   |  Hallway        | stairs   | rear   |
  *   |                 | (flight) | hall   |
  *   +--------------+ \ +----------+--------+
  *   |              | Lobby| Bathroom |
  *   |  Living room |  +---+----------+
  *   |              |  |   Bedroom   |
- *   +--------------+--+-------------+   south
- *   front door on the west wall
+ *   +--------------+--+-------------+   end wall
+ *   front door in the front wall
  *
  *   walls.ts      walls, and the plan positions everything else derives from
  *   openings.ts   doors and windows: component, wall, position, swing

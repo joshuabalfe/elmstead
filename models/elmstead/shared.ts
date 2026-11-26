@@ -2,18 +2,30 @@
  * Elmstead: dimensions every floor shares — the building outline, the external walls'
  * thicknesses, and floor levels.
  *
- * Plan origin is the outside south-west corner of the core; x east, y north, mm. "North" is
- * the top of the source drawing, which has no north arrow.
+ * Orientation. The plan follows the owner's drawing: x is plan east, y is plan north, in mm, and
+ * plan north is the top of the drawing, which has no north arrow. The origin is the outside corner
+ * of the core at plan south-west. Ids, names and comments use building sides instead of plan
+ * compass words, as seen from the street facing the front wall:
+ *
+ *   plan west  (−x)  front, onto Picton Rd   faces ≈ 063° (east-north-east)
+ *   plan east  (+x)  rear, onto the garden   faces ≈ 243° (west-south-west)
+ *   plan north (+y)  left: the party wall    faces ≈ 153° (south-south-east)
+ *   plan south (−y)  right: the end wall     faces ≈ 333° (north-north-west)
+ *
+ * Elmstead is an end terrace. The party wall is on the front-door side and the exposed end wall is
+ * on the side with the wrap-around pavement. The true facings follow from site.northAngle (153°,
+ * see index.ts). Plan-axis arguments to the src helpers, such as face(wall, "north") or
+ * roomCorner("south-west"), still name plan axes, and so do comments marked "plan".
  */
 import { add, m, mm, pt, scale, sub, wall, type Mm, type Point, type Wall } from "../../src/model/index.js";
 
 // ── Outline ──────────────────────────────────────────────────────────────────
 export const coreW = m(9.025); // living 4.2 m + bedroom 3.85 m (owner) plus the walls between and outside them
 export const coreD = m(8.425); // living 5.8 m + hallway 1.5 m (owner) plus the walls between and outside them
-export const extRearX = m(10.425); // outside face of the extension's east wall; keeps its traced 1.4 m width
-export const extRightY = m(5.9); // outside face of the extension's south wall; rear hall 2 m deep (owner)
+export const extRearX = m(10.425); // outside face of the extension's rear wall; keeps its traced 1.4 m width
+export const extRightY = m(5.9); // outside face of the extension's right wall; rear hall 2 m deep (owner)
 
-/** Outside of the core plus the rear extension (north-east corner). */
+/** Outside of the core plus the rear extension (rear-left corner). */
 export const footprint = [pt(mm(0), mm(0)), pt(coreW, mm(0)), pt(coreW, extRightY), pt(extRearX, extRightY), pt(extRearX, coreD), pt(mm(0), coreD)];
 
 // ── Construction ─────────────────────────────────────────────────────────────
@@ -37,7 +49,7 @@ export interface WallRun {
 /**
  * The canonical external wall runs, counter-clockwise with the body to the left (inside). Every
  * storey builds its external walls from these with its own height and id; a storey that deviates
- * (the first floor's bay split on the west, the ground floor's east wall stopping at the bathroom)
+ * (the first floor's bay split on the front, the ground floor's rear wall stopping at the bathroom)
  * overrides the run rather than re-declaring the outline. Inner-face coordinates are derived from
  * the thicknesses, so they match face() on the built walls exactly.
  */
@@ -65,8 +77,8 @@ export const groundFloor = { elevation: mm(0), ceilingHeight: m(2.9) };
 /** The ground floor slab's thickness. Its top is at the ground elevation, so it hangs down into the basement. */
 export const groundSlabT = mm(150);
 /**
- * Provisional basement, not measured yet: 2.4 m clear to the underside of the ground slab. The floor
- * sits one slab thickness plus that clear height below ground, and its walls stop at the slab
+ * Provisional basement, not measured yet: 2.4 m clear to the underside of the ground slab. The
+ * floor sits one slab thickness plus that clear height below ground, and its walls stop at the slab
  * underside. Revisit the elevation when the basement levels are measured.
  */
 export const basementClearHeight = m(2.4);
@@ -115,22 +127,23 @@ export const firstFloor = { elevation: add(groundFloor.ceilingHeight, firstFloor
  */
 export const atticFloorStructure = mm(200);
 /**
- * Attic roof. Elmstead is a terrace under a dual-pitch gable roof: the north and south party walls
- * rise from the floor to a north-south ridge over the core's mid-span; the rear and extension are
- * open at floor level. The ridge (~3.2 m) is the owner's estimate; the ridge position is still
- * provisional — revisit it when the roof is measured.
+ * Attic roof. Elmstead is an end terrace under a dual-pitch gable roof: the party wall and the
+ * exposed end wall are gable ends, rising from the floor to a ridge over the core's mid-span that
+ * runs parallel to the street; the rear and extension are open at floor level. The ridge (~3.2 m)
+ * is the owner's estimate; the ridge position is still provisional — revisit it when the roof is
+ * measured.
  */
 export const atticRidgeHeight = m(3.2); // owner's estimate
-export const atticRidgeX = mm(4512); // ridge over the core's east-west mid-span (provisional)
+export const atticRidgeX = mm(4512); // ridge over the core's front-to-back mid-span (provisional)
 export const atticFloor = {
   elevation: add(add(firstFloor.elevation, firstFloor.ceilingHeight), atticFloorStructure),
   ceilingHeight: atticRidgeHeight,
 };
 /**
  * Each half landing is a storey of its own, so walls and openings can stand on it. Its level is the
- * lower flight's share of the stair's risers, so both flights keep (almost) the same riser: the main
- * stair is 9 + 8 risers (owner), the attic stair 8 + 8 (owner). The main landing rounds to the mm,
- * leaving its two flights about 0.05 mm apart per riser.
+ * lower flight's share of the stair's risers, so both flights keep (almost) the same riser: the
+ * main stair is 9 + 8 risers (owner), the attic stair 8 + 8 (owner). The main landing rounds to the
+ * mm, leaving its two flights about 0.05 mm apart per riser.
  */
 export const mainStairRisers = { lower: 9, upper: 8 };
 export const atticStairRisers = { lower: 8, upper: 8 };

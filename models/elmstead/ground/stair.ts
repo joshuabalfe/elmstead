@@ -1,11 +1,11 @@
 /**
  * Elmstead's provisional half-turn stair, ground to first floor, fitted to the traced first-floor
- * stair well (which runs east into the extension). Owner: 17 risers of about 180 mm; steps 320 mm
- * deep on the lower flight and 280 mm on the upper. Over the provisional 3100 mm rise that is a
- * 182 mm riser; the 17 split 9 + 8, and the runs follow each flight's going (2560 and 1960). You
- * enter from the hallway: the lower flight north of the spine climbs east, turns over the half
- * landing in the extension, and the upper flight south of the spine climbs west back to the
- * first-floor landing.
+ * stair well (which runs towards the rear into the extension). Owner: 17 risers of about 180 mm;
+ * steps 320 mm deep on the lower flight and 280 mm on the upper. Over the provisional 3100 mm rise
+ * that is a 182 mm riser; the 17 split 9 + 8, and the runs follow each flight's going (2560 and
+ * 1960). You enter from the hallway: the lower flight left of the spine climbs towards the rear,
+ * turns over the half landing in the extension, and the upper flight right of the spine climbs back
+ * towards the front to the first-floor landing.
  *
  * The half landing is a storey of its own (../shared.ts), so the stair is two: the lower flight
  * climbs from the ground floor to the half landing, and the upper flight from the half landing to
@@ -19,8 +19,8 @@ import { mainHalfLandingRear, mainHalfLandingWalls } from "../extension.js";
 import { mainHalfLanding, mainStairRisers } from "../shared.js";
 import { bathLeft, partyIn, spine, spineRearX, spineEndX, spineY } from "./walls.js";
 
-// The traced first-floor well bounds the flights and landing; the half landing fills its east end
-// (the extension), from the spine's end to the well's east edge.
+// The traced first-floor well bounds the flights and landing; the half landing fills its rear end
+// (the extension), from the spine's end to the well's rear edge.
 const xs = stairwellOutline.map((p) => p.x);
 const ys = stairwellOutline.map((p) => p.y);
 const front = spine.start.x; // the stair bottom aligns with the spine's start, by the lobby door
@@ -29,14 +29,14 @@ const right = mm(Math.min(...ys));
 const left = mm(Math.max(...ys));
 const landingFront = spineEndX;
 
-const spineLeft = face(spine, "north"); //    7165: north flight's south edge, the spine's far face
-const rightY = mid(face(bathLeft, "north"), spineY); // 6535: centreline south of the spine
-const leftY = mid(spineLeft, partyIn); //              7620: centreline north of the spine
+const spineLeft = face(spine, "north"); //    7165: left flight's right edge, the spine's far face
+const rightY = mid(face(bathLeft, "north"), spineY); // 6535: centreline right of the spine
+const leftY = mid(spineLeft, partyIn); //              7620: centreline left of the spine
 const width = mm(910); // both flights, from the owner
 
-// Bottom-to-top: enter from the hallway, climb east north of the spine, turn over the half landing
-// in the extension, then climb west south of it to the first-floor landing. Each flight's run is its
-// going × (risers − 1): 320 mm steps below, 280 mm above.
+// Bottom-to-top: enter from the hallway, climb towards the rear on the left of the spine, turn over
+// the half landing in the extension, then climb towards the front on its right to the first-floor
+// landing. Each flight's run is its going × (risers − 1): 320 mm steps below, 280 mm above.
 const lower = stairFlight("stair-flight-lower", pt(front, leftY), pt(landingFront, leftY), { width, risers: mainStairRisers.lower });
 const upper = stairFlight("stair-flight-upper", pt(landingFront, rightY), pt(stairArrivalX, rightY), { width, risers: mainStairRisers.upper });
 
@@ -44,7 +44,7 @@ export const stairs: Stair[] = [
   { id: "stair-main-lower", name: "Main stair, lower flight", toStoreyId: "storey-main-half-landing", segments: [lower] },
 ];
 
-// The half landing's window in the extension's east wall, centred on the landing and so above the
+// The half landing's window in the extension's rear wall, centred on the landing and so above the
 // rear-hall window: 1.2 m wide, 2.1 m tall, 450 mm off the landing (owner), with the first-floor
 // bedroom window's cross-bar frame (owner).
 const landingWindowWidth = m(1.2);
@@ -62,8 +62,8 @@ export const mainHalfLandingStorey: Storey = {
   elevation: mainHalfLanding.elevation,
   walls: mainHalfLandingWalls,
   openings: [landingWindow],
-  // The half landing wraps around the spine's traced east end: the spine strip is notched out of
-  // its west part so the wall keeps its full length without passing through the landing.
+  // The half landing wraps around the spine's traced rear end: the spine strip is notched out of
+  // its front part so the wall keeps its full length without passing through the landing.
   slabs: [{
     id: "slab-main-half-landing",
     name: "Main half landing",

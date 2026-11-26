@@ -1,8 +1,9 @@
 /**
- * Attic external walls. Elmstead is a terrace under a dual-pitch gable roof, so the north and south
- * party walls are gable ends rising from the floor to a north-south ridge over the core's mid-span.
- * The front (west) wall is a 700 mm parapet at the front edge; the rear (east) and the extension are
- * open at floor level (the roof runs down to the floor there). The extension's roof is a later pass.
+ * Attic external walls. Elmstead is an end terrace under a dual-pitch gable roof, so the party wall
+ * and the exposed end wall are gable ends, rising from the floor to a ridge over the core's
+ * mid-span that runs parallel to the street. The front wall is a 700 mm parapet at the front edge;
+ * the rear and the extension are open at floor level (the roof runs down to the floor there). The
+ * extension's roof is a later pass.
  *
  * Heights and the ridge position are provisional (see ../shared.ts). The internal layout awaits the
  * owner's attic plan.
@@ -29,7 +30,7 @@ export const party = wall("wall-party-attic", pt(coreW, coreD), pt(mm(0), coreD)
 export const end = wall("wall-end-attic", externalRuns.end.start, externalRuns.end.end, { thickness: externalRuns.end.thickness, justification: externalRuns.end.justification, profile: endProfile });
 
 // The front wall stands 700 mm high (owner) at the front edge, running the full width of the
-// building. The rear (east) and extension have no wall: the roof runs down to the floor there.
+// building. The rear and extension have no wall: the roof runs down to the floor there.
 export const front = wall("wall-front-attic", pt(mm(0), coreD), pt(mm(0), mm(0)), { thickness: frontT, height: mm(700), justification: "left" });
 
 export const walls = [party, end, front];
