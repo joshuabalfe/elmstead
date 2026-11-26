@@ -1,11 +1,11 @@
 import { createReadStream, existsSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
+import { outDir as resolveOutDir } from "../src/root.js";
 import { confinedPath } from "./serve.js";
 
 const root = resolve(import.meta.dirname, "..");
-// ELMSTEAD_OUT_DIR lets tests serve models from a temporary folder instead of out/.
-const outDir = process.env.ELMSTEAD_OUT_DIR ? resolve(process.env.ELMSTEAD_OUT_DIR) : join(root, "out");
+const outDir = resolveOutDir();
 const wasmDir = join(root, "node_modules", "web-ifc");
 
 /**

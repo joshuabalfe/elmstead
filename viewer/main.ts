@@ -24,11 +24,11 @@ import { PointerLockControls } from "three/addons/controls/PointerLockControls.j
 import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
-import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { STYLES } from "../src/ifc/styles.js";
 import { wallHeight } from "../src/geometry/wall.js";
 import { renderFloor, renderPlanAnnotations, renderWallTops, roomTags, type Overlay } from "../src/render/plan.js";
 import { C, PX_PER_MM, ROOM_LABEL } from "../src/render/style.js";
+import type { View } from "../src/render/views.js";
 import type { BuildingModel, Storey } from "../src/schema/schema.js";
 import type { ResolvedConstraint } from "../src/constraints/check.js";
 import { constraintLabels } from "./constraints.js";
@@ -36,7 +36,7 @@ import { overlayGroup, type OverlayLayer } from "./overlay.js";
 import { labelTexture, type BillboardLine } from "./text.js";
 import { elementLabel, type ElementLabel } from "./identify.js";
 import { SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap, type MeasurementValues, type Point3, type SnapCandidate } from "./measure.js";
-import { cameraForView, labelHeading, parseView, type View } from "./view.js";
+import { cameraForView, labelHeading, parseView } from "./view.js";
 import { WALK_AXES, entryPosition, headingBasis, movementOffset, walkRequested, walkStep } from "./walk.js";
 declare global {
   interface Window {
@@ -313,10 +313,9 @@ async function loadLabels(name: string, model: BuildingModel | null, epoch: numb
   if (epoch !== loadEpoch) return;
   const dispose = (obj: THREE.Object3D) => {
     for (const child of [...obj.children]) dispose(child);
-    // Line2 and the overlays' strokes; the constraint lines share one material, which survives disposal.
-    if (obj instanceof LineSegments2) obj.geometry.dispose();
-    if (obj instanceof THREE.Mesh) obj.geometry.dispose(); // sprites share one geometry
+    if (obj instanceof THREE.Mesh) obj.geometry.dispose(); // lines are meshes too; sprites share one geometry
     const material = "material" in obj ? (obj.material as THREE.MeshBasicMaterial | THREE.SpriteMaterial) : undefined;
+    if (material === (constraintLineMaterial as THREE.Material)) return; // every constraint line shares one material
     material?.map?.dispose();
     material?.dispose();
   };
@@ -502,9 +501,7 @@ async function applyStoreyVisibility(model: FragmentsModel) {
     for (const o of s.openings) owner.set(o.id, s.id);
     for (const sl of s.slabs) owner.set(sl.id, s.id);
     for (const r of s.rooms) owner.set(r.id, s.id);
-    // Stairs arrive with ELM-4; read them defensively so this mapping is ready for them.
-    const stairs = (s as { stairs?: { id: string; segments: { id: string }[] }[] }).stairs ?? [];
-    for (const st of stairs) {
+    for (const st of s.stairs ?? []) {
       owner.set(st.id, s.id);
       for (const seg of st.segments) owner.set(seg.id, s.id);
     }

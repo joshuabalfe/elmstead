@@ -128,6 +128,9 @@ The actions are pinned by commit SHA, matching the repo's exact-version rule.
 
 - **TypeScript:** strict, with `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` and
   `verbatimModuleSyntax`. ES modules, with `.js` extensions on relative imports.
+- **Code style:** one-line arrow consts for small helpers, function declarations for larger bodies,
+  JSDoc on exports. No formatter is configured and lines may run long; keep the shape of the file
+  you are editing.
 - **Lengths:** always `Mm`. Convert to metres (`toMetres`) only for display.
 - **Determinism:** no `Date.now()`, no random numbers, and no iteration over unordered sources in
   anything that ends up in `out/`.

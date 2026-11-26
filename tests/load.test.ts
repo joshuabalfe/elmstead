@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { formatJson } from "../src/cli/json-format.js";
-import { loadModel, modelName } from "../src/cli/load.js";
+import { loadModel } from "../src/cli/load.js";
+import { modelName } from "../src/paths.js";
 
 describe("loadModel", () => {
   it("loads and validates the example cottage", async () => {

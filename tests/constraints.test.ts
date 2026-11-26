@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import cottage from "../models/example-cottage/index.js";
 import { corner, defineConstraints, inRoom, inStorey, jamb, m, mm, roomCorner, wallEnd } from "../src/constraints/index.js";
-import { constraintsPath, loadConstraints } from "../src/constraints/load.js";
+import { loadConstraints } from "../src/constraints/load.js";
+import { constraintsPath } from "../src/paths.js";
 import { ConstraintError, faceSide, indexModel, measureConstraint, resolvePoint, type Scope } from "../src/constraints/resolve.js";
 import { loadModel } from "../src/cli/load.js";
 import { checkConstraints } from "../src/constraints/check.js";

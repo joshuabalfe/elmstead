@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
+import { z } from "zod";
 import type { Issue } from "../checks/issue.js";
 import { PROJECT_ROOT } from "../root.js";
 
@@ -9,14 +10,14 @@ export interface IfcValidation {
   warnings: number;
 }
 
-interface ValidatorLine {
-  level?: string;
-  id?: string | null;
-  entity?: string | null;
-  message?: string;
-  errors?: number;
-  warnings?: number;
-}
+const ValidatorLineSchema = z.object({
+  level: z.string().optional(),
+  id: z.string().nullish(),
+  entity: z.string().nullish(),
+  message: z.string().optional(),
+  errors: z.number().optional(),
+  warnings: z.number().optional(),
+});
 
 const stderrTail = (stderr: string): string => stderr.trim().split("\n").slice(-5).join(" | ");
 
@@ -32,18 +33,23 @@ export function validateIfc(ifcPath: string): IfcValidation {
   let malformed = 0;
   for (const raw of r.stdout.split("\n")) {
     if (!raw.trim()) continue;
-    let line: ValidatorLine;
+    let parsed: unknown;
     try {
-      const parsed: unknown = JSON.parse(raw);
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("not an object");
-      line = parsed as ValidatorLine;
+      parsed = JSON.parse(raw);
     } catch {
       malformed++;
       issues.push({ level: "ERROR", id: ifcPath, message: `validator output is not JSON: ${raw}` });
       continue;
     }
+    const result = ValidatorLineSchema.safeParse(parsed);
+    if (!result.success) {
+      malformed++;
+      issues.push({ level: "ERROR", id: ifcPath, message: `validator line has an unexpected shape: ${raw}` });
+      continue;
+    }
+    const line = result.data;
     if (line.level === "SUMMARY") {
-      summary = { errors: Number(line.errors) || 0, warnings: Number(line.warnings) || 0 };
+      summary = { errors: line.errors ?? 0, warnings: line.warnings ?? 0 };
       continue;
     }
     const where = line.entity ? `${line.entity}: ` : "";

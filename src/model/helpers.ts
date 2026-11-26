@@ -8,6 +8,9 @@ import { add, divRound, mm, sub, type Mm } from "../schema/units.js";
 
 export const pt = (x: Mm, y: Mm): Point => ({ x, y });
 
+/** Midpoint of two plan coordinates, rounded to the nearest mm. */
+export const mid = (a: Mm, b: Mm): Mm => divRound(add(a, b), 2);
+
 /** Identity function that fills in schemaVersion and gives model files full type checking. */
 export const defineBuilding = (b: Omit<BuildingModel, "schemaVersion">): BuildingModel => ({
   schemaVersion: SCHEMA_VERSION,

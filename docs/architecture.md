@@ -23,7 +23,7 @@ flowchart LR
    `schema/building.schema.json` is the same schema exported as JSON Schema (draft 2020-12).
    Before anything is written, the model checks and the model's constraints (real measurements in
    a file beside the model; see [Modelling](modelling.md#constraints)) must pass.
-3. **IFC.** `build` reads the JSON file back, re-parses it and writes IFC4 with
+3. **IFC.** `build` writes IFC4 from the validated model with
    [web-ifc](https://github.com/ThatOpen/engine_web-ifc). IFC is only ever produced by this
    writer, never by hand.
 4. **Verification.**

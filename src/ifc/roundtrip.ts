@@ -12,9 +12,8 @@ import { railingGeometry } from "../geometry/railing.js";
 import { flightProfileArea, stairLevels } from "../geometry/stair.js";
 import { toVec } from "../geometry/vec.js";
 import { wallSideArea } from "../geometry/wall.js";
-import { GLAZING_BAR_DEPTH, windowDivision } from "../geometry/window.js";
+import { GLAZING_BAR_DEPTH, PANEL_THICKNESS, windowDivision } from "../geometry/window.js";
 import type { BuildingModel } from "../schema/schema.js";
-import { PANEL_THICKNESS } from "./writer.js";
 
 /** Relative tolerance on volumes; triangulation of boxes is exact, so this only absorbs float noise. */
 const VOLUME_TOLERANCE = 1e-3;
@@ -118,11 +117,7 @@ export async function roundTripChecks(model: BuildingModel, ifc: Uint8Array): Pr
       expect(w.id, wallSideArea(w) * w.thickness - cut, "wall (after opening cuts)");
     }
     for (const sl of s.slabs) {
-      const a = Math.abs(sl.outline.reduce((acc, p, i) => {
-        const q = sl.outline[(i + 1) % sl.outline.length]!;
-        return acc + p.x * q.y - q.x * p.y;
-      }, 0)) / 2;
-      expect(sl.id, a * sl.thickness, "slab");
+      expect(sl.id, polygonArea(sl.outline) * sl.thickness, "slab");
     }
     const doorDesigns = new Map((model.components?.doors ?? []).map((c) => [c.id, c]));
     const windowDesigns = new Map((model.components?.windows ?? []).map((c) => [c.id, c]));

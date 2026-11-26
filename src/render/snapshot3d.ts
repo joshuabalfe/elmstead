@@ -7,6 +7,7 @@ import { chromium, type Browser } from "playwright";
 import { createServer } from "vite";
 import { writeFileAtomic } from "../io.js";
 import { PROJECT_ROOT } from "../root.js";
+import { VIEWS, type View } from "./views.js";
 
 // Set by viewer/main.ts.
 declare global {
@@ -15,9 +16,6 @@ declare global {
     __elmsteadError?: string;
   }
 }
-
-export const VIEWS = ["sw", "se", "ne", "nw", "top"] as const;
-export type View = (typeof VIEWS)[number];
 
 export async function snapshot3d(name: string, outDir: string, views: readonly View[] = VIEWS): Promise<string[]> {
   const server = await createServer({ configFile: join(PROJECT_ROOT, "viewer/vite.config.ts"), server: { port: 0 }, logLevel: "error" });
