@@ -12,7 +12,7 @@
  * the first floor. No elevations are stored here: measuring the levels later re-derives the riser.
  */
 import { centredOn, face, m, mm, pt, stairFlight, window, type Mm, type Stair, type Storey } from "../../../src/model/index.js";
-import { standardWindow } from "../components/index.js";
+import { crossBarWindow } from "../components/index.js";
 import { stairwellOutline } from "../first/index.js";
 import { stairArrivalX } from "../first/walls.js";
 import { mainHalfLandingEast, mainHalfLandingWalls } from "../extension.js";
@@ -46,13 +46,14 @@ export const stairs: Stair[] = [
 ];
 
 // The half landing's window in the extension's east wall, centred on the landing and so above the
-// rear-hall window: 1.2 m wide, 2.1 m tall, 450 mm off the landing (owner).
+// rear-hall window: 1.2 m wide, 2.1 m tall, 450 mm off the landing (owner), with the first-floor
+// bedroom window's cross-bar frame (owner).
 const landingWindowWidth = m(1.2);
 const landingWindow = window(
   "window-main-half-landing",
   mainHalfLandingEast,
   centredOn(mainHalfLandingEast, mid(south, north), landingWindowWidth),
-  standardWindow,
+  crossBarWindow,
   { width: landingWindowWidth, height: m(2.1), sillHeight: mm(450) },
 );
 

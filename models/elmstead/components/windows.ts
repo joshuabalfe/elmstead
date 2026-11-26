@@ -21,8 +21,9 @@ export const bayWindow = windowComponent("window-type-bay", "Bay window", {
   glazing: { columns: [1, 1], rows: [1, 1], barWidth: mm(60) },
 });
 /**
- * The bay's side lights: the front window's 100 mm frame and 60 mm bars, with a single horizontal
- * bar and no vertical bars, so two panes.
+ * The bay's side lights, the first-floor bedroom window and the main half landing's window: the
+ * front window's 100 mm frame and 60 mm bars, with a single horizontal bar and no vertical bars, so
+ * two panes.
  */
 export const crossBarWindow = windowComponent("window-type-cross-bar", "Cross-bar window", {
   frame: { width: mm(100) },
