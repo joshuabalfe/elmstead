@@ -1,4 +1,7 @@
-/** The viewer's floor picker and the storeys URL parameter. See plan-vs-3d.test.ts. */
+/**
+ * The viewer's navigation rail: the floor picker and the storeys URL parameter, the camera crosses
+ * and the First Person switch. See plan-vs-3d.test.ts.
+ */
 import { describe, expect, it } from "vitest";
 import {
   canvasPixels,
@@ -127,5 +130,90 @@ describe("storey selection", () => {
     const swept = await canvasPixels();
     const fresh = await viewOf("test-storey-xray", `${query}&storeys=storey-basement,storey-street,storey-ground`);
     expect(samePixels(swept, fresh)).toBe(true);
+  }, 120_000);
+});
+
+describe("camera controls", () => {
+  it("puts Front above Back in the elevations cross", async () => {
+    await publish("test-camera-cross", await model("models/examples/example-cottage"));
+    await viewOf("test-camera-cross", "view=top&labels=0&style=plan");
+    const box = async (view: string) => {
+      const found = await page.locator(`[data-view="${view}"]`).boundingBox();
+      if (!found) throw new Error(`the ${view} button is not visible`);
+      return found;
+    };
+    const [front, back, left, right, top] = await Promise.all([
+      box("front"),
+      box("back"),
+      box("left"),
+      box("right"),
+      box("top"),
+    ]);
+    expect(front.y).toBeLessThan(top.y);
+    expect(top.y).toBeLessThan(back.y);
+    expect(left.x).toBeLessThan(top.x);
+    expect(top.x).toBeLessThan(right.x);
+  }, 120_000);
+
+  it("starts with First Person off and disables the camera snaps while it is on", async () => {
+    await publish("test-first-person", await model("models/examples/example-cottage"));
+    const cameraViews = ["front", "back", "left", "right", "top", "n", "e", "s", "w"] as const;
+    const disabled = async () => Promise.all(cameraViews.map((view) => page.isDisabled(`[data-view="${view}"]`)));
+
+    await viewOf("test-first-person", "view=top&labels=0&style=plan");
+    expect(await page.isChecked("#walk")).toBe(false);
+    expect(await disabled()).toEqual(cameraViews.map(() => false));
+
+    await page.click("label:has(#walk)");
+    await page.waitForFunction(() => document.querySelector<HTMLInputElement>("#walk")?.checked === true);
+    expect(await disabled()).toEqual(cameraViews.map(() => true));
+
+    await viewOf("test-first-person", "view=top&labels=0&style=plan&walk=1");
+    expect(await page.isChecked("#walk")).toBe(true);
+    expect(await disabled()).toEqual(cameraViews.map(() => true));
+
+    await page.click("label:has(#walk)");
+    await page.waitForFunction(() => document.querySelector<HTMLInputElement>("#walk")?.checked === false);
+    expect(await disabled()).toEqual(cameraViews.map(() => false));
+  }, 120_000);
+
+  it("flies up and down with E and Q in first-person mode", async () => {
+    await publish("test-free-fly", await model("models/examples/example-cottage"));
+    await viewOf("test-free-fly", "view=top&labels=0&style=plan&walk=1");
+    const start = await canvasPixels();
+
+    await page.keyboard.down("e");
+    await page.waitForTimeout(500);
+    await page.keyboard.up("e");
+    await page.waitForTimeout(100);
+    const up = await canvasPixels();
+    expect(samePixels(up, start)).toBe(false);
+
+    await page.keyboard.down("q");
+    await page.waitForTimeout(500);
+    await page.keyboard.up("q");
+    await page.waitForTimeout(100);
+    const down = await canvasPixels();
+    expect(samePixels(down, up)).toBe(false);
+  }, 120_000);
+
+  it("keeps the camera where it is when First Person is switched off and on", async () => {
+    await publish("test-first-person-stay", await model("models/examples/example-cottage"));
+    await viewOf("test-first-person-stay", "view=top&labels=0&style=plan&walk=1");
+    await page.waitForFunction(() => document.querySelector<HTMLInputElement>("#walk")?.checked === true);
+    await page.waitForTimeout(100);
+    const before = await canvasPixels();
+
+    await page.click("label:has(#walk)");
+    await page.waitForFunction(() => document.querySelector<HTMLInputElement>("#walk")?.checked === false);
+    await page.waitForTimeout(250);
+    const off = await canvasPixels();
+    expect(samePixels(off, before)).toBe(true);
+
+    await page.click("label:has(#walk)");
+    await page.waitForFunction(() => document.querySelector<HTMLInputElement>("#walk")?.checked === true);
+    await page.waitForTimeout(250);
+    const on = await canvasPixels();
+    expect(samePixels(on, off)).toBe(true);
   }, 120_000);
 });

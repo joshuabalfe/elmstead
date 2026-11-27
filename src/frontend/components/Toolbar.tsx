@@ -62,6 +62,7 @@ export function Toolbar({ state, engine }: { state: ViewerState; engine: ViewerA
         className={`camera-snap camera-snap-${view}`}
         data-view={view}
         title={view === "top" ? undefined : item.title}
+        disabled={state.walking}
         variant="solid"
         size="small"
         onClick={() => void engine?.chooseView(view)}
@@ -207,19 +208,16 @@ export function Toolbar({ state, engine }: { state: ViewerState; engine: ViewerA
           {cameraSnap("e")}
           {cameraSnap("s")}
         </div>
-        <Button
+        <ToolSwitch
           id="walk"
           icon="walk"
-          title="First-person walk mode"
-          active={state.walking}
-          aria-pressed={state.walking}
-          fill
-          variant="minimal"
-          alignText="left"
-          onClick={() => void engine?.toggleWalk()}
-        >
-          Walk
-        </Button>
+          label="First Person"
+          title="Free-fly first-person camera (W/S fly, A/D strafe, Q/E down and up)"
+          checked={state.walking}
+          innerLabel="Off"
+          innerLabelChecked="On"
+          onChange={() => void engine?.toggleWalk()}
+        />
       </div>
       <Divider />
       <div className="nav-group">
