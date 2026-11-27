@@ -21,19 +21,21 @@ export function useViewerShortcuts(engine: ViewerApi | null, state: ViewerState)
       }
 
       if (event.code === "ArrowUp" || event.code === "ArrowDown") {
-        if (state.walking || state.storeyLabelHidden || event.repeat) return;
+        if (state.walking || state.storeyLabelHidden) return;
         // A focused select would also move its own value, and the opposite way round: its floors
-        // run lowest first.
+        // run lowest first. Swallow repeats too, or the select still moves on them.
         if (form && (target as HTMLElement).id !== "storeys") return;
         event.preventDefault();
+        if (event.repeat) return;
         void engine.stepStorey(event.code === "ArrowUp" ? 1 : -1);
         return;
       }
 
       if (event.code === "ArrowLeft" || event.code === "ArrowRight") {
-        if (state.walking || state.revisionHidden || event.repeat) return;
+        if (state.walking || state.revisionHidden) return;
         if (form && !BAR_PICKERS.has((target as HTMLElement).id)) return;
         event.preventDefault();
+        if (event.repeat) return;
         void engine.stepRevision(event.code === "ArrowRight" ? 1 : -1);
       }
     };
