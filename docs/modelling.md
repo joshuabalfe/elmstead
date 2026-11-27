@@ -118,6 +118,7 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
 | **Stair**                   | `toStoreyId`, `segments`                                                           | a storey element climbing to the next storey up; `segments` run bottom to top                                                                                               |
 | **Stair flight**            | `start`, `end`, `width`, `risers`                                                  | `kind: "flight"`; a straight run, centred on its start→end line, of at least 2 risers                                                                                       |
 | **Stair landing**           | `outline`, `thickness`                                                             | `kind: "landing"`; a flat platform between flights or at the top of the stair, its level derived from the flights below it                                                  |
+| **Stair winder**            | `outline`, `pivot`, `entry`, `risers`                                              | `kind: "winder"`; a fan of equal-angle treads in a convex outline, turning about its `pivot`; the first segment of a stair, followed by a flight                            |
 | **Railing**                 | `start`, `end`, `height`, `startBase?`, `endBase?`                                 | a straight guard or handrail; `height` is to the top of the rail above the walking surface; an omitted base is 0, equal effective bases are level and different bases slope |
 | **Door / window component** | `id`, `name`                                                                       | a design (not a size) shared by openings, in the building's `components: { doors, windows }`; written to IFC as `IfcDoorType` / `IfcWindowType`                             |
 
@@ -244,9 +245,9 @@ defineBuilding({ ..., components: { doors: [internalDoor], windows: [sash] }, st
 ## Stairs
 
 A stair climbs from the storey that holds it to the storey named by `toStoreyId`, which must be the
-next one up. Its `segments` run bottom to top, start with a flight, and never put two landings in a
-row. A flight is centred on its start→end line, and a landing's outline must meet the end of the
-flight before it and, when there is one, the start of the flight after it.
+next one up. Its `segments` run bottom to top, start with a flight or a winder, and never put two
+landings in a row. A flight is centred on its start→end line, and a landing's outline must meet the
+end of the flight before it and, when there is one, the start of the flight after it.
 
 A stair normally ends with a flight. It may instead end with a **top landing** one riser below the
 storey above: the last, implicit riser is the storey edge you step onto. The landing then has no
@@ -256,9 +257,9 @@ Nothing vertical is stored. The rise comes from the two storeys and the rest fol
 
 ```text
 total rise = toStorey.elevation − storey.elevation
-riser      = total rise / (the sum of every flight's risers + 1 if a top landing ends the stair)
+riser      = total rise / (the sum of every flight's and winder's risers + 1 if a top landing ends the stair)
 going      = a flight's plan run / (its risers − 1)
-levels     = walk the segments: a flight rises by risers × riser, a landing stays level
+levels     = walk the segments: a flight or winder rises by risers × riser, a landing stays level
 ```
 
 So a 3050 mm rise over two flights of 8 risers gives 190.625 mm risers, a half landing 1525 mm up,
@@ -287,8 +288,40 @@ const ground: Storey = {
 
 The two flights turn through 180°, so the IFC calls the stair `HALF_TURN_STAIR`. Its landing is an
 ordinary polygon, so an irregular one — a rear hall wrapping around it, say — needs no special case.
-Not modelled yet: winders, curved and spiral stairs, headroom, and openings cut in an upper
-floor's slab (shape the slab's outline around the stairwell instead).
+
+### Winders
+
+A **winder** is a fan of treads turning about a newel post, the corner stair of a terrace house. It
+is a segment of its own, `kind: "winder"`, because a flight's treads are parallel and a landing is flat.
+
+```ts
+stairWinder("stair-winder-turn", [southWest, southEast, northEast, northWest], {
+  pivot: southWest, // the newel: an outline point the treads fan out from
+  entry: northWest, // the outline point beside the pivot where you step on; the other one is the exit
+  risers: 3, // the treads too: one in each sector of the fan
+});
+```
+
+- Its `outline` is the plan block, a convex polygon, usually a square corner of the stairwell. The
+  fan turns through the outline's angle at the pivot, which is 90° for a square corner.
+- The fan lines divide that angle into `risers` equal parts, and each runs from the pivot to where it
+  leaves the outline. Tread k is one sector, k risers above the winder's base. Nothing else is
+  stored: the fan lines, tread polygons and levels are derived, like a flight's going.
+- A winder's risers count with the flights' in the riser height (see the formulas above). The winder
+  owns the riser at its entry edge and between its treads; the flight after it owns the riser at the
+  winder's exit edge, so no riser is counted twice or left out.
+- A winder is the **first segment** of a stair and is **followed by a flight**, which starts on the
+  winder's exit edge, is no wider than it, and runs away from it. Winders after a landing or a flight,
+  or at the top of a stair, are not modelled.
+
+[`tests/fixtures/winder-stair/index.ts`](../tests/fixtures/winder-stair/index.ts) is a worked example:
+a 900 mm square winder of three risers against the east wall, then a flight of eight climbing south,
+11 risers of 250 mm over 2750 mm. Its plan shows the fan lines at 30° and 60° from the entry edge.
+The IFC writes the winder as an `IfcStairFlight` of type `WINDER` with one solid per tread, and the
+stair is a `QUARTER_WINDING_STAIR`.
+
+Not modelled yet: curved and spiral stairs, winders anywhere but at the start of a stair, headroom,
+and openings cut in an upper floor's slab (shape the slab's outline around the stairwell instead).
 
 ## Railings
 
@@ -423,6 +456,7 @@ build plain values, so a model can always write the JSON shape out directly inst
 | `faceCrossing(wall, "left" \| "right", "x" \| "y", at)`                                  | where a face of a wall at any angle crosses the line x = `at` or y = `at`: room corners against diagonal walls |
 | `stairFlight(id, start, end, { width, risers })`                                         | a straight flight of steps, for `stair()`                                                                      |
 | `stairLanding(id, outline, { thickness })`                                               | a flat platform between flights, for `stair()`                                                                 |
+| `stairWinder(id, outline, { pivot, entry, risers })`                                     | a fan of winder treads turning about `pivot`, for `stair()`; recorded as given, the checks test the points     |
 | `stair(id, toStorey, segments)`                                                          | a stair to `toStorey`, recording its id as `toStoreyId`; segments run bottom to top                            |
 | `railing(id, start, end, { height, startBase?, endBase? })`                              | a straight guard or handrail; bases are recorded as given and an omitted base means 0                          |
 
@@ -708,7 +742,7 @@ which the viewer's Diff mode draws:
   count.
 - **An opening is also changed** when its host wall or its component changes, since either moves or
   reshapes it without touching its own JSON.
-- **A stair** is compared as a whole, its flights and landings included.
+- **A stair** is compared as a whole, its flights, landings and winders included.
 
 The diff is per element. A lengthened wall is changed as a whole, with no record of which part is
 new; the JSON files can be compared by hand for that. The diff never reports a problem and never
@@ -726,6 +760,6 @@ proposed one before applying `revise` for the rest.
 ## Things the schema does not have yet
 
 Room heights (rooms are 2D outlines in IFC), wall types (external or internal), roofs, curved walls,
-winder and spiral stairs. Don't approximate these with the existing types. Propose a
+spiral stairs, and winders anywhere but at the start of a stair. Don't approximate these with the existing types. Propose a
 schema change instead (see [Development](development.md#adding-a-new-element-type), and the
 [add-support-for-new-element-types](../.agents/skills/add-support-for-new-element-types/SKILL.md) skill).

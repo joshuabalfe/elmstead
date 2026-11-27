@@ -52,7 +52,7 @@ flowchart LR
 - **Integer millimetres.** Lengths are branded `Mm` integers, so a fractional or unit-less number is
   a type error in the model file and a schema error at runtime.
 - **Small schema.** Only Project/Site/Building/Storey, Wall, Opening (door/window), Slab, Room and
-  Stair (flights and landings) exist. New element types are added deliberately (see
+  Stair (flights, landings and winders) exist. New element types are added deliberately (see
   [Development](development.md)), not invented to fit a model.
 - **Errors point at the model.** Every issue is reported against an element id, never only a JSON
   path or an IFC `#123` line.

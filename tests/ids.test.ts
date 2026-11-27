@@ -3,6 +3,7 @@ import { z } from "zod";
 import cottage from "../models/examples/example-cottage/index.js";
 import elmstead from "../models/elmstead/index.js";
 import twoStorey from "./fixtures/two-storey/index.js";
+import winderStair from "./fixtures/winder-stair/index.js";
 import {
   COMPONENT_COLLECTIONS,
   COMPONENT_KINDS,
@@ -49,7 +50,12 @@ describe("idNodes places", () => {
   });
 
   it("gives every editable kind a place, and storeys, stair segments and the project none", () => {
-    const nodes = [...idNodes(model(twoStorey)), ...idNodes(model(elmstead)), ...idNodes(model(cottage))];
+    const nodes = [
+      ...idNodes(model(twoStorey)),
+      ...idNodes(model(winderStair)),
+      ...idNodes(model(elmstead)),
+      ...idNodes(model(cottage)),
+    ];
     const placed = new Set(nodes.filter((n) => "place" in n).map((n) => n.kind));
     const unplaced = new Set(nodes.filter((n) => !("place" in n)).map((n) => n.kind));
     expect([...placed].sort()).toEqual([
@@ -63,7 +69,15 @@ describe("idNodes places", () => {
       "window",
       "window component",
     ]);
-    expect([...unplaced].sort()).toEqual(["building", "project", "site", "stair flight", "stair landing", "storey"]);
+    expect([...unplaced].sort()).toEqual([
+      "building",
+      "project",
+      "site",
+      "stair flight",
+      "stair landing",
+      "stair winder",
+      "storey",
+    ]);
   });
 });
 

@@ -624,6 +624,9 @@
               },
               {
                 "$ref": "#/$defs/StairLanding"
+              },
+              {
+                "$ref": "#/$defs/StairWinder"
               }
             ]
           }
@@ -703,6 +706,46 @@
         "id",
         "outline",
         "thickness"
+      ],
+      "additionalProperties": false
+    },
+    "StairWinder": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "winder"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "outline": {
+          "minItems": 3,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Point"
+          }
+        },
+        "pivot": {
+          "$ref": "#/$defs/Point"
+        },
+        "entry": {
+          "$ref": "#/$defs/Point"
+        },
+        "risers": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "outline",
+        "pivot",
+        "entry",
+        "risers"
       ],
       "additionalProperties": false
     },

@@ -9,6 +9,7 @@ import { STYLES } from "../../shared/ifc/styles.js";
 import { C } from "../../shared/render/style.js";
 import type { BuildingModel } from "../../shared/schema/schema.js";
 import type { SceneContext } from "./context.js";
+import { stairBandRiser } from "./stair-bands.js";
 import { styleOfColour } from "./style-of.js";
 
 export interface StairMesh {
@@ -162,17 +163,7 @@ export function createStyle(ctx: SceneContext, grid: THREE.Object3D): Style {
   }
 
   function setModel(model: BuildingModel | null) {
-    // One shared riser for the banding: Fragments renders all stairs under one material, so the
-    // shader cannot hold a riser per stair. Take the largest so the stair with the most steps reads
-    // correctly; other stairs band on it too.
-    stairRiser = 0;
-    for (const s of model?.storeys ?? []) {
-      for (const st of s.stairs ?? []) {
-        const to = model!.storeys.find((x) => x.id === st.toStoreyId);
-        const total = st.segments.reduce((n, g) => (g.kind === "flight" ? n + g.risers : n), 0);
-        if (to && total > 0) stairRiser = Math.max(stairRiser, (to.elevation - s.elevation) / total / 1000);
-      }
-    }
+    stairRiser = stairBandRiser(model);
   }
 
   return { setModel, apply, patchMaterial, addStairEdges, applyStairPresentation };

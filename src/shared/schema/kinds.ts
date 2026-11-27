@@ -56,7 +56,8 @@ export const STOREY_KINDS = {
     kind: () => "stair",
     children: (stair: Stair): ElementChild[] =>
       stair.segments.map((segment) => ({
-        kind: segment.kind === "flight" ? "stair flight" : "stair landing",
+        kind:
+          segment.kind === "flight" ? "stair flight" : segment.kind === "landing" ? "stair landing" : "stair winder",
         element: segment,
       })),
   },

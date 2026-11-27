@@ -49,7 +49,7 @@ describe("stair schema", () => {
 
   it("rejects an unknown segment kind", () => {
     const raw: any = JSON.parse(JSON.stringify(twoStorey));
-    raw.storeys[0].stairs[0].segments[1].kind = "winder";
+    raw.storeys[0].stairs[0].segments[1].kind = "spiral";
     expect(BuildingModelSchema.safeParse(raw).success).toBe(false);
   });
 

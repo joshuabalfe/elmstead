@@ -13,7 +13,7 @@ IfcProject  project.id
       └─ IfcBuildingStorey  storey.id        (Elevation = storey.elevation)
          ├─ IfcWall … IfcSlab … IfcDoor … IfcWindow   contained in the storey
          ├─ IfcStair  stair.id               contained in the storey it climbs from
-         │  └─ IfcStairFlight … IfcSlab (LANDING)      aggregated under the stair
+         │  └─ IfcStairFlight (flights, winders) … IfcSlab (LANDING)   aggregated under the stair
          └─ IfcSpace  room.id                            aggregated under the storey
 ```
 
@@ -29,8 +29,9 @@ Units: millimetres for length, m² for area, m³ for volume and radians for plan
 | Doorway          | `IfcOpeningElement` + `IfcRelVoidsElement` only                                                                  | no `IfcDoor` or `IfcRelFillsElement`; the opening's `Tag` is the doorway id and its `Name` the doorway's name                                                                                                                                                                                                        |
 | Window           | `IfcWindow` + `IfcRelFillsElement`                                                                               | 50 mm glazing panel at the sill height; with its component's frame and glazing bars, one panel per pane and a 70 mm deep `frame`-coloured box per frame piece and bar, none overlapping (`src/shared/geometry/window.ts`)                                                                                            |
 | Slab             | `IfcSlab` (`FLOOR`)                                                                                              | outline extruded up to `elevationOffset`, `thickness` deep                                                                                                                                                                                                                                                           |
-| Stair            | `IfcStair`, `PredefinedType` from its flights' turn                                                              | none. A container only, so its geometry is counted once, through its flights and landings, which are aggregated under it by one `IfcRelAggregates`                                                                                                                                                                   |
+| Stair            | `IfcStair`, `PredefinedType` from its flights' turn, or its winder's                                             | none. A container only, so its geometry is counted once, through its flights, winders and landings, which are aggregated under it by one `IfcRelAggregates`                                                                                                                                                          |
 | Stair flight     | `IfcStairFlight` (`STRAIGHT`), aggregated under its stair                                                        | the stepped side profile with a flat tapered soffit (a hollow waist, not a solid block) extruded across the flight's `width`. Local X runs along the flight and local Y is up, so the extrusion goes across. `NumberOfRisers`, `NumberOfTreads` (risers − 1), `RiserHeight` and `TreadLength` are the derived values |
+| Stair winder     | `IfcStairFlight` (`WINDER`), aggregated under its stair                                                          | one extruded solid per tread, the tread's plan polygon from the winder's base up to its level, so the treads together fill the winder's outline. `NumberOfRisers` and `NumberOfTreads` are both its risers, and `TreadLength` is left out                                                                            |
 | Stair landing    | `IfcSlab` (`LANDING`), aggregated under its stair                                                                | outline extruded down from the landing's derived level by its `thickness`                                                                                                                                                                                                                                            |
 | Door component   | `IfcDoorType` (`DOOR`), declared in the project (`IfcRelDeclares`), linked to its doors by `IfcRelDefinesByType` | none. `Name` is the component name, `Tag` its id. `OperationType` is `NOTDEFINED`, because handing differs door by door; each `IfcDoor` keeps its own                                                                                                                                                                |
 | Window component | `IfcWindowType` (`WINDOW`), declared and linked the same way                                                     | none                                                                                                                                                                                                                                                                                                                 |
@@ -42,14 +43,17 @@ Units: millimetres for length, m² for area, m³ for volume and radians for plan
   `DOUBLE_PANEL_HORIZONTAL`; three side by side or stacked are `TRIPLE_PANEL_VERTICAL` or
   `TRIPLE_PANEL_HORIZONTAL`. Any other grid, such as 3 × 2, is `USERDEFINED` with
   `UserDefinedPartitioningType` `"3x2 grid"`. IFC4 has no `MULTIPLE_PANEL` value.
-- Walls, slabs, doors, glazing, frames and glazing bars, stair flights and landings, and railings
+- Walls, slabs, doors, glazing, frames and glazing bars, stair flights, winders and landings, and railings
   carry `IfcStyledItem` surface colours (see [Colours](#colours)). They are only so the elements can
   be told apart in any viewer; they have no building meaning.
 - A stair's `PredefinedType` comes from the turning angle between its flights: one flight is
   `STRAIGHT_RUN_STAIR`, two flights at 0°, 90° or 180° are `TWO_STRAIGHT_RUN_STAIR`,
-  `QUARTER_TURN_STAIR` or `HALF_TURN_STAIR`, and anything else is `NOTDEFINED`. These are the IFC4
-  attribute names: IFC2x3 called the stair's `ShapeType` and a flight's `NumberOfRiser`, and IFC4
-  rejects both spellings.
+  `QUARTER_TURN_STAIR` or `HALF_TURN_STAIR`, and anything else is `NOTDEFINED`. A stair that starts
+  with a winder is typed by it instead: a winder and one flight, the winder turning through 90°
+  (within 1°, because its angle comes from an outline of whole millimetres), is
+  `QUARTER_WINDING_STAIR`, and any other stair that starts with a winder is `NOTDEFINED`. These are
+  the IFC4 attribute names: IFC2x3 called the stair's `ShapeType` and a flight's `NumberOfRiser`, and
+  IFC4 rejects both spellings.
 - Door handing follows the IFC4 convention: look at the door from the side it opens towards. If
   the hinge is on your left, it is `SINGLE_SWING_LEFT`.
 
@@ -79,15 +83,15 @@ GlobalIds are **deterministic**:
 
 The key is the element id for elements. Things that have no id of their own get a derived key:
 
-| Entity                                                                        | Key                                                           |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| opening element for `door-front`                                              | `door-front#opening`                                          |
-| doorway opening element                                                       | the doorway id, e.g. `doorway-west` (there is no door entity) |
-| voids / fills relationships                                                   | `<id>#voids`, `<id>#fills`                                    |
-| storey containment / space aggregation                                        | `<storey>#contains`, `<storey>#spaces`                        |
-| other aggregations, including a stair's flights and landing under their stair | `<parent>#aggregates`, e.g. `stair-main#aggregates`           |
-| door or window type                                                           | the component id, e.g. `door-type-internal`                   |
-| its instances / the project's type declarations                               | `<component>#instances`, `<project>#types`                    |
+| Entity                                                                                | Key                                                           |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| opening element for `door-front`                                                      | `door-front#opening`                                          |
+| doorway opening element                                                               | the doorway id, e.g. `doorway-west` (there is no door entity) |
+| voids / fills relationships                                                           | `<id>#voids`, `<id>#fills`                                    |
+| storey containment / space aggregation                                                | `<storey>#contains`, `<storey>#spaces`                        |
+| other aggregations, including a stair's flights, winder and landing under their stair | `<parent>#aggregates`, e.g. `stair-main#aggregates`           |
+| door or window type                                                                   | the component id, e.g. `door-type-internal`                   |
+| its instances / the project's type declarations                                       | `<component>#instances`, `<project>#types`                    |
 
 As a result:
 

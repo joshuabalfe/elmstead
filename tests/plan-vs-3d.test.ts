@@ -4,13 +4,14 @@
  * canvas back and compares it with the plan's own pixels (tests/support/plan-vs-3d.ts).
  *
  * The viewer tests are split over several files so CI can run them on separate runners; they
- * share tests/support/viewer-page.ts. This one compares the example cottage and the two-storey
- * fixture; plan-vs-3d-elmstead.test.ts compares Elmstead, and viewer-storey-selection.test.ts has
+ * share tests/support/viewer-page.ts. This one compares the example cottage and the two-storey and
+ * winder-stair fixtures; plan-vs-3d-elmstead.test.ts compares Elmstead, and viewer-storey-selection.test.ts has
  * the floor picker.
  */
 import { describe, expect, it } from "vitest";
 import cottage from "../models/examples/example-cottage/index.js";
 import twoStorey from "./fixtures/two-storey/index.js";
+import winderStair from "./fixtures/winder-stair/index.js";
 import { C } from "../src/shared/render/style.js";
 import { isIgnoredColour } from "./support/plan-vs-3d.js";
 import { compareEveryStorey } from "./support/plan-compare.js";
@@ -29,5 +30,6 @@ describe("3D Top view against the plan", () => {
   compareEveryStorey([
     ["models/examples/example-cottage", cottage],
     ["tests/fixtures/two-storey", twoStorey],
+    ["tests/fixtures/winder-stair", winderStair],
   ]);
 });

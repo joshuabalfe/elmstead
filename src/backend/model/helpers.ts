@@ -15,6 +15,7 @@ import {
   type Stair,
   type StairFlight,
   type StairLanding,
+  type StairWinder,
   type StairSegment,
   type Storey,
   type Swing,
@@ -278,6 +279,25 @@ export const stairLanding = (id: string, outline: Polygon, opts: Pick<StairLandi
   id,
   outline,
   thickness: opts.thickness,
+});
+
+/**
+ * A fan of winder treads turning about `pivot`, for `stair()`: the winder's plan `outline`, its
+ * `pivot` and `entry` (both points of the outline, beside each other) and its `risers`. Recorded as
+ * given: the fan lines, treads and levels are derived, and the checks report a pivot or entry that
+ * is not on the outline.
+ */
+export const stairWinder = (
+  id: string,
+  outline: Polygon,
+  opts: Pick<StairWinder, "pivot" | "entry" | "risers">,
+): StairWinder => ({
+  kind: "winder",
+  id,
+  outline,
+  pivot: opts.pivot,
+  entry: opts.entry,
+  risers: opts.risers,
 });
 
 /**
