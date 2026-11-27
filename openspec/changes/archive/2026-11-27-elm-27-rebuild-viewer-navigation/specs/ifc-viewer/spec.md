@@ -343,6 +343,23 @@ north orientation.
 - **WHEN** the viewer is opened with `?orient=sideways`
 - **THEN** it orients its views to true north
 
+### Requirement: Requested view is validated
+
+The viewer SHALL accept only the camera views it offers for `?view=`: the plan corners `sw`, `se`,
+`ne` and `nw`, the true-north snaps `n`, `e`, `s` and `w`, the flat elevations `front`, `back`,
+`left` and `right`, and `top`. Any other value SHALL fall back to `top` instead of failing to
+render.
+
+#### Scenario: Unknown view
+
+- **WHEN** the viewer is opened with `?view=sideways`
+- **THEN** it shows the top view
+
+#### Scenario: Every offered view
+
+- **WHEN** the viewer is opened with any of the offered views in `?view=`
+- **THEN** it shows that view
+
 ## REMOVED Requirements
 
 ### Requirement: Corner buttons name their true direction
