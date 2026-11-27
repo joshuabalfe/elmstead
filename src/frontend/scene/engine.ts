@@ -17,59 +17,24 @@
  * room labels carry the room id under name and area.
  */
 import * as OBC from "@thatopen/components";
-import { LodMode, SnappingClass, type FragmentsModel } from "@thatopen/fragments";
+import { LodMode, type FragmentsModel } from "@thatopen/fragments";
 import workerUrl from "@thatopen/fragments/worker?url";
 import CameraControls from "camera-controls";
 import * as THREE from "three";
-import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
-import { Line2 } from "three/addons/lines/Line2.js";
-import { LineGeometry } from "three/addons/lines/LineGeometry.js";
-import { LineMaterial } from "three/addons/lines/LineMaterial.js";
-import { STYLES } from "../../shared/ifc/styles.js";
 import { wallHeight } from "../../shared/geometry/wall.js";
-import {
-  renderFloor,
-  renderPlanAnnotations,
-  renderWallTops,
-  roomTags,
-  type Overlay,
-} from "../../shared/render/plan.js";
-import { C, PX_PER_MM, ROOM_LABEL } from "../../shared/render/style.js";
 import { CARDINAL_NAMES, ELEVATION_NAMES, type CameraView } from "../../shared/render/views.js";
 import { idNodes } from "../../shared/schema/ids.js";
-import type { BuildingModel, Storey } from "../../shared/schema/schema.js";
-import type { ResolvedConstraint } from "../../shared/constraints/types.js";
-import { constraintLabels } from "./constraints.js";
-import { disposeTree } from "./dispose.js";
-import { overlayGroup, type OverlayLayer } from "./overlay.js";
-import { labelTexture, type BillboardLine } from "./text.js";
-import { elementLabel, type ElementLabel } from "./identify.js";
-import {
-  SNAP_MAX_PX,
-  axisAlignedPoint,
-  isMeasureGesture,
-  measurementLines,
-  measurementSummary,
-  measurementValues,
-  nearestSnap,
-  type MeasurementValues,
-  type Point3,
-  type SnapCandidate,
-} from "../lib/measure.js";
-import { diffModels, type DiffStatus, type ModelDiff } from "../../shared/diff/index.js";
-import { styleOfColour } from "./style-of.js";
-import {
-  DIFF_COLOURS,
-  diffFloor,
-  doorSwings,
-  floorChange,
-  floorOutlines,
-  floorPieces,
-  recolourPlan,
-  removedPlan,
-  statusById,
-  type StatusById,
-} from "../lib/diff.js";
+import type { BuildingModel } from "../../shared/schema/schema.js";
+import type { SceneContext } from "./context.js";
+import { createDresser, type Dresser } from "./dress.js";
+import { createMeasureTool, type MeasureTool } from "./measure.js";
+import { createStoreyMotion, type StoreyMotion } from "./storey-motion.js";
+import { createStyle, type StairMesh, type Style } from "./style.js";
+import { createWalkMode, type WalkMode } from "./walk.js";
+import { createIdentify, type Identify } from "./identify.js";
+import { createDiffMode, type DiffMode } from "./diff-mode.js";
+import { createLabels } from "./labels.js";
+import type { DiffStatus } from "../../shared/diff/index.js";
 import {
   defaultName,
   groupModels,
@@ -78,43 +43,9 @@ import {
   stepRevision as nextRevision,
   type ModelGroup,
 } from "../lib/revisions.js";
-import { cameraForView, labelHeading, parseOrient, parseView, turnedTopFit } from "../lib/view.js";
-import { WALK_AXES, entryPosition, headingBasis, movementOffset, walkRequested, walkStep } from "../lib/walk.js";
-import type { ChangeCategory, ChangeGroup, ViewerStore } from "../state/store.js";
-declare global {
-  interface Window {
-    __elmsteadReady?: boolean;
-    __elmsteadError?: string;
-    /** Increments after a storey choice has been applied and drawn; tests wait on it. */
-    __elmsteadStoreyChanges?: number;
-    /** Increments when a floor change starts its section sweep, so tests can tell it from an instant change. */
-    __elmsteadStoreySweeps?: number;
-    /** Increments after a revision choice has been loaded and drawn; tests wait on it. */
-    __elmsteadRevisionChanges?: number;
-    /** Increments after a rebuilt IFC has replaced the shown scene; tests wait on it. */
-    __elmsteadReloads?: number;
-    /** Increments when a Diff or Transparency toggle starts its crossfade; tests read it. */
-    __elmsteadViewFades?: number;
-    /** Increments after a Diff, Transparency or changes-panel choice has been applied and drawn. */
-    __elmsteadViewChanges?: number;
-    /** Increments after a view choice has been applied and drawn; the snapshot driver waits on it. */
-    __elmsteadViews?: number;
-    /** Snapshot-only handle the driver uses to switch views without a page load. */
-    __elmsteadChooseView?: (view: CameraView) => Promise<void>;
-    /** The shown diff's ids by status while Diff mode is on, for tests; null otherwise. */
-    __elmsteadDiff?: Record<DiffStatus, string[]> | null;
-    /** Why part of the view could not be drawn (a base model not built), for snapshots; "" when none. */
-    __elmsteadNote?: string;
-    /** Outline pieces drawn per diff status, for tests. */
-    __elmsteadOutlines?: Record<DiffStatus, number>;
-    /** The base elements drawn as ghosts, by id, for tests. */
-    __elmsteadGhosts?: string[];
-    __elmsteadMeasurements?: { id: number; from: Point3; to: Point3; values: MeasurementValues }[];
-    __elmsteadHover?: { id: string; name: string | null; status?: DiffStatus } | null;
-    /** The text lines of each room label, in storey order; tests read it. */
-    __elmsteadRoomLabels?: string[][];
-  }
-}
+import { isStoreyPrefix, storeysLowestFirst } from "../lib/storeys.js";
+import { cameraForView, parseOrient, parseView, turnedTopFit } from "../lib/view.js";
+import type { ViewerStore } from "../state/store.js";
 
 export interface ViewerApi {
   start(): Promise<void>;
@@ -198,7 +129,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     // Fragments also creates materials after a model has loaded: a faded copy of each one for
     // Transparency's setOpacity, for example. Patch each as it arrives, or a faded stair shows the IFC's
     // safe green instead of its tread bands.
-    if (material instanceof THREE.MeshLambertMaterial) patchMaterial(material);
+    if (style && material instanceof THREE.MeshLambertMaterial) style.patchMaterial(material);
   });
 
   const ifcLoader = components.get(OBC.IfcLoader);
@@ -209,91 +140,22 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     webIfc: { COORDINATE_TO_ORIGIN: false },
   });
 
-  /** Height (mm) above the ceiling at which the labels are laid, clear of the wall tops. */
-  const LABEL_LIFT = 10;
-  const labels = new THREE.Group();
-  labels.visible = params.get("labels") === "1" || (!snapshot && params.get("labels") !== "0");
-  world.scene.three.add(labels);
-
-  /** Constraint labels and dotted spans, off until the Constraints button or `?constraints=1`. */
-  const constraints = new THREE.Group();
-  constraints.visible = params.get("constraints") === "1";
-  world.scene.three.add(constraints);
-
-  /** One completed measurement: its scene points and millimetre values. */
-  interface Measurement {
-    id: number;
-    from: THREE.Vector3;
-    to: THREE.Vector3;
-    values: MeasurementValues;
-  }
-
-  /** Measurements, drawn above the model so a wall, floor or storey can never hide them. */
-  const measureLayer = new THREE.Group();
-  world.scene.three.add(measureLayer);
-  const measureLineMaterial = new LineMaterial({
-    color: C.measure,
-    linewidth: 0.03,
-    worldUnits: true,
-    depthTest: false,
-    depthWrite: false,
-    transparent: true,
-  });
-  const measureMarkerGeometry = new THREE.SphereGeometry(0.025, 12, 8);
-  const measureMarkerMaterial = new THREE.MeshBasicMaterial({
-    color: C.measure,
-    depthTest: false,
-    depthWrite: false,
-    transparent: true,
-  });
-
   /** The loaded Fragments model, so a storey choice can update it without a reload. */
   let currentModel: FragmentsModel | null = null;
 
   /** The two view toggles, from `?diff=1` and `?xray=1`: Diff (revisions only) and Transparency. */
   const viewState = { diff: params.get("diff") === "1", xray: params.get("xray") === "1" };
-  store.set({
-    labels: labels.visible,
-    constraints: constraints.visible,
-    diff: viewState.diff,
-    xray: viewState.xray,
-  });
-  /** Which diff categories the changes panel shows. */
-  const shownCategories: Record<DiffStatus, boolean> = { added: true, changed: true, removed: true };
-  /** Opacity of what Transparency fades. */
-  const FADE = 0.35;
   const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  /** The shown revision's diff while Diff mode is on: its base, the diff, and each listed id's status. */
-  let shownDiff: { baseName: string; base: BuildingModel; diff: ModelDiff; status: StatusById } | null = null;
-  /** Each base model's JSON once fetched, for diffing its revisions. */
-  const baseJson = new Map<string, BuildingModel | null>();
-  /** The diff outlines, one group per storey so they hide with it. */
-  const diffOutlines = new Map<string, THREE.Group>();
-  /** The base model drawn as removed-element ghosts, while it is. */
-  let ghostModel: FragmentsModel | null = null;
-  /** Ghost item ids by storey, so the ghosts hide with their storey. */
-  let ghostItems = new Map<string, number[]>();
-  /** Model id per ghost item, for hover. */
-  const ghostLabels = new Map<number, ElementLabel>();
-  /** Status-line note for what Diff could not draw. */
-  let diffNote = "";
-  window.__elmsteadDiff = null;
   window.__elmsteadNote = "";
-  window.__elmsteadOutlines = { added: 0, changed: 0, removed: 0 };
-  window.__elmsteadGhosts = [];
   let loadEpoch = 0;
-  let measureEpoch = 0;
-  let measuring = false;
-  const measureRequested = !snapshot && params.get("measure") === "1";
-  let pendingPoint: THREE.Vector3 | null = null;
-  let nextMeasurementId = 1;
-  const measurements: Measurement[] = [];
-  let queuedPick: { x: number; y: number } | null = null;
-  let picking = false;
-  let pointerCandidate: { id: number; x: number; y: number } | null = null;
-  const measurePointers = new Set<number>();
-  let pendingMarker: THREE.Mesh | null = null;
-  window.__elmsteadMeasurements = [];
+  /** The scene modules, created below where their state used to live. */
+  let measure: MeasureTool;
+  let walk: WalkMode;
+  let identify: Identify;
+  let dresser: Dresser;
+  let storeyMotion: StoreyMotion;
+  let diffMode: DiffMode;
+  let style: Style;
 
   /** True north, degrees counter-clockwise from plan +y (site.northAngle); null when there is no model JSON. */
   let northAngle: number | null = null;
@@ -305,11 +167,64 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   let modelJson: BuildingModel | null = null;
   /** The storey ids `?storeys=` asked for, in the model's order; null means every storey. */
   let shownStoreys: string[] | null = null;
-  /** The label and plan-layer groups drawn for each storey, so hiding it takes its drawings with it. */
-  const storeyLayers = new Map<string, THREE.Group[]>();
-
   /** Whether a storey is shown: the `?storeys=` selection, or every storey when it is absent. */
   const isShown = (id: string): boolean => shownStoreys === null || shownStoreys.includes(id);
+
+  /** What the extracted scene modules share (see scene/context.ts). */
+  const ctx: SceneContext = {
+    params,
+    snapshot,
+    store,
+    scene: world.scene.three,
+    camera: world.camera,
+    renderer: world.renderer!,
+    fragments,
+    canvas,
+    prefersReducedMotion,
+    storeyLayers: () => labels.storeyLayers(),
+    setPlanVisible: (on) => labels.setPlanVisible(on),
+    constraintLineMaterial: () => labels.constraintLineMaterial(),
+    currentModel: () => currentModel,
+    currentName: () => currentName,
+    modelJson: () => modelJson,
+    viewState: () => viewState,
+    isShown,
+    shownBox,
+    lowestElevation: () => lowestElevation,
+    ghostModel: () => dresser.ghostModel(),
+    ghostLabel: (localId) => dresser.ghostLabel(localId),
+    diffStatusOf: (id) => diffMode.statusOf(id),
+    shownDiff: () => diffMode.shown(),
+    storeyIndex: (model) => storeyIndex(model),
+    loadResident: async (name, group) => (await loadResident(name, group))?.entry.model ?? null,
+    planLayers: () => labels.planLayers(),
+    setDiffNote: (note) => diffMode.setNote(note),
+    setDressingStoreyVisibility: () => dresser.setStoreyVisibility(),
+    publishChanges: () => diffMode.publish(),
+    hideHover: () => identify.hide(),
+    repickHover: () => identify.repick(),
+    isWalking: () => walk.isWalking(),
+    setMeasuring: (on) => measure.setMeasuring(on),
+    clearMeasurements: () => measure.clear(),
+    updateCompass,
+    updateLabelOrientation: () => labels.updateOrientation(),
+    onWalkExit: () => {
+      updateCompass();
+      labels.updateOrientation();
+      identify.repick();
+    },
+    exitWalk: () => walk.exit(),
+  };
+
+  const labels = createLabels(ctx);
+  diffMode = createDiffMode(ctx);
+  store.set({
+    labels: labels.labelsVisible(),
+    constraints: labels.constraintsVisible(),
+    diff: viewState.diff,
+    xray: viewState.xray,
+  });
+
   type CompassState = { visible: boolean; turn: number };
   const compassListeners = new Set<(state: CompassState | null) => void>();
   const emitCompass = (state: CompassState | null) => {
@@ -321,7 +236,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
    * pointing north from the middle of the ground, so perspective views read the same as the ground.
    */
   function updateCompass() {
-    if (!labels.visible || northAngle === null) {
+    if (!labels.labelsVisible() || northAngle === null) {
       emitCompass(null);
       return;
     }
@@ -341,114 +256,16 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     emitCompass({ visible: true, turn: Math.atan2(dx, -dy) }); // clockwise from screen up
   }
   world.camera.controls.addEventListener("update", updateCompass);
-  world.camera.controls.addEventListener("update", updateLabelOrientation);
+  world.camera.controls.addEventListener("update", labels.updateOrientation);
   // A moving camera leaves any hover label naming the wrong element. Hide while it moves, then
   // re-pick once the updates settle: a trailing update would otherwise hide a pick made at load end.
   let hoverRepickTimer = 0;
   world.camera.controls.addEventListener("update", () => {
-    hideHover();
+    identify.hide();
     clearTimeout(hoverRepickTimer);
-    hoverRepickTimer = window.setTimeout(repickHover, 120);
+    hoverRepickTimer = window.setTimeout(identify.repick, 120);
   });
   window.addEventListener("resize", updateCompass);
-
-  /** A sprite that always faces the camera, at the plan's text scale, with a halo so it reads over the model. */
-  function billboard(lines: BillboardLine[], fill: string, renderOrder: number, depthTest = false): THREE.Sprite {
-    const { map, width, height } = labelTexture(lines, fill);
-    // Constraints and measurements depth-test, so a wall or a storey above hides them.
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthTest, depthWrite: false }));
-    sprite.renderOrder = renderOrder;
-    const mPerPx = 1 / PX_PER_MM / 1000;
-    sprite.scale.set(width * mPerPx, height * mPerPx, 1);
-    return sprite;
-  }
-
-  /** Lays a flat label's texture up along plan north, on the floor plane before any heading yaw. */
-  const FLAT_LABEL_BASE = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
-  const labelYaw = new THREE.Quaternion();
-  const WORLD_UP = new THREE.Vector3(0, 1, 0);
-  /** Every flat label, so orienting them on a camera update need not traverse the whole label tree. */
-  const flatLabels: THREE.Mesh[] = [];
-
-  /**
-   * A label lying flat on a ceiling, at the plan's text scale, so an upper storey's floor can hide
-   * it. `updateLabelOrientation` yaws it about its anchor so it reads across the screen.
-   */
-  function flatLabel(lines: BillboardLine[], fill: string, renderOrder: number): THREE.Mesh {
-    const { map, width, height } = labelTexture(lines, fill);
-    map.anisotropy = world.renderer!.three.capabilities.getMaxAnisotropy();
-    const mPerPx = 1 / PX_PER_MM / 1000;
-    const mesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(width * mPerPx, height * mPerPx),
-      new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false }),
-    );
-    mesh.quaternion.copy(FLAT_LABEL_BASE);
-    mesh.renderOrder = renderOrder;
-    flatLabels.push(mesh);
-    return mesh;
-  }
-
-  /** Turn every flat room label within its plane so its text reads left-to-right from the camera. */
-  function updateLabelOrientation() {
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(world.camera.three.quaternion);
-    labelYaw.setFromAxisAngle(WORLD_UP, labelHeading(right));
-    for (const label of flatLabels) label.quaternion.copy(labelYaw).multiply(FLAT_LABEL_BASE);
-  }
-
-  /** Constraint labels draw above everything, including their dotted spans. */
-  function constraintBillboard(lines: string[]): THREE.Sprite {
-    const step = 14;
-    return billboard(
-      lines.map((text, i) => ({ text, size: 11, bold: true, dy: (i - (lines.length - 1) / 2) * step })),
-      C.constraint,
-      7,
-      true,
-    );
-  }
-
-  /** Red dotted spans: 4 cm wide in world units, at their storey's ceiling, occluded like its labels. */
-  const constraintLineMaterial = new LineMaterial({
-    color: C.constraint,
-    linewidth: 0.04,
-    worldUnits: true,
-    dashed: true,
-    dashSize: 0.15,
-    gapSize: 0.1,
-    depthWrite: false,
-    transparent: true,
-  });
-
-  /** A red dotted span between two plan points, at scene height `y`, drawn over the model. */
-  function constraintLine(from: { x: number; y: number }, to: { x: number; y: number }, y: number): Line2 {
-    const geometry = new LineGeometry();
-    geometry.setPositions([from.x / 1000, y, -from.y / 1000, to.x / 1000, y, -to.y / 1000]);
-    const line = new Line2(geometry, constraintLineMaterial);
-    line.computeLineDistances();
-    line.frustumCulled = false; // a flat line's bounding sphere can miss the camera
-    line.renderOrder = 6; // over the model, room labels and dimensions; under the red labels
-    return line;
-  }
-
-  /** A storey's overlay drawing as flat scene geometry at height `y` (m), the drawing's north along −Z (IFC +Y). */
-  const planGeometry = ({ nodes, bounds }: Overlay, y: number, layer: OverlayLayer) =>
-    overlayGroup(nodes, bounds, y, layer, world.renderer!.three.capabilities.getMaxAnisotropy());
-
-  /**
-   * Plan colouring's layers (see applyStyle): the plan's floor fills (slab and rooms) and door swings
-   * standing in for the slab's top face, and the plan's walls, door gaps and windows laid over the
-   * wall tops.
-   */
-  const planLayers = new THREE.Group();
-  planLayers.visible = false;
-  world.scene.three.add(planLayers);
-  /** Height (mm) above the wall tops of the plan's walls, door gaps and windows; below the labels. */
-  const WALL_TOP_LIFT = 5;
-  /**
-   * Height (mm) a storey's floor plane sits above its own elevation. The storey below draws its wall
-   * tops 5 mm and its labels 10 mm above its ceiling, which is this storey's elevation, so a floor
-   * plane at exactly the elevation would pass beneath them and they would show through it.
-   */
-  const FLOOR_LIFT = LABEL_LIFT + 10;
 
   /** Walk mode stands on the lowest storey the selection still shows. */
   function updateLowestElevation() {
@@ -459,15 +276,12 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   }
 
   /**
-   * The plan's dimensions for each storey drawn flat at its ceiling, each room's
-   * name and area on its own flat label there, and that storey's constraints as red labels and
-   * dotted spans beside them. The schema has no ceiling height, so the ceiling is the top of the
-   * storey's tallest wall. Lying flat, an upper storey's floor occludes a lower storey's labels, as
-   * it does its rooms; the room labels yaw with the camera to stay readable.
+   * The plan's drawings for each storey: dimensions, room labels and constraints at its ceiling,
+   * and its plan floor and wall tops, built by the labels module once the constraints are fetched.
    */
   async function loadLabels(name: string, model: BuildingModel | null, epoch: number) {
     if (epoch !== loadEpoch) return;
-    clearLabelLayers();
+    labels.clear();
     northAngle = null;
     frontAngle = 180;
     lowestElevation = null;
@@ -477,172 +291,10 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     northAngle = model.site.northAngle ?? 0;
     frontAngle = model.site.frontAngle ?? 180;
     publishViewLabels();
-    const constraintsRes = await fetch(`/out/${name}.constraints.json`);
+    const resolved = await labels.constraints(name);
     if (epoch !== loadEpoch) return;
-    const resolved = constraintsRes.ok ? ((await constraintsRes.json()) as ResolvedConstraint[]) : [];
     updateLowestElevation();
-    for (const storey of model.storeys) {
-      const [labelGroup, layerGroup, constraintGroup] = buildStoreyLayers(storey, model, resolved);
-      labels.add(labelGroup);
-      planLayers.add(layerGroup);
-      constraints.add(constraintGroup);
-      storeyLayers.set(storey.id, [labelGroup, layerGroup, constraintGroup]);
-    }
-    updateLabelOrientation();
-  }
-
-  /** Frees and empties the label, constraint and plan layers, ready for the next model. */
-  function clearLabelLayers() {
-    const shared = new Set([constraintLineMaterial]); // every constraint line shares one material
-    for (const obj of [...labels.children, ...constraints.children, ...planLayers.children]) disposeTree(obj, shared);
-    labels.clear();
-    constraints.clear();
-    planLayers.clear();
-    storeyLayers.clear();
-    flatLabels.length = 0;
-  }
-
-  /**
-   * One storey's labels (dimensions and room tags at its ceiling), plan layers (wall tops and floor)
-   * and constraints, each in its own group and shown or hidden with the storey.
-   */
-  function buildStoreyLayers(
-    storey: Storey,
-    model: BuildingModel,
-    resolved: readonly ResolvedConstraint[],
-  ): [THREE.Group, THREE.Group, THREE.Group] {
-    // Dimensions lying flat at the ceiling: lying flat is what lets an upper storey's floor occlude
-    // them, which a camera-facing billboard could never be. Over the wall tops' layer.
-    const ceiling = Math.max(0, ...storey.walls.map((w) => wallHeight(w)));
-    const y = (storey.elevation + ceiling + LABEL_LIFT) / 1000;
-    const labelGroup = new THREE.Group();
-    labelGroup.add(
-      planGeometry(renderPlanAnnotations(storey, { names: false }), y, { kind: "overlay", renderOrder: 1 }),
-    );
-    for (const label of roomLabels(storey, y)) labelGroup.add(label);
-    const layerGroup = new THREE.Group();
-    for (const tops of wallTopOverlays(storey, model)) layerGroup.add(tops);
-    // Every storey's floor is its own slab and room fills, at its own level, writing depth: the floor you
-    // see is the topmost one, and it hides the storeys below. Opaque, not blended, so it stays in the
-    // opaque pass that runs before the walls. Built even while hidden, so the selector can show a
-    // storey again without rebuilding it.
-    const floor = renderFloor(storey, model.components);
-    layerGroup.add(planGeometry(floor, (storey.elevation + FLOOR_LIFT) / 1000, { kind: "floor", renderOrder: -1 }));
-    for (const layer of diffPlanLayers(storey, floor)) layerGroup.add(layer);
-    // Constraints live in their own per-storey group inside the constraints layer, so the
-    // Constraints button and the storey selection compose.
-    const constraintGroup = new THREE.Group();
-    for (const label of constraintLabels(resolved, storey.id)) {
-      const sprite = constraintBillboard(label.lines);
-      sprite.position.set(label.at.x / 1000, y, -label.at.y / 1000);
-      constraintGroup.add(sprite);
-    }
-    for (const c of resolved) {
-      if (c.storey === storey.id) constraintGroup.add(constraintLine(c.span.from, c.span.to, y));
-    }
-    const groups: [THREE.Group, THREE.Group, THREE.Group] = [labelGroup, layerGroup, constraintGroup];
-    for (const g of groups) g.visible = isShown(storey.id);
-    return groups;
-  }
-
-  /**
-   * Each room's name and area as its own plane at height `y`, flat like the dimensions but yawed to
-   * the camera (updateLabelOrientation), so it stays occludable without standing up through the
-   * floor above. Also records each label for the test hook.
-   */
-  function roomLabels(storey: Storey, y: number): THREE.Mesh[] {
-    return roomTags(storey).map((tag) => {
-      window.__elmsteadRoomLabels!.push([tag.name, tag.area, tag.id]);
-      const label = flatLabel(
-        [
-          { text: tag.name, size: ROOM_LABEL.name.size, bold: true, dy: ROOM_LABEL.name.dy },
-          { text: tag.area, size: ROOM_LABEL.area.size, dy: ROOM_LABEL.area.dy },
-          { text: tag.id, size: 9, dy: ROOM_LABEL.area.dy + 12 },
-        ],
-        C.ink,
-        2, // over the dimension lines, as the room billboards were
-      );
-      label.position.set(tag.at.x / 1000, y, -tag.at.y / 1000);
-      return label;
-    });
-  }
-
-  /**
-   * The wall-top poché, which lies flat, so it only fits flat-topped walls; a pitched wall's sloped
-   * top is painted by patchTops instead. One overlay per flat-wall height, each at its own wall top,
-   * so a taller wall's plane never floats above a shorter one (e.g. the first floor's 2.7 m walls
-   * over its 2.55 m bay).
-   */
-  function wallTopOverlays(storey: Storey, model: BuildingModel): THREE.Object3D[] {
-    const byHeight = new Map<number, Storey["walls"]>();
-    for (const w of storey.walls.filter((wall) => !wall.profile)) {
-      const h = wallHeight(w);
-      const group = byHeight.get(h);
-      if (group) group.push(w);
-      else byHeight.set(h, [w]);
-    }
-    return [...byHeight].map(([h, walls]) => {
-      const ids = new Set(walls.map((w) => w.id));
-      const groupStorey = { ...storey, walls, openings: storey.openings.filter((o) => ids.has(o.wallId)) };
-      const tops = renderWallTops(groupStorey, model.components);
-      return planGeometry(
-        shownDiff ? recolourPlan(tops, shownDiff.status) : tops,
-        (storey.elevation + h + WALL_TOP_LIFT) / 1000,
-        { kind: "overlay", renderOrder: 0 },
-      );
-    });
-  }
-
-  /**
-   * The diff's own plan layers for a storey, while Diff mode is on: the floor built and taken away,
-   * 1 mm above the floor (coplanar fills in one floor layer do not reliably stack in drawing order: a
-   * room fill can lose to the slab fill under it), the door swings and the added and changed slab
-   * and room outlines above them, and what the
-   * revision removed, from the base, 2 mm above its wall tops so a bricked-up window shows over the
-   * wall that now runs through it.
-   */
-  function diffPlanLayers(storey: Storey, floor: Overlay): THREE.Object3D[] {
-    if (!shownDiff) return [];
-    const { status, base } = shownDiff;
-    const out: THREE.Object3D[] = [];
-    const was = base.storeys.find((s) => s.id === storey.id);
-    // The floor built and taken away, drawn as rooms of this storey so they share its plan's scale;
-    // its own rooms and slabs only as outlines, so floor that just changed room has no tint.
-    const pieces = was ? floorPieces(floorChange(was, storey)) : [];
-    const fills = pieces.length ? diffFloor(renderFloor({ ...storey, slabs: [], rooms: pieces, openings: [] })) : null;
-    if (fills)
-      out.push(planGeometry(fills, (storey.elevation + FLOOR_LIFT + 1) / 1000, { kind: "floor", renderOrder: -1 }));
-    const outlines = floorOutlines(floor, status);
-    if (fills || outlines)
-      out.push(
-        planGeometry(doorSwings(floor), (storey.elevation + FLOOR_LIFT + 2) / 1000, {
-          kind: "overlay",
-          renderOrder: -1,
-        }),
-      );
-    if (outlines)
-      out.push(
-        planGeometry(outlines, (storey.elevation + FLOOR_LIFT + 2) / 1000, { kind: "overlay", renderOrder: -1 }),
-      );
-    if (was) {
-      const removed = (id: string) => status.get(id) === "removed";
-      const walls = was.walls.filter(
-        (w) => !w.profile && (removed(w.id) || was.openings.some((o) => o.wallId === w.id && removed(o.id))),
-      );
-      if (walls.length) {
-        const hosts = new Set(walls.map((w) => w.id));
-        const drawn = removedPlan(
-          renderWallTops({ ...was, walls, openings: was.openings.filter((o) => hosts.has(o.wallId)) }, base.components),
-          status,
-        );
-        const h = Math.max(...walls.map((w) => wallHeight(w)));
-        if (drawn)
-          out.push(
-            planGeometry(drawn, (storey.elevation + h + WALL_TOP_LIFT + 2) / 1000, { kind: "overlay", renderOrder: 0 }),
-          );
-      }
-    }
-    return out;
+    labels.build(model, resolved);
   }
 
   let box = new THREE.Box3();
@@ -664,16 +316,6 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     const unknown = ids.filter((id) => !known.includes(id));
     shownStoreys = known.length ? known : null;
     if (unknown.length) storeysNote = ` · no storey ${unknown.map((u) => `"${u}"`).join(", ")}, showing all`;
-  }
-
-  /** The model's storeys, lowest first: the selector's order and a cumulative choice's order. */
-  const storeysLowestFirst = (model: BuildingModel): Storey[] =>
-    [...model.storeys].sort((a, b) => a.elevation - b.elevation);
-
-  /** Whether `ids` is every storey up to one floor: the shape the selector writes to `?storeys=`. */
-  function isStoreyPrefix(ids: string[], ordered: Storey[]): boolean {
-    const selected = new Set(ids);
-    return ordered.every((s, i) => selected.has(s.id) === i < ids.length);
   }
 
   /** Fill the selector's store state, pointing at the floor the selection reaches. */
@@ -707,7 +349,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     else params.set("storeys", shownStoreys.join(","));
     history.replaceState(null, "", `?${params}`);
     populateStoreySelector(modelJson);
-    await applyStoreyVisibility(currentModel, true);
+    await storeyMotion.apply(currentModel, true);
     // A later choice may have taken over while this one animated; that choice owns the finishing work.
     const shown = new Set(shownStoreys ?? ordered.map((s) => s.id));
     const latestTop = [...ordered].reverse().find((s) => shown.has(s.id))?.id;
@@ -717,364 +359,10 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     // The camera stays put: only the drawings change, so floors compare from one viewpoint.
     await fragments.core.update(true);
     updateCompass();
-    repickHover();
+    identify.repick();
   }
 
-  /** How long a floor change takes to ease to its new floor level, in milliseconds. */
-  const STOREY_EASE_MS = 60;
-  /** Exponential time constant: about 95% of a floor change is done after STOREY_EASE_MS. */
-  const STOREY_TAU_MS = STOREY_EASE_MS / 3;
-
-  /**
-   * A height clear of every model, where the sweep plane rests between floor changes. The plane stays
-   * in the renderer at all times, so materials compile with clipping once rather than on a first
-   * sweep; between sweeps it clips nothing.
-   */
-  const SWEEP_PARKED = 1_000_000;
-
-  /**
-   * The section plane a floor change sweeps: it clips everything above its height. The renderer
-   * holds this one array by reference, so moving the plane is picked up in place.
-   */
-  const sweepPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), SWEEP_PARKED);
-  const sweepPlanes: THREE.Plane[] = [sweepPlane];
-  world.renderer.three.clippingPlanes = sweepPlanes;
-
-  /** Each storey's items, read once per loaded model so a sweep need not walk the model again. */
-  let storeyItemCache: { modelId: string; byStorey: Map<string, number[]> } | null = null;
-
-  /** The storeys last fully shown; null until the first model's storeys have been applied. */
-  let settledStoreys: Set<string> | null = null;
-
-  interface StoreyLayerFade {
-    materials: {
-      material: THREE.Material;
-      opacity: number;
-      transparent: boolean;
-      depthWrite: boolean;
-    }[];
-  }
-
-  /** One storey crossing the section plane: its items, overlay groups and current fade. */
-  interface StoreyMotionEntry {
-    id: string;
-    items: number[];
-    groups: THREE.Group[];
-    layers: StoreyLayerFade | null;
-    opacity: number;
-    /** The opacity the storey rests at when shown: 1, or the see-through opacity under Transparency. */
-    rest: number;
-    target: number;
-  }
-
-  /** A floor change in flight: every transitioning storey and the plane easing to its new level. */
-  interface StoreyMotion {
-    model: FragmentsModel;
-    entries: Map<string, StoreyMotionEntry>;
-    target: Set<string>;
-    plane: number;
-    targetPlane: number;
-    running: boolean;
-    waiters: (() => void)[];
-  }
-
-  let storeyMotion: StoreyMotion | null = null;
-  /** Retargets run in order, so two quick choices cannot both create the same storey's entry. */
-  let storeyChain: Promise<void> = Promise.resolve();
-
-  /**
-   * The height (scene m) any of a storey's elements reaches. A storey with no walls, such as the
-   * street level, is topped by its railings; a stair climbs to the storey above.
-   */
-  function storeyTop(storey: Storey, byId: Map<string, Storey>): number {
-    let top = storey.elevation + Math.max(0, ...storey.walls.map((w) => wallHeight(w)));
-    for (const o of storey.openings) top = Math.max(top, storey.elevation + o.sillHeight + o.height);
-    for (const slab of storey.slabs) top = Math.max(top, storey.elevation + slab.elevationOffset);
-    for (const r of storey.railings ?? [])
-      top = Math.max(top, storey.elevation + Math.max(r.startBase ?? 0, r.endBase ?? 0) + r.height);
-    for (const st of storey.stairs ?? []) top = Math.max(top, byId.get(st.toStoreyId)?.elevation ?? storey.elevation);
-    return top / 1000;
-  }
-
-  /**
-   * A sweep height that keeps a floor's drawings: clear of its wall tops and labels. The next
-   * storey's floor structure starts just above it, so a thin sliver can show at the cut.
-   */
-  const SWEEP_MARGIN = (LABEL_LIFT + 2) / 1000;
-
-  /**
-   * Make a storey's overlay layers fadeable, remembering their resting states. The constraint spans
-   * share one material across storeys, so they are left alone and pop with their storey instead.
-   */
-  function beginLayerFade(groups: THREE.Group[]): StoreyLayerFade {
-    const seen = new Set<THREE.Material>();
-    const materials: StoreyLayerFade["materials"] = [];
-    for (const group of groups) {
-      group.traverse((object) => {
-        const material = (object as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
-        if (!material) return;
-        for (const m of Array.isArray(material) ? material : [material]) {
-          if (m === constraintLineMaterial || seen.has(m)) continue;
-          seen.add(m);
-          materials.push({ material: m, opacity: m.opacity, transparent: m.transparent, depthWrite: m.depthWrite });
-          if (!m.transparent) {
-            m.transparent = true;
-            m.needsUpdate = true;
-          }
-          if (m.depthWrite) {
-            m.depthWrite = false;
-            m.needsUpdate = true;
-          }
-        }
-      });
-    }
-    return { materials };
-  }
-
-  function applyLayerFade(layers: StoreyLayerFade, t: number): void {
-    for (const { material, opacity } of layers.materials) material.opacity = opacity * t;
-  }
-
-  function endLayerFade(layers: StoreyLayerFade): void {
-    for (const { material, opacity, transparent, depthWrite } of layers.materials) {
-      material.opacity = opacity;
-      material.transparent = transparent;
-      material.depthWrite = depthWrite;
-      material.needsUpdate = true;
-    }
-  }
-
-  /** The items each storey owns, from the model JSON: the IFC is the geometry, the JSON the authority. */
-  async function storeyItemsOf(model: FragmentsModel): Promise<Map<string, number[]>> {
-    if (storeyItemCache?.modelId === model.modelId) return storeyItemCache.byStorey;
-    const byStorey = new Map<string, number[]>();
-    if (!modelJson) return byStorey;
-    const owner = storeyIndex(modelJson);
-    // Fragments' spatial tree does not surface every storey, so map items by their Tag (elements) or
-    // Name (spaces, whose Tag the writer leaves empty) instead of walking it.
-    for (const [localId, item] of await model.getItems()) {
-      const key = (item.data.Tag?.value ?? item.data.Name?.value) as string | undefined;
-      const storey = key ? owner.get(key) : undefined;
-      if (!storey) continue;
-      byStorey.set(storey, [...(byStorey.get(storey) ?? []), localId]);
-    }
-    storeyItemCache = { modelId: model.modelId, byStorey };
-    return byStorey;
-  }
-
-  /** Finish a floor change at once: every transitioning storey at its target, the plane parked. */
-  async function finishStoreyMotionNow(): Promise<void> {
-    const motion = storeyMotion;
-    if (!motion) return;
-    storeyMotion = null;
-    for (const entry of motion.entries.values()) {
-      if (entry.target > 0) {
-        if (entry.items.length) {
-          if (entry.rest === 1) await motion.model.resetOpacity(entry.items);
-          else await motion.model.setOpacity(entry.items, entry.rest);
-        }
-        if (entry.layers) endLayerFade(entry.layers);
-      } else {
-        if (entry.items.length) {
-          await motion.model.setVisible(entry.items, false);
-          await motion.model.resetOpacity(entry.items);
-        }
-        if (entry.layers) endLayerFade(entry.layers);
-        for (const group of entry.groups) group.visible = false;
-      }
-    }
-    await fragments.core.update(true);
-    sweepPlane.constant = SWEEP_PARKED;
-    settledStoreys = new Set(motion.target);
-    await fragments.core.update(true);
-    for (const resolve of motion.waiters.splice(0)) resolve();
-  }
-
-  /** Finish any floor change at once, queued behind a retarget already in flight. */
-  function finishStoreyMotion(): Promise<void> {
-    storeyChain = storeyChain.then(finishStoreyMotionNow);
-    return storeyChain;
-  }
-
-  /** Resolves once the running floor change has settled, even if another target arrives first. */
-  function storeyMotionSettled(): Promise<void> {
-    const motion = storeyMotion;
-    if (!motion) return Promise.resolve();
-    return new Promise((resolve) => motion.waiters.push(resolve));
-  }
-
-  /**
-   * The opacity a shown storey rests at. Transparency fades every element, so entering and leaving
-   * storeys sweep between 0 and that opacity rather than 0 and 1.
-   */
-  function storeyRestOpacity(): number {
-    return viewState.xray ? FADE : 1;
-  }
-
-  /** Hide and restore each storey the motion has finished with; park the plane when none is left. */
-  async function settleStoreyMotion(motion: StoreyMotion): Promise<void> {
-    if (storeyMotion !== motion) return;
-    for (const [id, entry] of [...motion.entries]) {
-      if (entry.target === 0 && entry.opacity === 0) {
-        if (entry.items.length) {
-          await motion.model.setVisible(entry.items, false);
-          await motion.model.resetOpacity(entry.items);
-        }
-        if (entry.layers) endLayerFade(entry.layers);
-        for (const group of entry.groups) group.visible = false;
-        motion.entries.delete(id);
-      } else if (entry.target > 0 && entry.opacity === entry.target) {
-        if (entry.items.length) {
-          if (entry.rest === 1) await motion.model.resetOpacity(entry.items);
-          else await motion.model.setOpacity(entry.items, entry.rest);
-        }
-        if (entry.layers) endLayerFade(entry.layers);
-        entry.layers = null;
-        motion.entries.delete(id);
-      }
-    }
-    if (storeyMotion !== motion) return;
-    if (motion.entries.size > 0) {
-      startStoreyMotion(motion);
-      return;
-    }
-    // Flush at the clipped state before parking, so the last frame cannot show stale geometry.
-    await fragments.core.update(true);
-    sweepPlane.constant = SWEEP_PARKED;
-    settledStoreys = new Set(motion.target);
-    storeyMotion = null;
-    await fragments.core.update(true);
-    for (const resolve of motion.waiters.splice(0)) resolve();
-  }
-
-  /** Ease every transitioning storey and the plane toward its target; settle when all arrive. */
-  function startStoreyMotion(motion: StoreyMotion): void {
-    if (motion.running) return;
-    motion.running = true;
-    let last = performance.now();
-    const tick = (now: number) => {
-      if (storeyMotion !== motion) return;
-      const dt = Math.min(64, Math.max(0, now - last));
-      last = now;
-      const k = 1 - Math.exp(-dt / STOREY_TAU_MS);
-      motion.plane += (motion.targetPlane - motion.plane) * k;
-      if (Math.abs(motion.targetPlane - motion.plane) < 0.0005) motion.plane = motion.targetPlane;
-      sweepPlane.constant = motion.plane;
-      let moving = motion.plane !== motion.targetPlane;
-      for (const entry of motion.entries.values()) {
-        entry.opacity += (entry.target - entry.opacity) * k;
-        if (Math.abs(entry.target - entry.opacity) < 0.01) entry.opacity = entry.target;
-        if (entry.layers) applyLayerFade(entry.layers, entry.opacity / entry.rest);
-        if (entry.items.length) void motion.model.setOpacity(entry.items, entry.opacity);
-        if (entry.opacity !== entry.target) moving = true;
-      }
-      fragments.core.update();
-      if (moving) {
-        requestAnimationFrame(tick);
-        return;
-      }
-      motion.running = false;
-      storeyChain = storeyChain.then(() => settleStoreyMotion(motion));
-    };
-    requestAnimationFrame(tick);
-  }
-
-  /** Point the running floor change at `target`, creating or flipping storeys as needed. */
-  function retargetStoreyMotion(model: FragmentsModel, ordered: Storey[], target: Set<string>): Promise<void> {
-    storeyChain = storeyChain.then(async () => {
-      const byStorey = await storeyItemsOf(model);
-      const byId = new Map(modelJson!.storeys.map((s) => [s.id, s]));
-      const highest = (list: Storey[]) => (list.length ? Math.max(...list.map((s) => storeyTop(s, byId))) : 0);
-      const rest = storeyRestOpacity();
-      if (!storeyMotion || storeyMotion.model !== model) {
-        await finishStoreyMotionNow();
-        const shown = settledStoreys ?? new Set(ordered.map((s) => s.id));
-        const plane = highest(ordered.filter((s) => shown.has(s.id))) + SWEEP_MARGIN;
-        sweepPlane.constant = plane;
-        storeyMotion = {
-          model,
-          entries: new Map(),
-          target,
-          plane,
-          targetPlane: highest(ordered.filter((s) => target.has(s.id))) + SWEEP_MARGIN,
-          running: false,
-          waiters: [],
-        };
-        window.__elmsteadStoreySweeps = (window.__elmsteadStoreySweeps ?? 0) + 1;
-      } else {
-        storeyMotion.target = target;
-        storeyMotion.targetPlane = highest(ordered.filter((s) => target.has(s.id))) + SWEEP_MARGIN;
-      }
-      const motion = storeyMotion;
-      const shown = settledStoreys ?? new Set(ordered.map((s) => s.id));
-      for (const storey of ordered) {
-        const entry = motion.entries.get(storey.id);
-        const inTarget = target.has(storey.id);
-        if (entry) {
-          entry.target = inTarget ? entry.rest : 0;
-          if (!inTarget && !entry.layers) entry.layers = beginLayerFade(entry.groups);
-          continue;
-        }
-        const wasShown = shown.has(storey.id);
-        if (inTarget === wasShown) continue;
-        const groups = storeyLayers.get(storey.id) ?? [];
-        const items = byStorey.get(storey.id) ?? [];
-        const layers = beginLayerFade(groups);
-        if (inTarget) {
-          applyLayerFade(layers, 0);
-          for (const group of groups) group.visible = true;
-          if (items.length) {
-            // Fade it while still hidden, so showing it cannot flash at full opacity first.
-            await model.setOpacity(items, 0);
-            await model.setVisible(items, true);
-          }
-          motion.entries.set(storey.id, { id: storey.id, items, groups, layers, opacity: 0, rest, target: rest });
-        } else {
-          applyLayerFade(layers, 1);
-          motion.entries.set(storey.id, { id: storey.id, items, groups, layers, opacity: rest, rest, target: 0 });
-        }
-      }
-      startStoreyMotion(motion);
-    });
-    return storeyChain;
-  }
-
-  /**
-   * Show exactly the selected storeys through fragments: each item is visible when the storey its Tag
-   * — or its Name, for spaces — belongs to is. Items that name no model element are left alone; they
-   * carry no geometry. Storey layers follow the same selection, so labels, floors and constraints
-   * travel with their storey. A floor choice sweeps a section plane between the two floor levels,
-   * fading the storeys at Transparency's opacity when it is on; snapshots, Diff and reduced motion
-   * apply the choice at once, as does a model's first application.
-   */
-  async function applyStoreyVisibility(model: FragmentsModel, animate = false) {
-    if (!modelJson) return;
-    const ordered = storeysLowestFirst(modelJson);
-    const target = new Set(ordered.filter((s) => isShown(s.id)).map((s) => s.id));
-    const sweepNow = animate && !snapshot && !viewState.diff && !prefersReducedMotion();
-    if (!sweepNow) {
-      await finishStoreyMotion();
-      for (const [storey, ids] of await storeyItemsOf(model)) await model.setVisible(ids, isShown(storey));
-      for (const [id, groups] of storeyLayers) for (const g of groups) g.visible = isShown(id);
-      for (const [id, group] of diffOutlines) group.visible = isShown(id);
-      if (ghostModel) for (const [id, ids] of ghostItems) await ghostModel.setVisible(ids, isShown(id));
-      settledStoreys = target;
-      publishChanges();
-      return;
-    }
-    if (
-      !storeyMotion &&
-      settledStoreys &&
-      target.size === settledStoreys.size &&
-      [...target].every((id) => settledStoreys!.has(id))
-    ) {
-      publishChanges();
-      return;
-    }
-    await retargetStoreyMotion(model, ordered, target);
-    publishChanges();
-    await storeyMotionSettled();
-  }
+  storeyMotion = createStoreyMotion(ctx);
 
   /** Bounding box of the shown storeys' plan geometry, so the walk pose centres on what is visible.
    * The compass asks for it on every camera update, so it is cached until the model, the selection
@@ -1124,138 +412,10 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
    *   shows what is in the walls below (open door gaps, window symbols) as the plan does.
    * - White background, no grid.
    */
-  type Style = "ifc" | "plan";
   /** ?orient=project keeps the views on plan axes, for the plan-versus-3D comparison; otherwise they follow true north. */
   const orient = parseOrient(params.get("orient"));
-  const styleParam = params.get("style"); // ?style=ifc|plan overrides the default
-  const style: Style = styleParam === "ifc" || styleParam === "plan" ? styleParam : snapshot ? "ifc" : "plan";
 
-  /** Which of the IFC's presentation colours (src/shared/ifc/styles.ts) a material carries, if any. */
-  const styleOf = (material: THREE.MeshLambertMaterial): keyof typeof STYLES | undefined =>
-    styleOfColour(material.color);
-
-  const wallTop = new THREE.Color(C.wall); // linear, as the shader works in linear
-
-  /**
-   * Patch a material for plan style. `mode` 1 paints upward faces in the plan's wall colour; `mode` 2
-   * keeps only downward faces, so a slab contributes its underside — the ceiling of the storey below —
-   * and nothing else: no grey top over the room fills, and no grey edges floating on the facade.
-   */
-  function patchTops(m: THREE.MeshLambertMaterial, mode: 1 | 2) {
-    m.onBeforeCompile = (shader) => {
-      shader.uniforms.planTopColour = { value: wallTop };
-      shader.fragmentShader = shader.fragmentShader
-        .replace("void main() {", "uniform vec3 planTopColour;\nvoid main() {")
-        // `normal` is view-space; `normal * mat3(viewMatrix)` is the world-space normal (the view
-        // matrix is orthonormal). It is only defined by the time the opaque fragment runs.
-        .replace(
-          "#include <opaque_fragment>",
-          `float planTopNy = (normal * mat3(viewMatrix)).y;
-        ${mode === 1 ? "if (planTopNy > 0.7) { outgoingLight = planTopColour; }" : "if (planTopNy > 0.7) discard;"}
-        #include <opaque_fragment>`,
-        );
-    };
-    m.customProgramCacheKey = () => `elmstead-plan-top-${mode}`;
-    m.needsUpdate = true;
-  }
-
-  /** Apply plan colouring to the model's materials once it has loaded (see `style`). */
-  /** The viewer's presentation on one material, by the IFC colour it carries: plan-style tops, stair bands. */
-  function patchMaterial(m: THREE.MeshLambertMaterial) {
-    const name = styleOf(m);
-    if (style === "plan" && name === "wall") patchTops(m, 1);
-    if (style === "plan" && (name === "slab" || name === "ground")) patchTops(m, 2);
-    if (name === "stair") patchStairBands(m);
-  }
-
-  function applyStyle() {
-    const plan = style === "plan";
-    for (const m of fragments.core.models.materials.list.values())
-      if (m instanceof THREE.MeshLambertMaterial) patchMaterial(m);
-    applyStairPresentation();
-    world.scene.three.background = new THREE.Color(plan ? C.paper : 0xf4f4f2);
-    grid.three.visible = !plan;
-    planLayers.visible = plan;
-  }
-
-  /**
-   * Stair readability presentation, applied in every viewer mode including snapshots (the ifc-viewer
-   * spec allows the stair recolour in snapshots so the steps read there too).
-   *
-   * From straight down a flight's tread tops are uniformly lit and its risers are edge-on, so the steps
-   * read as a flat slab. Banding the upward faces by floor(worldY / riser) alternates the floor cream
-   * with a darker cream (tread tops are integer multiples of the stair's riser); vertical faces take the
-   * wall colour; an EdgesGeometry outline reads the nosings from corner views. All stairs share one
-   * riser, taken from the stair with the largest riser, because Fragments renders them under one
-   * material; a model whose stairs differ bands them all on that riser (see ifc-viewer). The material stays the
-   * safe stair green so the viewer's classifier leaves it alone; only the shaded output is recoloured.
-   */
-  const stairEdgeMaterial = new THREE.LineBasicMaterial({ color: C.ink });
-  const stairCream = new THREE.Color(C.room);
-  const stairCreamDark = stairCream.clone().multiplyScalar(0.8);
-  const stairWall = new THREE.Color().setRGB(
-    STYLES.wall.rgb[0],
-    STYLES.wall.rgb[1],
-    STYLES.wall.rgb[2],
-    THREE.SRGBColorSpace,
-  );
-  let stairRiser = 0; // metres, set from the model on load
-  function patchStairBands(m: THREE.MeshLambertMaterial) {
-    m.onBeforeCompile = (shader) => {
-      shader.uniforms.uRiser = { value: stairRiser };
-      shader.uniforms.uCream = { value: stairCream };
-      shader.uniforms.uCreamDark = { value: stairCreamDark };
-      shader.uniforms.uWall = { value: stairWall };
-      shader.vertexShader = shader.vertexShader
-        .replace("void main() {", "varying float vWorldY;\nvarying vec3 vWorldN;\nvoid main() {")
-        .replace(
-          "#include <begin_vertex>",
-          "#include <begin_vertex>\nvWorldY = (modelMatrix * vec4(position, 1.0)).y;\nvWorldN = normalize(mat3(modelMatrix) * normal);",
-        );
-      shader.fragmentShader = shader.fragmentShader
-        .replace(
-          "void main() {",
-          "uniform float uRiser;\nuniform vec3 uCream;\nuniform vec3 uCreamDark;\nuniform vec3 uWall;\nvarying float vWorldY;\nvarying vec3 vWorldN;\nvoid main() {",
-        )
-        .replace(
-          "#include <color_fragment>",
-          `#include <color_fragment>
-        if (uRiser > 0.0) {
-          if (vWorldN.y > 0.7) {
-            float band = mod(floor(vWorldY / uRiser + 0.001), 2.0);
-            diffuseColor.rgb = mix(uCreamDark, uCream, band);
-          } else {
-            diffuseColor.rgb = uWall;
-          }
-        }`,
-        );
-    };
-    m.customProgramCacheKey = () => "elmstead-stair-bands";
-    m.needsUpdate = true;
-  }
-  interface StairMesh {
-    mesh: THREE.Mesh;
-    edges: THREE.LineSegments;
-  }
-  let stairMeshes: StairMesh[] = [];
-
-  function addStairEdges(model: FragmentsModel) {
-    model.object.traverse((obj) => {
-      if (!(obj instanceof THREE.Mesh)) return;
-      const m = obj.material;
-      if (!(m instanceof THREE.MeshLambertMaterial) || styleOf(m) !== "stair") return;
-      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(obj.geometry, 30), stairEdgeMaterial);
-      obj.add(edges);
-      stairMeshes.push({ mesh: obj, edges });
-    });
-  }
-
-  function applyStairPresentation() {
-    for (const m of fragments.core.models.materials.list.values()) {
-      if (m instanceof THREE.MeshLambertMaterial && styleOf(m) === "stair") patchStairBands(m);
-    }
-    for (const s of stairMeshes) s.edges.visible = true;
-  }
+  style = createStyle(ctx, grid.three);
 
   /**
    * Map-style input: left drag or one finger pans; the wheel or a pinch zooms; the middle or right
@@ -1336,7 +496,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     await world.camera.controls.fitToSphere(sphere, false);
     await fragments.core.update(true);
     updateCompass();
-    updateLabelOrientation();
+    labels.updateOrientation();
   }
 
   /**
@@ -1351,506 +511,16 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     await world.camera.controls.setLookAt(v[0]!, v[1]!, v[2]!, v[3]!, v[4]!, v[5]!, false);
     await fragments.core.update(true);
     updateCompass();
-    updateLabelOrientation();
+    labels.updateOrientation();
   }
 
-  /** The camera state walk mode saves on entry and restores on exit; non-null while walking. */
-  interface SavedView {
-    projection: "Orthographic" | "Perspective";
-    position: THREE.Vector3;
-    target: THREE.Vector3;
-    ortho: { left: number; right: number; top: number; bottom: number; zoom: number };
-    near: number;
-    fov: number;
-  }
-  /** The perspective near plane while walking: OBC's default 1 m would clip every wall within arm's reach. */
-  const WALK_NEAR = 0.05;
-  /** The perspective vertical FOV (degrees) while walking: OBC's 60° reads zoomed-in at walking distance. */
-  const WALK_FOV = 70;
-  let savedView: SavedView | null = null;
-  const walkKeys = new Set<string>();
-  let walkRaf = 0;
-  let walkLast = 0;
-  let walkEyeY = 0;
-  let everLocked = false;
-  let pointerLockControls: PointerLockControls | null = null;
-  const walkDirection = new THREE.Vector3();
+  walk = createWalkMode(ctx);
 
-  /**
-   * Enter first-person walk mode: save the camera state, move the perspective camera to the entry
-   * pose facing plan north, and pause the camera component and camera-controls input so neither
-   * overwrites the walk pose. `lock` may only be true inside a user gesture; `?walk=1` instead shows
-   * the click-to-look prompt and locks on the first canvas click. Snapshots never walk.
-   */
-  async function enterWalk(lock: boolean) {
-    if (snapshot || savedView) return;
-    hideHover();
-    setMeasuring(false);
-    clearMeasurements();
-    const controls = world.camera.controls;
-    const ortho = world.camera.threeOrtho;
-    savedView = {
-      projection: world.camera.projection.current,
-      position: controls.getPosition(new THREE.Vector3()),
-      target: controls.getTarget(new THREE.Vector3()),
-      ortho: { left: ortho.left, right: ortho.right, top: ortho.top, bottom: ortho.bottom, zoom: ortho.zoom },
-      near: world.camera.threePersp.near,
-      fov: world.camera.threePersp.fov,
-    };
-    const start = entryPosition(shownBox(), lowestElevation);
-    walkEyeY = start.y;
-    await world.camera.projection.set("Perspective");
-    world.camera.enabled = false;
-    controls.enabled = false;
-    const camera = world.camera.threePersp; // the active camera after the projection switch
-    camera.near = WALK_NEAR;
-    camera.fov = WALK_FOV;
-    camera.updateProjectionMatrix();
-    camera.position.copy(start);
-    camera.quaternion.identity(); // an identity quaternion faces scene −Z, which is plan north
-    if (!pointerLockControls) {
-      // Created lazily, after the first projection switch, so it holds the perspective camera.
-      pointerLockControls = new PointerLockControls(camera, world.renderer!.three.domElement);
-      pointerLockControls.addEventListener("lock", () => {
-        everLocked = true;
-        store.set({ walkHint: false });
-      });
-      pointerLockControls.addEventListener("unlock", () => {
-        // Escape is the browser's pointer-lock release, so unlocking performs the exit — but only
-        // an unlock after a successful lock, so a refused request keeps walk mode.
-        if (everLocked) void exitWalk();
-      });
-    }
-    everLocked = false;
-    store.set({ walking: true, walkHint: true });
-    walkLast = performance.now();
-    walkRaf = requestAnimationFrame(walkFrame);
-    if (lock) pointerLockControls.lock();
-    await fragments.core.update(true);
-    updateCompass();
-    updateLabelOrientation();
-  }
+  measure = createMeasureTool(ctx);
 
-  /** Leave walk mode, restoring the saved projection, pose and orthographic framing exactly. */
-  async function exitWalk() {
-    const restore = savedView;
-    if (!restore) return;
-    savedView = null;
-    cancelAnimationFrame(walkRaf);
-    walkKeys.clear();
-    if (pointerLockControls?.isLocked) pointerLockControls.unlock();
-    store.set({ walking: false, walkHint: false, status: `${currentName}.ifc` });
-    world.camera.enabled = true;
-    world.camera.threePersp.near = restore.near;
-    world.camera.threePersp.fov = restore.fov;
-    world.camera.threePersp.updateProjectionMatrix();
-    await world.camera.projection.set(restore.projection);
-    if (restore.projection === "Orthographic") {
-      // The projection switch recomputes the ortho frustum from the walk pose and resets the zoom;
-      // put the saved framing back so a Top view returns exactly as it was. The zoom goes through
-      // zoomTo because camera-controls keeps its own zoom state and writes it back to the camera
-      // on the next update.
-      Object.assign(world.camera.threeOrtho, restore.ortho);
-      world.camera.threeOrtho.updateProjectionMatrix();
-      await world.camera.controls.zoomTo(restore.ortho.zoom, false);
-    }
-    const { position: p, target: t } = restore;
-    await world.camera.controls.setLookAt(p.x, p.y, p.z, t.x, t.y, t.z, false);
-    world.camera.controls.enabled = true;
-    await fragments.core.update(true);
-    updateCompass();
-    updateLabelOrientation();
-    repickHover();
-  }
+  identify = createIdentify(ctx);
 
-  /** The walk frame loop: heading-relative movement at the fixed eye height, through all geometry. */
-  function walkFrame(now: number) {
-    if (!savedView) return;
-    const camera = world.camera.three;
-    const next = walkStep(
-      camera.position,
-      headingBasis(camera.getWorldDirection(walkDirection)),
-      movementOffset(walkKeys),
-      (now - walkLast) / 1000,
-      walkEyeY,
-    );
-    const moved = !next.equals(camera.position);
-    camera.position.copy(next);
-    if (moved) {
-      // The controls' "update" event no longer fires while walking, so refresh culling and the
-      // compass here.
-      void fragments.core.update();
-      updateCompass();
-    }
-    // The heading changes as the walker looks around, not only when the position moves.
-    updateLabelOrientation();
-    walkLast = now;
-    walkRaf = requestAnimationFrame(walkFrame);
-  }
-
-  // `?walk=1` (and a refused lock) leave walk mode without pointer lock: the first canvas click
-  // requests it, which is the user gesture the browser requires.
-  world.renderer!.three.domElement.addEventListener("click", () => {
-    if (savedView && pointerLockControls && !pointerLockControls.isLocked) pointerLockControls.lock();
-  });
-  window.addEventListener("keydown", (e) => {
-    if (!savedView) return;
-    if (e.code === "Escape") {
-      // Also covers the refused-lock path, where no unlock event will fire.
-      void exitWalk();
-      return;
-    }
-    if (e.code in WALK_AXES) {
-      walkKeys.add(e.code);
-      e.preventDefault(); // the arrows would scroll the page when pointer lock is refused
-    }
-  });
-  window.addEventListener("keyup", (e) => walkKeys.delete(e.code));
-  // A focus loss that does not release pointer lock (the pointerlockerror path) must not leave keys
-  // held down.
-  window.addEventListener("blur", () => walkKeys.clear());
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) walkKeys.clear();
-  });
-  document.addEventListener("pointerlockerror", () => {
-    if (!savedView) return;
-    store.set({ walkHint: true, status: "pointer lock refused — click to retry; WASD still moves, Esc leaves" });
-  });
-
-  function measureLine(from: THREE.Vector3, to: THREE.Vector3): Line2 {
-    const geometry = new LineGeometry();
-    geometry.setPositions([from.x, from.y, from.z, to.x, to.y, to.z]);
-    const line = new Line2(geometry, measureLineMaterial);
-    line.frustumCulled = false;
-    line.renderOrder = 8;
-    return line;
-  }
-
-  function measureMarker(at: THREE.Vector3): THREE.Mesh {
-    const marker = new THREE.Mesh(measureMarkerGeometry, measureMarkerMaterial);
-    marker.position.copy(at);
-    marker.renderOrder = 9;
-    return marker;
-  }
-
-  function measureBillboard(id: number, values: MeasurementValues): THREE.Sprite {
-    const step = 14;
-    return billboard(
-      measurementLines(id, values).map((text, i) => ({
-        text,
-        size: i === 0 ? 12 : 11,
-        bold: i === 0,
-        dy: (i - 1) * step,
-      })),
-      C.measure,
-      10,
-      false, // above the model and the other overlays, like the measurement line
-    );
-  }
-
-  function renderMeasurement(m: Measurement) {
-    measureLayer.add(measureLine(m.from, m.to));
-    measureLayer.add(measureMarker(m.from));
-    measureLayer.add(measureMarker(m.to));
-    const label = measureBillboard(m.id, m.values);
-    label.position.copy(m.from.clone().add(m.to).multiplyScalar(0.5));
-    measureLayer.add(label);
-  }
-
-  function removePendingMarker() {
-    if (pendingMarker) {
-      measureLayer.remove(pendingMarker);
-      pendingMarker = null;
-    }
-  }
-
-  function showPendingMarker(at: THREE.Vector3) {
-    removePendingMarker();
-    pendingMarker = measureMarker(at);
-    measureLayer.add(pendingMarker);
-  }
-
-  function clearMeasureLayer() {
-    // Every measurement line shares one material, and every marker one geometry and material.
-    const shared = new Set<THREE.BufferGeometry | THREE.Material>([
-      measureLineMaterial,
-      measureMarkerGeometry,
-      measureMarkerMaterial,
-    ]);
-    for (const obj of measureLayer.children) disposeTree(obj, shared);
-    measureLayer.clear();
-    pendingMarker = null;
-  }
-
-  function updateMeasureHook() {
-    window.__elmsteadMeasurements = measurements.map((m) => ({
-      id: m.id,
-      from: { x: m.from.x, y: m.from.y, z: m.from.z },
-      to: { x: m.to.x, y: m.to.y, z: m.to.z },
-      values: { ...m.values },
-    }));
-  }
-
-  function updateMeasureList() {
-    store.set({ measurements: measurements.map((m) => ({ id: m.id, summary: measurementSummary(m.id, m.values) })) });
-  }
-
-  function updateClearButton() {
-    store.set({ canClear: measurements.length > 0 || pendingPoint !== null });
-  }
-
-  function updateMeasureUi() {
-    updateMeasureList();
-    updateMeasureHook();
-    updateClearButton();
-  }
-
-  function addPickPoint(point: THREE.Vector3) {
-    if (!measuring) return;
-    if (pendingPoint) {
-      const aligned = axisAlignedPoint(pendingPoint, point);
-      const to = new THREE.Vector3(aligned.x, aligned.y, aligned.z);
-      const measurement: Measurement = {
-        id: nextMeasurementId++,
-        from: pendingPoint,
-        to,
-        values: measurementValues(pendingPoint, to),
-      };
-      pendingPoint = null;
-      removePendingMarker();
-      measurements.push(measurement);
-      renderMeasurement(measurement);
-      updateMeasureUi();
-    } else {
-      pendingPoint = point.clone();
-      showPendingMarker(pendingPoint);
-      updateClearButton();
-    }
-  }
-
-  /** Cancel the unfinished first point; completed measurements stay. */
-  function cancelPending() {
-    measureEpoch++;
-    queuedPick = null;
-    pendingPoint = null;
-    removePendingMarker();
-    updateClearButton();
-  }
-
-  function clearMeasurements() {
-    measureEpoch++;
-    queuedPick = null;
-    pendingPoint = null;
-    measurements.length = 0;
-    nextMeasurementId = 1;
-    clearMeasureLayer();
-    updateMeasureUi();
-  }
-
-  function setMeasuring(on: boolean) {
-    if (measuring === on) return;
-    if (!on) cancelPending();
-    measuring = on;
-    store.set({ measuring: on, measureHint: on });
-  }
-
-  /** The snapped or face point under a client-space position, in scene metres. */
-  async function pickAt(x: number, y: number): Promise<THREE.Vector3 | null> {
-    const model = currentModel;
-    if (!model) return null;
-    const camera = world.camera.three;
-    const mouse = new THREE.Vector2(x, y);
-    const results = await model.raycastWithSnapping({
-      camera,
-      mouse,
-      dom: canvas,
-      snappingClasses: [SnappingClass.POINT, SnappingClass.LINE],
-    });
-    const rect = canvas.getBoundingClientRect();
-    const candidates: SnapCandidate<THREE.Vector3>[] = [];
-    for (const result of results ?? []) {
-      if (result.snappingClass !== SnappingClass.POINT && result.snappingClass !== SnappingClass.LINE) continue;
-      const projected = result.point.clone().project(camera);
-      candidates.push({
-        x: rect.left + ((projected.x + 1) / 2) * rect.width,
-        y: rect.top + ((1 - projected.y) / 2) * rect.height,
-        point: result.snappingClass === SnappingClass.POINT,
-        at: result.point,
-      });
-    }
-    const snap = nearestSnap(candidates, { x, y }, SNAP_MAX_PX);
-    if (snap) return snap.at.clone();
-    const face = await model.raycast({ camera, mouse: new THREE.Vector2(x, y), dom: canvas });
-    return face ? face.point.clone() : null;
-  }
-
-  /** Resolve queued clicks one at a time; a click during a pick waits for it. */
-  async function runPicks() {
-    if (picking) return;
-    picking = true;
-    try {
-      while (queuedPick) {
-        const next = queuedPick;
-        queuedPick = null;
-        const epoch = measureEpoch;
-        const model = currentModel;
-        if (!measuring || !model) continue;
-        const point = await pickAt(next.x, next.y);
-        if (point && epoch === measureEpoch && currentModel === model && measuring) addPickPoint(point);
-      }
-    } catch (e) {
-      console.error("measure pick failed", e);
-    } finally {
-      picking = false;
-      if (queuedPick && measuring) void runPicks();
-    }
-  }
-
-  function queuePick(x: number, y: number) {
-    if (!measuring || snapshot) return;
-    queuedPick = { x, y };
-    void runPicks();
-  }
-
-  canvas.addEventListener("pointerdown", (e) => {
-    if (!measuring || snapshot) return;
-    if (e.pointerType === "mouse" && e.button !== 0) return;
-    measurePointers.add(e.pointerId);
-    if (measurePointers.size > 1) {
-      pointerCandidate = null;
-      return;
-    }
-    pointerCandidate = { id: e.pointerId, x: e.clientX, y: e.clientY };
-  });
-
-  canvas.addEventListener("pointerup", (e) => {
-    const candidate = pointerCandidate;
-    measurePointers.delete(e.pointerId);
-    if (!measuring || snapshot) return;
-    if (!candidate || candidate.id !== e.pointerId) return;
-    pointerCandidate = null;
-    if (!isMeasureGesture(candidate, { x: e.clientX, y: e.clientY })) return;
-    queuePick(e.clientX, e.clientY);
-  });
-
-  const endMeasurePointer = (e: PointerEvent) => {
-    measurePointers.delete(e.pointerId);
-    if (pointerCandidate?.id === e.pointerId) pointerCandidate = null;
-  };
-  canvas.addEventListener("pointercancel", endMeasurePointer);
-  window.addEventListener("blur", () => {
-    measurePointers.clear();
-    pointerCandidate = null;
-  });
-
-  window.addEventListener("keydown", (e) => {
-    if (e.code !== "Escape" || !measuring || snapshot) return;
-    if (pendingPoint) cancelPending();
-    else setMeasuring(false);
-  });
-  updateMeasureUi();
-
-  let hoverSprite: THREE.Sprite | null = null;
-  let identifying = false;
-  const idsRequested = !snapshot && params.get("ids") === "1";
-  /** Model id and name per fragments item, rebuilt on every load; Tags exist even without model JSON. */
-  const elementLabels = new Map<number, ElementLabel>();
-  let hoverQueued: { x: number; y: number } | null = null;
-  let hoverPicking = false;
-  let hoverEpoch = 0;
-  let lastPointer: { x: number; y: number } | null = null;
-  window.__elmsteadHover = null;
-
-  /** A load, storey choice or walk exit can finish under a stationary cursor; re-pick its position. */
-  function repickHover() {
-    if (identifying && !snapshot && !savedView && lastPointer) {
-      hoverQueued = { ...lastPointer };
-      void runHoverPicks();
-    }
-  }
-
-  function disposeHoverSprite() {
-    if (!hoverSprite) return;
-    world.scene.three.remove(hoverSprite);
-    disposeTree(hoverSprite);
-    hoverSprite = null;
-  }
-
-  function hideHover() {
-    disposeHoverSprite();
-    window.__elmsteadHover = null;
-  }
-
-  function setIdentifying(on: boolean) {
-    identifying = on;
-    store.set({ ids: on });
-    if (!on) hideHover();
-  }
-
-  /** Resolve hover picks one at a time; a move during a pick waits for it, like the measure queue. */
-  async function runHoverPicks() {
-    if (hoverPicking) return;
-    hoverPicking = true;
-    try {
-      while (hoverQueued) {
-        const next = hoverQueued;
-        hoverQueued = null;
-        const epoch = hoverEpoch;
-        const model = currentModel;
-        if (!identifying || snapshot || savedView || !model) continue;
-        const ray = { camera: world.camera.three, mouse: new THREE.Vector2(next.x, next.y), dom: canvas };
-        const ghost = ghostModel;
-        // In Diff mode the removed elements' ghosts are picked too, and the nearer hit wins.
-        const [own, removed] = await Promise.all([
-          model.raycast(ray),
-          ghost ? ghost.raycast(ray) : Promise.resolve(null),
-        ]);
-        if (epoch !== hoverEpoch || currentModel !== model || !identifying || savedView) continue;
-        const ghostHit = removed && ghostLabels.has(removed.localId) && (!own || removed.distance < own.distance);
-        const hit = ghostHit ? removed : own;
-        const label = hit ? (ghostHit ? ghostLabels : elementLabels).get(hit.localId) : undefined;
-        if (!hit || !label) {
-          hideHover();
-          continue;
-        }
-        const diffStatus = ghostHit ? "removed" : shownDiff?.status.get(label.id);
-        window.__elmsteadHover = { id: label.id, name: label.name, ...(diffStatus ? { status: diffStatus } : {}) };
-        // Constraint-label styling, but depth-untested like the measurement readout: on top of everything.
-        const key = `${label.id}${diffStatus ?? ""}`;
-        if (!hoverSprite || hoverSprite.userData.id !== key) {
-          disposeHoverSprite();
-          const first = diffStatus ? `${label.id} · ${diffStatus}` : label.id;
-          const texts = label.name ? [first, label.name] : [first];
-          hoverSprite = billboard(
-            texts.map((text, i) => ({ text, size: 11, bold: true, dy: (i - (texts.length - 1) / 2) * 14 })),
-            C.constraint,
-            11,
-            false,
-          );
-          hoverSprite.userData.id = key;
-          world.scene.three.add(hoverSprite);
-        }
-        hoverSprite.position.copy(hit.point);
-      }
-    } catch (e) {
-      console.error("hover pick failed", e);
-    } finally {
-      hoverPicking = false;
-      if (hoverQueued) void runHoverPicks();
-    }
-  }
-
-  canvas.addEventListener("pointermove", (e) => {
-    lastPointer = { x: e.clientX, y: e.clientY };
-    // Walk mode keeps pointermove firing when pointer lock is refused, so gate on it here too.
-    if (!identifying || snapshot || savedView || e.buttons !== 0) {
-      hideHover();
-      return;
-    }
-    hoverQueued = { x: e.clientX, y: e.clientY };
-    void runHoverPicks();
-  });
-  canvas.addEventListener("pointerleave", hideHover);
+  let stairMeshes: StairMesh[] = [];
 
   /** A loaded model and the stair outlines added to its meshes. */
   interface Resident {
@@ -1912,16 +582,14 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
    */
   async function load(name: string, { keepView = false }: { keepView?: boolean } = {}) {
     const epoch = ++loadEpoch;
-    await finishStoreyMotion();
-    settledStoreys = null;
+    await storeyMotion.finish();
+    storeyMotion.reset();
     currentModel = null;
-    hoverEpoch++;
-    hideHover();
-    elementLabels.clear();
+    identify.reset();
     // The old model's plan layers and labels are drawings of it; clear them even if this load fails.
-    clearLabelLayers();
+    labels.clear();
     window.__elmsteadRoomLabels = [];
-    clearMeasurements();
+    measure.clear();
     setStatus(`loading ${name}.ifc…`);
     // Take the shown model out of the scene; keep this model's revisions loaded, dispose the rest.
     const group = splitName(name).model;
@@ -1935,23 +603,13 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     if (epoch !== loadEpoch) return;
     parseStoreysParam(json);
     populateStoreySelector(json);
-    // One shared riser for the banding: Fragments renders all stairs under one material, so the
-    // shader cannot hold a riser per stair. Take the largest so the stair with the most steps reads
-    // correctly; other stairs band on it too.
-    stairRiser = 0;
-    for (const s of json?.storeys ?? []) {
-      for (const st of s.stairs ?? []) {
-        const to = json!.storeys.find((x) => x.id === st.toStoreyId);
-        const total = st.segments.reduce((n, g) => (g.kind === "flight" ? n + g.risers : n), 0);
-        if (to && total > 0) stairRiser = Math.max(stairRiser, (to.elevation - s.elevation) / total / 1000);
-      }
-    }
+    style.setModel(json);
     const loaded = await loadResident(name, group);
     if (!loaded) throw new Error(`out/${name}.ifc not found`);
     const { entry, fresh } = loaded;
     if (epoch !== loadEpoch) return; // a newer load owns the scene; this model stays loaded, out of it
     // The diff decides how the plan layers below are drawn, so it is worked out first.
-    await refreshDiff(name, json);
+    await diffMode.refresh(name, json);
     if (epoch !== loadEpoch) return;
     const { model } = entry;
     world.scene.three.add(model.object);
@@ -1959,238 +617,38 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     stairMeshes = entry.stairs;
     await fragments.core.update(true);
     if (epoch !== loadEpoch) return;
-    for (const [localId, item] of await model.getItems()) {
-      const label = elementLabel(item.data);
-      if (label) elementLabels.set(localId, label);
-    }
+    await identify.labelsFor(model);
     if (epoch !== loadEpoch) return;
     await loadLabels(name, json, epoch);
     if (epoch !== loadEpoch) return;
-    await applyStoreyVisibility(model);
+    await storeyMotion.apply(model);
     if (epoch !== loadEpoch) return;
-    applyStyle();
-    if (fresh) addStairEdges(model);
-    applyStairPresentation();
+    style.apply();
+    if (fresh) style.addStairEdges(model, stairMeshes);
+    style.applyStairPresentation(stairMeshes);
     box = model.box.clone();
     grid.three.position.y = box.min.y - 0.01; // under the lowest slab, so it doesn't show through floors
     if (keepView) {
       updateCompass();
-      updateLabelOrientation();
+      labels.updateOrientation();
     } else {
       await setView(parseView(params.get("view"))); // the plan view, unless the URL asks for another
       if (epoch !== loadEpoch) return;
       if (params.get("camera")) await setCamera(params.get("camera")!);
     }
     if (epoch !== loadEpoch) return;
-    await dressModel(model, name);
+    await dresser.dress(model, name);
     if (epoch !== loadEpoch) return;
-    setStatus(`${name}.ifc${storeysNote}${diffNote}`);
-    window.__elmsteadNote = diffNote;
-    repickHover();
-  }
-
-  /**
-   * The diff of revision `name` against its base, while Diff mode is on: fetched and computed, with
-   * each listed id's status for the categories the panel shows. Null on a base model or with Diff off.
-   */
-  async function refreshDiff(name: string, json: BuildingModel | null) {
-    const { model: baseName, revision: rev } = splitName(name);
-    diffNote = "";
-    if (!viewState.diff || rev === null || !json) {
-      shownDiff = null;
-    } else {
-      if (!baseJson.has(baseName)) {
-        const res = await fetch(`/out/${baseName}.building.json`);
-        baseJson.set(baseName, res.ok ? ((await res.json()) as BuildingModel) : null);
-      }
-      const base = baseJson.get(baseName) ?? null;
-      if (!base) {
-        shownDiff = null;
-        diffNote = ` · Diff needs ${baseName} built`;
-      } else {
-        const diff = diffModels(base, json);
-        shownDiff = { baseName, base, diff, status: statusById(diff, shownCategories) };
-      }
-    }
-    window.__elmsteadDiff = shownDiff
-      ? {
-          added: shownDiff.diff.added.map((e) => e.id),
-          changed: shownDiff.diff.changed.map((e) => e.id),
-          removed: shownDiff.diff.removed.map((e) => e.id),
-        }
-      : null;
-    publishChanges();
-  }
-
-  /** Every outline, ghost and fade from the last dressing removed, and the ghost model out of the scene. */
-  async function undress(model: FragmentsModel) {
-    await model.resetHighlight();
-    await model.resetOpacity(undefined);
-    for (const g of diffOutlines.values()) {
-      g.removeFromParent();
-      disposeTree(g, new Set(Object.values(outlineMaterials)));
-    }
-    diffOutlines.clear();
-    window.__elmsteadOutlines = { added: 0, changed: 0, removed: 0 };
-    window.__elmsteadGhosts = [];
-    if (ghostModel && ghostModel !== model) world.scene.three.remove(ghostModel.object);
-    ghostModel = null;
-    ghostItems = new Map();
-    ghostLabels.clear();
-  }
-
-  const outlineMaterials: Record<DiffStatus, THREE.LineBasicMaterial> = {
-    added: new THREE.LineBasicMaterial({ color: DIFF_COLOURS.added.accent }),
-    changed: new THREE.LineBasicMaterial({ color: DIFF_COLOURS.changed.accent }),
-    removed: new THREE.LineBasicMaterial({ color: DIFF_COLOURS.removed.accent }),
-  };
-
-  /**
-   * Outlines round items in a status's accent. Fragments draws every item of one material as one mesh
-   * and drops its CPU copy of the geometry once it is on the GPU, so the outlines are built from
-   * `getItemsGeometry`, each item's own positions, indices and transform.
-   */
-  async function outline(model: FragmentsModel, byStorey: Map<string, number[]>, status: DiffStatus) {
-    for (const [storey, ids] of byStorey) {
-      if (!ids.length) continue;
-      let group = diffOutlines.get(storey);
-      if (!group) {
-        group = new THREE.Group();
-        group.visible = isShown(storey);
-        diffOutlines.set(storey, group);
-      }
-      for (const meshes of await model.getItemsGeometry(ids)) {
-        for (const m of meshes) {
-          if (!m.positions || !m.indices) continue;
-          const g = new THREE.BufferGeometry();
-          g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(m.positions), 3));
-          g.setIndex(new THREE.BufferAttribute(m.indices, 1));
-          const edges = new THREE.LineSegments(new THREE.EdgesGeometry(g, 30), outlineMaterials[status]);
-          g.dispose();
-          edges.applyMatrix4(m.transform);
-          group.add(edges);
-          window.__elmsteadOutlines![status]++;
-        }
-      }
-      model.object.add(group);
-    }
-  }
-
-  /** Fragments items by status and storey, from their Tag (Name for spaces), for the ids in `status`. */
-  async function itemsByStatus(
-    model: FragmentsModel,
-    status: StatusById,
-    storeyOf: (id: string) => string | undefined,
-  ) {
-    const out: Record<DiffStatus, Map<string, number[]>> = { added: new Map(), changed: new Map(), removed: new Map() };
-    const plain: number[] = [];
-    for (const [localId, item] of await model.getItems()) {
-      const key = (item.data.Tag?.value ?? item.data.Name?.value) as string | undefined;
-      if (!key) continue;
-      const s = status.get(key);
-      const storey = storeyOf(key);
-      if (!s || !storey) {
-        plain.push(localId);
-        continue;
-      }
-      out[s].set(storey, [...(out[s].get(storey) ?? []), localId]);
-    }
-    return { byStatus: out, plain };
+    setStatus(`${name}.ifc${storeysNote}${diffMode.note()}`);
+    window.__elmsteadNote = diffMode.note();
+    identify.repick();
   }
 
   /** Each element id's storey in a model, from its JSON. */
   const storeyIndex = (m: BuildingModel): Map<string, string> =>
     new Map(idNodes(m).flatMap((n) => ("storey" in n ? [[n.element.id, n.storey] as const] : [])));
 
-  /**
-   * The shown model drawn as Diff and Transparency now require: reset first, so a kept revision never
-   * keeps an earlier session's colours; then the diff's highlights, outlines and ghosts; then
-   * Transparency, on the IFC and on the plan drawing.
-   */
-  async function dressModel(model: FragmentsModel, name: string) {
-    await undress(model);
-    const isRevision = splitName(name).revision !== null;
-    store.set({ diffAvailable: isRevision, diff: viewState.diff && isRevision, xray: viewState.xray });
-    const coloured = new Set<number>();
-    if (shownDiff && modelJson) {
-      const here = storeyIndex(modelJson);
-      const { byStatus } = await itemsByStatus(model, shownDiff.status, (id) => here.get(id));
-      // Glazing keeps its transparency: windows are highlighted apart, see-through.
-      const windows = new Set<number>();
-      for (const [localId, item] of await model.getItems())
-        if (String((item as { category?: string }).category) === "IFCWINDOW") windows.add(localId);
-      for (const status of ["added", "changed"] as const) {
-        const ids = [...byStatus[status].values()].flat();
-        if (!ids.length) continue;
-        const solid = ids.filter((id) => !windows.has(id));
-        const glazed = ids.filter((id) => windows.has(id));
-        if (solid.length)
-          await model.highlight(solid, {
-            color: new THREE.Color(DIFF_COLOURS[status].fill),
-            renderedFaces: 1,
-            opacity: 1,
-            transparent: false,
-            customId: `diff-${status}`,
-          });
-        if (glazed.length)
-          await model.highlight(glazed, {
-            color: new THREE.Color(DIFF_COLOURS[status].fill),
-            renderedFaces: 1,
-            opacity: 0.5,
-            transparent: true,
-            customId: `diff-${status}-glazing`,
-          });
-        for (const id of ids) coloured.add(id);
-        await outline(model, byStatus[status], status);
-      }
-      await dressGhosts(model);
-    }
-    if (viewState.xray) {
-      const all = [...(await model.getItems()).keys()];
-      const faded = all.filter((id) => !coloured.has(id));
-      if (faded.length) await model.setOpacity(faded, FADE);
-    }
-    fadePlan(viewState.xray);
-    await fragments.core.update(true);
-  }
-
-  /** The removed elements, drawn from the base model in the removed fill, see-through and outlined. */
-  async function dressGhosts(model: FragmentsModel) {
-    if (!shownDiff) return;
-    const removed = new Map([...shownDiff.status].filter(([, s]) => s === "removed"));
-    if (!removed.size) return;
-    const loaded = await loadResident(shownDiff.baseName, splitName(shownDiff.baseName).model);
-    if (!loaded) {
-      diffNote = ` · removed elements need ${shownDiff.baseName} built`;
-      return;
-    }
-    const ghost = loaded.entry.model;
-    if (ghost === model) return;
-    await ghost.resetHighlight();
-    await ghost.resetOpacity(undefined);
-    const there = storeyIndex(shownDiff.base);
-    const { byStatus, plain } = await itemsByStatus(ghost, removed, (id) => there.get(id));
-    if (plain.length) await ghost.setVisible(plain, false);
-    ghostItems = byStatus.removed;
-    const ids = [...ghostItems.values()].flat();
-    for (const [storey, storeyIds] of ghostItems) await ghost.setVisible(storeyIds, isShown(storey));
-    if (ids.length)
-      await ghost.highlight(ids, {
-        color: new THREE.Color(DIFF_COLOURS.removed.fill),
-        renderedFaces: 1,
-        opacity: 0.5,
-        transparent: true,
-        customId: "diff-removed",
-      });
-    for (const [localId, item] of await ghost.getItems()) {
-      const label = elementLabel(item.data);
-      if (label && ids.includes(localId)) ghostLabels.set(localId, label);
-    }
-    window.__elmsteadGhosts = [...new Set([...ghostLabels.values()].map((l) => l.id))].sort();
-    world.scene.three.add(ghost.object);
-    ghostModel = ghost;
-    await outline(ghost, ghostItems, "removed");
-  }
+  dresser = createDresser(ctx);
 
   const setFlag = (key: string, on: boolean) => {
     if (on) params.set(key, "1");
@@ -2252,7 +710,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
    */
   function applyViewChange(change: () => void, animate = false): Promise<void> {
     viewChain = viewChain.then(async () => {
-      await finishStoreyMotion();
+      await storeyMotion.finish();
       const fade = animate && !snapshot && !prefersReducedMotion() ? beginViewFade() : null;
       const model = currentModel;
       try {
@@ -2262,13 +720,13 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
           change();
           if (model && modelJson) {
             const epoch = loadEpoch;
-            await refreshDiff(model.modelId, modelJson);
+            await diffMode.refresh(model.modelId, modelJson);
             await loadLabels(model.modelId, modelJson, epoch);
             if (epoch !== loadEpoch) return;
-            applyStyle();
-            await dressModel(model, model.modelId);
-            setStatus(`${model.modelId}.ifc${storeysNote}${diffNote}`);
-            window.__elmsteadNote = diffNote;
+            style.apply();
+            await dresser.dress(model, model.modelId);
+            setStatus(`${model.modelId}.ifc${storeysNote}${diffMode.note()}`);
+            window.__elmsteadNote = diffMode.note();
           }
         } finally {
           world.renderer!.enabled = --holdingFrame === 0;
@@ -2286,46 +744,10 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
 
   const toggleDiff = () => applyViewChange(() => setFlag("diff", (viewState.diff = !viewState.diff)), true);
 
-  const SIGN: Record<DiffStatus, string> = { added: "+", changed: "~", removed: "−" };
-
-  /**
-   * The changes panel's state, while Diff mode is on: each category's count with a checkbox to show
-   * or hide it, then every change of the shown storeys, by storey, each framing its element when
-   * clicked.
-   */
-  function publishChanges() {
-    if (!shownDiff || snapshot) {
-      store.set({ changes: null });
-      return;
-    }
-    const { diff, base } = shownDiff;
-    const categories: ChangeCategory[] = (["added", "changed", "removed"] as const).map((status) => ({
-      status,
-      count: diff[status].length,
-      checked: shownCategories[status],
-      fill: DIFF_COLOURS[status].fill,
-      accent: DIFF_COLOURS[status].accent,
-    }));
-    const storeys = modelJson?.storeys ?? base.storeys;
-    const groups: ChangeGroup[] = [];
-    for (const storey of storeys) {
-      if (!isShown(storey.id)) continue;
-      const entries = (["added", "changed", "removed"] as const).flatMap((status) =>
-        shownCategories[status]
-          ? diff[status]
-              .filter((e) => e.storey === storey.id)
-              .map((e) => ({ id: e.id, status, label: `${SIGN[status]} ${e.id}`, color: DIFF_COLOURS[status].accent }))
-          : [],
-      );
-      if (entries.length) groups.push({ storeyId: storey.id, storeyName: storey.name, entries });
-    }
-    store.set({ changes: { categories, groups } });
-  }
-
   /** Frame the camera on a change, in the direction it is looking, showing its storey first if hidden. */
   async function flyToChange(id: string, status: DiffStatus, storey: string) {
     if (!isShown(storey)) await applyStoreyChoice(storey);
-    const model = status === "removed" ? ghostModel : currentModel;
+    const model = status === "removed" ? dresser.ghostModel() : currentModel;
     if (!model) return;
     const ids: number[] = [];
     for (const [localId, item] of await model.getItems())
@@ -2340,50 +762,23 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     );
   }
 
-  /** The diff's colours, as three.js hex strings, so Transparency can leave the diff's drawing solid. */
-  const DIFF_HEX = new Set(
-    Object.values(DIFF_COLOURS).flatMap((c) => [c.fill, c.accent, c.floor].map((h) => h.slice(1).toLowerCase())),
-  );
-
-  /**
-   * Transparency on the plan drawing: every plan-style layer's materials faded, or back as they were.
-   * The diff's own colours stay solid, as the changes do in 3D.
-   */
-  function fadePlan(on: boolean) {
-    planLayers.traverse((o) => {
-      const material = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
-      if (!material) return;
-      for (const m of Array.isArray(material) ? material : [material]) {
-        const colour = (m as THREE.MeshBasicMaterial).color;
-        if (colour && DIFF_HEX.has(colour.getHexString())) continue;
-        const was = (m.userData.unfaded ??= { opacity: m.opacity, transparent: m.transparent }) as {
-          opacity: number;
-          transparent: boolean;
-        };
-        m.opacity = on ? was.opacity * FADE : was.opacity;
-        m.transparent = on || was.transparent;
-        m.needsUpdate = true;
-      }
-    });
-  }
-
   function setLabels(on: boolean) {
-    labels.visible = on;
+    labels.setLabelsVisible(on);
     store.set({ labels: on });
     updateCompass();
   }
 
   function toggleLabels() {
-    setLabels(!labels.visible);
+    setLabels(!labels.labelsVisible());
   }
 
   function setConstraints(on: boolean) {
-    constraints.visible = on;
+    labels.setConstraintsVisible(on);
     store.set({ constraints: on });
   }
 
   function toggleConstraints() {
-    setConstraints(!constraints.visible);
+    setConstraints(!labels.constraintsVisible());
   }
 
   /** Name the compass snaps, the flat elevations and Top. */
@@ -2420,7 +815,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   }
 
   async function stepStorey(direction: 1 | -1): Promise<void> {
-    if (snapshot || savedView || store.getSnapshot().storeyDisabled) return;
+    if (snapshot || walk.isWalking() || store.getSnapshot().storeyDisabled) return;
     const next = neighbourStorey(direction);
     if (!next) return;
     await applyStoreyChoice(next);
@@ -2457,7 +852,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   }
 
   async function chooseModel(model: string): Promise<void> {
-    await exitWalk();
+    await walk.exit();
     const group = groups.get(model);
     if (group) await show(defaultName(model, group));
   }
@@ -2486,8 +881,8 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
    * converts, and no half-styled ones while its plan style, storeys and overlays are applied.
    */
   async function applyRevisionChoice(rev: string | null): Promise<void> {
-    await exitWalk(); // as a model change does; the view it restores is the one kept
-    await finishStoreyMotion();
+    await walk.exit(); // as a model change does; the view it restores is the one kept
+    await storeyMotion.finish();
     await withHeldFrame(() => show(joinName(currentBaseModel, rev), { keepView: true }));
     requestAnimationFrame(() =>
       requestAnimationFrame(() => (window.__elmsteadRevisionChanges = (window.__elmsteadRevisionChanges ?? 0) + 1)),
@@ -2495,7 +890,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   }
 
   async function stepRevision(direction: 1 | -1): Promise<void> {
-    if (snapshot || savedView || store.getSnapshot().revisionDisabled || switching) return;
+    if (snapshot || walk.isWalking() || store.getSnapshot().revisionDisabled || switching) return;
     const group = groups.get(currentBaseModel);
     if (!group) return;
     const next = nextRevision(group, revision, direction);
@@ -2515,26 +910,13 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     );
   }
 
-  /** Remove the ghost base and the shown model's dressing before a Diff base reload. */
-  async function clearGhost(): Promise<void> {
-    const model = currentModel;
-    if (model) {
-      await undress(model);
-      return;
-    }
-    if (ghostModel) ghostModel.object.removeFromParent();
-    ghostModel = null;
-    ghostItems = new Map();
-    ghostLabels.clear();
-  }
-
   /**
    * A rebuilt IFC: refresh the pickers, release the stale copy and, when it is the shown model or the
    * base behind its Diff, swap the new model into the same view.
    */
   async function reloadModel(name: string): Promise<void> {
     const turn = viewChain.then(async () => {
-      await finishStoreyMotion();
+      await storeyMotion.finish();
       try {
         const names: string[] = await (await fetch("/models.json")).json();
         groups = groupModels(names);
@@ -2542,12 +924,12 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
       } catch {
         // Keep the current pickers; the scene reload below still matters.
       }
-      baseJson.delete(name);
+      diffMode.forget(name);
       const shown = currentName;
       if (name !== shown) {
         if (viewState.diff && revision !== null && name === currentBaseModel) {
           await withHeldFrame(async () => {
-            await clearGhost();
+            await dresser.clearGhost(currentModel);
             await disposeResident(name);
             if (currentName === shown) await show(shown, { keepView: true });
           });
@@ -2557,7 +939,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
         }
         return;
       }
-      await exitWalk();
+      await walk.exit();
       if (currentName !== name) {
         await disposeResident(name);
         return;
@@ -2577,25 +959,11 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   }
 
   async function chooseView(view: CameraView): Promise<void> {
-    await exitWalk(); // choosing a view leaves walk mode before the view changes
+    await walk.exit(); // choosing a view leaves walk mode before the view changes
     await setView(view);
     requestAnimationFrame(() =>
       requestAnimationFrame(() => (window.__elmsteadViews = (window.__elmsteadViews ?? 0) + 1)),
     );
-  }
-
-  async function toggleWalk(): Promise<void> {
-    if (savedView) await exitWalk();
-    else await enterWalk(true);
-  }
-
-  async function toggleMeasure(): Promise<void> {
-    if (measuring) {
-      setMeasuring(false);
-      return;
-    }
-    await exitWalk();
-    setMeasuring(true);
   }
 
   async function setXray(on: boolean): Promise<void> {
@@ -2608,7 +976,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
 
   async function setChangeCategory(status: DiffStatus, on: boolean): Promise<void> {
     await applyViewChange(() => {
-      shownCategories[status] = on;
+      diffMode.setCategory(status, on);
     });
   }
 
@@ -2628,11 +996,11 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
       const requested = params.get("model") ?? defaultName(...[...groups][0]!);
       const group = groups.get(requested);
       await show(group && !names.includes(requested) ? defaultName(requested, group) : requested);
-      if (idsRequested) setIdentifying(true);
+      if (identify.requested()) identify.setIdentifying(true);
       // `?walk=1` and `?measure=1` apply once, at startup; a model change leaves both modes alone.
       // Walk wins when both are present.
-      if (walkRequested(params, snapshot)) void enterWalk(false);
-      else if (measureRequested) setMeasuring(true);
+      if (walk.requested()) void walk.enter(false);
+      else if (measure.requested()) measure.setMeasuring(true);
       // Two frames so the renderer has drawn the final camera position before a snapshot.
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
@@ -2663,14 +1031,14 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     toggleLabels,
     setConstraints,
     toggleConstraints,
-    setIds: setIdentifying,
-    toggleIds: () => setIdentifying(!identifying),
-    setMeasuring,
-    toggleMeasure,
-    clearMeasurements,
-    toggleWalk,
-    enterWalk,
-    exitWalk,
+    setIds: identify.setIdentifying,
+    toggleIds: () => identify.setIdentifying(!identify.isIdentifying()),
+    setMeasuring: measure.setMeasuring,
+    toggleMeasure: () => measure.toggle(),
+    clearMeasurements: measure.clear,
+    toggleWalk: () => walk.toggle(),
+    enterWalk: walk.enter,
+    exitWalk: walk.exit,
     toggleDiff,
     setXray,
     toggleXray,

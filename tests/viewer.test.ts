@@ -10,7 +10,7 @@ import { group, line, polygon, polyline, text } from "../src/shared/render/svg.j
 import type { ResolvedConstraint } from "../src/shared/constraints/types.js";
 import { constraintLabels } from "../src/frontend/scene/constraints.js";
 import { disposeTree } from "../src/frontend/scene/dispose.js";
-import { elementLabel } from "../src/frontend/scene/identify.js";
+import { elementLabel } from "../src/frontend/scene/element-label.js";
 import {
   CLICK_SLOP_PX,
   SNAP_MAX_PX,

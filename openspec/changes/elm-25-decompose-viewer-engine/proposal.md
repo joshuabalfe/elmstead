@@ -13,14 +13,18 @@ that compounds with every viewer feature.
 
 ## What Changes
 
-- Extract five self-contained scene modules beside the engine, each owning its state and exposing
-  a narrow interface: `measure.ts` (the tool), `walk.ts` (the mode), `identify.ts` (hover ids),
-  `dress.ts` (Diff highlights, outlines, ghosts, plan fade), `storey-motion.ts` (the section sweep).
+- Extract the scene's subsystems into self-contained modules beside the engine, each owning its
+  state and exposing a narrow interface: `measure.ts` (the tool), `walk.ts` (the mode),
+  `identify.ts` (hover ids), `dress.ts` (Diff highlights, outlines, ghosts, plan fade),
+  `storey-motion.ts` (the section sweep), `labels.ts` (room, dimension, plan and constraint
+  layers), `diff-mode.ts` (the revision diff, status map and changes panel) and `style.ts` (plan
+  shader patches, stair banding, background and grid).
 - A `SceneContext` interface (`scene/context.ts`) gives modules accessor-based reads of the shared
   state the engine owns (current model, model JSON, storey selection, view state, epochs) — no
   stale closure snapshots.
-- The engine keeps world/camera setup, URL params, loading/residency, labels and plan overlays,
-  style patches, view framing, the serialisation chains and the `ViewerApi`; target ≤ ~1,000 lines.
+- The engine keeps world/camera setup, URL params, loading/residency, storey selection, view
+  framing, the serialisation chains and the `ViewerApi`; ≈1,050 lines, down from 2,681. The five
+  planned tool modules left it at ~1,270, so labels, Diff state and style followed.
 - Staged as runnable commits, one module per stage, the full viewer suite green at every stage.
 - **No behaviour change:** every `window.__elmstead*` hook, URL param, pixel output and UI
   interaction is preserved. Acceptance includes byte-identical snapshot PNGs.
@@ -39,10 +43,10 @@ preserves every ifc-viewer requirement, test hook and output byte. No spec contr
 ## Impact
 
 - `src/frontend/scene/` — new `context.ts`, `measure.ts`, `walk.ts`, `identify.ts`, `dress.ts`,
-  `storey-motion.ts`; `engine.ts` shrinks to orchestration.
+  `storey-motion.ts`, `labels.ts`, `diff-mode.ts` and `style.ts`; `engine.ts` shrinks to
+  orchestration.
 - Tests: the existing viewer suites are the safety net and stay unchanged; fast unit tests are
-  added where extraction exposes pure logic.
-- `docs/architecture.md` — the frontend module layout.
-- No new dependencies. Residual coupling: ELM-23 adds a settled-view hook to `chooseView` and
-  ELM-24 deletes the owner map in `storeyItemsOf`; whichever lands second re-cuts those spots.
-  Independent of ELM-26.
+  added where extraction exposes pure logic (`lib/storeys.ts`).
+- `docs/architecture.md` — the viewer's scene module layout.
+- No new dependencies. ELM-23's settled-view hook and ELM-24's owner-map deletion both landed
+  before the moves, so the extraction re-cut around them.
