@@ -84,6 +84,22 @@ server stay as they are. A failed view switch surfaces as a page error or a time
 `__elmsteadViews`, throwing out of the loop into the same cleanup. Missing Chromium remains a
 WARNING upstream in `render3d`.
 
+### D7: The ortho frustum must not depend on the previous view
+
+Found during acceptance: switching perspective→orthographic in-page produced a top PNG that differed
+from a fresh load by antialiasing noise only (max channel delta 10/255, 2.8% of pixels; position,
+target and visible extent provably identical). Cause: OBC's `setOrthoCamera` sizes the ortho frustum
+from the _current perspective pose_ (`getPerspectiveDims`: depth × 2·tan(fov/2)), so a switch after a
+corner view gets a small frustum and a small zoom, while a fresh load gets the default-pose frustum
+and a large zoom. Mathematically the same framing, different floats — and the repo's determinism
+principle wants byte-identical output.
+
+Fix: `createViewer` remembers the load-time perspective pose; `setView`, before a
+perspective→orthographic switch, restores that pose with `setLookAt(…, false)` and
+`controls.update(0)` (setLookAt only queues the pose; OBC reads the camera itself), so the frustum —
+and every zoom float derived from it — is the same as a fresh load's. Perspective→perspective
+switches are untouched. After the fix all 20 acceptance PNGs are byte-identical.
+
 ### D6: An observable load count
 
 The driver prints one line per variant, in the repo's log style:
@@ -106,5 +122,8 @@ it, which is how the "one page load per variant" scenario is verified from outsi
    revision, and `models/elmstead` on main; keep the PNG hashes and wall-clock times.
 2. Implement; re-render the same models; every PNG byte-identical (sha256 comparison).
 3. Report the render-time delta (same machine, same models), per the repo's measured-deltas rule.
+   Measured: all 20 PNGs (cottage 5, revision 5+5, elmstead 5) byte-identical; render wall-clock
+   7 s → 5 s (cottage), 11 s → 6 s (revision), 7 s → 5 s (elmstead). The win is the removed WASM
+   inits and IFC conversions; slower CI runners gain more.
 4. No migration: outputs keep their names and bytes; only the production mechanism and one log line
    change.

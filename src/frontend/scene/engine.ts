@@ -97,6 +97,10 @@ declare global {
     __elmsteadViewFades?: number;
     /** Increments after a Diff, Transparency or changes-panel choice has been applied and drawn. */
     __elmsteadViewChanges?: number;
+    /** Increments after a view choice has been applied and drawn; the snapshot driver waits on it. */
+    __elmsteadViews?: number;
+    /** Snapshot-only handle the driver uses to switch views without a page load. */
+    __elmsteadChooseView?: (view: CameraView) => Promise<void>;
     /** The shown diff's ids by status while Diff mode is on, for tests; null otherwise. */
     __elmsteadDiff?: Record<DiffStatus, string[]> | null;
     /** Why part of the view could not be drawn (a base model not built), for snapshots; "" when none. */
@@ -163,6 +167,11 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   const canvas = world.renderer.three.domElement;
   world.camera = new OBC.OrthoPerspectiveCamera(components);
   components.init();
+  // OBC sizes the ortho frustum from the perspective pose at the moment of the switch, so the
+  // frustum (and the zoom floats fitToSphere derives from it) would depend on the previous view.
+  // Remember the load-time pose; setView restores it before switching, keeping output deterministic.
+  const defaultPerspPosition = world.camera.threePersp.position.clone();
+  const defaultPerspTarget = world.camera.controls.getTarget(new THREE.Vector3());
   setNavigationInput();
   world.camera.projection.onChanged.add(setNavigationInput);
   // A pinch spreading the fingers 4× should zoom about 4×; camera-controls' one dollySpeed also sets
@@ -1306,6 +1315,13 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     const centre = frame.getCenter(new THREE.Vector3());
     const angle = orient === "project" ? 0 : (northAngle ?? 0);
     const { direction, projection } = cameraForView(view, snapshot, angle, frontAngle);
+    if (projection === "Orthographic" && world.camera.projection.current === "Perspective") {
+      const p = defaultPerspPosition;
+      const t = defaultPerspTarget;
+      await world.camera.controls.setLookAt(p.x, p.y, p.z, t.x, t.y, t.z, false);
+      // setLookAt only queues the pose; OBC reads the camera itself, so apply it before the switch.
+      world.camera.controls.update(0);
+    }
     await world.camera.projection.set(projection);
     // Start well outside the model, then fit to its bounding sphere: fitToSphere keeps the viewing
     // direction (fitToBox would snap to the nearest face).
@@ -2574,6 +2590,9 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   async function chooseView(view: CameraView): Promise<void> {
     await exitWalk(); // choosing a view leaves walk mode before the view changes
     await setView(view);
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => (window.__elmsteadViews = (window.__elmsteadViews ?? 0) + 1)),
+    );
   }
 
   async function toggleWalk(): Promise<void> {
@@ -2639,6 +2658,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     }
   }
 
+  if (snapshot) window.__elmsteadChooseView = chooseView;
   publishViewLabels();
   return {
     start,

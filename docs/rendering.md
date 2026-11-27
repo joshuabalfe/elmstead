@@ -83,8 +83,11 @@ style, so they have three jobs, and a new one must be chosen for all three:
 
 ## 3D snapshots
 
-`render` starts the viewer (below) on a free port, opens it in headless Chromium through
-Playwright, and saves a 1200 × 900 PNG for each of five cameras:
+`render` starts the viewer (below) on a free port and opens it in headless Chromium through
+Playwright once per snapshot set — plain, and Diff for a revision. The first camera loads with the
+page; each later camera switches the view in the same page and is captured once it has drawn, so
+the IFC is converted once per set rather than once per camera. It saves a 1200 × 900 PNG for each
+of five cameras:
 
 - `sw`, `se`, `ne`, `nw`: perspective views from each plan corner, looking down. The names are plan
   corners whatever `site.northAngle` is, so a file keeps showing the same corner.
@@ -99,7 +102,7 @@ openings cut, doors and glazing in place, colours applied.
   still draws the plans. Any other viewer failure is an ERROR and exits 1.
 - The viewer server and browser close on every success and failure path, and screenshots are
   written atomically alongside the other outputs.
-- Pass `--no-3d` to skip the snapshots. They add about 5 seconds.
+- Pass `--no-3d` to skip the snapshots. They add a few seconds.
 
 ## The viewer
 
