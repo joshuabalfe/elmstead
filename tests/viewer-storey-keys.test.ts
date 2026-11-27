@@ -88,7 +88,7 @@ describe("storey keyboard shortcut", () => {
     expect(await selected()).toBe("storey-ground");
   }, 120_000);
 
-  it("steps the selector exactly once while it has focus, and holding the key steps once", async () => {
+  it("steps the selector exactly once while it has focus, and keeps stepping while held", async () => {
     await open();
     await page.focus("#storeys");
     // Registered after the viewer's own handler, so it sees whether that handler took the key: a
@@ -105,7 +105,7 @@ describe("storey keyboard shortcut", () => {
     expect(await changes()).toBe(before + 1);
     expect(await selected()).toBe("storey-attic-half-landing");
 
-    // Auto-repeat after the first press is ignored until the key is released.
+    // Holding the key keeps stepping: repeats retarget the floor change rather than being dropped.
     await page.keyboard.down("ArrowDown");
     await page.waitForFunction((n: number) => (window.__elmsteadStoreyChanges ?? 0) > n, before + 1, {
       timeout: 60_000,
@@ -113,9 +113,11 @@ describe("storey keyboard shortcut", () => {
     await page.keyboard.down("ArrowDown");
     await page.keyboard.down("ArrowDown");
     await page.keyboard.up("ArrowDown");
-    await page.waitForTimeout(500);
-    expect(await selected()).toBe("storey-first-floor");
-    expect(await changes()).toBe(before + 2);
+    await page.waitForFunction((n: number) => (window.__elmsteadStoreyChanges ?? 0) >= n, before + 4, {
+      timeout: 60_000,
+    });
+    expect(await selected()).toBe("storey-ground");
+    expect(await changes()).toBe(before + 4);
   }, 120_000);
 
   it("ignores modifiers and other form controls", async () => {
