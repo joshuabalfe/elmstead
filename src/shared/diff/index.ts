@@ -2,7 +2,7 @@
  * A revision's diff against its base: what it adds, removes and changes, element by element, matched
  * by the ids the two models share. Pure, so the CLI and the viewer use the same function.
  */
-import { idNodes, type IdNode } from "../schema/ids.js";
+import { idNodes, STOREY_COLLECTIONS, type IdNode } from "../schema/ids.js";
 import type { BuildingModel } from "../schema/schema.js";
 
 /** One listed element: its id, its kind as `idNodes` names it, and the storey it is on (none for a component). */
@@ -23,28 +23,12 @@ export interface ModelDiff {
 
 export type DiffStatus = keyof ModelDiff;
 
-/**
- * The nodes the diff compares. The project, site and building aren't elements of the proposal, and a
- * stair's flights and landings are compared as part of their stair.
- */
-const COMPARED = new Set<IdNode["kind"]>([
-  "storey",
-  "wall",
-  "door",
-  "window",
-  "slab",
-  "room",
-  "stair",
-  "railing",
-  "door component",
-  "window component",
-]);
+const STOREY_ARRAYS = new Set<string>(STOREY_COLLECTIONS);
 
 /** What is compared of a node: its JSON, a storey's without its element arrays, so only its own fields count. */
 function signature(n: IdNode): string {
   if (n.kind !== "storey") return JSON.stringify(n.element);
-  const { walls: _w, openings: _o, slabs: _s, rooms: _r, stairs: _st, railings: _ra, ...fields } = n.element;
-  return JSON.stringify(fields);
+  return JSON.stringify(Object.fromEntries(Object.entries(n.element).filter(([key]) => !STOREY_ARRAYS.has(key))));
 }
 
 const entry = (n: IdNode): DiffEntry => ({
@@ -53,10 +37,15 @@ const entry = (n: IdNode): DiffEntry => ({
   ...("storey" in n ? { storey: n.storey } : {}),
 });
 
-/** The compared nodes of a model in model order, by id; the first of a duplicated id (checkIds reports it). */
+/**
+ * The compared nodes of a model in model order, by id; the first of a duplicated id (checkIds
+ * reports it). Every placed node is an element, and a storey is compared by its own fields; the
+ * project, site, building and a stair's segments are not compared on their own.
+ */
 function compared(model: BuildingModel): Map<string, IdNode> {
   const nodes = new Map<string, IdNode>();
-  for (const n of idNodes(model)) if (COMPARED.has(n.kind) && !nodes.has(n.element.id)) nodes.set(n.element.id, n);
+  for (const n of idNodes(model))
+    if ((n.kind === "storey" || "place" in n) && !nodes.has(n.element.id)) nodes.set(n.element.id, n);
   return nodes;
 }
 

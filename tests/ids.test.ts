@@ -3,7 +3,14 @@ import { z } from "zod";
 import cottage from "../models/examples/example-cottage/index.js";
 import elmstead from "../models/elmstead/index.js";
 import twoStorey from "./fixtures/two-storey/index.js";
-import { COMPONENT_COLLECTIONS, idNodes, STOREY_COLLECTIONS } from "../src/shared/schema/ids.js";
+import {
+  COMPONENT_COLLECTIONS,
+  COMPONENT_KINDS,
+  idNodes,
+  STOREY_COLLECTIONS,
+  STOREY_KINDS,
+  type IdPlace,
+} from "../src/shared/schema/ids.js";
 import {
   BuildingModelSchema,
   ComponentsSchema,
@@ -57,5 +64,46 @@ describe("idNodes places", () => {
       "window component",
     ]);
     expect([...unplaced].sort()).toEqual(["building", "project", "site", "stair flight", "stair landing", "storey"]);
+  });
+});
+
+describe("element-kind table", () => {
+  it("covers every storey and component array in the schema", () => {
+    // The `satisfies` in kinds.ts catches this at typecheck; this is its runtime mirror.
+    expect(Object.keys(STOREY_KINDS).sort()).toEqual(arrayKeys(StoreySchema.shape));
+    expect(Object.keys(COMPONENT_KINDS).sort()).toEqual(arrayKeys(ComponentsSchema.shape));
+    expect([...STOREY_COLLECTIONS]).toEqual(Object.keys(STOREY_KINDS));
+    expect([...COMPONENT_COLLECTIONS]).toEqual(Object.keys(COMPONENT_KINDS));
+  });
+
+  it("walks the two-storey fixture in model order", () => {
+    const place = (p: IdPlace): string =>
+      "storey" in p ? `${p.collection}[${p.index}]@${p.storey}` : `${p.collection}[${p.index}]`;
+    const walked = idNodes(model(twoStorey)).map((n) =>
+      [n.kind, n.element.id, "storey" in n ? n.storey : "-", "place" in n ? place(n.place) : "-"].join(" | "),
+    );
+    expect(walked).toEqual([
+      "project | project-example-two-storey | - | -",
+      "site | site-example | - | -",
+      "building | building-example | - | -",
+      "storey | storey-ground | storey-ground | -",
+      "wall | wall-south | storey-ground | walls[0]@storey-ground",
+      "wall | wall-east | storey-ground | walls[1]@storey-ground",
+      "wall | wall-north | storey-ground | walls[2]@storey-ground",
+      "wall | wall-west | storey-ground | walls[3]@storey-ground",
+      "slab | slab-ground | storey-ground | slabs[0]@storey-ground",
+      "room | room-hall | storey-ground | rooms[0]@storey-ground",
+      "stair | stair-main | storey-ground | stairs[0]@storey-ground",
+      "stair flight | stair-flight-lower | storey-ground | -",
+      "stair landing | stair-landing-half | storey-ground | -",
+      "stair flight | stair-flight-upper | storey-ground | -",
+      "storey | storey-first | storey-first | -",
+      "wall | wall-first-south | storey-first | walls[0]@storey-first",
+      "wall | wall-first-east | storey-first | walls[1]@storey-first",
+      "wall | wall-first-north | storey-first | walls[2]@storey-first",
+      "wall | wall-first-west | storey-first | walls[3]@storey-first",
+      "slab | slab-first | storey-first | slabs[0]@storey-first",
+      "room | room-first | storey-first | rooms[0]@storey-first",
+    ]);
   });
 });

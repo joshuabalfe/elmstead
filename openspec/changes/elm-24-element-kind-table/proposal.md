@@ -19,8 +19,9 @@ every new element type.
   (openings discriminate door/window; stairs nest their segments). Component collections join it.
 - `STOREY_COLLECTIONS`/`StoreyCollection` derive from the table; a storey array added to the schema
   without a table entry is a **type error**, not a silent omission.
-- `idNodes`, the revision `SCHEMAS` map, the diff's `COMPARED` set and its storey signature derive
-  from the table. Node order is preserved exactly, so JSON, IFC and diff outputs stay byte-identical.
+- `idNodes`, the revision `SCHEMAS` map and the diff's compared nodes and storey signature derive
+  from the table; the diff's separate `COMPARED` list disappears. Node order is preserved exactly,
+  so JSON, IFC and diff outputs stay byte-identical.
 - The viewer's `storeyItemsOf` owner map reuses the id walk (`storeyIndex`) instead of re-enumerating
   collections.
 - The "add an element type" checklist shrinks: the plumbing steps collapse into one table entry.

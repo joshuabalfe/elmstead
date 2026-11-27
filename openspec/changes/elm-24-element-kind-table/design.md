@@ -63,8 +63,9 @@ which carry a storey but no place); openings' discrimination is the `kind` funct
   a loop over the table, calling `kind`/`children`. Node order is unchanged (walls, openings, slabs,
   rooms, stairs+segments, railings; components last).
 - `revise.ts` `SCHEMAS`: built from the table (storey + component entries).
-- `diff`: `COMPARED` = table kinds + storey + components; `signature` strips the table's storey
-  collections generically (`Object.fromEntries` over the keys) instead of naming them.
+- `diff`: the `COMPARED` list disappears; the diff compares every node the id walk places, plus
+  storeys. `signature` strips the table's storey collections generically (`Object.fromEntries` over
+  the keys) instead of naming them.
 - `engine.ts` `storeyItemsOf`: the owner map becomes `storeyIndex(modelJson)` (already in the file),
   deleting the hand-enumerated loops.
 

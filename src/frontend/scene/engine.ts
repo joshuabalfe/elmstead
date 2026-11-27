@@ -849,18 +849,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     if (storeyItemCache?.modelId === model.modelId) return storeyItemCache.byStorey;
     const byStorey = new Map<string, number[]>();
     if (!modelJson) return byStorey;
-    const owner = new Map<string, string>();
-    for (const s of modelJson.storeys) {
-      for (const w of s.walls) owner.set(w.id, s.id);
-      for (const o of s.openings) owner.set(o.id, s.id);
-      for (const sl of s.slabs) owner.set(sl.id, s.id);
-      for (const r of s.rooms) owner.set(r.id, s.id);
-      for (const st of s.stairs ?? []) {
-        owner.set(st.id, s.id);
-        for (const seg of st.segments) owner.set(seg.id, s.id);
-      }
-      for (const r of s.railings ?? []) owner.set(r.id, s.id);
-    }
+    const owner = storeyIndex(modelJson);
     // Fragments' spatial tree does not surface every storey, so map items by their Tag (elements) or
     // Name (spaces, whose Tag the writer leaves empty) instead of walking it.
     for (const [localId, item] of await model.getItems()) {
