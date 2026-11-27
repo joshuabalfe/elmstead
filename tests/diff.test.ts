@@ -220,4 +220,17 @@ describe("diffModels coverage", () => {
       ).toContain(node.element.id);
     }
   });
+
+  it("reports a revision changing one element of every storey kind", () => {
+    const b = model(elmstead);
+    const nodes = idNodes(b);
+    const kinds = ["wall", "door", "window", "slab", "room", "stair", "railing"] as const;
+    const elements = kinds.map((kind) => {
+      const node = nodes.find((n) => n.kind === kind)!;
+      return { ...node.element, name: `changed ${kind}` };
+    });
+    const d = diffModels(b, model(revise(b, [replace(...elements)])));
+    const changed = new Set(d.changed.map((e) => e.id));
+    for (const element of elements) expect(changed.has(element.id), element.id).toBe(true);
+  });
 });

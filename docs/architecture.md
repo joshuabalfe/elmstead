@@ -65,7 +65,7 @@ models/              building models (the only files you normally edit)
 schema/              generated JSON Schema (committed; a test fails if it is stale)
 src/
   shared/            browser-safe code, imported by the pipeline and the viewer
-    schema/          units (Mm, mm(), m(), deg()), the zod schema, and the id walk (ids.ts)
+    schema/          units (Mm, mm(), m(), deg()), the zod schema, the element-kind table (kinds.ts), and the id walk (ids.ts)
     geometry/        2D vector, wall, opening and polygon maths
     render/          plan drawing primitives and SVG, style, and view names
     diff/            model diff computation

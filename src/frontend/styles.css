@@ -161,9 +161,9 @@ body {
 }
 #bar .camera-elevations {
   grid-template-areas:
-    ". back ."
+    ". front ."
     "left centre right"
-    ". front .";
+    ". back .";
   margin-bottom: 8px;
 }
 #bar .camera-snap {

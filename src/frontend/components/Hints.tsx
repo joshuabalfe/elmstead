@@ -4,7 +4,7 @@ export function Hints({ state }: { state: ViewerState }) {
   return (
     <>
       <div id="walk-hint" hidden={!state.walkHint}>
-        Click to look around · WASD or arrow keys to move · Esc to leave
+        Click to look around · WASD/arrows fly, Q/E down/up · Esc to leave
       </div>
       <div id="measure-hint" hidden={!state.measureHint}>
         Click two points on the model · the second aligns to the nearest axis · Esc cancels

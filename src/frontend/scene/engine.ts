@@ -11,7 +11,7 @@
  * &measure=1&style=plan|ifc&camera=px,py,pz,tx,ty,tz&walk=1&ids=0|1 (snapshot hides the UI and sets
  * window.__elmsteadReady once the first frame is drawn; labels and the plan style are on by
  * default and constraints start off, except in snapshots, which show the IFC alone; walk=1 enters
- * first-person walk mode and measure=1 starts the measurement tool, both ignored in snapshots).
+ * first-person free-fly mode and measure=1 starts the measurement tool, both ignored in snapshots).
  * The Ids button or ?ids=1 shows each element's model id and name at the hovered point on hover, in the constraint
  * label's style and above everything, and
  * room labels carry the room id under name and area.
@@ -80,7 +80,7 @@ import {
   type ModelGroup,
 } from "../lib/revisions.js";
 import { cameraForView, labelHeading, parseOrient, parseView, turnedTopFit } from "../lib/view.js";
-import { WALK_AXES, entryPosition, headingBasis, movementOffset, walkRequested, walkStep } from "../lib/walk.js";
+import { WALK_AXES, entryPosition, movementBasis, movementOffset, walkRequested, walkStep } from "../lib/walk.js";
 import type { ChangeCategory, ChangeGroup, ViewerStore } from "../state/store.js";
 declare global {
   interface Window {
@@ -137,7 +137,7 @@ export interface ViewerApi {
   toggleMeasure(): Promise<void>;
   clearMeasurements(): void;
   toggleWalk(): Promise<void>;
-  enterWalk(lock: boolean): Promise<void>;
+  enterWalk(lock: boolean, keepPose?: boolean): Promise<void>;
   exitWalk(): Promise<void>;
   toggleDiff(): Promise<void>;
   setXray(on: boolean): Promise<void>;
@@ -850,18 +850,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     if (storeyItemCache?.modelId === model.modelId) return storeyItemCache.byStorey;
     const byStorey = new Map<string, number[]>();
     if (!modelJson) return byStorey;
-    const owner = new Map<string, string>();
-    for (const s of modelJson.storeys) {
-      for (const w of s.walls) owner.set(w.id, s.id);
-      for (const o of s.openings) owner.set(o.id, s.id);
-      for (const sl of s.slabs) owner.set(sl.id, s.id);
-      for (const r of s.rooms) owner.set(r.id, s.id);
-      for (const st of s.stairs ?? []) {
-        owner.set(st.id, s.id);
-        for (const seg of st.segments) owner.set(seg.id, s.id);
-      }
-      for (const r of s.railings ?? []) owner.set(r.id, s.id);
-    }
+    const owner = storeyIndex(modelJson);
     // Fragments' spatial tree does not surface every storey, so map items by their Tag (elements) or
     // Name (spaces, whose Tag the writer leaves empty) instead of walking it.
     for (const [localId, item] of await model.getItems()) {
@@ -1366,60 +1355,46 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     updateLabelOrientation();
   }
 
-  /** The camera state walk mode saves on entry and restores on exit; non-null while walking. */
-  interface SavedView {
-    projection: "Orthographic" | "Perspective";
-    position: THREE.Vector3;
-    target: THREE.Vector3;
-    ortho: { left: number; right: number; top: number; bottom: number; zoom: number };
-    near: number;
-    fov: number;
-  }
-  /** The perspective near plane while walking: OBC's default 1 m would clip every wall within arm's reach. */
+  /** The perspective near plane in first-person mode: OBC's default 1 m would clip walls within arm's reach. */
   const WALK_NEAR = 0.05;
-  /** The perspective vertical FOV (degrees) while walking: OBC's 60° reads zoomed-in at walking distance. */
+  /** The perspective vertical FOV (degrees) in first-person mode: OBC's 60° reads zoomed-in at close range. */
   const WALK_FOV = 70;
-  let savedView: SavedView | null = null;
+  /** How far ahead of the camera orbit navigation pivots after first-person mode hands back. */
+  const EXIT_TARGET_DISTANCE = 10;
+  /** True while first-person mode owns the camera; not the same as the store's rendered state. */
+  let walkActive = false;
   const walkKeys = new Set<string>();
   let walkRaf = 0;
   let walkLast = 0;
-  let walkEyeY = 0;
   let everLocked = false;
   let pointerLockControls: PointerLockControls | null = null;
   const walkDirection = new THREE.Vector3();
 
   /**
-   * Enter first-person walk mode: save the camera state, move the perspective camera to the entry
-   * pose facing plan north, and pause the camera component and camera-controls input so neither
-   * overwrites the walk pose. `lock` may only be true inside a user gesture; `?walk=1` instead shows
-   * the click-to-look prompt and locks on the first canvas click. Snapshots never walk.
+   * Enter first-person free-fly mode. A toggle keeps the camera's current position and direction;
+   * `?walk=1` passes `keepPose=false` and starts at the entry pose facing plan north. Pauses the
+   * camera component and camera-controls input so neither overwrites the free-fly pose. `lock` may
+   * only be true inside a user gesture; `?walk=1` instead shows the click-to-look prompt and locks
+   * on the first canvas click. Snapshots never walk.
    */
-  async function enterWalk(lock: boolean) {
-    if (snapshot || savedView) return;
+  async function enterWalk(lock: boolean, keepPose = true) {
+    if (snapshot || walkActive) return;
     hideHover();
     setMeasuring(false);
     clearMeasurements();
-    const controls = world.camera.controls;
-    const ortho = world.camera.threeOrtho;
-    savedView = {
-      projection: world.camera.projection.current,
-      position: controls.getPosition(new THREE.Vector3()),
-      target: controls.getTarget(new THREE.Vector3()),
-      ortho: { left: ortho.left, right: ortho.right, top: ortho.top, bottom: ortho.bottom, zoom: ortho.zoom },
-      near: world.camera.threePersp.near,
-      fov: world.camera.threePersp.fov,
-    };
-    const start = entryPosition(shownBox(), lowestElevation);
-    walkEyeY = start.y;
+    walkActive = true;
+    const before = world.camera.three;
+    const position = keepPose ? before.position.clone() : entryPosition(shownBox(), lowestElevation);
+    const quaternion = keepPose ? before.quaternion.clone() : new THREE.Quaternion(); // identity faces plan north
     await world.camera.projection.set("Perspective");
     world.camera.enabled = false;
-    controls.enabled = false;
+    world.camera.controls.enabled = false;
     const camera = world.camera.threePersp; // the active camera after the projection switch
     camera.near = WALK_NEAR;
     camera.fov = WALK_FOV;
     camera.updateProjectionMatrix();
-    camera.position.copy(start);
-    camera.quaternion.identity(); // an identity quaternion faces scene −Z, which is plan north
+    camera.position.copy(position);
+    camera.quaternion.copy(quaternion);
     if (!pointerLockControls) {
       // Created lazily, after the first projection switch, so it holds the perspective camera.
       pointerLockControls = new PointerLockControls(camera, world.renderer!.three.domElement);
@@ -1443,31 +1418,20 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     updateLabelOrientation();
   }
 
-  /** Leave walk mode, restoring the saved projection, pose and orthographic framing exactly. */
+  /** Leave first-person mode where the camera is, handing it back to orbit navigation. */
   async function exitWalk() {
-    const restore = savedView;
-    if (!restore) return;
-    savedView = null;
+    if (!walkActive) return;
+    walkActive = false;
     cancelAnimationFrame(walkRaf);
     walkKeys.clear();
     if (pointerLockControls?.isLocked) pointerLockControls.unlock();
     store.set({ walking: false, walkHint: false, status: `${currentName}.ifc` });
     world.camera.enabled = true;
-    world.camera.threePersp.near = restore.near;
-    world.camera.threePersp.fov = restore.fov;
-    world.camera.threePersp.updateProjectionMatrix();
-    await world.camera.projection.set(restore.projection);
-    if (restore.projection === "Orthographic") {
-      // The projection switch recomputes the ortho frustum from the walk pose and resets the zoom;
-      // put the saved framing back so a Top view returns exactly as it was. The zoom goes through
-      // zoomTo because camera-controls keeps its own zoom state and writes it back to the camera
-      // on the next update.
-      Object.assign(world.camera.threeOrtho, restore.ortho);
-      world.camera.threeOrtho.updateProjectionMatrix();
-      await world.camera.controls.zoomTo(restore.ortho.zoom, false);
-    }
-    const { position: p, target: t } = restore;
-    await world.camera.controls.setLookAt(p.x, p.y, p.z, t.x, t.y, t.z, false);
+    const camera = world.camera.three;
+    const position = camera.position.clone();
+    const forward = camera.getWorldDirection(new THREE.Vector3());
+    const target = position.clone().addScaledVector(forward, EXIT_TARGET_DISTANCE);
+    await world.camera.controls.setLookAt(position.x, position.y, position.z, target.x, target.y, target.z, false);
     world.camera.controls.enabled = true;
     await fragments.core.update(true);
     updateCompass();
@@ -1475,16 +1439,15 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     repickHover();
   }
 
-  /** The walk frame loop: heading-relative movement at the fixed eye height, through all geometry. */
+  /** The first-person frame loop: free-fly movement through all geometry. */
   function walkFrame(now: number) {
-    if (!savedView) return;
+    if (!walkActive) return;
     const camera = world.camera.three;
     const next = walkStep(
       camera.position,
-      headingBasis(camera.getWorldDirection(walkDirection)),
+      movementBasis(camera.getWorldDirection(walkDirection)),
       movementOffset(walkKeys),
       (now - walkLast) / 1000,
-      walkEyeY,
     );
     const moved = !next.equals(camera.position);
     camera.position.copy(next);
@@ -1503,10 +1466,10 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   // `?walk=1` (and a refused lock) leave walk mode without pointer lock: the first canvas click
   // requests it, which is the user gesture the browser requires.
   world.renderer!.three.domElement.addEventListener("click", () => {
-    if (savedView && pointerLockControls && !pointerLockControls.isLocked) pointerLockControls.lock();
+    if (walkActive && pointerLockControls && !pointerLockControls.isLocked) pointerLockControls.lock();
   });
   window.addEventListener("keydown", (e) => {
-    if (!savedView) return;
+    if (!walkActive) return;
     if (e.code === "Escape") {
       // Also covers the refused-lock path, where no unlock event will fire.
       void exitWalk();
@@ -1525,8 +1488,11 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     if (document.hidden) walkKeys.clear();
   });
   document.addEventListener("pointerlockerror", () => {
-    if (!savedView) return;
-    store.set({ walkHint: true, status: "pointer lock refused — click to retry; WASD still moves, Esc leaves" });
+    if (!walkActive) return;
+    store.set({
+      walkHint: true,
+      status: "pointer lock refused — click to retry; WASD/arrows fly, Q/E down/up, Esc leaves",
+    });
   });
 
   function measureLine(from: THREE.Vector3, to: THREE.Vector3): Line2 {
@@ -1775,7 +1741,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
 
   /** A load, storey choice or walk exit can finish under a stationary cursor; re-pick its position. */
   function repickHover() {
-    if (identifying && !snapshot && !savedView && lastPointer) {
+    if (identifying && !snapshot && !walkActive && lastPointer) {
       hoverQueued = { ...lastPointer };
       void runHoverPicks();
     }
@@ -1809,7 +1775,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
         hoverQueued = null;
         const epoch = hoverEpoch;
         const model = currentModel;
-        if (!identifying || snapshot || savedView || !model) continue;
+        if (!identifying || snapshot || walkActive || !model) continue;
         const ray = { camera: world.camera.three, mouse: new THREE.Vector2(next.x, next.y), dom: canvas };
         const ghost = ghostModel;
         // In Diff mode the removed elements' ghosts are picked too, and the nearer hit wins.
@@ -1817,7 +1783,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
           model.raycast(ray),
           ghost ? ghost.raycast(ray) : Promise.resolve(null),
         ]);
-        if (epoch !== hoverEpoch || currentModel !== model || !identifying || savedView) continue;
+        if (epoch !== hoverEpoch || currentModel !== model || !identifying || walkActive) continue;
         const ghostHit = removed && ghostLabels.has(removed.localId) && (!own || removed.distance < own.distance);
         const hit = ghostHit ? removed : own;
         const label = hit ? (ghostHit ? ghostLabels : elementLabels).get(hit.localId) : undefined;
@@ -1855,7 +1821,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   canvas.addEventListener("pointermove", (e) => {
     lastPointer = { x: e.clientX, y: e.clientY };
     // Walk mode keeps pointermove firing when pointer lock is refused, so gate on it here too.
-    if (!identifying || snapshot || savedView || e.buttons !== 0) {
+    if (!identifying || snapshot || walkActive || e.buttons !== 0) {
       hideHover();
       return;
     }
@@ -2422,7 +2388,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   }
 
   async function stepStorey(direction: 1 | -1): Promise<void> {
-    if (snapshot || savedView || store.getSnapshot().storeyDisabled) return;
+    if (snapshot || walkActive || store.getSnapshot().storeyDisabled) return;
     const next = neighbourStorey(direction);
     if (!next) return;
     await applyStoreyChoice(next);
@@ -2497,7 +2463,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   }
 
   async function stepRevision(direction: 1 | -1): Promise<void> {
-    if (snapshot || savedView || store.getSnapshot().revisionDisabled || switching) return;
+    if (snapshot || walkActive || store.getSnapshot().revisionDisabled || switching) return;
     const group = groups.get(currentBaseModel);
     if (!group) return;
     const next = nextRevision(group, revision, direction);
@@ -2587,7 +2553,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   }
 
   async function toggleWalk(): Promise<void> {
-    if (savedView) await exitWalk();
+    if (walkActive) await exitWalk();
     else await enterWalk(true);
   }
 
@@ -2633,7 +2599,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
       if (idsRequested) setIdentifying(true);
       // `?walk=1` and `?measure=1` apply once, at startup; a model change leaves both modes alone.
       // Walk wins when both are present.
-      if (walkRequested(params, snapshot)) void enterWalk(false);
+      if (walkRequested(params, snapshot)) void enterWalk(false, false);
       else if (measureRequested) setMeasuring(true);
       // Two frames so the renderer has drawn the final camera position before a snapshot.
       requestAnimationFrame(() =>

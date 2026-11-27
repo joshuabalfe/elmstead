@@ -156,7 +156,7 @@ describe("storey keyboard shortcut", () => {
     await viewOf("test-storey-keys", `view=top&labels=0&style=plan&camera=${camera}&snapshot=1`);
     await ignored("ArrowDown");
 
-    // In walk mode the arrows walk: the view moves and the selection does not.
+    // In first-person mode the arrows move the camera: the view moves and the selection does not.
     await viewOf("test-storey-keys", "labels=0&style=plan&walk=1");
     const start = await canvasPixels();
     await page.keyboard.down("ArrowUp");

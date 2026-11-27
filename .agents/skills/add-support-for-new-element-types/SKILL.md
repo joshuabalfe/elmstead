@@ -54,7 +54,8 @@ Answer each before any code. These are the decisions that are expensive to find 
 - **Colour.** One IFC colour and one plan colour. Rules in [IFC colours](../../../docs/ifc.md#colours)
   and [plan colours](../../../docs/rendering.md#colours): the IFC one far from every `STYLES` entry,
   the plan one clear of wall, room and paper unless it is meant to be compared.
-- **Revisions and the diff.** Can a revision add, change and remove it? It must be in `COMPARED`.
+- **Revisions and the diff.** Can a revision add, change and remove it? Add it to the element-kind
+  table; revisions, the diff and the viewer's storey ownership take it from there.
 - **Plan-versus-3D.** Compared, or exempt? An element that is exempt, or a storey that is skipped,
   is a decision, with a reason.
 
@@ -71,9 +72,8 @@ rooms and not your kind is a gap, or needs a stated reason.
 
 Traps that have each cost a change:
 
-- **A kind missing from `COMPARED` (`src/shared/diff/index.ts`)** never appears in a revision's diff, and
-  nothing fails.
-- **A kind missing from the viewer's owner map** stays visible when its storey is hidden.
+- **A storey collection missing from `STOREY_KINDS`**, or a kind missing from the `IdNode` union,
+  fails typecheck. Keep the table the only enumeration; a parallel list is how kinds get missed.
 - **An IFC colour near `wall`, `slab` or `ground`** gets its tops painted charcoal or discarded in
   plan style.
 - **A plan colour near wall, room or paper** is wrongly counted by the plan-versus-3D comparison;
