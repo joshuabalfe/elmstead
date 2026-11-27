@@ -26,11 +26,23 @@ const endProfile = [
   { along: coreW, up: floor },
 ];
 
-export const party = wall("wall-party-attic", pt(coreW, coreD), pt(mm(0), coreD), { thickness: externalRuns.party.thickness, justification: externalRuns.party.justification, profile: partyProfile });
-export const end = wall("wall-end-attic", externalRuns.end.start, externalRuns.end.end, { thickness: externalRuns.end.thickness, justification: externalRuns.end.justification, profile: endProfile });
+export const party = wall("wall-party-attic", pt(coreW, coreD), pt(mm(0), coreD), {
+  thickness: externalRuns.party.thickness,
+  justification: externalRuns.party.justification,
+  profile: partyProfile,
+});
+export const end = wall("wall-end-attic", externalRuns.end.start, externalRuns.end.end, {
+  thickness: externalRuns.end.thickness,
+  justification: externalRuns.end.justification,
+  profile: endProfile,
+});
 
 // The front wall stands 700 mm high (owner) at the front edge, running the full width of the
 // building. The rear and extension have no wall: the roof runs down to the floor there.
-export const front = wall("wall-front-attic", pt(mm(0), coreD), pt(mm(0), mm(0)), { thickness: frontT, height: mm(700), justification: "left" });
+export const front = wall("wall-front-attic", pt(mm(0), coreD), pt(mm(0), mm(0)), {
+  thickness: frontT,
+  height: mm(700),
+  justification: "left",
+});
 
 export const walls = [party, end, front];

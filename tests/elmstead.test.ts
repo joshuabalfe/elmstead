@@ -36,7 +36,7 @@ const contains = (poly: Pt[], p: Pt): boolean => {
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
     const a = poly[i]!;
     const b = poly[j]!;
-    if ((a.y > p.y) !== (b.y > p.y) && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) inside = !inside;
+    if (a.y > p.y !== b.y > p.y && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) inside = !inside;
   }
   return inside;
 };
@@ -50,7 +50,11 @@ describe("Elmstead's floor structure", () => {
     const first = elmstead.storeys.find((s) => s.id === "storey-first-floor");
     if (!first) throw new Error("Elmstead has no first floor");
     const bay = new Set(["wall-bay-left-first", "wall-bay-front-first", "wall-bay-right-first"]);
-    const extension = new Set(["wall-party-extension-first", "wall-extension-rear-first", "wall-extension-right-first"]);
+    const extension = new Set([
+      "wall-party-extension-first",
+      "wall-extension-rear-first",
+      "wall-extension-right-first",
+    ]);
     for (const wall of first.walls) {
       if (extension.has(wall.id)) continue; // the extension roof slopes; see the taper test below
       expect(wall.height, wall.id).toBe(bay.has(wall.id) ? mm(2550) : mm(2700));
@@ -308,7 +312,12 @@ describe("Elmstead's floor structure", () => {
     // The landing overhang sets the well's front edge, 165 mm behind the longer ensuite's rear face.
     expect(Math.min(...xs)).toBe(stairArrivalX);
     const main = elmstead.storeys.find((s) => s.id === "storey-main-half-landing")!;
-    expect(Math.max(...xs)).toBe(face(main.walls.find((w) => w.id === "wall-extension-rear-main-half-landing")!, "west"));
+    expect(Math.max(...xs)).toBe(
+      face(
+        main.walls.find((w) => w.id === "wall-extension-rear-main-half-landing")!,
+        "west",
+      ),
+    );
     expect(Math.min(...ys)).toBe(face(wall("wall-ensuite-left-first"), "north"));
     expect(Math.max(...ys)).toBe(face(wall("wall-party-first"), "south"));
   });
@@ -360,7 +369,8 @@ describe("Elmstead's floor structure", () => {
     if (!first) throw new Error("Elmstead has no first floor");
     const partition = first.walls.find((w) => w.id === "wall-dining-bedroom-first");
     const bedroomLeft = first.walls.find((w) => w.id === "wall-bedroom-left-first");
-    if (!partition || !bedroomLeft) throw new Error("Elmstead needs the dining/bedroom partition and the bedroom's left wall");
+    if (!partition || !bedroomLeft)
+      throw new Error("Elmstead needs the dining/bedroom partition and the bedroom's left wall");
     expect(partition.end.y).toBe(face(bedroomLeft, "north"));
   });
 
@@ -378,7 +388,10 @@ describe("Elmstead's floor structure", () => {
     if (!first) throw new Error("Elmstead has no first floor");
     for (const room of first.rooms) {
       const at = centroid(room.outline);
-      expect(first.slabs.some((s) => contains(s.outline, at)), `${room.id}'s centroid is not on a slab`).toBe(true);
+      expect(
+        first.slabs.some((s) => contains(s.outline, at)),
+        `${room.id}'s centroid is not on a slab`,
+      ).toBe(true);
       expect(contains(stairwellOutline, at), `${room.id}'s centroid is inside the stairwell`).toBe(false);
     }
   });
@@ -391,7 +404,12 @@ describe("Elmstead's stair", () => {
   const first = storey("storey-first-floor");
   const lowerStair = ground.stairs?.[0];
   const upperStair = half.stairs?.[0];
-  const parts = [half.slabs[0]!.outline, ...[lowerStair, upperStair].flatMap((s) => s?.segments ?? []).map((seg) => (seg.kind === "flight" ? flightFootprint(seg) : seg.outline))];
+  const parts = [
+    half.slabs[0]!.outline,
+    ...[lowerStair, upperStair]
+      .flatMap((s) => s?.segments ?? [])
+      .map((seg) => (seg.kind === "flight" ? flightFootprint(seg) : seg.outline)),
+  ];
 
   // The well is a rectangle; outset it 1 mm so corners that lie exactly on its edge count as
   // inside. The stair bottom sits in front of the well's traced edge, under the landing overhang,
@@ -440,7 +458,9 @@ describe("Elmstead's main half landing window", () => {
     expect(win?.wallId).toBe("wall-extension-rear-main-half-landing");
     expect([win!.width, win!.height, win!.sillHeight]).toEqual([mm(1200), mm(2100), mm(450)]); // owner
     // owner: the same frame as the first-floor bedroom window
-    const bedroom = elmstead.storeys.find((s) => s.id === "storey-first-floor")!.openings.find((o) => o.id === "window-bedroom-first");
+    const bedroom = elmstead.storeys
+      .find((s) => s.id === "storey-first-floor")!
+      .openings.find((o) => o.id === "window-bedroom-first");
     expect(win!.componentId).toBe(bedroom!.componentId);
   });
 });
@@ -500,8 +520,16 @@ describe("Elmstead's railings", () => {
   const rail = (id: string) => street.railings?.find((r) => r.id === id);
 
   it("has two nosing-line step rails, a level front rail and a corner return", () => {
-    expect(street.railings?.map((r) => r.id).sort()).toEqual(["railing-front-corner", "railing-front-facade-right", "railing-front-left", "railing-front-right"]);
-    for (const [id, y] of [["railing-front-left", mm(8325)], ["railing-front-right", mm(6525)]] as const) {
+    expect(street.railings?.map((r) => r.id).sort()).toEqual([
+      "railing-front-corner",
+      "railing-front-facade-right",
+      "railing-front-left",
+      "railing-front-right",
+    ]);
+    for (const [id, y] of [
+      ["railing-front-left", mm(8325)],
+      ["railing-front-right", mm(6525)],
+    ] as const) {
       const r = rail(id)!;
       expect(r.start).toEqual({ x: mm(-880), y });
       expect(r.end).toEqual({ x: mm(0), y });
@@ -531,7 +559,12 @@ describe("Elmstead's railings", () => {
 
   it("draws all four railings on the street plan, with ids when asked, but none on the ground plan", () => {
     const plan = renderPlan(elmstead, street, { ids: false });
-    for (const id of ["railing-front-left", "railing-front-right", "railing-front-facade-right", "railing-front-corner"]) {
+    for (const id of [
+      "railing-front-left",
+      "railing-front-right",
+      "railing-front-facade-right",
+      "railing-front-corner",
+    ]) {
       expect(plan).toContain(`class="railing" data-id="${id}"`);
     }
     expect(plan).toContain(`stroke="${C.railing}"`);
@@ -562,7 +595,8 @@ describe("Elmstead's basement external stair", () => {
     expect(stair.toStoreyId).toBe(street.id);
     expect(stair.segments.map((s) => s.kind)).toEqual(["flight", "landing"]);
     const [flight, landing] = stair.segments;
-    if (flight?.kind !== "flight" || landing?.kind !== "landing") throw new Error("The external stair needs a flight and a top landing");
+    if (flight?.kind !== "flight" || landing?.kind !== "landing")
+      throw new Error("The external stair needs a flight and a top landing");
     expect(flight.risers).toBe(6);
     expect(flight.width).toBe(mm(900));
     expect(flight.start).toEqual({ x: mm(-450), y: mm(2400) });
@@ -584,7 +618,8 @@ describe("Elmstead's basement external stair", () => {
     expect(levels.totalRisers).toBe(7);
     expect(levels.riser).toBeCloseTo(1950 / 7, 9);
     const [flight, landing] = levels.segments;
-    if (flight?.kind !== "flight" || landing?.kind !== "landing") throw new Error("The external stair needs a flight and a top landing");
+    if (flight?.kind !== "flight" || landing?.kind !== "landing")
+      throw new Error("The external stair needs a flight and a top landing");
     expect(flight.run).toBe(1500);
     expect(flight.going).toBe(300);
     expect(flight.top).toBeCloseTo((1950 * 6) / 7, 9);

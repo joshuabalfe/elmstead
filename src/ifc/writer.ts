@@ -9,11 +9,33 @@ import * as WebIFC from "web-ifc";
 import { doorDivision } from "../geometry/door.js";
 import { isSplayed, openingProfile } from "../geometry/opening.js";
 import { POST_SIZE, RAIL_DEPTH, RAIL_WIDTH, railingGeometry } from "../geometry/railing.js";
-import { flightDirection, flightProfile, flightRun, stairLevels, turnBetween, type FlightLevel } from "../geometry/stair.js";
+import {
+  flightDirection,
+  flightProfile,
+  flightRun,
+  stairLevels,
+  turnBetween,
+  type FlightLevel,
+} from "../geometry/stair.js";
 import { v, type Vec } from "../geometry/vec.js";
 import { faceOffsets, wallDirection, wallHeight, wallLength, wallSideProfile } from "../geometry/wall.js";
 import { GLAZING_BAR_DEPTH, PANEL_THICKNESS, windowDivision, type Rect } from "../geometry/window.js";
-import type { BuildingModel, Door, DoorComponent, Opening, Railing, Room, Slab, Stair, StairFlight, StairLanding, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
+import type {
+  BuildingModel,
+  Door,
+  DoorComponent,
+  Opening,
+  Railing,
+  Room,
+  Slab,
+  Stair,
+  StairFlight,
+  StairLanding,
+  Storey,
+  Wall,
+  Window,
+  WindowComponent,
+} from "../schema/schema.js";
 import { ifcGuid } from "./guid.js";
 import { STYLES, type StyleName } from "./styles.js";
 
@@ -36,10 +58,14 @@ function windowPartitioning(design?: Pick<WindowComponent, "glazing">): { value:
   const columns = design?.glazing?.columns.length ?? 1;
   const rows = design?.glazing?.rows.length ?? 1;
   if (columns === 1 && rows === 1) return { value: IFC4.IfcWindowTypePartitioningEnum.SINGLE_PANEL, userDefined: null };
-  if (rows === 1 && columns === 2) return { value: IFC4.IfcWindowTypePartitioningEnum.DOUBLE_PANEL_VERTICAL, userDefined: null };
-  if (columns === 1 && rows === 2) return { value: IFC4.IfcWindowTypePartitioningEnum.DOUBLE_PANEL_HORIZONTAL, userDefined: null };
-  if (rows === 1 && columns === 3) return { value: IFC4.IfcWindowTypePartitioningEnum.TRIPLE_PANEL_VERTICAL, userDefined: null };
-  if (columns === 1 && rows === 3) return { value: IFC4.IfcWindowTypePartitioningEnum.TRIPLE_PANEL_HORIZONTAL, userDefined: null };
+  if (rows === 1 && columns === 2)
+    return { value: IFC4.IfcWindowTypePartitioningEnum.DOUBLE_PANEL_VERTICAL, userDefined: null };
+  if (columns === 1 && rows === 2)
+    return { value: IFC4.IfcWindowTypePartitioningEnum.DOUBLE_PANEL_HORIZONTAL, userDefined: null };
+  if (rows === 1 && columns === 3)
+    return { value: IFC4.IfcWindowTypePartitioningEnum.TRIPLE_PANEL_VERTICAL, userDefined: null };
+  if (columns === 1 && rows === 3)
+    return { value: IFC4.IfcWindowTypePartitioningEnum.TRIPLE_PANEL_HORIZONTAL, userDefined: null };
   return { value: IFC4.IfcWindowTypePartitioningEnum.USERDEFINED, userDefined: `${columns}x${rows} grid` };
 }
 
@@ -141,7 +167,14 @@ class Writer {
   }
 
   /** Local placement at (x, y, z) with its X axis along (dx, dy) in the parent's XY plane. */
-  private placement(parent: InstanceType<typeof IFC4.IfcLocalPlacement> | null, x: number, y: number, z: number, dx = 1, dy = 0) {
+  private placement(
+    parent: InstanceType<typeof IFC4.IfcLocalPlacement> | null,
+    x: number,
+    y: number,
+    z: number,
+    dx = 1,
+    dy = 0,
+  ) {
     const location = x === 0 && y === 0 && z === 0 ? this.origin3 : this.pt3(x, y, z);
     const refDirection = dx === 1 && dy === 0 ? null : new IFC4.IfcDirection([real(dx), real(dy), real(0)]);
     const axis = new IFC4.IfcAxis2Placement3D(location, refDirection ? this.zAxis : null, refDirection);
@@ -161,7 +194,9 @@ class Writer {
       const { rgb, transparency } = STYLES[name];
       const ratio = (n: number) => new IFC4.IfcNormalisedRatioMeasure(n);
       const colour = new IFC4.IfcColourRgb(null, ratio(rgb[0]), ratio(rgb[1]), ratio(rgb[2]));
-      style = new IFC4.IfcSurfaceStyle(label(name), IFC4.IfcSurfaceSide.BOTH, [new IFC4.IfcSurfaceStyleShading(colour, ratio(transparency))]);
+      style = new IFC4.IfcSurfaceStyle(label(name), IFC4.IfcSurfaceSide.BOTH, [
+        new IFC4.IfcSurfaceStyleShading(colour, ratio(transparency)),
+      ]);
       this.styles.set(name, style);
     }
     return style;
@@ -175,7 +210,13 @@ class Writer {
   }
 
   private rectangle(cx: number, cy: number, xDim: number, yDim: number) {
-    return new IFC4.IfcRectangleProfileDef(IFC4.IfcProfileTypeEnum.AREA, null, new IFC4.IfcAxis2Placement2D(this.pt2(cx, cy), null), posLen(xDim), posLen(yDim));
+    return new IFC4.IfcRectangleProfileDef(
+      IFC4.IfcProfileTypeEnum.AREA,
+      null,
+      new IFC4.IfcAxis2Placement2D(this.pt2(cx, cy), null),
+      posLen(xDim),
+      posLen(yDim),
+    );
   }
 
   // ── Spatial structure ─────────────────────────────────────────────────────
@@ -190,7 +231,8 @@ class Writer {
 
     // northAngle is degrees counter-clockwise from plan +y; TrueNorth is that direction as a vector.
     const north = ((model.site.northAngle ?? 0) * Math.PI) / 180;
-    const trueNorth = north === 0 ? null : new IFC4.IfcDirection([real(round9(-Math.sin(north))), real(round9(Math.cos(north)))]);
+    const trueNorth =
+      north === 0 ? null : new IFC4.IfcDirection([real(round9(-Math.sin(north))), real(round9(Math.cos(north)))]);
     const context = new IFC4.IfcGeometricRepresentationContext(
       null,
       label("Model"),
@@ -199,24 +241,63 @@ class Writer {
       new IFC4.IfcAxis2Placement3D(this.origin3, null, null),
       trueNorth,
     );
-    const sub = (name: string, view: InstanceType<typeof IFC4.IfcGeometricProjectionEnum>) => new IFC4.IfcGeometricRepresentationSubContext(label(name), label("Model"), context, null, view, null);
+    const sub = (name: string, view: InstanceType<typeof IFC4.IfcGeometricProjectionEnum>) =>
+      new IFC4.IfcGeometricRepresentationSubContext(label(name), label("Model"), context, null, view, null);
     this.bodyCtx = sub("Body", IFC4.IfcGeometricProjectionEnum.MODEL_VIEW);
     this.axisCtx = sub("Axis", IFC4.IfcGeometricProjectionEnum.GRAPH_VIEW);
     this.footprintCtx = sub("FootPrint", IFC4.IfcGeometricProjectionEnum.PLAN_VIEW);
 
     const project = this.write(
-      new IFC4.IfcProject(guid(model.project.id), null, label(model.project.name), null, null, null, null, [context], units),
+      new IFC4.IfcProject(
+        guid(model.project.id),
+        null,
+        label(model.project.name),
+        null,
+        null,
+        null,
+        null,
+        [context],
+        units,
+      ),
     );
     // Sub-contexts are only reachable by inverse, so write them explicitly.
     for (const c of [this.bodyCtx, this.axisCtx, this.footprintCtx]) this.write(c);
 
     const sitePlacement = this.placement(null, 0, 0, 0);
     const site = this.write(
-      new IFC4.IfcSite(guid(model.site.id), null, label(model.site.name), null, null, sitePlacement, null, null, IFC4.IfcElementCompositionEnum.ELEMENT, null, null, null, null, null),
+      new IFC4.IfcSite(
+        guid(model.site.id),
+        null,
+        label(model.site.name),
+        null,
+        null,
+        sitePlacement,
+        null,
+        null,
+        IFC4.IfcElementCompositionEnum.ELEMENT,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ),
     );
     const buildingPlacement = this.placement(sitePlacement, 0, 0, 0);
     const building = this.write(
-      new IFC4.IfcBuilding(guid(model.building.id), null, label(model.building.name), null, null, buildingPlacement, null, null, IFC4.IfcElementCompositionEnum.ELEMENT, null, null, null),
+      new IFC4.IfcBuilding(
+        guid(model.building.id),
+        null,
+        label(model.building.name),
+        null,
+        null,
+        buildingPlacement,
+        null,
+        null,
+        IFC4.IfcElementCompositionEnum.ELEMENT,
+        null,
+        null,
+        null,
+      ),
     );
 
     this.write(new IFC4.IfcRelAggregates(guid(`${model.project.id}#aggregates`), null, null, null, project, [site]));
@@ -233,11 +314,25 @@ class Writer {
   private storey(s: Storey, parent: InstanceType<typeof IFC4.IfcLocalPlacement>, elevations: Map<string, number>) {
     const placement = this.placement(parent, 0, 0, s.elevation);
     const storey = this.write(
-      new IFC4.IfcBuildingStorey(guid(s.id), null, label(s.name), null, null, placement, null, null, IFC4.IfcElementCompositionEnum.ELEMENT, len(s.elevation)),
+      new IFC4.IfcBuildingStorey(
+        guid(s.id),
+        null,
+        label(s.name),
+        null,
+        null,
+        placement,
+        null,
+        null,
+        IFC4.IfcElementCompositionEnum.ELEMENT,
+        len(s.elevation),
+      ),
     );
 
     const contained: InstanceType<typeof IFC4.IfcProduct>[] = [];
-    const written = new Map<string, { wall: Wall; entity: InstanceType<typeof IFC4.IfcWall>; placement: InstanceType<typeof IFC4.IfcLocalPlacement> }>();
+    const written = new Map<
+      string,
+      { wall: Wall; entity: InstanceType<typeof IFC4.IfcWall>; placement: InstanceType<typeof IFC4.IfcLocalPlacement> }
+    >();
     for (const w of s.walls) {
       const { wall, placement: wp } = this.wall(w, placement);
       written.set(w.id, { wall: w, entity: wall, placement: wp });
@@ -252,13 +347,16 @@ class Writer {
     for (const slab of s.slabs) contained.push(this.slab(slab, placement));
     for (const stair of s.stairs ?? []) {
       const to = elevations.get(stair.toStoreyId);
-      if (to === undefined) throw new Error(`${stair.id}: toStoreyId "${stair.toStoreyId}" is not a storey in the model`);
+      if (to === undefined)
+        throw new Error(`${stair.id}: toStoreyId "${stair.toStoreyId}" is not a storey in the model`);
       contained.push(this.stair(stair, placement, to - s.elevation));
     }
     for (const railing of s.railings ?? []) contained.push(this.railing(railing, placement));
 
     if (contained.length) {
-      this.write(new IFC4.IfcRelContainedInSpatialStructure(guid(`${s.id}#contains`), null, null, null, contained, storey));
+      this.write(
+        new IFC4.IfcRelContainedInSpatialStructure(guid(`${s.id}#contains`), null, null, null, contained, storey),
+      );
     }
     if (s.rooms.length) {
       const spaces = s.rooms.map((r) => this.space(r, placement));
@@ -276,10 +374,24 @@ class Writer {
     const d = wallDirection(w);
     const placement = this.placement(parent, w.start.x, w.start.y, 0, round9(d.x), round9(d.y));
     const { left, right } = faceOffsets(w);
-    const axis = new IFC4.IfcShapeRepresentation(this.axisCtx, label("Axis"), label("Curve2D"), [new IFC4.IfcPolyline([this.pt2(0, 0), this.pt2(L, 0)])]);
-    const body = w.profile ? this.pitchedWallBody(w, left) : this.body(this.rectangle(L / 2, (left + right) / 2, L, w.thickness), wallHeight(w), "wall");
+    const axis = new IFC4.IfcShapeRepresentation(this.axisCtx, label("Axis"), label("Curve2D"), [
+      new IFC4.IfcPolyline([this.pt2(0, 0), this.pt2(L, 0)]),
+    ]);
+    const body = w.profile
+      ? this.pitchedWallBody(w, left)
+      : this.body(this.rectangle(L / 2, (left + right) / 2, L, w.thickness), wallHeight(w), "wall");
     const wall = this.write(
-      new IFC4.IfcWall(guid(w.id), null, label(w.name ?? w.id), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [axis, body]), ident(w.id), IFC4.IfcWallTypeEnum.NOTDEFINED),
+      new IFC4.IfcWall(
+        guid(w.id),
+        null,
+        label(w.name ?? w.id),
+        null,
+        null,
+        placement,
+        new IFC4.IfcProductDefinitionShape(null, null, [axis, body]),
+        ident(w.id),
+        IFC4.IfcWallTypeEnum.NOTDEFINED,
+      ),
     );
     return { wall, placement };
   }
@@ -311,12 +423,26 @@ class Writer {
    * The opening is placed in wall coordinates at (offsetAlongWall, 0, sillHeight). A box, or for a
    * window with a reveal its splayed plan outline (src/geometry/opening.ts) extruded up its height.
    */
-  private opening(o: Opening, w: Wall, wallPlacement: InstanceType<typeof IFC4.IfcLocalPlacement>, wallEntity: InstanceType<typeof IFC4.IfcElement>): InstanceType<typeof IFC4.IfcDoor> | InstanceType<typeof IFC4.IfcWindow> | undefined {
+  private opening(
+    o: Opening,
+    w: Wall,
+    wallPlacement: InstanceType<typeof IFC4.IfcLocalPlacement>,
+    wallEntity: InstanceType<typeof IFC4.IfcElement>,
+  ): InstanceType<typeof IFC4.IfcDoor> | InstanceType<typeof IFC4.IfcWindow> | undefined {
     const { left, right } = faceOffsets(w);
     const mid = (left + right) / 2;
     const placement = this.placement(wallPlacement, o.offsetAlongWall, 0, o.sillHeight);
     const profile = isSplayed(o)
-      ? new IFC4.IfcArbitraryClosedProfileDef(IFC4.IfcProfileTypeEnum.AREA, null, this.closedPolyline(openingProfile(w, o, OPENING_CLEARANCE).map((p) => ({ x: round9(p.x - o.offsetAlongWall), y: round9(p.y) }))))
+      ? new IFC4.IfcArbitraryClosedProfileDef(
+          IFC4.IfcProfileTypeEnum.AREA,
+          null,
+          this.closedPolyline(
+            openingProfile(w, o, OPENING_CLEARANCE).map((p) => ({
+              x: round9(p.x - o.offsetAlongWall),
+              y: round9(p.y),
+            })),
+          ),
+        )
       : this.rectangle(o.width / 2, mid, o.width, w.thickness + 2 * OPENING_CLEARANCE);
     const body = this.body(profile, o.height);
     const doorway = o.kind === "door" && o.doorway === true;
@@ -377,7 +503,9 @@ class Writer {
         posLen(d.height),
         posLen(d.width),
         IFC4.IfcDoorTypeEnum.DOOR,
-        hingeOnDoorLeft ? IFC4.IfcDoorTypeOperationEnum.SINGLE_SWING_LEFT : IFC4.IfcDoorTypeOperationEnum.SINGLE_SWING_RIGHT,
+        hingeOnDoorLeft
+          ? IFC4.IfcDoorTypeOperationEnum.SINGLE_SWING_LEFT
+          : IFC4.IfcDoorTypeOperationEnum.SINGLE_SWING_RIGHT,
         null,
       ),
     );
@@ -400,7 +528,10 @@ class Writer {
       this.write(new IFC4.IfcStyledItem(solid, [this.surfaceStyle(style)], null));
       return solid;
     };
-    const items = [...panes.map((p) => piece(p, PANEL_THICKNESS, "glazing")), ...[...frame, ...bars].map((b) => piece(b, GLAZING_BAR_DEPTH, "frame"))];
+    const items = [
+      ...panes.map((p) => piece(p, PANEL_THICKNESS, "glazing")),
+      ...[...frame, ...bars].map((b) => piece(b, GLAZING_BAR_DEPTH, "frame")),
+    ];
     const body = new IFC4.IfcShapeRepresentation(this.bodyCtx, label("Body"), label("SweptSolid"), items);
     return this.write(
       new IFC4.IfcWindow(
@@ -434,21 +565,72 @@ class Writer {
       if (used?.length) this.write(new IFC4.IfcRelDefinesByType(guid(`${id}#instances`), null, null, null, used, type));
     };
     for (const c of model.components?.doors ?? []) {
-      define(c.id, new IFC4.IfcDoorType(guid(c.id), null, label(c.name), null, null, null, null, label(c.id), null, IFC4.IfcDoorTypeEnum.DOOR, IFC4.IfcDoorTypeOperationEnum.NOTDEFINED, null, null));
+      define(
+        c.id,
+        new IFC4.IfcDoorType(
+          guid(c.id),
+          null,
+          label(c.name),
+          null,
+          null,
+          null,
+          null,
+          label(c.id),
+          null,
+          IFC4.IfcDoorTypeEnum.DOOR,
+          IFC4.IfcDoorTypeOperationEnum.NOTDEFINED,
+          null,
+          null,
+        ),
+      );
     }
     for (const c of model.components?.windows ?? []) {
       const partitioning = windowPartitioning(c);
-      define(c.id, new IFC4.IfcWindowType(guid(c.id), null, label(c.name), null, null, null, null, label(c.id), null, IFC4.IfcWindowTypeEnum.WINDOW, partitioning.value, null, partitioning.userDefined === null ? null : label(partitioning.userDefined)));
+      define(
+        c.id,
+        new IFC4.IfcWindowType(
+          guid(c.id),
+          null,
+          label(c.name),
+          null,
+          null,
+          null,
+          null,
+          label(c.id),
+          null,
+          IFC4.IfcWindowTypeEnum.WINDOW,
+          partitioning.value,
+          null,
+          partitioning.userDefined === null ? null : label(partitioning.userDefined),
+        ),
+      );
     }
-    if (types.length) this.write(new IFC4.IfcRelDeclares(guid(`${model.project.id}#types`), null, null, null, project, types));
+    if (types.length)
+      this.write(new IFC4.IfcRelDeclares(guid(`${model.project.id}#types`), null, null, null, project, types));
   }
 
   /** Slab top is at storey + elevationOffset; it is swept upwards from (top − thickness). */
   private slab(s: Slab, parent: InstanceType<typeof IFC4.IfcLocalPlacement>) {
     const placement = this.placement(parent, 0, 0, s.elevationOffset - s.thickness);
-    const profile = new IFC4.IfcArbitraryClosedProfileDef(IFC4.IfcProfileTypeEnum.AREA, null, this.closedPolyline(s.outline));
+    const profile = new IFC4.IfcArbitraryClosedProfileDef(
+      IFC4.IfcProfileTypeEnum.AREA,
+      null,
+      this.closedPolyline(s.outline),
+    );
     return this.write(
-      new IFC4.IfcSlab(guid(s.id), null, label(s.name ?? s.id), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [this.body(profile, s.thickness, s.material === "ground" ? "ground" : "slab")]), ident(s.id), IFC4.IfcSlabTypeEnum.FLOOR),
+      new IFC4.IfcSlab(
+        guid(s.id),
+        null,
+        label(s.name ?? s.id),
+        null,
+        null,
+        placement,
+        new IFC4.IfcProductDefinitionShape(null, null, [
+          this.body(profile, s.thickness, s.material === "ground" ? "ground" : "slab"),
+        ]),
+        ident(s.id),
+        IFC4.IfcSlabTypeEnum.FLOOR,
+      ),
     );
   }
 
@@ -461,11 +643,23 @@ class Writer {
     const placement = this.placement(parent, 0, 0, 0);
     const flights = s.segments.filter((seg): seg is StairFlight => seg.kind === "flight");
     const stair = this.write(
-      new IFC4.IfcStair(guid(s.id), null, label(s.name ?? s.id), null, null, placement, null, ident(s.id), stairType(flights)),
+      new IFC4.IfcStair(
+        guid(s.id),
+        null,
+        label(s.name ?? s.id),
+        null,
+        null,
+        placement,
+        null,
+        ident(s.id),
+        stairType(flights),
+      ),
     );
     const levels = stairLevels(s, rise);
     const parts = levels.segments.map((l) =>
-      l.kind === "flight" ? this.stairFlight(l.segment, l, levels.riser, placement) : this.stairLanding(l.segment, l.level, placement),
+      l.kind === "flight"
+        ? this.stairFlight(l.segment, l, levels.riser, placement)
+        : this.stairLanding(l.segment, l.level, placement),
     );
     this.write(new IFC4.IfcRelAggregates(guid(`${s.id}#aggregates`), null, null, null, stair, parts));
     return stair;
@@ -476,7 +670,12 @@ class Writer {
    * flight and its Y is up, so the profile's (along, up) lands in the placement's (X, Y) and the
    * extrusion along the placement's Z spans the width, centred on the start→end line.
    */
-  private stairFlight(f: StairFlight, level: FlightLevel, riser: number, parent: InstanceType<typeof IFC4.IfcLocalPlacement>) {
+  private stairFlight(
+    f: StairFlight,
+    level: FlightLevel,
+    riser: number,
+    parent: InstanceType<typeof IFC4.IfcLocalPlacement>,
+  ) {
     if (flightRun(f) === 0) throw new Error(`${f.id}: zero-run flight cannot be written to IFC`);
     const d = flightDirection(f);
     // The placement's Z, across the flight to the right of the run; the origin sits half a width to
@@ -523,30 +722,69 @@ class Writer {
     const placement = this.placement(parent, 0, 0, 0);
     const railAt = new IFC4.IfcAxis2Placement3D(
       this.pt3(round9(g.rail.start.x), round9(g.rail.start.y), round9(g.rail.start.z)),
-      new IFC4.IfcDirection([real(round9(g.rail.direction.x)), real(round9(g.rail.direction.y)), real(round9(g.rail.direction.z))]),
+      new IFC4.IfcDirection([
+        real(round9(g.rail.direction.x)),
+        real(round9(g.rail.direction.y)),
+        real(round9(g.rail.direction.z)),
+      ]),
       new IFC4.IfcDirection([real(round9(g.rail.across.x)), real(round9(g.rail.across.y)), real(0)]),
     );
-    const rail = new IFC4.IfcExtrudedAreaSolid(this.rectangle(0, 0, RAIL_WIDTH, RAIL_DEPTH), railAt, this.zAxis, posLen(round9(g.rail.length)));
+    const rail = new IFC4.IfcExtrudedAreaSolid(
+      this.rectangle(0, 0, RAIL_WIDTH, RAIL_DEPTH),
+      railAt,
+      this.zAxis,
+      posLen(round9(g.rail.length)),
+    );
     this.write(new IFC4.IfcStyledItem(rail, [this.surfaceStyle("railing")], null));
     const posts = g.posts.map((p) => {
       const at = new IFC4.IfcAxis2Placement3D(this.pt3(round9(p.at.x), round9(p.at.y), round9(p.base)), null, null);
-      const solid = new IFC4.IfcExtrudedAreaSolid(this.rectangle(0, 0, POST_SIZE, POST_SIZE), at, this.zAxis, posLen(round9(p.top - p.base)));
+      const solid = new IFC4.IfcExtrudedAreaSolid(
+        this.rectangle(0, 0, POST_SIZE, POST_SIZE),
+        at,
+        this.zAxis,
+        posLen(round9(p.top - p.base)),
+      );
       this.write(new IFC4.IfcStyledItem(solid, [this.surfaceStyle("railing")], null));
       return solid;
     });
     const body = new IFC4.IfcShapeRepresentation(this.bodyCtx, label("Body"), label("SweptSolid"), [rail, ...posts]);
-    const predefinedType = g.startBase === g.endBase ? IFC4.IfcRailingTypeEnum.GUARDRAIL : IFC4.IfcRailingTypeEnum.HANDRAIL;
+    const predefinedType =
+      g.startBase === g.endBase ? IFC4.IfcRailingTypeEnum.GUARDRAIL : IFC4.IfcRailingTypeEnum.HANDRAIL;
     return this.write(
-      new IFC4.IfcRailing(guid(r.id), null, label(r.name ?? r.id), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [body]), ident(r.id), predefinedType),
+      new IFC4.IfcRailing(
+        guid(r.id),
+        null,
+        label(r.name ?? r.id),
+        null,
+        null,
+        placement,
+        new IFC4.IfcProductDefinitionShape(null, null, [body]),
+        ident(r.id),
+        predefinedType,
+      ),
     );
   }
 
   /** A landing: its outline swept down from its level by its thickness, as an IfcSlab LANDING. */
   private stairLanding(l: StairLanding, level: number, parent: InstanceType<typeof IFC4.IfcLocalPlacement>) {
     const placement = this.placement(parent, 0, 0, round9(level - l.thickness));
-    const profile = new IFC4.IfcArbitraryClosedProfileDef(IFC4.IfcProfileTypeEnum.AREA, null, this.closedPolyline(l.outline));
+    const profile = new IFC4.IfcArbitraryClosedProfileDef(
+      IFC4.IfcProfileTypeEnum.AREA,
+      null,
+      this.closedPolyline(l.outline),
+    );
     return this.write(
-      new IFC4.IfcSlab(guid(l.id), null, label(l.id), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [this.body(profile, l.thickness, "stair")]), ident(l.id), IFC4.IfcSlabTypeEnum.LANDING),
+      new IFC4.IfcSlab(
+        guid(l.id),
+        null,
+        label(l.id),
+        null,
+        null,
+        placement,
+        new IFC4.IfcProductDefinitionShape(null, null, [this.body(profile, l.thickness, "stair")]),
+        ident(l.id),
+        IFC4.IfcSlabTypeEnum.LANDING,
+      ),
     );
   }
 
@@ -556,9 +794,23 @@ class Writer {
    */
   private space(r: Room, parent: InstanceType<typeof IFC4.IfcLocalPlacement>) {
     const placement = this.placement(parent, 0, 0, 0);
-    const footprint = new IFC4.IfcShapeRepresentation(this.footprintCtx, label("FootPrint"), label("Curve2D"), [this.closedPolyline(r.outline)]);
+    const footprint = new IFC4.IfcShapeRepresentation(this.footprintCtx, label("FootPrint"), label("Curve2D"), [
+      this.closedPolyline(r.outline),
+    ]);
     return this.write(
-      new IFC4.IfcSpace(guid(r.id), null, label(r.id), null, null, placement, new IFC4.IfcProductDefinitionShape(null, null, [footprint]), label(r.name), IFC4.IfcElementCompositionEnum.ELEMENT, IFC4.IfcSpaceTypeEnum.INTERNAL, null),
+      new IFC4.IfcSpace(
+        guid(r.id),
+        null,
+        label(r.id),
+        null,
+        null,
+        placement,
+        new IFC4.IfcProductDefinitionShape(null, null, [footprint]),
+        label(r.name),
+        IFC4.IfcElementCompositionEnum.ELEMENT,
+        IFC4.IfcSpaceTypeEnum.INTERNAL,
+        null,
+      ),
     );
   }
 }

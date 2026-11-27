@@ -5,7 +5,18 @@ import { diffModels } from "../src/diff/index.js";
 import { renderFloor, renderWallTops } from "../src/render/plan.js";
 import type { Node } from "../src/render/svg.js";
 import { BuildingModelSchema, type BuildingModel, type Point, type Storey } from "../src/schema/schema.js";
-import { CHANGED_OUTLINE, DIFF_COLOURS, diffFloor, doorSwings, floorChange, floorOutlines, floorPieces, recolourPlan, removedPlan, statusById } from "../viewer/diff.js";
+import {
+  CHANGED_OUTLINE,
+  DIFF_COLOURS,
+  diffFloor,
+  doorSwings,
+  floorChange,
+  floorOutlines,
+  floorPieces,
+  recolourPlan,
+  removedPlan,
+  statusById,
+} from "../viewer/diff.js";
 
 const model = (source: unknown): BuildingModel => BuildingModelSchema.parse(JSON.parse(JSON.stringify(source)));
 const base = model(cottage);
@@ -57,9 +68,25 @@ describe("recolourPlan", () => {
 });
 
 /** A polygon's area in m², by the shoelace formula. */
-const area = (pts: Point[]): number => Math.abs(pts.reduce((a, p, i) => { const q = pts[(i + 1) % pts.length]!; return a + p.x * q.y - q.x * p.y; }, 0)) / 2e6;
-const rect = (x0: number, y0: number, x1: number, y1: number): Point[] => [{ x: x0, y: y0 }, { x: x1, y: y0 }, { x: x1, y: y1 }, { x: x0, y: y1 }] as Point[];
-const withRooms = (s: Storey, outlines: Point[][]): Storey => ({ ...s, slabs: [], rooms: outlines.map((outline, i) => ({ id: `room-${i}`, name: "Room", outline })) });
+const area = (pts: Point[]): number =>
+  Math.abs(
+    pts.reduce((a, p, i) => {
+      const q = pts[(i + 1) % pts.length]!;
+      return a + p.x * q.y - q.x * p.y;
+    }, 0),
+  ) / 2e6;
+const rect = (x0: number, y0: number, x1: number, y1: number): Point[] =>
+  [
+    { x: x0, y: y0 },
+    { x: x1, y: y0 },
+    { x: x1, y: y1 },
+    { x: x0, y: y1 },
+  ] as Point[];
+const withRooms = (s: Storey, outlines: Point[][]): Storey => ({
+  ...s,
+  slabs: [],
+  rooms: outlines.map((outline, i) => ({ id: `room-${i}`, name: "Room", outline })),
+});
 
 describe("floorChange", () => {
   const [was, now] = [base.storeys[0]!, revision.storeys[0]!];
@@ -75,8 +102,13 @@ describe("floorChange", () => {
   it("finds a room's growth, its loss, and nothing when floor only changes room", () => {
     const room = rect(0, 0, 4000, 3000);
     expect(floorChange(withRooms(was, [room]), withRooms(was, [rect(0, 0, 5000, 3000)])).added.map(area)).toEqual([3]);
-    expect(floorChange(withRooms(was, [room]), withRooms(was, [rect(0, 0, 3000, 3000)])).removed.map(area)).toEqual([3]);
-    const moved = floorChange(withRooms(was, [rect(0, 0, 2000, 3000), rect(2000, 0, 4000, 3000)]), withRooms(was, [rect(0, 0, 3000, 3000), rect(3000, 0, 4000, 3000)]));
+    expect(floorChange(withRooms(was, [room]), withRooms(was, [rect(0, 0, 3000, 3000)])).removed.map(area)).toEqual([
+      3,
+    ]);
+    const moved = floorChange(
+      withRooms(was, [rect(0, 0, 2000, 3000), rect(2000, 0, 4000, 3000)]),
+      withRooms(was, [rect(0, 0, 3000, 3000), rect(3000, 0, 4000, 3000)]),
+    );
     expect(moved).toEqual({ added: [], removed: [] });
   });
 });
@@ -97,13 +129,26 @@ describe("diffFloor, floorOutlines and doorSwings", () => {
 
   it("outlines the changed slabs and rooms in bright yellow and the added ones in green, unfilled", () => {
     const o = floorOutlines(floor, status)!;
-    expect(o.nodes.map((n) => n.attrs["data-id"])).toEqual(["slab-lean-to", "room-living", "room-bedroom", "room-bathroom", "room-lean-to"]);
+    expect(o.nodes.map((n) => n.attrs["data-id"])).toEqual([
+      "slab-lean-to",
+      "room-living",
+      "room-bedroom",
+      "room-bathroom",
+      "room-lean-to",
+    ]);
     expect(paintOf(o.nodes, "room-living")).toMatchObject({ fills: [], strokes: [CHANGED_OUTLINE] });
     expect(paintOf(o.nodes, "room-lean-to")).toMatchObject({ fills: [], strokes: [DIFF_COLOURS.added.accent] });
   });
 
   it("picks the door swings out of the floor drawing", () => {
-    expect(doorSwings(floor).nodes.map((n) => n.attrs["data-id"])).toEqual(["door-front", "door-back", "door-living", "door-kitchen", "door-bedroom", "door-bathroom"]);
+    expect(doorSwings(floor).nodes.map((n) => n.attrs["data-id"])).toEqual([
+      "door-front",
+      "door-back",
+      "door-living",
+      "door-kitchen",
+      "door-bedroom",
+      "door-bathroom",
+    ]);
   });
 });
 

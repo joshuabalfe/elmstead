@@ -19,7 +19,24 @@
  *
  * rear-extension.constraints.ts says which of the cottage's measurements this changes.
  */
-import { addTo, centredOn, doorway, face, mid, mm, pt, rectRoom, remove, replace, revise, sub, wall, type Door, type Room, type Window } from "../../../../src/model/index.js";
+import {
+  addTo,
+  centredOn,
+  doorway,
+  face,
+  mid,
+  mm,
+  pt,
+  rectRoom,
+  remove,
+  replace,
+  revise,
+  sub,
+  wall,
+  type Door,
+  type Room,
+  type Window,
+} from "../../../../src/model/index.js";
 import base from "../index.js";
 
 const ground = base.storeys[0]!;
@@ -35,7 +52,12 @@ const eastIn = face(hallWest, "west");
 const livingKitchen: Room = {
   ...living,
   name: "Living kitchen",
-  outline: [pt(westIn, living.outline[0]!.y), pt(eastIn, living.outline[0]!.y), pt(eastIn, face(north, "south")), pt(westIn, face(north, "south"))],
+  outline: [
+    pt(westIn, living.outline[0]!.y),
+    pt(eastIn, living.outline[0]!.y),
+    pt(eastIn, face(north, "south")),
+    pt(westIn, face(north, "south")),
+  ],
 };
 
 // ── Lean-to: three walls whose outer faces are a rectangle off the back wall ────────────────
@@ -53,7 +75,12 @@ const leanToWest = wall("wall-lean-to-west", pt(mm(0), sub(y1, leanToT)), pt(mm(
 const leanToRoom: Room = {
   id: "room-lean-to",
   name: "Lean-to",
-  outline: [pt(face(leanToWest, "east"), back), pt(face(leanToEast, "west"), back), pt(face(leanToEast, "west"), face(leanToNorth, "south")), pt(face(leanToWest, "east"), face(leanToNorth, "south"))],
+  outline: [
+    pt(face(leanToWest, "east"), back),
+    pt(face(leanToEast, "west"), back),
+    pt(face(leanToEast, "west"), face(leanToNorth, "south")),
+    pt(face(leanToWest, "east"), face(leanToNorth, "south")),
+  ],
 };
 const leanToMid = mm(Math.round(leanToWidth / 2));
 
@@ -66,10 +93,22 @@ const hallEast = wallOf("wall-hall-east");
 const east = wallOf("wall-east");
 const partitionWas = wallOf("wall-bedroom-bathroom");
 const partitionY = mm(partitionWas.start.y - 400);
-const partition = { ...partitionWas, start: pt(partitionWas.start.x, partitionY), end: pt(partitionWas.end.x, partitionY) };
+const partition = {
+  ...partitionWas,
+  start: pt(partitionWas.start.x, partitionY),
+  end: pt(partitionWas.end.x, partitionY),
+};
 const eastRooms = { west: face(hallEast, "east"), east: face(east, "west") };
-const bedroom = rectRoom("room-bedroom", "Bedroom", { ...eastRooms, south: face(wallOf("wall-south"), "north"), north: face(partition, "south") });
-const bathroom = rectRoom("room-bathroom", "Bathroom", { ...eastRooms, south: face(partition, "north"), north: face(north, "south") });
+const bedroom = rectRoom("room-bedroom", "Bedroom", {
+  ...eastRooms,
+  south: face(wallOf("wall-south"), "north"),
+  north: face(partition, "south"),
+});
+const bathroom = rectRoom("room-bathroom", "Bathroom", {
+  ...eastRooms,
+  south: face(partition, "north"),
+  north: face(north, "south"),
+});
 const recentred = (id: string, room: Room): Door => {
   const d = ground.openings.find((o) => o.id === id) as Door;
   return { ...d, offsetAlongWall: centredOn(hallEast, mid(room.outline[1]!.y, room.outline[2]!.y), d.width) };
@@ -81,8 +120,18 @@ export default revise(base, [
   replace(partition, bedroom, bathroom, recentred("door-bedroom", bedroom), recentred("door-bathroom", bathroom)),
   addTo("storey-ground", {
     walls: [leanToEast, leanToNorth, leanToWest],
-    openings: [doorway("doorway-lean-to", north, centredOn(north, leanToMid, mm(900)), { width: mm(900), height: mm(2100) })],
-    slabs: [{ id: "slab-lean-to", name: "Lean-to slab", outline: [pt(mm(0), back), pt(x1, back), pt(x1, y1), pt(mm(0), y1)], thickness: mm(150), elevationOffset: mm(0) }],
+    openings: [
+      doorway("doorway-lean-to", north, centredOn(north, leanToMid, mm(900)), { width: mm(900), height: mm(2100) }),
+    ],
+    slabs: [
+      {
+        id: "slab-lean-to",
+        name: "Lean-to slab",
+        outline: [pt(mm(0), back), pt(x1, back), pt(x1, y1), pt(mm(0), y1)],
+        thickness: mm(150),
+        elevationOffset: mm(0),
+      },
+    ],
     rooms: [leanToRoom],
   }),
 ]);

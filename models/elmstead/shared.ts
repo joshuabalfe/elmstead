@@ -26,7 +26,14 @@ export const extRearX = m(10.425); // outside face of the extension's rear wall;
 export const extRightY = m(5.9); // outside face of the extension's right wall; rear hall 2 m deep (owner)
 
 /** Outside of the core plus the rear extension (rear-left corner). */
-export const footprint = [pt(mm(0), mm(0)), pt(coreW, mm(0)), pt(coreW, extRightY), pt(extRearX, extRightY), pt(extRearX, coreD), pt(mm(0), coreD)];
+export const footprint = [
+  pt(mm(0), mm(0)),
+  pt(coreW, mm(0)),
+  pt(coreW, extRightY),
+  pt(extRearX, extRightY),
+  pt(extRearX, coreD),
+  pt(mm(0), coreD),
+];
 
 // ── Construction ─────────────────────────────────────────────────────────────
 export const frontT = mm(450); //  front wall, stone
@@ -149,5 +156,9 @@ export const mainStairRisers = { lower: 9, upper: 8 };
 export const atticStairRisers = { lower: 8, upper: 8 };
 const halfLandingLevel = (bottom: Mm, top: Mm, risers: { lower: number; upper: number }): Mm =>
   add(bottom, mm(Math.round(((top - bottom) * risers.lower) / (risers.lower + risers.upper))));
-export const mainHalfLanding = { elevation: halfLandingLevel(groundFloor.elevation, firstFloor.elevation, mainStairRisers) };
-export const atticHalfLanding = { elevation: halfLandingLevel(firstFloor.elevation, atticFloor.elevation, atticStairRisers) };
+export const mainHalfLanding = {
+  elevation: halfLandingLevel(groundFloor.elevation, firstFloor.elevation, mainStairRisers),
+};
+export const atticHalfLanding = {
+  elevation: halfLandingLevel(firstFloor.elevation, atticFloor.elevation, atticStairRisers),
+};

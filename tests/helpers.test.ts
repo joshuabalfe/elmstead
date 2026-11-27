@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { centredOn, deg, door, doorComponent, face, faceCrossing, m, mid, mm, pt, railing, rectWalls, wall, window, windowComponent } from "../src/model/index.js";
+import {
+  centredOn,
+  deg,
+  door,
+  doorComponent,
+  face,
+  faceCrossing,
+  m,
+  mid,
+  mm,
+  pt,
+  railing,
+  rectWalls,
+  wall,
+  window,
+  windowComponent,
+} from "../src/model/index.js";
 
 const opts = { thickness: mm(200), height: m(2.4) };
 
@@ -28,7 +44,11 @@ describe("model helpers", () => {
     const flat = wall("wall-flat", pt(mm(0), mm(0)), pt(mm(4000), mm(0)), { thickness: mm(200), height: mm(2400) });
     expect(flat).toMatchObject({ height: 2400, justification: "centre" });
     expect(flat).not.toHaveProperty("profile");
-    const profile = [{ along: mm(0), up: mm(0) }, { along: mm(2000), up: mm(3200) }, { along: mm(4000), up: mm(0) }];
+    const profile = [
+      { along: mm(0), up: mm(0) },
+      { along: mm(2000), up: mm(3200) },
+      { along: mm(4000), up: mm(0) },
+    ];
     const pitched = wall("wall-gable", pt(mm(0), mm(0)), pt(mm(4000), mm(0)), { thickness: mm(200), profile });
     expect(pitched.profile).toEqual(profile);
     expect(pitched).not.toHaveProperty("height");
@@ -67,13 +87,27 @@ describe("model helpers", () => {
     const sash = windowComponent("window-type-sash", "Sash");
     const swing = { hinge: "end", side: "right" } as const;
     expect(door("door-a", w.south, mm(100), internal, { width: mm(800), height: m(2.1) }, swing)).toEqual({
-      kind: "door", id: "door-a", wallId: "wall-south", offsetAlongWall: 100, componentId: "door-type-internal", width: 800, height: 2100, sillHeight: 0, swing,
+      kind: "door",
+      id: "door-a",
+      wallId: "wall-south",
+      offsetAlongWall: 100,
+      componentId: "door-type-internal",
+      width: 800,
+      height: 2100,
+      sillHeight: 0,
+      swing,
     });
     // One design, two sizes.
-    expect(window("window-a", w.south, mm(100), sash, { width: mm(1050), height: m(1.2), sillHeight: mm(900) })).toMatchObject({ componentId: "window-type-sash", width: 1050 });
-    expect(window("window-b", w.south, mm(100), sash, { width: mm(950), height: m(1.2), sillHeight: mm(900) })).toMatchObject({ componentId: "window-type-sash", width: 950 });
+    expect(
+      window("window-a", w.south, mm(100), sash, { width: mm(1050), height: m(1.2), sillHeight: mm(900) }),
+    ).toMatchObject({ componentId: "window-type-sash", width: 1050 });
+    expect(
+      window("window-b", w.south, mm(100), sash, { width: mm(950), height: m(1.2), sillHeight: mm(900) }),
+    ).toMatchObject({ componentId: "window-type-sash", width: 950 });
     // A bare size still works, with no component.
-    expect(window("window-b", w.south, mm(100), { width: m(1), height: m(1), sillHeight: mm(900) })).not.toHaveProperty("componentId");
+    expect(window("window-b", w.south, mm(100), { width: m(1), height: m(1), sillHeight: mm(900) })).not.toHaveProperty(
+      "componentId",
+    );
     expect(door("door-b", w.south, mm(100), { width: mm(800), height: m(2.1) })).not.toHaveProperty("componentId");
   });
 
@@ -81,7 +115,10 @@ describe("model helpers", () => {
     const sash = windowComponent("window-type-sash", "Sash");
     const size = { width: mm(1050), height: m(1.2), sillHeight: mm(900) };
     const reveal = { face: "left", angle: deg(45) } as const;
-    expect(window("window-a", w.south, mm(100), sash, size, reveal)).toMatchObject({ componentId: "window-type-sash", reveal: { face: "left", angle: 45 } });
+    expect(window("window-a", w.south, mm(100), sash, size, reveal)).toMatchObject({
+      componentId: "window-type-sash",
+      reveal: { face: "left", angle: 45 },
+    });
     expect(window("window-b", w.south, mm(100), size, reveal)).toMatchObject({ width: 1050, reveal });
     expect(window("window-c", w.south, mm(100), sash, size)).not.toHaveProperty("reveal");
     expect(window("window-d", w.south, mm(100), size)).not.toHaveProperty("reveal");
@@ -90,8 +127,16 @@ describe("model helpers", () => {
   it("railing() records the bases it is given and omits both otherwise", () => {
     const a = pt(mm(0), mm(0));
     const b = pt(m(2), mm(0));
-    expect(railing("railing-level", a, b, { height: mm(900) })).toEqual({ id: "railing-level", start: a, end: b, height: 900 });
-    expect(railing("railing-sloped", a, b, { height: mm(900), startBase: mm(150), endBase: mm(600) })).toMatchObject({ startBase: 150, endBase: 600 });
+    expect(railing("railing-level", a, b, { height: mm(900) })).toEqual({
+      id: "railing-level",
+      start: a,
+      end: b,
+      height: 900,
+    });
+    expect(railing("railing-sloped", a, b, { height: mm(900), startBase: mm(150), endBase: mm(600) })).toMatchObject({
+      startBase: 150,
+      endBase: 600,
+    });
     expect(railing("railing-partial", a, b, { height: mm(900), endBase: mm(600) })).not.toHaveProperty("startBase");
   });
 

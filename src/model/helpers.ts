@@ -2,7 +2,26 @@
  * Authoring helpers for model files. These only build plain schema values; they hold no state.
  * Everything here is optional sugar: a model can always write the JSON shape out by hand.
  */
-import { SCHEMA_VERSION, type BuildingModel, type Door, type DoorComponent, type Point, type Polygon, type Railing, type Reveal, type Room, type Stair, type StairFlight, type StairLanding, type StairSegment, type Storey, type Swing, type Wall, type Window, type WindowComponent } from "../schema/schema.js";
+import {
+  SCHEMA_VERSION,
+  type BuildingModel,
+  type Door,
+  type DoorComponent,
+  type Point,
+  type Polygon,
+  type Railing,
+  type Reveal,
+  type Room,
+  type Stair,
+  type StairFlight,
+  type StairLanding,
+  type StairSegment,
+  type Storey,
+  type Swing,
+  type Wall,
+  type Window,
+  type WindowComponent,
+} from "../schema/schema.js";
 import { faceOffsets, wallDirection, wallLength } from "../geometry/wall.js";
 import { add, divRound, mm, sub, type Mm } from "../schema/units.js";
 
@@ -97,7 +116,8 @@ export function face(w: Wall, side: Compass): Mm {
  */
 export function faceCrossing(w: Wall, side: "left" | "right", axis: "x" | "y", at: Mm): Point {
   const d = wallDirection(w);
-  if (Math.abs(d[axis]) < 1e-9) throw new Error(`faceCrossing(${w.id}, ${side}, ${axis} = ${at}): the face runs along that line`);
+  if (Math.abs(d[axis]) < 1e-9)
+    throw new Error(`faceCrossing(${w.id}, ${side}, ${axis} = ${at}): the face runs along that line`);
   const offset = faceOffsets(w)[side];
   // A point on the face (offset along the left normal), then along the wall to the line.
   const o = { x: w.start.x - d.y * offset, y: w.start.y + d.x * offset };
@@ -133,17 +153,39 @@ export function centredOn(w: Wall, at: Mm, width: Mm): Mm {
 type OpeningSize = Pick<Door, "width" | "height">;
 
 /** A door design (see `components` in the schema), for `door()`, optionally with a frame. */
-export const doorComponent = (id: string, name: string, detail: Omit<DoorComponent, "id" | "name"> = {}): DoorComponent => ({ id, name, ...detail });
+export const doorComponent = (
+  id: string,
+  name: string,
+  detail: Omit<DoorComponent, "id" | "name"> = {},
+): DoorComponent => ({ id, name, ...detail });
 /** A window design (see `components` in the schema), for `window()`, optionally with glazing bars. */
-export const windowComponent = (id: string, name: string, detail: Omit<WindowComponent, "id" | "name"> = {}): WindowComponent => ({ id, name, ...detail });
+export const windowComponent = (
+  id: string,
+  name: string,
+  detail: Omit<WindowComponent, "id" | "name"> = {},
+): WindowComponent => ({ id, name, ...detail });
 
 /**
  * A door, with `sillHeight` 0: `door(id, wall, offset, component, size, swing?)`, linked to the
  * component, or `door(id, wall, offset, size, swing?)` without one.
  */
-export function door(id: string, w: Wall, offsetAlongWall: Mm, component: DoorComponent, size: OpeningSize, swing?: Swing): Door;
+export function door(
+  id: string,
+  w: Wall,
+  offsetAlongWall: Mm,
+  component: DoorComponent,
+  size: OpeningSize,
+  swing?: Swing,
+): Door;
 export function door(id: string, w: Wall, offsetAlongWall: Mm, size: OpeningSize, swing?: Swing): Door;
-export function door(id: string, w: Wall, offsetAlongWall: Mm, a: DoorComponent | OpeningSize, b?: OpeningSize | Swing, c?: Swing): Door {
+export function door(
+  id: string,
+  w: Wall,
+  offsetAlongWall: Mm,
+  a: DoorComponent | OpeningSize,
+  b?: OpeningSize | Swing,
+  c?: Swing,
+): Door {
   const [component, size, swing] = "id" in a ? [a, b as OpeningSize, c] : [undefined, a, b as Swing | undefined];
   return {
     kind: "door",
@@ -160,7 +202,16 @@ export function door(id: string, w: Wall, offsetAlongWall: Mm, a: DoorComponent 
 
 /** A doorway: a wall opening with no door leaf, frame or swing. */
 export function doorway(id: string, w: Wall, offsetAlongWall: Mm, size: OpeningSize): Door {
-  return { kind: "door", id, wallId: w.id, offsetAlongWall, width: size.width, height: size.height, sillHeight: mm(0), doorway: true };
+  return {
+    kind: "door",
+    id,
+    wallId: w.id,
+    offsetAlongWall,
+    width: size.width,
+    height: size.height,
+    sillHeight: mm(0),
+    doorway: true,
+  };
 }
 
 /**
@@ -168,10 +219,31 @@ export function doorway(id: string, w: Wall, offsetAlongWall: Mm, size: OpeningS
  * component, or `window(id, wall, offset, { width, height, sillHeight })` without one. A last
  * `reveal` splays its jambs.
  */
-export function window(id: string, w: Wall, offsetAlongWall: Mm, component: WindowComponent, size: OpeningSize & Pick<Window, "sillHeight">, reveal?: Reveal): Window;
-export function window(id: string, w: Wall, offsetAlongWall: Mm, size: OpeningSize & Pick<Window, "sillHeight">, reveal?: Reveal): Window;
-export function window(id: string, w: Wall, offsetAlongWall: Mm, a: WindowComponent | (OpeningSize & Pick<Window, "sillHeight">), b?: (OpeningSize & Pick<Window, "sillHeight">) | Reveal, c?: Reveal): Window {
-  const [component, size, reveal] = "id" in a ? [a, b as OpeningSize & Pick<Window, "sillHeight">, c] : [undefined, a, b as Reveal | undefined];
+export function window(
+  id: string,
+  w: Wall,
+  offsetAlongWall: Mm,
+  component: WindowComponent,
+  size: OpeningSize & Pick<Window, "sillHeight">,
+  reveal?: Reveal,
+): Window;
+export function window(
+  id: string,
+  w: Wall,
+  offsetAlongWall: Mm,
+  size: OpeningSize & Pick<Window, "sillHeight">,
+  reveal?: Reveal,
+): Window;
+export function window(
+  id: string,
+  w: Wall,
+  offsetAlongWall: Mm,
+  a: WindowComponent | (OpeningSize & Pick<Window, "sillHeight">),
+  b?: (OpeningSize & Pick<Window, "sillHeight">) | Reveal,
+  c?: Reveal,
+): Window {
+  const [component, size, reveal] =
+    "id" in a ? [a, b as OpeningSize & Pick<Window, "sillHeight">, c] : [undefined, a, b as Reveal | undefined];
   return {
     kind: "window",
     id,
@@ -186,7 +258,12 @@ export function window(id: string, w: Wall, offsetAlongWall: Mm, a: WindowCompon
 }
 
 /** A straight run of steps, for `stair()`. Levels are derived, so only the plan geometry is given. */
-export const stairFlight = (id: string, start: Point, end: Point, opts: Pick<StairFlight, "width" | "risers">): StairFlight => ({
+export const stairFlight = (
+  id: string,
+  start: Point,
+  end: Point,
+  opts: Pick<StairFlight, "width" | "risers">,
+): StairFlight => ({
   kind: "flight",
   id,
   start,

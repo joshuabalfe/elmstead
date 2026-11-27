@@ -78,10 +78,18 @@ const median = (xs: number[]) => quantile(xs, 0.5);
 const round = (n: number, dp = 1) => Math.round(n * 10 ** dp) / 10 ** dp;
 
 process.env.ELMSTEAD_OUT_DIR ??= join(PROJECT_ROOT, "out");
-const server = await createServer({ configFile: join(root, "viewer/vite.config.ts"), server: { port: 0 }, logLevel: "error" });
+const server = await createServer({
+  configFile: join(root, "viewer/vite.config.ts"),
+  server: { port: 0 },
+  logLevel: "error",
+});
 await server.listen();
 const url = server.resolvedUrls?.local[0];
-const browser = await chromium.launch({ args: gpu ? ["--use-angle=metal", "--enable-gpu", "--ignore-gpu-blocklist"] : ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
+const browser = await chromium.launch({
+  args: gpu
+    ? ["--use-angle=metal", "--enable-gpu", "--ignore-gpu-blocklist"]
+    : ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
+});
 try {
   if (!url) throw new Error("viewer dev server did not start");
   const results: Record<string, number | string>[] = [];
@@ -116,8 +124,19 @@ try {
       gpuMsP90: round(quantile(gpuMs, 0.9)),
     });
   }
-  const summary = Object.fromEntries(Object.entries(results[0]!).map(([k, v]) => [k, typeof v === "number" ? median(results.map((r) => r[k] as number)) : v]));
-  console.log(JSON.stringify({ model, root, renderer: gpu ? "gpu" : "swiftshader", query, runs, median: summary, results }, null, 2));
+  const summary = Object.fromEntries(
+    Object.entries(results[0]!).map(([k, v]) => [
+      k,
+      typeof v === "number" ? median(results.map((r) => r[k] as number)) : v,
+    ]),
+  );
+  console.log(
+    JSON.stringify(
+      { model, root, renderer: gpu ? "gpu" : "swiftshader", query, runs, median: summary, results },
+      null,
+      2,
+    ),
+  );
 } finally {
   await browser.close();
   await server.close();

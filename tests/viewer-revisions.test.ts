@@ -87,7 +87,8 @@ const changes = () => page.evaluate(() => window.__elmsteadRevisionChanges ?? 0)
 const modelParam = () => new URL(page.url()).searchParams.get("model");
 
 /** Wait until the viewer has loaded and drawn the next revision choice after `before`. */
-const switched = (before: number) => page.waitForFunction((n: number) => (window.__elmsteadRevisionChanges ?? 0) > n, before, { timeout: 60_000 });
+const switched = (before: number) =>
+  page.waitForFunction((n: number) => (window.__elmsteadRevisionChanges ?? 0) > n, before, { timeout: 60_000 });
 
 /** Choose a revision in the picker ("" for Existing) and wait until it is drawn. */
 async function choose(rev: string) {
@@ -119,20 +120,32 @@ async function view(name: string) {
 }
 
 const pickerOptions = () =>
-  page.$$eval("#revision option", (os) => os.map((o) => ({ value: (o as HTMLOptionElement).value, text: o.textContent, disabled: (o as HTMLOptionElement).disabled })));
+  page.$$eval("#revision option", (os) =>
+    os.map((o) => ({
+      value: (o as HTMLOptionElement).value,
+      text: o.textContent,
+      disabled: (o as HTMLOptionElement).disabled,
+    })),
+  );
 
 beforeAll(async () => {
   try {
     browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
   } catch (e) {
-    if (/Executable doesn't exist|playwright install/i.test(String(e))) throw new Error("Chromium missing — it comes with npm install (@playwright/browser-chromium); if install scripts were skipped, run: npm rebuild @playwright/browser-chromium");
+    if (/Executable doesn't exist|playwright install/i.test(String(e)))
+      throw new Error(
+        "Chromium missing — it comes with npm install (@playwright/browser-chromium); if install scripts were skipped, run: npm rebuild @playwright/browser-chromium",
+      );
     throw e;
   }
   outDir = mkdtempSync(join(tmpdir(), "elmstead-revisions-"));
   process.env.ELMSTEAD_OUT_DIR = outDir;
   const cottage = await model("models/examples/example-cottage");
   await publish(COTTAGE, cottage);
-  await publish(`${COTTAGE}@rear-extension`, await model("models/examples/example-cottage/revisions/rear-extension.ts"));
+  await publish(
+    `${COTTAGE}@rear-extension`,
+    await model("models/examples/example-cottage/revisions/rear-extension.ts"),
+  );
   await publish(`${COTTAGE}@no-kitchen-window`, revise(cottage, [remove("window-kitchen")]));
   const two = await model("tests/fixtures/two-storey");
   await publish(TWO, two);
@@ -190,12 +203,20 @@ describe("revision picker", () => {
   it("is hidden for a model without revisions, and shown again for one with them", async () => {
     await open(`model=${COTTAGE}&view=top&labels=0`);
     await page.selectOption("#model", PLAIN);
-    await page.waitForFunction((m: string) => document.querySelector("#status")?.textContent?.startsWith(`${m}.ifc`), PLAIN, { timeout: 60_000 });
+    await page.waitForFunction(
+      (m: string) => document.querySelector("#status")?.textContent?.startsWith(`${m}.ifc`),
+      PLAIN,
+      { timeout: 60_000 },
+    );
     expect(await page.isHidden("#revision")).toBe(true);
     expect(modelParam()).toBe(PLAIN);
     await ignored("ArrowRight");
     await page.selectOption("#model", COTTAGE);
-    await page.waitForFunction((m: string) => document.querySelector("#status")?.textContent?.startsWith(`${m}.ifc`), COTTAGE, { timeout: 60_000 });
+    await page.waitForFunction(
+      (m: string) => document.querySelector("#status")?.textContent?.startsWith(`${m}.ifc`),
+      COTTAGE,
+      { timeout: 60_000 },
+    );
     expect(await page.isHidden("#revision")).toBe(false);
     expect(await page.inputValue("#revision")).toBe("");
   }, 120_000);
@@ -294,9 +315,15 @@ describe("switching revisions keeps the view", () => {
     await open(`model=${COTTAGE}&view=top&labels=0&style=plan&measure=1`);
     await page.mouse.click(VIEWPORT.width / 2, VIEWPORT.height / 2);
     await page.mouse.click(VIEWPORT.width / 2 + 100, VIEWPORT.height / 2);
-    await page.waitForFunction(() => (window as { __elmsteadMeasurements?: unknown[] }).__elmsteadMeasurements?.length === 1, null, { timeout: 10_000 });
+    await page.waitForFunction(
+      () => (window as { __elmsteadMeasurements?: unknown[] }).__elmsteadMeasurements?.length === 1,
+      null,
+      { timeout: 10_000 },
+    );
     await choose("rear-extension");
-    expect(await page.evaluate(() => (window as { __elmsteadMeasurements?: unknown[] }).__elmsteadMeasurements?.length ?? 0)).toBe(0);
+    expect(
+      await page.evaluate(() => (window as { __elmsteadMeasurements?: unknown[] }).__elmsteadMeasurements?.length ?? 0),
+    ).toBe(0);
   }, 120_000);
 
   it("leaves walk mode", async () => {
@@ -344,9 +371,17 @@ describe("revisions stay loaded", () => {
     await choose("rear-extension");
     const fetched = ifcFetches();
     await page.selectOption("#model", PLAIN);
-    await page.waitForFunction((m: string) => document.querySelector("#status")?.textContent?.startsWith(`${m}.ifc`), PLAIN, { timeout: 60_000 });
+    await page.waitForFunction(
+      (m: string) => document.querySelector("#status")?.textContent?.startsWith(`${m}.ifc`),
+      PLAIN,
+      { timeout: 60_000 },
+    );
     await page.selectOption("#model", COTTAGE);
-    await page.waitForFunction((m: string) => document.querySelector("#status")?.textContent?.startsWith(`${m}.ifc`), COTTAGE, { timeout: 60_000 });
+    await page.waitForFunction(
+      (m: string) => document.querySelector("#status")?.textContent?.startsWith(`${m}.ifc`),
+      COTTAGE,
+      { timeout: 60_000 },
+    );
     await choose("rear-extension");
     expect(fetched).toEqual([PLAIN, COTTAGE, `${COTTAGE}@rear-extension`]);
   }, 180_000);

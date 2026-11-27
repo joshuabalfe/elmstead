@@ -27,7 +27,10 @@ export function toScene(p: Vec, bounds: Bounds): { x: number; z: number } {
 export function dashOf(attrs: Attrs): { dash: number; gap: number } | null {
   const raw = attrs["stroke-dasharray"];
   if (raw === undefined || raw === "none") return null;
-  const [dash, gap = dash] = String(raw).trim().split(/[\s,]+/).map(Number);
+  const [dash, gap = dash] = String(raw)
+    .trim()
+    .split(/[\s,]+/)
+    .map(Number);
   return dash ? { dash: dash * M_PER_PX, gap: gap! * M_PER_PX } : null;
 }
 
@@ -60,7 +63,12 @@ export function toRuns(nodes: readonly Node[]): Run[] {
     const width = Number(attrs["stroke-width"] ?? 1) * M_PER_PX;
     const dash = dashOf(attrs);
     const last = runs.at(-1);
-    const same = last?.kind === "stroke" && last.colour === colour && last.width === width && last.dash?.dash === dash?.dash && last.dash?.gap === dash?.gap;
+    const same =
+      last?.kind === "stroke" &&
+      last.colour === colour &&
+      last.width === width &&
+      last.dash?.dash === dash?.dash &&
+      last.dash?.gap === dash?.gap;
     if (same) last.segments.push(...segments);
     else runs.push({ kind: "stroke", colour, width, dash, segments });
   };
@@ -115,8 +123,14 @@ export function rotationOf(attrs: Attrs, at: Vec): { deg: number; centre: Vec } 
 export function placeText(at: Vec, attrs: Attrs, offset: Vec): { centre: Vec; yaw: number } {
   const { deg, centre: pivot } = rotationOf(attrs, at);
   const a = (deg * Math.PI) / 180;
-  const turn = (p: Vec): Vec => ({ x: p.x * Math.cos(a) - p.y * Math.sin(a), y: p.x * Math.sin(a) + p.y * Math.cos(a) });
-  const anchor = { x: pivot.x + turn({ x: at.x - pivot.x, y: at.y - pivot.y }).x, y: pivot.y + turn({ x: at.x - pivot.x, y: at.y - pivot.y }).y };
+  const turn = (p: Vec): Vec => ({
+    x: p.x * Math.cos(a) - p.y * Math.sin(a),
+    y: p.x * Math.sin(a) + p.y * Math.cos(a),
+  });
+  const anchor = {
+    x: pivot.x + turn({ x: at.x - pivot.x, y: at.y - pivot.y }).x,
+    y: pivot.y + turn({ x: at.x - pivot.x, y: at.y - pivot.y }).y,
+  };
   const d = turn(offset);
   // SVG turns clockwise on screen with y down; seen from above, the scene's yaw about +Y is counter-clockwise.
   return { centre: { x: anchor.x + d.x, y: anchor.y + d.y }, yaw: -a };
@@ -138,13 +152,23 @@ const UP = new THREE.Vector3(0, 1, 0);
  * the next step of render order within half a unit above `layer.renderOrder`. A floor's runs also
  * step their polygon offset towards the camera, so coplanar runs keep their order without z-fighting.
  */
-export function overlayGroup(nodes: readonly Node[], bounds: Bounds, y: number, layer: OverlayLayer, anisotropy = 1): THREE.Group {
+export function overlayGroup(
+  nodes: readonly Node[],
+  bounds: Bounds,
+  y: number,
+  layer: OverlayLayer,
+  anisotropy = 1,
+): THREE.Group {
   const group = new THREE.Group();
   const runs = toRuns(nodes);
   const floor = layer.kind === "floor";
   runs.forEach((run, i) => {
     const order = layer.renderOrder + (0.5 * i) / runs.length;
-    const depth = { transparent: !floor, depthWrite: floor, ...(floor ? { polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -i } : {}) };
+    const depth = {
+      transparent: !floor,
+      depthWrite: floor,
+      ...(floor ? { polygonOffset: true, polygonOffsetFactor: 0, polygonOffsetUnits: -i } : {}),
+    };
     const point = (p: Vec) => {
       const s = toScene(p, bounds);
       return [s.x, y, s.z];
@@ -153,14 +177,23 @@ export function overlayGroup(nodes: readonly Node[], bounds: Bounds, y: number, 
       const positions: number[] = [];
       for (const polygon of run.polygons) {
         const contour = polygon.map((p) => new THREE.Vector2(p.x, p.y));
-        for (const tri of THREE.ShapeUtils.triangulateShape(contour, [])) for (const k of tri) positions.push(...point(polygon[k]!));
+        for (const tri of THREE.ShapeUtils.triangulateShape(contour, []))
+          for (const k of tri) positions.push(...point(polygon[k]!));
       }
-      const geometry = new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-      const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: run.colour, side: THREE.DoubleSide, ...depth }));
+      const geometry = new THREE.BufferGeometry().setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(positions, 3),
+      );
+      const mesh = new THREE.Mesh(
+        geometry,
+        new THREE.MeshBasicMaterial({ color: run.colour, side: THREE.DoubleSide, ...depth }),
+      );
       mesh.renderOrder = order;
       group.add(mesh);
     } else if (run.kind === "stroke") {
-      const geometry = new LineSegmentsGeometry().setPositions(run.segments.flatMap(([a, b]) => [...point(a), ...point(b)]));
+      const geometry = new LineSegmentsGeometry().setPositions(
+        run.segments.flatMap(([a, b]) => [...point(a), ...point(b)]),
+      );
       const material = new LineMaterial({ color: run.colour, linewidth: run.width, worldUnits: true, ...depth });
       if (run.dash) Object.assign(material, { dashed: true, dashSize: run.dash.dash, gapSize: run.dash.gap });
       const lines = new LineSegments2(geometry, material);
@@ -172,11 +205,19 @@ export function overlayGroup(nodes: readonly Node[], bounds: Bounds, y: number, 
       for (const t of run.texts) {
         const size = Number(t.attrs["font-size"] ?? 16);
         const halo = isNone(t.attrs.stroke) ? 0 : Number(t.attrs["stroke-width"] ?? 1);
-        const { map, width, height, centreDy } = labelTexture([{ text: t.text, size, bold: t.attrs["font-weight"] === "bold", dy: 0 }], String(t.attrs.fill ?? "#000"), halo);
+        const { map, width, height, centreDy } = labelTexture(
+          [{ text: t.text, size, bold: t.attrs["font-weight"] === "bold", dy: 0 }],
+          String(t.attrs.fill ?? "#000"),
+          halo,
+        );
         map.anisotropy = anisotropy;
-        const across = t.attrs["text-anchor"] === "middle" ? 0 : t.attrs["text-anchor"] === "end" ? -width / 2 : width / 2;
+        const across =
+          t.attrs["text-anchor"] === "middle" ? 0 : t.attrs["text-anchor"] === "end" ? -width / 2 : width / 2;
         const { centre, yaw } = placeText(t.at, t.attrs, { x: across, y: centreDy });
-        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width * M_PER_PX, height * M_PER_PX), new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false }));
+        const mesh = new THREE.Mesh(
+          new THREE.PlaneGeometry(width * M_PER_PX, height * M_PER_PX),
+          new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false }),
+        );
         const c = toScene(centre, bounds);
         mesh.position.set(c.x, y, c.z);
         mesh.quaternion.setFromAxisAngle(UP, yaw).multiply(FLAT);

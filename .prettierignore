@@ -1,0 +1,10 @@
+node_modules/
+out/
+dist/
+.claude/
+.qwen/
+package-lock.json
+schema/building.schema.json
+tests/__snapshots__/
+validator/validate.py.lock
+openspec/changes/archive/

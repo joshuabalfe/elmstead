@@ -18,7 +18,12 @@ function elmstead(): Plugin {
       server.middlewares.use((req, res, next) => {
         const url = new URL(req.url ?? "/", "http://x");
         if (url.pathname === "/models.json") {
-          const models = existsSync(out) ? readdirSync(out).filter((f) => f.endsWith(".ifc")).map((f) => f.slice(0, -4)).sort() : [];
+          const models = existsSync(out)
+            ? readdirSync(out)
+                .filter((f) => f.endsWith(".ifc"))
+                .map((f) => f.slice(0, -4))
+                .sort()
+            : [];
           res.setHeader("content-type", "application/json");
           res.end(JSON.stringify(models));
           return;

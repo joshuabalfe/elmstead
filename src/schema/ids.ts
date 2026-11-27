@@ -1,5 +1,20 @@
 // Every id-bearing node in a model, for the id check, the constraint index and revisions.
-import type { BuildingModel, Door, DoorComponent, Railing, Room, Site, Slab, Stair, StairFlight, StairLanding, Storey, Wall, Window, WindowComponent } from "./schema.js";
+import type {
+  BuildingModel,
+  Door,
+  DoorComponent,
+  Railing,
+  Room,
+  Site,
+  Slab,
+  Stair,
+  StairFlight,
+  StairLanding,
+  Storey,
+  Wall,
+  Window,
+  WindowComponent,
+} from "./schema.js";
 
 /** The arrays of id-bearing elements on a storey. */
 export const STOREY_COLLECTIONS = ["walls", "openings", "slabs", "rooms", "stairs", "railings"] as const;
@@ -14,7 +29,8 @@ export type ComponentCollection = (typeof COMPONENT_COLLECTIONS)[number];
  * or a component in one of the component arrays. The project, site, building, storeys and stair
  * segments have no place: they are not edited on their own.
  */
-export type IdPlace = { storey: string; collection: StoreyCollection; index: number } | { collection: ComponentCollection; index: number };
+export type IdPlace =
+  { storey: string; collection: StoreyCollection; index: number } | { collection: ComponentCollection; index: number };
 
 /** A node on a storey, with that storey's id. */
 type OnStorey<K extends string, E> = { kind: K; element: E; storey: string };
@@ -54,17 +70,32 @@ export function idNodes(model: BuildingModel): IdNode[] {
     const at = (collection: StoreyCollection, index: number): IdPlace => ({ storey, collection, index });
     nodes.push({ kind: "storey", element: s, storey });
     s.walls.forEach((w, i) => nodes.push({ kind: "wall", element: w, storey, place: at("walls", i) }));
-    s.openings.forEach((o, i) => nodes.push(o.kind === "door" ? { kind: "door", element: o, storey, place: at("openings", i) } : { kind: "window", element: o, storey, place: at("openings", i) }));
+    s.openings.forEach((o, i) =>
+      nodes.push(
+        o.kind === "door"
+          ? { kind: "door", element: o, storey, place: at("openings", i) }
+          : { kind: "window", element: o, storey, place: at("openings", i) },
+      ),
+    );
     s.slabs.forEach((sl, i) => nodes.push({ kind: "slab", element: sl, storey, place: at("slabs", i) }));
     s.rooms.forEach((r, i) => nodes.push({ kind: "room", element: r, storey, place: at("rooms", i) }));
     (s.stairs ?? []).forEach((st, i) => {
       nodes.push({ kind: "stair", element: st, storey, place: at("stairs", i) });
-      for (const seg of st.segments) nodes.push(seg.kind === "flight" ? { kind: "stair flight", element: seg, storey } : { kind: "stair landing", element: seg, storey });
+      for (const seg of st.segments)
+        nodes.push(
+          seg.kind === "flight"
+            ? { kind: "stair flight", element: seg, storey }
+            : { kind: "stair landing", element: seg, storey },
+        );
     });
     (s.railings ?? []).forEach((r, i) => nodes.push({ kind: "railing", element: r, storey, place: at("railings", i) }));
   }
-  (model.components?.doors ?? []).forEach((c, index) => nodes.push({ kind: "door component", element: c, place: { collection: "doors", index } }));
-  (model.components?.windows ?? []).forEach((c, index) => nodes.push({ kind: "window component", element: c, place: { collection: "windows", index } }));
+  (model.components?.doors ?? []).forEach((c, index) =>
+    nodes.push({ kind: "door component", element: c, place: { collection: "doors", index } }),
+  );
+  (model.components?.windows ?? []).forEach((c, index) =>
+    nodes.push({ kind: "window component", element: c, place: { collection: "windows", index } }),
+  );
   return nodes;
 }
 

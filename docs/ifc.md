@@ -21,20 +21,20 @@ Units: millimetres for length, m² for area, m³ for volume and radians for plan
 
 ## Element mapping
 
-| Model | IFC | Geometry |
-|---|---|---|
-| Wall | `IfcWall` (`NOTDEFINED`) | `Axis` polyline and `Body` extruded rectangle. Local X runs along the wall and the origin is at the wall start, offset by its justification |
-| Opening | `IfcOpeningElement` + `IfcRelVoidsElement` | box the size of the opening, extended 10 mm past each face of the wall so the cut is clean. A window with a `reveal` is an `IfcArbitraryClosedProfileDef` of its plan outline instead, square from one face to the middle of the wall and splayed to the other, its splayed jambs carried on 10 mm past the face |
-| Door | `IfcDoor` + `IfcRelFillsElement` | 50 mm leaf in the opening; with its component's frame, three 70 mm deep `frame`-coloured pieces (jambs and head) and the leaf shrunk to fit inside them. `OperationType` is `SINGLE_SWING_LEFT` or `SINGLE_SWING_RIGHT` from `swing` |
-| Doorway | `IfcOpeningElement` + `IfcRelVoidsElement` only | no `IfcDoor` or `IfcRelFillsElement`; the opening's `Tag` is the doorway id and its `Name` the doorway's name |
-| Window | `IfcWindow` + `IfcRelFillsElement` | 50 mm glazing panel at the sill height; with its component's frame and glazing bars, one panel per pane and a 70 mm deep `frame`-coloured box per frame piece and bar, none overlapping (`src/geometry/window.ts`) |
-| Slab | `IfcSlab` (`FLOOR`) | outline extruded up to `elevationOffset`, `thickness` deep |
-| Stair | `IfcStair`, `PredefinedType` from its flights' turn | none. A container only, so its geometry is counted once, through its flights and landings, which are aggregated under it by one `IfcRelAggregates` |
-| Stair flight | `IfcStairFlight` (`STRAIGHT`), aggregated under its stair | the stepped side profile with a flat tapered soffit (a hollow waist, not a solid block) extruded across the flight's `width`. Local X runs along the flight and local Y is up, so the extrusion goes across. `NumberOfRisers`, `NumberOfTreads` (risers − 1), `RiserHeight` and `TreadLength` are the derived values |
-| Stair landing | `IfcSlab` (`LANDING`), aggregated under its stair | outline extruded down from the landing's derived level by its `thickness` |
-| Door component | `IfcDoorType` (`DOOR`), declared in the project (`IfcRelDeclares`), linked to its doors by `IfcRelDefinesByType` | none. `Name` is the component name, `Tag` its id. `OperationType` is `NOTDEFINED`, because handing differs door by door; each `IfcDoor` keeps its own |
-| Window component | `IfcWindowType` (`WINDOW`), declared and linked the same way | none |
-| Room | `IfcSpace` (`INTERNAL`) | `FootPrint` 2D outline only, because rooms have no height yet. `Name` is the room id and `LongName` the room name |
+| Model            | IFC                                                                                                              | Geometry                                                                                                                                                                                                                                                                                                             |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Wall             | `IfcWall` (`NOTDEFINED`)                                                                                         | `Axis` polyline and `Body` extruded rectangle. Local X runs along the wall and the origin is at the wall start, offset by its justification                                                                                                                                                                          |
+| Opening          | `IfcOpeningElement` + `IfcRelVoidsElement`                                                                       | box the size of the opening, extended 10 mm past each face of the wall so the cut is clean. A window with a `reveal` is an `IfcArbitraryClosedProfileDef` of its plan outline instead, square from one face to the middle of the wall and splayed to the other, its splayed jambs carried on 10 mm past the face     |
+| Door             | `IfcDoor` + `IfcRelFillsElement`                                                                                 | 50 mm leaf in the opening; with its component's frame, three 70 mm deep `frame`-coloured pieces (jambs and head) and the leaf shrunk to fit inside them. `OperationType` is `SINGLE_SWING_LEFT` or `SINGLE_SWING_RIGHT` from `swing`                                                                                 |
+| Doorway          | `IfcOpeningElement` + `IfcRelVoidsElement` only                                                                  | no `IfcDoor` or `IfcRelFillsElement`; the opening's `Tag` is the doorway id and its `Name` the doorway's name                                                                                                                                                                                                        |
+| Window           | `IfcWindow` + `IfcRelFillsElement`                                                                               | 50 mm glazing panel at the sill height; with its component's frame and glazing bars, one panel per pane and a 70 mm deep `frame`-coloured box per frame piece and bar, none overlapping (`src/geometry/window.ts`)                                                                                                   |
+| Slab             | `IfcSlab` (`FLOOR`)                                                                                              | outline extruded up to `elevationOffset`, `thickness` deep                                                                                                                                                                                                                                                           |
+| Stair            | `IfcStair`, `PredefinedType` from its flights' turn                                                              | none. A container only, so its geometry is counted once, through its flights and landings, which are aggregated under it by one `IfcRelAggregates`                                                                                                                                                                   |
+| Stair flight     | `IfcStairFlight` (`STRAIGHT`), aggregated under its stair                                                        | the stepped side profile with a flat tapered soffit (a hollow waist, not a solid block) extruded across the flight's `width`. Local X runs along the flight and local Y is up, so the extrusion goes across. `NumberOfRisers`, `NumberOfTreads` (risers − 1), `RiserHeight` and `TreadLength` are the derived values |
+| Stair landing    | `IfcSlab` (`LANDING`), aggregated under its stair                                                                | outline extruded down from the landing's derived level by its `thickness`                                                                                                                                                                                                                                            |
+| Door component   | `IfcDoorType` (`DOOR`), declared in the project (`IfcRelDeclares`), linked to its doors by `IfcRelDefinesByType` | none. `Name` is the component name, `Tag` its id. `OperationType` is `NOTDEFINED`, because handing differs door by door; each `IfcDoor` keeps its own                                                                                                                                                                |
+| Window component | `IfcWindowType` (`WINDOW`), declared and linked the same way                                                     | none                                                                                                                                                                                                                                                                                                                 |
+| Room             | `IfcSpace` (`INTERNAL`)                                                                                          | `FootPrint` 2D outline only, because rooms have no height yet. `Name` is the room id and `LongName` the room name                                                                                                                                                                                                    |
 
 - Every element's `Tag` is its model id, and its `Name` is the model `name` (falling back to the id).
 - Window partitioning follows the glazing grid, on both the type and each instance: one pane is
@@ -79,15 +79,15 @@ GlobalIds are **deterministic**:
 
 The key is the element id for elements. Things that have no id of their own get a derived key:
 
-| Entity | Key |
-|---|---|
-| opening element for `door-front` | `door-front#opening` |
-| doorway opening element | the doorway id, e.g. `doorway-west` (there is no door entity) |
-| voids / fills relationships | `<id>#voids`, `<id>#fills` |
-| storey containment / space aggregation | `<storey>#contains`, `<storey>#spaces` |
-| other aggregations, including a stair's flights and landing under their stair | `<parent>#aggregates`, e.g. `stair-main#aggregates` |
-| door or window type | the component id, e.g. `door-type-internal` |
-| its instances / the project's type declarations | `<component>#instances`, `<project>#types` |
+| Entity                                                                        | Key                                                           |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| opening element for `door-front`                                              | `door-front#opening`                                          |
+| doorway opening element                                                       | the doorway id, e.g. `doorway-west` (there is no door entity) |
+| voids / fills relationships                                                   | `<id>#voids`, `<id>#fills`                                    |
+| storey containment / space aggregation                                        | `<storey>#contains`, `<storey>#spaces`                        |
+| other aggregations, including a stair's flights and landing under their stair | `<parent>#aggregates`, e.g. `stair-main#aggregates`           |
+| door or window type                                                           | the component id, e.g. `door-type-internal`                   |
+| its instances / the project's type declarations                               | `<component>#instances`, `<project>#types`                    |
 
 As a result:
 

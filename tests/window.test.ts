@@ -35,18 +35,33 @@ describe("glazing bars", () => {
   });
 
   it("leave a window without them as one pane", () => {
-    expect(windowDivision({ width: mm(1200), height: mm(1200) })).toEqual({ panes: [{ x: 0, z: 0, w: 1200, h: 1200 }], bars: [], frame: [] });
+    expect(windowDivision({ width: mm(1200), height: mm(1200) })).toEqual({
+      panes: [{ x: 0, z: 0, w: 1200, h: 1200 }],
+      bars: [],
+      frame: [],
+    });
   });
 
   it("must leave room for glass", () => {
-    const m = barred({ columns: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], rows: [1], barWidth: mm(60) });
+    const m = barred({
+      columns: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+      rows: [1],
+      barWidth: mm(60),
+    });
     const issues = checkComponents(m);
     expect(issues.length).toBe(4); // every cottage window is 1200 wide: 20 bars of 60 fill it
-    expect(issues[0]).toMatchObject({ level: "ERROR", id: "window-living", message: "1200 mm of bars between 21 panes leave no glass across: the window is only 1200 mm wide" });
+    expect(issues[0]).toMatchObject({
+      level: "ERROR",
+      id: "window-living",
+      message: "1200 mm of bars between 21 panes leave no glass across: the window is only 1200 mm wide",
+    });
   });
 
   it("sit inside a frame, which lies within the window's size", () => {
-    const { frame, panes, bars } = windowDivision({ width: mm(2500), height: mm(2100) }, { frame: { width: mm(100) }, glazing: sixPanes });
+    const { frame, panes, bars } = windowDivision(
+      { width: mm(2500), height: mm(2100) },
+      { frame: { width: mm(100) }, glazing: sixPanes },
+    );
     expect(frame).toHaveLength(4);
     // Panes keep their 1:2:1 ratio inside the frame, and the bar is still half way up the window.
     expect([...new Set(panes.map((p) => p.w))].sort((a, b) => a - b)).toEqual([545, 1090]);
@@ -60,7 +75,11 @@ describe("glazing bars", () => {
   it("with a frame, must still leave room for glass", () => {
     const m = barred(sixPanes);
     m.components!.windows[0]!.frame = { width: mm(600) };
-    expect(checkComponents(m)[0]).toMatchObject({ id: "window-living", message: "1200 mm of frame and 120 mm of bars between 3 panes leave no glass across: the window is only 1200 mm wide" });
+    expect(checkComponents(m)[0]).toMatchObject({
+      id: "window-living",
+      message:
+        "1200 mm of frame and 120 mm of bars between 3 panes leave no glass across: the window is only 1200 mm wide",
+    });
   });
 
   it("are written to IFC as panes and bars whose volumes add up, and every window still meshes", async () => {
@@ -69,7 +88,9 @@ describe("glazing bars", () => {
     expect(await roundTripChecks(m, ifc)).toEqual([]);
     // Four windows of six panes and five bars, each a swept solid.
     const text = new TextDecoder().decode(ifc);
-    const bodies = [...text.matchAll(/IFCSHAPEREPRESENTATION\([^,]+,'Body','SweptSolid',\(([^)]*)\)\)/g)].map((x) => x[1]!.split(",").length);
+    const bodies = [...text.matchAll(/IFCSHAPEREPRESENTATION\([^,]+,'Body','SweptSolid',\(([^)]*)\)\)/g)].map(
+      (x) => x[1]!.split(",").length,
+    );
     expect(bodies.filter((n) => n === 11)).toHaveLength(4);
   });
 

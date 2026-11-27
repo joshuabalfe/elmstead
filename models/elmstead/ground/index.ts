@@ -32,7 +32,15 @@ export const ground: Storey = {
   elevation: groundFloor.elevation,
   walls,
   openings,
-  slabs: [{ id: "slab-ground", name: "Ground floor slab", outline: footprint, thickness: groundSlabT, elevationOffset: mm(0) }],
+  slabs: [
+    {
+      id: "slab-ground",
+      name: "Ground floor slab",
+      outline: footprint,
+      thickness: groundSlabT,
+      elevationOffset: mm(0),
+    },
+  ],
   rooms,
   stairs,
 };

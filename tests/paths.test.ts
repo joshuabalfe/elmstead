@@ -30,11 +30,17 @@ describe("modelName", () => {
 describe("revisions", () => {
   it("names a revision <model>@<revision>, from its file, its folder or its index.ts", () => {
     expect(modelName("models/elmstead/revisions/rear-extension.ts")).toBe("elmstead@rear-extension");
-    expect(modelName("models/examples/example-cottage/revisions/rear-extension.ts")).toBe("example-cottage@rear-extension");
+    expect(modelName("models/examples/example-cottage/revisions/rear-extension.ts")).toBe(
+      "example-cottage@rear-extension",
+    );
     expect(modelName("tests/fixtures/revised/revisions/lean-to")).toBe("revised@lean-to");
     expect(modelName("tests/fixtures/revised/revisions/lean-to/")).toBe("revised@lean-to");
     expect(modelName("tests/fixtures/revised/revisions/lean-to/index.ts")).toBe("revised@lean-to");
-    expect(revisionOf("tests/fixtures/revised/revisions/lean-to")).toEqual({ basePath: "tests/fixtures/revised", model: "revised", revision: "lean-to" });
+    expect(revisionOf("tests/fixtures/revised/revisions/lean-to")).toEqual({
+      basePath: "tests/fixtures/revised",
+      model: "revised",
+      revision: "lean-to",
+    });
   });
 
   it("does not take a model, a helper folder under revisions/ or a module inside a revision for a revision", () => {
@@ -55,11 +61,17 @@ describe("constraintsPath", () => {
   });
 
   it("finds a revision's own constraints file, beside a file revision or inside a folder one", () => {
-    expect(constraintsPath("models/elmstead/revisions/rear-extension.ts")).toBe("models/elmstead/revisions/rear-extension.constraints.ts");
-    expect(constraintsPath("tests/fixtures/revised/revisions/lean-to")).toBe("tests/fixtures/revised/revisions/lean-to/constraints.ts");
+    expect(constraintsPath("models/elmstead/revisions/rear-extension.ts")).toBe(
+      "models/elmstead/revisions/rear-extension.constraints.ts",
+    );
+    expect(constraintsPath("tests/fixtures/revised/revisions/lean-to")).toBe(
+      "tests/fixtures/revised/revisions/lean-to/constraints.ts",
+    );
   });
 
   it("finds <name>.constraints.ts beside a single-file model", () => {
-    expect(constraintsPath("tests/fixtures/broken-constraint.ts")).toBe("tests/fixtures/broken-constraint.constraints.ts");
+    expect(constraintsPath("tests/fixtures/broken-constraint.ts")).toBe(
+      "tests/fixtures/broken-constraint.constraints.ts",
+    );
   });
 });

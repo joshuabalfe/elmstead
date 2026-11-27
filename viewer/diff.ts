@@ -23,9 +23,13 @@ export const DIFF_COLOURS: Record<DiffStatus, { fill: string; accent: string; fl
 /** Each listed element's status, for the categories shown (the changes panel can hide each). */
 export type StatusById = Map<string, DiffStatus>;
 
-export function statusById(diff: ModelDiff, shown: Record<DiffStatus, boolean> = { added: true, changed: true, removed: true }): StatusById {
+export function statusById(
+  diff: ModelDiff,
+  shown: Record<DiffStatus, boolean> = { added: true, changed: true, removed: true },
+): StatusById {
   const out: StatusById = new Map();
-  for (const status of ["added", "changed", "removed"] as const) if (shown[status]) for (const e of diff[status]) out.set(e.id, status);
+  for (const status of ["added", "changed", "removed"] as const)
+    if (shown[status]) for (const e of diff[status]) out.set(e.id, status);
   return out;
 }
 
@@ -44,7 +48,11 @@ function paint(n: Node, status: DiffStatus): Node {
     const wall = n.attrs.class === "wall";
     return {
       ...n,
-      attrs: { ...n.attrs, ...(painted(n.attrs.fill) ? { fill: wall ? c.accent : c.fill } : {}), ...(!wall && painted(n.attrs.stroke) ? { stroke: c.accent } : {}) },
+      attrs: {
+        ...n.attrs,
+        ...(painted(n.attrs.fill) ? { fill: wall ? c.accent : c.fill } : {}),
+        ...(!wall && painted(n.attrs.stroke) ? { stroke: c.accent } : {}),
+      },
     };
   }
   if (n.tag === "line") return { ...n, attrs: { ...n.attrs, stroke: c.accent } };
@@ -68,19 +76,27 @@ export function recolourPlan(o: Overlay, status: StatusById): Overlay {
  * Only each piece's outer ring is kept: the viewer's fills have no holes.
  */
 export function floorChange(base: Storey, revision: Storey): { added: Point[][]; removed: Point[][] } {
-  const floor = (s: Storey): Polygon[] => [...s.slabs, ...s.rooms].map((e) => [e.outline.map((p): [number, number] => [p.x, p.y])]);
+  const floor = (s: Storey): Polygon[] =>
+    [...s.slabs, ...s.rooms].map((e) => [e.outline.map((p): [number, number] => [p.x, p.y])]);
   const union = (ps: Polygon[]): MultiPolygon => (ps.length ? polygonClipping.union(ps[0]!, ...ps.slice(1)) : []);
   const [was, now] = [union(floor(base)), union(floor(revision))];
-  const rings = (m: MultiPolygon): Point[][] => m.map((poly) => poly[0]!.slice(0, -1).map(([x, y]) => ({ x, y }) as Point));
+  const rings = (m: MultiPolygon): Point[][] =>
+    m.map((poly) => poly[0]!.slice(0, -1).map(([x, y]) => ({ x, y }) as Point));
   return { added: rings(polygonClipping.difference(now, was)), removed: rings(polygonClipping.difference(was, now)) };
 }
 
 /** The floor tints' ids, which `floorPieces` gives each added and removed piece. */
-export const floorPieceStatus = (id: string): DiffStatus | undefined => (id.startsWith("floor-added-") ? "added" : id.startsWith("floor-removed-") ? "removed" : undefined);
+export const floorPieceStatus = (id: string): DiffStatus | undefined =>
+  id.startsWith("floor-added-") ? "added" : id.startsWith("floor-removed-") ? "removed" : undefined;
 
 /** Each piece of a floor change as a room-shaped outline, to draw with the plan's floor drawing. */
-export function floorPieces(change: { added: Point[][]; removed: Point[][] }): { id: string; name: string; outline: Point[] }[] {
-  return (["added", "removed"] as const).flatMap((s) => change[s].map((outline, i) => ({ id: `floor-${s}-${i}`, name: "", outline })));
+export function floorPieces(change: {
+  added: Point[][];
+  removed: Point[][];
+}): { id: string; name: string; outline: Point[] }[] {
+  return (["added", "removed"] as const).flatMap((s) =>
+    change[s].map((outline, i) => ({ id: `floor-${s}-${i}`, name: "", outline })),
+  );
 }
 
 /** A drawing of floor pieces (see floorPieces) in their floor tint; null when there are none. */
@@ -104,7 +120,9 @@ export function floorOutlines(o: Overlay, status: StatusById): Overlay | null {
   const nodes = o.nodes.flatMap((n): Node[] => {
     const s = status.get(idOf(n) ?? "");
     const stroke = s === "changed" ? CHANGED_OUTLINE : s === "added" ? DIFF_COLOURS.added.accent : undefined;
-    return n.tag === "polygon" && stroke ? [{ ...n, attrs: { ...n.attrs, fill: "none", stroke, "stroke-width": 5 } }] : [];
+    return n.tag === "polygon" && stroke
+      ? [{ ...n, attrs: { ...n.attrs, fill: "none", stroke, "stroke-width": 5 } }]
+      : [];
   });
   return nodes.length ? { ...o, nodes } : null;
 }
@@ -122,7 +140,17 @@ export function removedPlan(o: Overlay, status: StatusById): Overlay | null {
   const c = DIFF_COLOURS.removed;
   const dashed = (n: Node): Node => {
     if (n.tag === "g") return { ...n, children: n.children.map(dashed) };
-    if (n.tag === "polygon" || n.tag === "polyline") return { ...n, attrs: { ...n.attrs, fill: painted(n.attrs.fill) ? c.fill : "none", stroke: c.accent, "stroke-width": 1.5, "stroke-dasharray": "5 3" } };
+    if (n.tag === "polygon" || n.tag === "polyline")
+      return {
+        ...n,
+        attrs: {
+          ...n.attrs,
+          fill: painted(n.attrs.fill) ? c.fill : "none",
+          stroke: c.accent,
+          "stroke-width": 1.5,
+          "stroke-dasharray": "5 3",
+        },
+      };
     if (n.tag === "line") return { ...n, attrs: { ...n.attrs, stroke: c.accent } };
     return n;
   };

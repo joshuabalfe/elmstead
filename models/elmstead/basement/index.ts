@@ -31,10 +31,20 @@ const externalStairWidth = mm(900);
 const externalStairCentreX = mm(-450);
 const externalStairBottomY = add(externalStairWidth, scale(frontStepGoing, 5)); // landing depth + five goings
 const externalStair: ReturnType<typeof stair> = stair("stair-basement-external", street, [
-  stairFlight("stair-flight-basement-external", pt(externalStairCentreX, externalStairBottomY), pt(externalStairCentreX, externalStairWidth), { width: externalStairWidth, risers: 6 }),
+  stairFlight(
+    "stair-flight-basement-external",
+    pt(externalStairCentreX, externalStairBottomY),
+    pt(externalStairCentreX, externalStairWidth),
+    { width: externalStairWidth, risers: 6 },
+  ),
   stairLanding(
     "stair-landing-basement-external",
-    [pt(sub(mm(0), externalStairWidth), mm(0)), pt(mm(0), mm(0)), pt(mm(0), externalStairWidth), pt(sub(mm(0), externalStairWidth), externalStairWidth)],
+    [
+      pt(sub(mm(0), externalStairWidth), mm(0)),
+      pt(mm(0), mm(0)),
+      pt(mm(0), externalStairWidth),
+      pt(sub(mm(0), externalStairWidth), externalStairWidth),
+    ],
     { thickness: mm(150) },
   ),
 ]);
@@ -45,13 +55,22 @@ export const basement: Storey = {
   elevation: basementFloor.elevation,
   walls,
   openings,
-  slabs: [{
-    id: "slab-basement",
-    name: "Basement slab",
-    outline: [pt(mm(-900), mm(0)), pt(coreW, mm(0)), pt(coreW, extRightY), pt(extRearX, extRightY), pt(extRearX, coreD), pt(mm(-900), coreD)],
-    thickness: mm(150),
-    elevationOffset: mm(0),
-  }],
+  slabs: [
+    {
+      id: "slab-basement",
+      name: "Basement slab",
+      outline: [
+        pt(mm(-900), mm(0)),
+        pt(coreW, mm(0)),
+        pt(coreW, extRightY),
+        pt(extRearX, extRightY),
+        pt(extRearX, coreD),
+        pt(mm(-900), coreD),
+      ],
+      thickness: mm(150),
+      elevationOffset: mm(0),
+    },
+  ],
   rooms,
   stairs: [externalStair],
 };

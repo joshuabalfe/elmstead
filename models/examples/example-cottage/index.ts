@@ -62,15 +62,50 @@ const eastIn = face(ext.east, "west");
 
 const hallWest = wall("wall-hall-west", pt(hallWestX, southIn), pt(hallWestX, northIn), inner);
 const hallEast = wall("wall-hall-east", pt(hallEastX, southIn), pt(hallEastX, northIn), inner);
-const livingKitchen = wall("wall-living-kitchen", pt(westIn, livingDepth), pt(face(hallWest, "west"), livingDepth), inner);
-const bedroomBathroom = wall("wall-bedroom-bathroom", pt(face(hallEast, "east"), bedroomDepth), pt(eastIn, bedroomDepth), inner);
+const livingKitchen = wall(
+  "wall-living-kitchen",
+  pt(westIn, livingDepth),
+  pt(face(hallWest, "west"), livingDepth),
+  inner,
+);
+const bedroomBathroom = wall(
+  "wall-bedroom-bathroom",
+  pt(face(hallEast, "east"), bedroomDepth),
+  pt(eastIn, bedroomDepth),
+  inner,
+);
 
 // ── Rooms (outlines are wall faces, so they follow any thickness change) ─────
-const hall = rectRoom("room-hall", "Hall", { west: face(hallWest, "east"), east: face(hallEast, "west"), south: southIn, north: northIn });
-const living = rectRoom("room-living", "Living room", { west: westIn, east: face(hallWest, "west"), south: southIn, north: face(livingKitchen, "south") });
-const kitchen = rectRoom("room-kitchen", "Kitchen", { west: westIn, east: face(hallWest, "west"), south: face(livingKitchen, "north"), north: northIn });
-const bedroom = rectRoom("room-bedroom", "Bedroom", { west: face(hallEast, "east"), east: eastIn, south: southIn, north: face(bedroomBathroom, "south") });
-const bathroom = rectRoom("room-bathroom", "Bathroom", { west: face(hallEast, "east"), east: eastIn, south: face(bedroomBathroom, "north"), north: northIn });
+const hall = rectRoom("room-hall", "Hall", {
+  west: face(hallWest, "east"),
+  east: face(hallEast, "west"),
+  south: southIn,
+  north: northIn,
+});
+const living = rectRoom("room-living", "Living room", {
+  west: westIn,
+  east: face(hallWest, "west"),
+  south: southIn,
+  north: face(livingKitchen, "south"),
+});
+const kitchen = rectRoom("room-kitchen", "Kitchen", {
+  west: westIn,
+  east: face(hallWest, "west"),
+  south: face(livingKitchen, "north"),
+  north: northIn,
+});
+const bedroom = rectRoom("room-bedroom", "Bedroom", {
+  west: face(hallEast, "east"),
+  east: eastIn,
+  south: southIn,
+  north: face(bedroomBathroom, "south"),
+});
+const bathroom = rectRoom("room-bathroom", "Bathroom", {
+  west: face(hallEast, "east"),
+  east: eastIn,
+  south: face(bedroomBathroom, "north"),
+  north: northIn,
+});
 
 /** Room-outline centres in each axis — used to centre windows and doors on rooms. */
 const xMid = (r: typeof hall) => mid(r.outline[0]!.x, r.outline[1]!.x);
@@ -80,14 +115,32 @@ const win = { width: windowW, height: windowH, sillHeight: windowSill };
 
 const openings: Opening[] = [
   // External doors open inwards (the inside is to the left of every external wall).
-  door("door-front", ext.south, centredOn(ext.south, xMid(hall), extDoor.width), externalDoor, extDoor, { hinge: "start", side: "left" }),
-  door("door-back", ext.north, centredOn(ext.north, xMid(hall), extDoor.width), externalDoor, extDoor, { hinge: "end", side: "left" }),
+  door("door-front", ext.south, centredOn(ext.south, xMid(hall), extDoor.width), externalDoor, extDoor, {
+    hinge: "start",
+    side: "left",
+  }),
+  door("door-back", ext.north, centredOn(ext.north, xMid(hall), extDoor.width), externalDoor, extDoor, {
+    hinge: "end",
+    side: "left",
+  }),
 
   // Hall walls run south→north, so "left" is west and "right" is east.
-  door("door-living", hallWest, centredOn(hallWest, yMid(living), intDoor.width), internalDoor, intDoor, { hinge: "start", side: "left" }),
-  door("door-kitchen", hallWest, centredOn(hallWest, yMid(kitchen), intDoor.width), internalDoor, intDoor, { hinge: "end", side: "left" }),
-  door("door-bedroom", hallEast, centredOn(hallEast, yMid(bedroom), intDoor.width), internalDoor, intDoor, { hinge: "start", side: "right" }),
-  door("door-bathroom", hallEast, centredOn(hallEast, yMid(bathroom), intDoor.width), internalDoor, intDoor, { hinge: "end", side: "right" }),
+  door("door-living", hallWest, centredOn(hallWest, yMid(living), intDoor.width), internalDoor, intDoor, {
+    hinge: "start",
+    side: "left",
+  }),
+  door("door-kitchen", hallWest, centredOn(hallWest, yMid(kitchen), intDoor.width), internalDoor, intDoor, {
+    hinge: "end",
+    side: "left",
+  }),
+  door("door-bedroom", hallEast, centredOn(hallEast, yMid(bedroom), intDoor.width), internalDoor, intDoor, {
+    hinge: "start",
+    side: "right",
+  }),
+  door("door-bathroom", hallEast, centredOn(hallEast, yMid(bathroom), intDoor.width), internalDoor, intDoor, {
+    hinge: "end",
+    side: "right",
+  }),
 
   window("window-living", ext.south, centredOn(ext.south, xMid(living), windowW), sash, win),
   window("window-bedroom", ext.south, centredOn(ext.south, xMid(bedroom), windowW), sash, win),

@@ -23,12 +23,20 @@ export function indexModel(model: BuildingModel): ModelIndex {
   return ix;
 }
 
-const isOneOf = <K extends IdNode["kind"]>(node: IdNode, kinds: readonly K[]): node is Extract<IdNode, { kind: K }> => (kinds as readonly string[]).includes(node.kind);
+const isOneOf = <K extends IdNode["kind"]>(node: IdNode, kinds: readonly K[]): node is Extract<IdNode, { kind: K }> =>
+  (kinds as readonly string[]).includes(node.kind);
 
 /** An element on a storey, found by id and checked to be one of `kinds`; `label` names what was wanted in the error. */
-export function lookup<K extends StoreyKind>(ix: ModelIndex, id: string, kinds: readonly K[], label: string): Extract<IdNode, { kind: K }> {
+export function lookup<K extends StoreyKind>(
+  ix: ModelIndex,
+  id: string,
+  kinds: readonly K[],
+  label: string,
+): Extract<IdNode, { kind: K }> {
   const node = ix.get(id) ?? fail(`${id} is not in the model`);
-  return isOneOf(node, kinds) ? node : fail(`${id} is a ${node.kind}, not ${/^[aeiou]/.test(label) ? "an" : "a"} ${label}`);
+  return isOneOf(node, kinds)
+    ? node
+    : fail(`${id} is a ${node.kind}, not ${/^[aeiou]/.test(label) ? "an" : "a"} ${label}`);
 }
 
 const wallOf = (ix: ModelIndex, id: string) => {
@@ -46,7 +54,8 @@ const NORMALS = { north: v(0, 1), south: v(0, -1), east: v(1, 0), west: v(-1, 0)
 export function faceSide(w: Wall, face: Face): "left" | "right" {
   if (face === "left" || face === "right") return face;
   const d = wallDirection(w);
-  if (d.x !== 0 && d.y !== 0) fail(`${w.id} is not axis-aligned, so it has no ${face} face: name its face left or right`);
+  if (d.x !== 0 && d.y !== 0)
+    fail(`${w.id} is not axis-aligned, so it has no ${face} face: name its face left or right`);
   const side = dot(perpLeft(d), NORMALS[face]);
   if (side === 0) fail(`${w.id} runs ${d.x === 0 ? "north–south" : "east–west"}, so it has no ${face} face`);
   return side > 0 ? "left" : "right";
@@ -55,18 +64,26 @@ export function faceSide(w: Wall, face: Face): "left" | "right" {
 /** Offset of a wall face from the wall's start→end line, positive to the left. */
 export const faceOffset = (w: Wall, face: Face): number => faceOffsets(w)[faceSide(w, face)];
 
-const COMPASS = { "north-east": v(1, 1), "north-west": v(-1, 1), "south-east": v(1, -1), "south-west": v(-1, -1) } as const;
+const COMPASS = {
+  "north-east": v(1, 1),
+  "north-west": v(-1, 1),
+  "south-east": v(1, -1),
+  "south-west": v(-1, -1),
+} as const;
 
 /** A room outline vertex: the one furthest in a compass direction (a tie within 1 mm is an error), or by number. */
 export function roomVertex(room: Room, corner: keyof typeof COMPASS | number): Vec {
   if (typeof corner === "number") {
-    const p = room.outline[corner] ?? fail(`${room.id} has ${room.outline.length} vertices, numbered 0 to ${room.outline.length - 1}`);
+    const p =
+      room.outline[corner] ??
+      fail(`${room.id} has ${room.outline.length} vertices, numbered 0 to ${room.outline.length - 1}`);
     return toVec(p);
   }
   const scores = room.outline.map((p) => dot(toVec(p), COMPASS[corner]));
   const best = Math.max(...scores);
   const furthest = room.outline.filter((_, i) => best - scores[i]! <= 1);
-  if (furthest.length > 1) fail(`${room.id} has ${furthest.length} vertices equally far to the ${corner}: name a vertex number instead`);
+  if (furthest.length > 1)
+    fail(`${room.id} has ${furthest.length} vertices equally far to the ${corner}: name a vertex number instead`);
   return toVec(furthest[0]!);
 }
 
@@ -134,7 +151,8 @@ function checkStorey(refs: Resolved["refs"], scope: Scope): void {
   const storeys = [...new Set(refs.map((r) => r.storey))];
   if (storeys.length > 1) fail(`its points are on different storeys: ${storeys.join(" and ")}`);
   const away = refs.find((r) => r.storey !== scope.storey);
-  if (away) fail(`${away.id} is not on ${scope.kind === "room" ? "the room's storey" : "the group's storey"}, ${scope.storey}`);
+  if (away)
+    fail(`${away.id} is not on ${scope.kind === "room" ? "the room's storey" : "the group's storey"}, ${scope.storey}`);
 }
 
 /** A constraint's resolved endpoints and measured distance, rounded to the nearest mm. */
@@ -161,7 +179,12 @@ export function measureConstraintPoints(ix: ModelIndex, c: Constraint, scope: Sc
   const to = resolvePoint(ix, c.to, scope);
   const m = measure(ix, from.at, to.at, c.measure);
   checkStorey([...from.refs, ...to.refs, ...m.refs], scope);
-  return { from: from.at, to: to.at, span: measuredSpan(ix, from.at, to.at, c.measure), distance: Math.round(m.distance) };
+  return {
+    from: from.at,
+    to: to.at,
+    span: measuredSpan(ix, from.at, to.at, c.measure),
+    distance: Math.round(m.distance),
+  };
 }
 
 /** The constraint's measured distance, rounded to the nearest mm. Throws ConstraintError if it cannot be measured. */

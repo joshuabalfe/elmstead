@@ -16,10 +16,18 @@ export const WallFaceSchema = z.strictObject({ wall: IdSchema, face: FaceSchema 
 export const CornerPointSchema = z.strictObject({ corner: z.tuple([WallFaceSchema, WallFaceSchema]) });
 
 /** One end of a wall: on its start→end line, or on one face. */
-export const WallEndPointSchema = z.strictObject({ wall: IdSchema, end: z.enum(["start", "end"]), face: FaceSchema.optional() });
+export const WallEndPointSchema = z.strictObject({
+  wall: IdSchema,
+  end: z.enum(["start", "end"]),
+  face: FaceSchema.optional(),
+});
 
 /** An opening's jamb nearest the wall start, its far jamb, or half way between. */
-export const OpeningPointSchema = z.strictObject({ opening: IdSchema, at: z.enum(["start", "end", "centre"]), face: FaceSchema.optional() });
+export const OpeningPointSchema = z.strictObject({
+  opening: IdSchema,
+  at: z.enum(["start", "end", "centre"]),
+  face: FaceSchema.optional(),
+});
 
 /** A room outline vertex: the one furthest in a compass direction, or by number from 0. */
 export const RoomCornerPointSchema = z.strictObject({

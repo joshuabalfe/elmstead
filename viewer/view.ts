@@ -62,7 +62,7 @@ export function cornerLabel(view: Exclude<View, "top">, northAngle = 0): (typeof
   // True east and north in plan axes: north is (−sin a, cos a), east 90° clockwise from it.
   const east = x * Math.cos(a) + y * Math.sin(a);
   const north = -x * Math.sin(a) + y * Math.cos(a);
-  const bearing = (((Math.atan2(east, north) * 180) / Math.PI) % 360 + 360) % 360;
+  const bearing = ((((Math.atan2(east, north) * 180) / Math.PI) % 360) + 360) % 360;
   return COMPASS[Math.floor(bearing / 45 + 0.5) % 8]!;
 }
 

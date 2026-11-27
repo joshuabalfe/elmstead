@@ -1,6 +1,17 @@
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { EYE_HEIGHT, MAX_FRAME_DELTA, WALK_AXES, WALK_SPEED, entryPosition, headingBasis, movementOffset, stepDistance, walkRequested, walkStep } from "../viewer/walk.js";
+import {
+  EYE_HEIGHT,
+  MAX_FRAME_DELTA,
+  WALK_AXES,
+  WALK_SPEED,
+  entryPosition,
+  headingBasis,
+  movementOffset,
+  stepDistance,
+  walkRequested,
+  walkStep,
+} from "../viewer/walk.js";
 
 const origin = new THREE.Vector3(2, EYE_HEIGHT, 3);
 const north = headingBasis(new THREE.Vector3(0, 0, -1)); // looking along plan north, scene −Z

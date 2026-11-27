@@ -2,7 +2,20 @@ import { describe, expect, it } from "vitest";
 import cottage from "../models/examples/example-cottage/index.js";
 import { loadModel } from "../src/cli/load.js";
 import { checkModel } from "../src/checks/model.js";
-import { addComponents, addTo, door, mm, pt, remove, replace, revise, RevisionError, wall, window, windowComponent } from "../src/model/index.js";
+import {
+  addComponents,
+  addTo,
+  door,
+  mm,
+  pt,
+  remove,
+  replace,
+  revise,
+  RevisionError,
+  wall,
+  window,
+  windowComponent,
+} from "../src/model/index.js";
 import { BuildingModelSchema, type BuildingModel, type Wall, type Window } from "../src/schema/schema.js";
 
 const base = (): BuildingModel => BuildingModelSchema.parse(JSON.parse(JSON.stringify(cottage)));
@@ -36,7 +49,10 @@ describe("revise", () => {
 
   it("adds elements to a storey by collection, creating an optional collection", () => {
     const b = base();
-    const lean = wall("wall-lean-to-east", pt(mm(5000), mm(6000)), pt(mm(5000), mm(8000)), { thickness: mm(100), height: mm(2400) });
+    const lean = wall("wall-lean-to-east", pt(mm(5000), mm(6000)), pt(mm(5000), mm(8000)), {
+      thickness: mm(100),
+      height: mm(2400),
+    });
     const r = revise(b, [
       addTo("storey-ground", {
         walls: [lean],
@@ -55,7 +71,15 @@ describe("revise", () => {
     const picture = windowComponent("window-type-picture", "Picture window");
     const r = revise(b, [
       addComponents({ windows: [picture] }),
-      addTo("storey-ground", { openings: [window("window-picture", wallOf(b, "wall-west")!, mm(1000), picture, { width: mm(1500), height: mm(1200), sillHeight: mm(600) })] }),
+      addTo("storey-ground", {
+        openings: [
+          window("window-picture", wallOf(b, "wall-west")!, mm(1000), picture, {
+            width: mm(1500),
+            height: mm(1200),
+            sillHeight: mm(600),
+          }),
+        ],
+      }),
     ]);
     expect((openingOf(r, "window-picture") as Window).componentId).toBe("window-type-picture");
     expect(checkModel(r).filter((i) => i.level === "ERROR")).toEqual([]);
@@ -67,11 +91,16 @@ describe("revise", () => {
     // A removal then an add of the same id works; the other way round the add finds the id taken.
     const r = revise(b, [remove("wall-north"), addTo("storey-ground", { walls: [longer(north, 500)] })]);
     expect(ground(r).walls.at(-1)!.id).toBe("wall-north");
-    expect(() => revise(b, [addTo("storey-ground", { walls: [longer(north, 500)] }), remove("wall-north")])).toThrow(RevisionError);
+    expect(() => revise(b, [addTo("storey-ground", { walls: [longer(north, 500)] }), remove("wall-north")])).toThrow(
+      RevisionError,
+    );
   });
 
   it("does not share added values with the revision file", () => {
-    const lean = wall("wall-lean-to", pt(mm(0), mm(6000)), pt(mm(1000), mm(6000)), { thickness: mm(100), height: mm(2400) });
+    const lean = wall("wall-lean-to", pt(mm(0), mm(6000)), pt(mm(1000), mm(6000)), {
+      thickness: mm(100),
+      height: mm(2400),
+    });
     const r = revise(base(), [addTo("storey-ground", { walls: [lean] })]);
     lean.thickness = mm(300);
     expect(wallOf(r, "wall-lean-to")!.thickness).toBe(100);
@@ -96,14 +125,23 @@ describe("revise errors", () => {
 
   it("names an unknown id", () => {
     expect(error(() => revise(base(), [remove("wall-rear-kitchen")])).id).toBe("wall-rear-kitchen");
-    expect(error(() => revise(base(), [replace({ ...wallOf(base(), "wall-north")!, id: "wall-nope" })])).id).toBe("wall-nope");
+    expect(error(() => revise(base(), [replace({ ...wallOf(base(), "wall-north")!, id: "wall-nope" })])).id).toBe(
+      "wall-nope",
+    );
   });
 
   it("rejects an id already in the model, including one added earlier in the same edit", () => {
-    const w = wall("wall-lean-to", pt(mm(0), mm(6000)), pt(mm(1000), mm(6000)), { thickness: mm(100), height: mm(2400) });
-    expect(error(() => revise(base(), [addTo("storey-ground", { walls: [{ ...w, id: "wall-north" }] })])).id).toBe("wall-north");
+    const w = wall("wall-lean-to", pt(mm(0), mm(6000)), pt(mm(1000), mm(6000)), {
+      thickness: mm(100),
+      height: mm(2400),
+    });
+    expect(error(() => revise(base(), [addTo("storey-ground", { walls: [{ ...w, id: "wall-north" }] })])).id).toBe(
+      "wall-north",
+    );
     expect(error(() => revise(base(), [addTo("storey-ground", { walls: [w, w] })])).id).toBe("wall-lean-to");
-    expect(error(() => revise(base(), [addComponents({ doors: [{ id: "door-type-external", name: "Again" }] })])).id).toBe("door-type-external");
+    expect(
+      error(() => revise(base(), [addComponents({ doors: [{ id: "door-type-external", name: "Again" }] })])).id,
+    ).toBe("door-type-external");
   });
 
   it("rejects an unknown storey and any storey edit", () => {
@@ -112,7 +150,9 @@ describe("revise errors", () => {
   });
 
   it("rejects a replacement its collection does not accept", () => {
-    const e = error(() => revise(base(), [replace({ id: "wall-north", start: pt(mm(0), mm(0)), end: pt(mm(1), mm(0)), height: mm(900) })]));
+    const e = error(() =>
+      revise(base(), [replace({ id: "wall-north", start: pt(mm(0), mm(0)), end: pt(mm(1), mm(0)), height: mm(900) })]),
+    );
     expect(e.id).toBe("wall-north");
     expect(e.message).toContain("not a valid walls entry");
   });

@@ -16,7 +16,9 @@ describe("CLI revisions", () => {
     expect(r.files.filter((f) => !f.startsWith("revised@no-kitchen-window."))).toEqual([]);
     expect(r.stdout).toContain("geom    ");
     expect(r.stdout).toMatch(/valid   .*revised@no-kitchen-window\.ifc: 0 errors/);
-    const json = JSON.parse(readFileSync(join(r.out, "revised@no-kitchen-window.building.json"), "utf8")) as { storeys: { openings: { id: string }[] }[] };
+    const json = JSON.parse(readFileSync(join(r.out, "revised@no-kitchen-window.building.json"), "utf8")) as {
+      storeys: { openings: { id: string }[] }[];
+    };
     expect(json.storeys[0]!.openings.map((o) => o.id)).not.toContain("window-kitchen");
   }, 120_000);
 
@@ -55,8 +57,13 @@ describe("CLI revisions", () => {
   it("checks a revision's own constraints, counting its edits, and publishes them", () => {
     const r = run(["build", "tests/fixtures/revised/revisions/wide-window-revised"]);
     expect(r.status, output(r)).toBe(0);
-    expect(r.stdout).toContain("constr  tests/fixtures/revised/revisions/wide-window-revised/constraints.ts: 6 of 6 met (1 removed, 1 replaced, 1 added)");
-    const list = JSON.parse(readFileSync(join(r.out, "revised@wide-window-revised.constraints.json"), "utf8")) as { id: string; distance: number }[];
+    expect(r.stdout).toContain(
+      "constr  tests/fixtures/revised/revisions/wide-window-revised/constraints.ts: 6 of 6 met (1 removed, 1 replaced, 1 added)",
+    );
+    const list = JSON.parse(readFileSync(join(r.out, "revised@wide-window-revised.constraints.json"), "utf8")) as {
+      id: string;
+      distance: number;
+    }[];
     expect(list.map((c) => c.id)).toContain("living-window-from-east");
     expect(list.map((c) => c.id)).not.toContain("living-corner-to-window");
     expect(list.find((c) => c.id === "living-window-width")!.distance).toBe(1800);
@@ -65,18 +72,36 @@ describe("CLI revisions", () => {
   it("reports a revision constraint edit that cannot be applied against its id", () => {
     const r = run(["check", "tests/fixtures/revised/revisions/unnoted.ts"]);
     expect(r.status).toBe(1);
-    expect(output(r)).toContain("ERROR   hall-width: revision: cannot remove constraint hall-width: say why in its note");
-    expect(output(r)).toContain("FAILED  tests/fixtures/revised/revisions/unnoted.constraints.ts: constraints did not validate");
+    expect(output(r)).toContain(
+      "ERROR   hall-width: revision: cannot remove constraint hall-width: say why in its note",
+    );
+    expect(output(r)).toContain(
+      "FAILED  tests/fixtures/revised/revisions/unnoted.constraints.ts: constraints did not validate",
+    );
   });
 
   it("writes a revision's diff, file or folder, and none for a base model", () => {
     const file = run(["build", "models/examples/example-cottage/revisions/rear-extension.ts"]);
     expect(file.status, output(file)).toBe(0);
-    const diff = JSON.parse(readFileSync(join(file.out, "example-cottage@rear-extension.diff.json"), "utf8")) as { base: string; revision: string; added: { id: string }[]; removed: { id: string }[]; changed: { id: string }[] };
+    const diff = JSON.parse(readFileSync(join(file.out, "example-cottage@rear-extension.diff.json"), "utf8")) as {
+      base: string;
+      revision: string;
+      added: { id: string }[];
+      removed: { id: string }[];
+      changed: { id: string }[];
+    };
     expect(diff.base).toBe("example-cottage");
     expect(diff.revision).toBe("example-cottage@rear-extension");
     expect(diff.removed.map((e) => e.id)).toEqual(["wall-living-kitchen", "window-kitchen", "room-kitchen"]);
-    expect(diff.changed.map((e) => e.id)).toEqual(["wall-bedroom-bathroom", "door-bedroom", "door-bathroom", "window-living", "room-living", "room-bedroom", "room-bathroom"]);
+    expect(diff.changed.map((e) => e.id)).toEqual([
+      "wall-bedroom-bathroom",
+      "door-bedroom",
+      "door-bathroom",
+      "window-living",
+      "room-living",
+      "room-bedroom",
+      "room-bathroom",
+    ]);
     const folder = run(["build", "tests/fixtures/revised/revisions/lean-to"]);
     expect(folder.files).toContain("revised@lean-to.diff.json");
     const base = run(["build", "models/examples/example-cottage"]);

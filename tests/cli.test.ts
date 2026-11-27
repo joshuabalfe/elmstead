@@ -10,7 +10,11 @@ describe("CLI", () => {
   it("builds a valid model into ELMSTEAD_OUT_DIR", () => {
     const r = run(["build", "models/examples/example-cottage"]);
     expect(r.status).toBe(0);
-    expect(r.files).toEqual(["example-cottage.building.json", "example-cottage.constraints.json", "example-cottage.ifc"]);
+    expect(r.files).toEqual([
+      "example-cottage.building.json",
+      "example-cottage.constraints.json",
+      "example-cottage.ifc",
+    ]);
     expect(r.stdout).toContain("ifc");
     expect(r.stdout).toContain("valid");
   }, 120_000);
@@ -158,7 +162,9 @@ describe("CLI", () => {
   it("names the constraints file when it fails to load", () => {
     const r = run(["build", "tests/fixtures/constraints-throws.ts"]);
     expect(r.status).toBe(1);
-    expect(r.stdout).toContain("FAILED  tests/fixtures/constraints-throws.constraints.ts: constraints did not validate");
+    expect(r.stdout).toContain(
+      "FAILED  tests/fixtures/constraints-throws.constraints.ts: constraints did not validate",
+    );
     expect(r.stdout).not.toContain("model did not validate");
     expect(r.files).toEqual([]);
   });

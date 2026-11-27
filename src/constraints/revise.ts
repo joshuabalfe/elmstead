@@ -43,14 +43,18 @@ function find(groups: ConstraintGroup[], id: string, verb: string): { group: Con
 }
 
 /** New groups: `base` with the edits applied in order. A group left with no constraints is dropped. */
-export function reviseConstraints(base: readonly ConstraintGroup[], edits: readonly ConstraintEdit[]): ConstraintGroup[] {
+export function reviseConstraints(
+  base: readonly ConstraintGroup[],
+  edits: readonly ConstraintEdit[],
+): ConstraintGroup[] {
   const groups = structuredClone(base) as ConstraintGroup[];
   const counts: ConstraintEdits = { removed: 0, replaced: 0, added: 0 };
   const ids = () => new Set(groups.flatMap((g) => g.constraints.map((c) => c.id)));
   for (const edit of edits) {
     switch (edit.op) {
       case "remove": {
-        if (!edit.note.trim()) throw new RevisionError(edit.id, `cannot remove constraint ${edit.id}: say why in its note`);
+        if (!edit.note.trim())
+          throw new RevisionError(edit.id, `cannot remove constraint ${edit.id}: say why in its note`);
         const { group, index } = find(groups, edit.id, "remove");
         group.constraints.splice(index, 1);
         counts.removed++;
@@ -68,10 +72,15 @@ export function reviseConstraints(base: readonly ConstraintGroup[], edits: reado
       case "addGroups":
         for (const g of edit.groups) {
           const r = ConstraintGroupSchema.safeParse(g);
-          if (!r.success) throw new RevisionError(g.room ?? g.storey ?? "constraints", `cannot add a constraint group: ${issuesOf(r)}`);
+          if (!r.success)
+            throw new RevisionError(
+              g.room ?? g.storey ?? "constraints",
+              `cannot add a constraint group: ${issuesOf(r)}`,
+            );
           const taken = ids();
           for (const c of g.constraints) {
-            if (taken.has(c.id)) throw new RevisionError(c.id, `cannot add constraint ${c.id}: the id is already in the constraints`);
+            if (taken.has(c.id))
+              throw new RevisionError(c.id, `cannot add constraint ${c.id}: the id is already in the constraints`);
             taken.add(c.id);
           }
           groups.push(structuredClone(g));

@@ -23,10 +23,18 @@ export const corner = (a: { wall: Ref<Wall>; face: Face }, b: { wall: Ref<Wall>;
 });
 
 /** One end of a wall: on its start→end line, or on `face`. */
-export const wallEnd = (wall: Ref<Wall>, end: "start" | "end", face?: Face): Point => ({ wall: idOf(wall), end, ...(face ? { face } : {}) });
+export const wallEnd = (wall: Ref<Wall>, end: "start" | "end", face?: Face): Point => ({
+  wall: idOf(wall),
+  end,
+  ...(face ? { face } : {}),
+});
 
 /** An opening's start jamb (nearest the wall start), end jamb or centre: on the wall line, or on `face`. */
-export const jamb = (opening: Ref<Opening>, at: "start" | "end" | "centre", face?: Face): Point => ({ opening: idOf(opening), at, ...(face ? { face } : {}) });
+export const jamb = (opening: Ref<Opening>, at: "start" | "end" | "centre", face?: Face): Point => ({
+  opening: idOf(opening),
+  at,
+  ...(face ? { face } : {}),
+});
 
 /** A room outline vertex by compass direction or number. Inside `inRoom`, the room can be left out. */
 export function roomCorner(corner: CompassCorner | number): Point;
@@ -35,9 +43,15 @@ export function roomCorner(a: Ref<Room> | CompassCorner | number, b?: CompassCor
   return b === undefined ? { corner: a as CompassCorner | number } : { room: idOf(a as Ref<Room>), corner: b };
 }
 
-export const inStorey = (storey: Ref<Storey>, constraints: Constraint[]): ConstraintGroup => ({ storey: idOf(storey), constraints });
+export const inStorey = (storey: Ref<Storey>, constraints: Constraint[]): ConstraintGroup => ({
+  storey: idOf(storey),
+  constraints,
+});
 
-export const inRoom = (room: Ref<Room>, constraints: Constraint[]): ConstraintGroup => ({ room: idOf(room), constraints });
+export const inRoom = (room: Ref<Room>, constraints: Constraint[]): ConstraintGroup => ({
+  room: idOf(room),
+  constraints,
+});
 
 /** The default export of a constraints file. */
 export const defineConstraints = (groups: ConstraintGroup[]): ConstraintGroup[] => groups;

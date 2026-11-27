@@ -40,12 +40,20 @@ describe("doorways", () => {
     const swingModel = withDoorway();
     const swing = swingModel.storeys[0]!.openings.find((o): o is Door => o.kind === "door" && o.id === "doorway-west")!;
     swing.swing = { hinge: "start", side: "left" };
-    expect(checkOpenings(swingModel)).toContainEqual({ level: "ERROR", id: "doorway-west", message: "a doorway has no component or swing" });
+    expect(checkOpenings(swingModel)).toContainEqual({
+      level: "ERROR",
+      id: "doorway-west",
+      message: "a doorway has no component or swing",
+    });
 
     const componentModel = withDoorway();
     const component = componentModel.storeys[0]!.openings.find((o) => o.id === "doorway-west")!;
     component.componentId = "door-type-internal";
-    expect(checkOpenings(componentModel)).toContainEqual({ level: "ERROR", id: "doorway-west", message: "a doorway has no component or swing" });
+    expect(checkOpenings(componentModel)).toContainEqual({
+      level: "ERROR",
+      id: "doorway-west",
+      message: "a doorway has no component or swing",
+    });
   });
 
   it("draws the opening but no leaf or swing, in the plan and the floor overlay", () => {
@@ -86,12 +94,19 @@ describe("door frames", () => {
   });
 
   it("leave the leaf filling an opening that has no frame", () => {
-    expect(doorDivision({ width: mm(1000), height: mm(2100) })).toEqual({ leaf: { x: 0, z: 0, w: 1000, h: 2100 }, frame: [] });
+    expect(doorDivision({ width: mm(1000), height: mm(2100) })).toEqual({
+      leaf: { x: 0, z: 0, w: 1000, h: 2100 },
+      frame: [],
+    });
   });
 
   it("must leave room for a leaf", () => {
     const m = framed(500);
-    expect(checkComponents(m)[0]).toMatchObject({ level: "ERROR", id: "door-front", message: "1000 mm of frame leaves no leaf across: the door is only 900 mm wide" });
+    expect(checkComponents(m)[0]).toMatchObject({
+      level: "ERROR",
+      id: "door-front",
+      message: "1000 mm of frame leaves no leaf across: the door is only 900 mm wide",
+    });
   });
 
   it("inset the plan leaf and swing by the frame", () => {
@@ -109,7 +124,9 @@ describe("door frames", () => {
     expect(await roundTripChecks(m, ifc)).toEqual([]);
     const text = new TextDecoder().decode(ifc);
     // Each framed external door is a leaf plus three frame pieces in one body representation.
-    const bodies = [...text.matchAll(/IFCSHAPEREPRESENTATION\([^,]+,'Body','SweptSolid',\(([^)]*)\)\)/g)].map((x) => x[1]!.split(",").length);
+    const bodies = [...text.matchAll(/IFCSHAPEREPRESENTATION\([^,]+,'Body','SweptSolid',\(([^)]*)\)\)/g)].map(
+      (x) => x[1]!.split(",").length,
+    );
     expect(bodies.filter((n) => n === 4)).toHaveLength(2);
   });
 });

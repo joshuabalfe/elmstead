@@ -18,7 +18,18 @@ import { add, div, m, mm, pt, railing, scale, stair, stairFlight, sub, type Mm }
 import type { Storey } from "../../src/schema/schema.js";
 import { frontDoorCentreY } from "./ground/openings.js";
 import { ground } from "./ground/index.js";
-import { coreD, coreW, frontRailingEdgeInset, frontRailingEndInset, frontRailingHeight, frontStepGoing, frontStepRiser, frontStepRisers, frontStepWidth, streetFloor } from "./shared.js";
+import {
+  coreD,
+  coreW,
+  frontRailingEdgeInset,
+  frontRailingEndInset,
+  frontRailingHeight,
+  frontStepGoing,
+  frontStepRiser,
+  frontStepRisers,
+  frontStepWidth,
+  streetFloor,
+} from "./shared.js";
 
 const frontApron = m(2.4);
 const frontGap = mm(900);
@@ -32,7 +43,11 @@ const railBottomX = add(sub(mm(0), stepOut), frontRailingEndInset);
 const railTopBase = scale(frontStepRiser, frontStepRisers);
 
 const stepRailing = (id: string, y: Mm) =>
-  railing(id, pt(railBottomX, y), pt(mm(0), y), { height: frontRailingHeight, startBase: frontStepRiser, endBase: railTopBase });
+  railing(id, pt(railBottomX, y), pt(mm(0), y), {
+    height: frontRailingHeight,
+    startBase: frontStepRiser,
+    endBase: railTopBase,
+  });
 
 export const street: Storey = {
   id: "storey-street",
@@ -44,7 +59,14 @@ export const street: Storey = {
     {
       id: "slab-external-ground",
       name: "External ground",
-      outline: [pt(groundFront, groundRight), pt(coreW, groundRight), pt(coreW, mm(0)), pt(groundRear, mm(0)), pt(groundRear, coreD), pt(groundFront, coreD)],
+      outline: [
+        pt(groundFront, groundRight),
+        pt(coreW, groundRight),
+        pt(coreW, mm(0)),
+        pt(groundRear, mm(0)),
+        pt(groundRear, coreD),
+        pt(groundFront, coreD),
+      ],
       thickness: mm(50),
       elevationOffset: mm(0),
       material: "ground",
@@ -52,14 +74,23 @@ export const street: Storey = {
   ],
   rooms: [],
   // Four risers (owner) from the street to the door threshold, running towards the rear to the front wall.
-  stairs: [stair("stair-front", ground, [stairFlight("stair-flight-front", pt(sub(mm(0), stepOut), frontDoorCentreY), pt(mm(0), frontDoorCentreY), { width: frontStepWidth, risers: frontStepRisers })])],
+  stairs: [
+    stair("stair-front", ground, [
+      stairFlight("stair-flight-front", pt(sub(mm(0), stepOut), frontDoorCentreY), pt(mm(0), frontDoorCentreY), {
+        width: frontStepWidth,
+        risers: frontStepRisers,
+      }),
+    ]),
+  ],
   railings: [
     stepRailing("railing-front-left", add(frontDoorCentreY, railY)),
     stepRailing("railing-front-right", sub(frontDoorCentreY, railY)),
     // Continue the right step railing from the bottom of the steps towards the end wall along the
     // front of the house, at street level on the ground slab's edge, stopping 900 mm short of the
     // corner.
-    railing("railing-front-facade-right", pt(groundRear, sub(frontDoorCentreY, railY)), pt(groundRear, cornerGap), { height: frontRailingHeight }),
+    railing("railing-front-facade-right", pt(groundRear, sub(frontDoorCentreY, railY)), pt(groundRear, cornerGap), {
+      height: frontRailingHeight,
+    }),
     // A short return out from the house's front-right corner closes the end of the front gap and
     // leaves the 900 mm opening between the two rails for the pavement wrap.
     railing("railing-front-corner", pt(mm(0), mm(0)), pt(groundRear, mm(0)), { height: frontRailingHeight }),

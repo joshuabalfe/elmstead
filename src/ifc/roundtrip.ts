@@ -33,9 +33,15 @@ function meshVolume(positions: Float64Array | number[], indices: Uint32Array): n
     const b = indices[i + 1]! * 3;
     const c = indices[i + 2]! * 3;
     const [ax, ay, az, bx, by, bz, cx, cy, cz] = [
-      positions[a]!, positions[a + 1]!, positions[a + 2]!,
-      positions[b]!, positions[b + 1]!, positions[b + 2]!,
-      positions[c]!, positions[c + 1]!, positions[c + 2]!,
+      positions[a]!,
+      positions[a + 1]!,
+      positions[a + 2]!,
+      positions[b]!,
+      positions[b + 1]!,
+      positions[b + 2]!,
+      positions[c]!,
+      positions[c + 1]!,
+      positions[c + 2]!,
     ];
     v += ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx);
   }
@@ -96,7 +102,9 @@ export interface ExpectedVolume {
 function wallVolumes(s: Storey): ExpectedVolume[] {
   return s.walls.map((w) => {
     // Each opening's plan area within the wall: a splayed reveal adds a triangle at each jamb.
-    const cut = s.openings.filter((o) => o.wallId === w.id).reduce((sum, o) => sum + (o.width + revealSplay(w, o) / 2) * w.thickness * o.height, 0);
+    const cut = s.openings
+      .filter((o) => o.wallId === w.id)
+      .reduce((sum, o) => sum + (o.width + revealSplay(w, o) / 2) * w.thickness * o.height, 0);
     return { id: w.id, volume: wallSideArea(w) * w.thickness - cut, what: "wall (after opening cuts)" };
   });
 }
@@ -111,13 +119,21 @@ function openingVolumes(model: BuildingModel, s: Storey): ExpectedVolume[] {
     if (o.kind === "door") {
       if (o.doorway) continue;
       const { leaf, frame } = doorDivision(o, o.componentId ? doorDesigns.get(o.componentId) : undefined);
-      out.push({ id: o.id, volume: leaf.w * leaf.h * PANEL_THICKNESS + rectArea(frame) * GLAZING_BAR_DEPTH, what: frame.length ? "door (frame and leaf)" : "door panel" });
+      out.push({
+        id: o.id,
+        volume: leaf.w * leaf.h * PANEL_THICKNESS + rectArea(frame) * GLAZING_BAR_DEPTH,
+        what: frame.length ? "door (frame and leaf)" : "door panel",
+      });
       continue;
     }
     // Frame, panes and bars never overlap, so their volumes add up.
     const { panes, bars, frame } = windowDivision(o, o.componentId ? windowDesigns.get(o.componentId) : undefined);
     const solid = [...frame, ...bars];
-    out.push({ id: o.id, volume: rectArea(panes) * PANEL_THICKNESS + rectArea(solid) * GLAZING_BAR_DEPTH, what: solid.length ? "window (frame, panes and bars)" : "window panel" });
+    out.push({
+      id: o.id,
+      volume: rectArea(panes) * PANEL_THICKNESS + rectArea(solid) * GLAZING_BAR_DEPTH,
+      what: solid.length ? "window (frame, panes and bars)" : "window panel",
+    });
   }
   return out;
 }
@@ -129,8 +145,18 @@ function stairVolumes(model: BuildingModel, s: Storey): ExpectedVolume[] {
     if (!to) continue; // a missing target is a check error, which gates the build
     const levels = stairLevels(stair, to.elevation - s.elevation);
     for (const l of levels.segments) {
-      if (l.kind === "flight") out.push({ id: l.segment.id, volume: flightProfileArea(l.segment, l.going, levels.riser) * l.segment.width, what: "stair flight" });
-      else out.push({ id: l.segment.id, volume: polygonArea(l.segment.outline) * l.segment.thickness, what: "stair landing" });
+      if (l.kind === "flight")
+        out.push({
+          id: l.segment.id,
+          volume: flightProfileArea(l.segment, l.going, levels.riser) * l.segment.width,
+          what: "stair flight",
+        });
+      else
+        out.push({
+          id: l.segment.id,
+          volume: polygonArea(l.segment.outline) * l.segment.thickness,
+          what: "stair landing",
+        });
     }
     // The IfcStair container is deliberately left out: it has no body, so its geometry is counted
     // once, through the flights and landings above.
@@ -160,7 +186,11 @@ export async function roundTripChecks(model: BuildingModel, ifc: Uint8Array): Pr
       continue;
     }
     if (!Number.isFinite(g.volume) || expected <= 0) {
-      issues.push({ level: "ERROR", id, message: `round-trip: ${what} volume is not a finite positive number (got ${g.volume}, expected ${expected})` });
+      issues.push({
+        level: "ERROR",
+        id,
+        message: `round-trip: ${what} volume is not a finite positive number (got ${g.volume}, expected ${expected})`,
+      });
       continue;
     }
     const rel = Math.abs(g.volume - expected) / expected;

@@ -48,7 +48,12 @@ export const dining: Room = {
   // From the kitchen wall to the chimney breast, and from the thick front wall to the partition:
   // the alcoves beside the breast are built-ins, as in the living room below, and the bay window
   // projects beyond the front wall without adding to the room's dimensions.
-  outline: [pt(frontIn, breastLeftY), pt(partitionX, breastLeftY), pt(partitionX, diningLeftY), pt(frontIn, diningLeftY)],
+  outline: [
+    pt(frontIn, breastLeftY),
+    pt(partitionX, breastLeftY),
+    pt(partitionX, diningLeftY),
+    pt(frontIn, diningLeftY),
+  ],
 };
 
 export const landing: Room = {
@@ -72,7 +77,12 @@ export const landing: Room = {
 export const ensuite: Room = {
   id: "room-ensuite-first",
   name: "Ensuite",
-  outline: [pt(ensuiteFrontFaceX, ensuiteRightFaceY), pt(rearIn, ensuiteRightFaceY), pt(rearIn, extRightY), pt(ensuiteFrontFaceX, extRightY)],
+  outline: [
+    pt(ensuiteFrontFaceX, ensuiteRightFaceY),
+    pt(rearIn, ensuiteRightFaceY),
+    pt(rearIn, extRightY),
+    pt(ensuiteFrontFaceX, extRightY),
+  ],
 };
 
 export const bedroom: Room = {

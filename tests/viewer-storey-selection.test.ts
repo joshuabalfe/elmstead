@@ -1,6 +1,15 @@
 /** The viewer's floor picker and the storeys URL parameter. See plan-vs-3d.test.ts. */
 import { describe, expect, it } from "vitest";
-import { canvasPixels, model, page, publish, samePixels, selectStorey, useViewer, viewOf } from "./support/viewer-page.js";
+import {
+  canvasPixels,
+  model,
+  page,
+  publish,
+  samePixels,
+  selectStorey,
+  useViewer,
+  viewOf,
+} from "./support/viewer-page.js";
 
 useViewer();
 
@@ -26,7 +35,10 @@ describe("storey selection", () => {
     // A fixed camera keeps the framing identical regardless of the hidden storey's bounds, so the
     // comparison isolates geometry hiding rather than sub-pixel drift in the auto-framing.
     const camera = "16,11,6,5.2,1.5,-4.2";
-    const hidden = await viewOf("test-hidden-storey", `view=se&snapshot=1&labels=0&style=ifc&camera=${camera}&storeys=storey-basement,storey-street,storey-ground,storey-main-half-landing,storey-first-floor,storey-attic-half-landing`);
+    const hidden = await viewOf(
+      "test-hidden-storey",
+      `view=se&snapshot=1&labels=0&style=ifc&camera=${camera}&storeys=storey-basement,storey-street,storey-ground,storey-main-half-landing,storey-first-floor,storey-attic-half-landing`,
+    );
     const absent = await viewOf("test-below-top", `view=se&snapshot=1&labels=0&style=ifc&camera=${camera}`);
     // Hiding a storey must be the same picture as a model that never had it: same pixels, every one
     // of them. The camera is pinned by the URL, so this proves geometry hiding but not hiding under
@@ -41,12 +53,15 @@ describe("storey selection", () => {
     const camera = "16,11,6,5.2,1.5,-4.2";
     const all = await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}`);
 
-// The ground choice is the basement, street and ground together, from the camera it had before.
+    // The ground choice is the basement, street and ground together, from the camera it had before.
     await selectStorey("storey-ground");
     expect(new URL(page.url()).searchParams.get("storeys")).toBe("storey-basement,storey-street,storey-ground");
     const ground = await canvasPixels();
     expect(samePixels(ground, all)).toBe(false);
-    const groundOnly = await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}&storeys=storey-basement,storey-street,storey-ground`);
+    const groundOnly = await viewOf(
+      "test-storey-selector",
+      `view=top&labels=0&style=plan&camera=${camera}&storeys=storey-basement,storey-street,storey-ground`,
+    );
     expect(samePixels(ground, groundOnly)).toBe(true);
 
     // The topmost choice puts the attic back, still without moving the camera.

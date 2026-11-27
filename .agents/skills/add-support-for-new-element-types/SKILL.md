@@ -7,7 +7,7 @@ description: Add a new kind of building element to elmstead, or a new geometry v
 
 The plan SVG, the IFC and the 3D viewer are three separate renderings of one model. An element that
 is right in two and wrong in the third passes every unit test. So this work is about deciding what
-the element is in each view *before* writing code, and then checking that the three agree.
+the element is in each view _before_ writing code, and then checking that the three agree.
 
 Past examples to read first: railings (ELM-12, a new type), pitched walls (ELM-11) and splayed
 window reveals (ELM-5) (new variants of existing types), and the external and half-landing storeys

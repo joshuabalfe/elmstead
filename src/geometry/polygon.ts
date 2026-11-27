@@ -89,7 +89,12 @@ export function polygonProblems(pts: readonly Vec[]): string[] {
         const shared = j === i + 1 ? b : a;
         const first = j === i + 1 ? a : b;
         const second = j === i + 1 ? d : c;
-        if (!same(shared, first) && !same(shared, second) && collinear(shared, first, second) && dot(vsub(first, shared), vsub(second, shared)) > 0) {
+        if (
+          !same(shared, first) &&
+          !same(shared, second) &&
+          collinear(shared, first, second) &&
+          dot(vsub(first, shared), vsub(second, shared)) > 0
+        ) {
           problems.push("outline doubles back on itself");
           return problems;
         }
@@ -111,7 +116,12 @@ const collinear = (a: Vec, b: Vec, c: Vec): boolean => Math.abs(cross(vsub(b, a)
 /** Whether p lies on segment ab, including its endpoints and collinear overlap. */
 function onSegment(p: Vec, a: Vec, b: Vec): boolean {
   if (!collinear(a, b, p)) return false;
-  return p.x >= Math.min(a.x, b.x) - near && p.x <= Math.max(a.x, b.x) + near && p.y >= Math.min(a.y, b.y) - near && p.y <= Math.max(a.y, b.y) + near;
+  return (
+    p.x >= Math.min(a.x, b.x) - near &&
+    p.x <= Math.max(a.x, b.x) + near &&
+    p.y >= Math.min(a.y, b.y) - near &&
+    p.y <= Math.max(a.y, b.y) + near
+  );
 }
 
 /** Distance from a point to a segment, in mm. */
@@ -142,7 +152,8 @@ export function spans(pts: readonly Vec[], axis: "x" | "y", at: number): [number
     const p = pts[i]!;
     const q = pts[(i + 1) % pts.length]!;
     // Half-open test so a line through a vertex is counted once.
-    if (p[axis] <= at !== q[axis] <= at) hits.push(p[other] + ((at - p[axis]) * (q[other] - p[other])) / (q[axis] - p[axis]));
+    if (p[axis] <= at !== q[axis] <= at)
+      hits.push(p[other] + ((at - p[axis]) * (q[other] - p[other])) / (q[axis] - p[axis]));
   }
   hits.sort((a, b) => a - b);
   const out: [number, number][] = [];

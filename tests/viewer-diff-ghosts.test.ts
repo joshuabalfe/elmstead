@@ -3,7 +3,24 @@
  * viewer-diff-mode.test.ts, which has the toggles, colours, plan drawing and changes panel.
  */
 import { describe, expect, it } from "vitest";
-import { COTTAGE, ELM, NOBASE, REV, chooseRevision, count, faintGreen, findHover, greenish, open, page, pixels, same, viewChange, xrayParam, useDiffMode } from "./support/diff-mode-page.js";
+import {
+  COTTAGE,
+  ELM,
+  NOBASE,
+  REV,
+  chooseRevision,
+  count,
+  faintGreen,
+  findHover,
+  greenish,
+  open,
+  page,
+  pixels,
+  same,
+  viewChange,
+  xrayParam,
+  useDiffMode,
+} from "./support/diff-mode-page.js";
 
 useDiffMode();
 
@@ -41,8 +58,16 @@ describe("Removed elements", () => {
     await page.click("#measure");
     await page.mouse.click(at!.x, at!.y);
     await page.mouse.click(at!.x + 40, at!.y);
-    await page.waitForFunction(() => (window as unknown as { __elmsteadMeasurements?: unknown[] }).__elmsteadMeasurements?.length === 1, null, { timeout: 10_000 });
-    const [m] = await page.evaluate(() => (window as unknown as { __elmsteadMeasurements: { from: { x: number; y: number; z: number } }[] }).__elmsteadMeasurements);
+    await page.waitForFunction(
+      () => (window as unknown as { __elmsteadMeasurements?: unknown[] }).__elmsteadMeasurements?.length === 1,
+      null,
+      { timeout: 10_000 },
+    );
+    const [m] = await page.evaluate(
+      () =>
+        (window as unknown as { __elmsteadMeasurements: { from: { x: number; y: number; z: number } }[] })
+          .__elmsteadMeasurements,
+    );
     // The ghost wall stood at plan y 3350–3450 mm (scene z −3.45…−3.35), x 200–3750 mm, 2.4 m tall:
     // the measured point is on something else, behind it.
     const { x, y, z } = m!.from;

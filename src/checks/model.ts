@@ -15,14 +15,21 @@ const isComponent = (kind: string): boolean => kind === "door component" || kind
 export function checkIds(model: BuildingModel): Issue[] {
   const issues: Issue[] = [];
   const seen = new Map<string, string>();
-  for (const { kind, element: { id } } of idNodes(model)) {
+  for (const {
+    kind,
+    element: { id },
+  } of idNodes(model)) {
     const first = seen.get(id);
     if (first === undefined) {
       seen.set(id, kind);
       continue;
     }
     const message =
-      isComponent(first) && isComponent(kind) ? "component id is used twice" : first === kind ? `id is used by two ${kind}s` : `id is used by a ${first} and a ${kind}`;
+      isComponent(first) && isComponent(kind)
+        ? "component id is used twice"
+        : first === kind
+          ? `id is used by two ${kind}s`
+          : `id is used by a ${first} and a ${kind}`;
     issues.push({ level: "ERROR", id, message });
   }
   return issues;
@@ -32,7 +39,8 @@ export function checkRailings(model: BuildingModel): Issue[] {
   const issues: Issue[] = [];
   for (const storey of model.storeys) {
     for (const r of storey.railings ?? []) {
-      if (railingRun(r) === 0) issues.push({ level: "ERROR", id: r.id, message: "zero-length railing cannot be written to IFC" });
+      if (railingRun(r) === 0)
+        issues.push({ level: "ERROR", id: r.id, message: "zero-length railing cannot be written to IFC" });
     }
   }
   return issues;
@@ -70,7 +78,11 @@ export function checkOpenings(model: BuildingModel): Issue[] {
       }
       const wall = walls.get(opening.wallId);
       if (!wall) {
-        issues.push({ level: "ERROR", id: opening.id, message: `wallId ${opening.wallId} is not a wall on this storey` });
+        issues.push({
+          level: "ERROR",
+          id: opening.id,
+          message: `wallId ${opening.wallId} is not a wall on this storey`,
+        });
         continue;
       }
       const length = wallLength(wall);
@@ -79,11 +91,29 @@ export function checkOpenings(model: BuildingModel): Issue[] {
       const faces = (["left", "right"] as const).map((face) => openingExtent(wall, opening, face));
       hosted.set(opening.id, { opening, wall, faces });
       const pastStart = Math.max(...faces.map(([from]) => -from));
-      if (pastStart > tolerance) issues.push({ level: "ERROR", id: opening.id, message: `opening is ${Math.round(pastStart)} mm past the wall start` });
+      if (pastStart > tolerance)
+        issues.push({
+          level: "ERROR",
+          id: opening.id,
+          message: `opening is ${Math.round(pastStart)} mm past the wall start`,
+        });
       const pastEnd = Math.max(...faces.map(([, to]) => to - length));
-      if (pastEnd > tolerance) issues.push({ level: "ERROR", id: opening.id, message: `opening is ${Math.round(pastEnd)} mm past the wall end` });
-      const aboveTop = opening.sillHeight + opening.height - wallTopMin(wall, opening.offsetAlongWall, opening.offsetAlongWall + opening.width);
-      if (aboveTop > tolerance) issues.push({ level: "ERROR", id: opening.id, message: `opening is ${Math.round(aboveTop)} mm above the wall top` });
+      if (pastEnd > tolerance)
+        issues.push({
+          level: "ERROR",
+          id: opening.id,
+          message: `opening is ${Math.round(pastEnd)} mm past the wall end`,
+        });
+      const aboveTop =
+        opening.sillHeight +
+        opening.height -
+        wallTopMin(wall, opening.offsetAlongWall, opening.offsetAlongWall + opening.width);
+      if (aboveTop > tolerance)
+        issues.push({
+          level: "ERROR",
+          id: opening.id,
+          message: `opening is ${Math.round(aboveTop)} mm above the wall top`,
+        });
     }
     const list = [...hosted.values()];
     for (let i = 0; i < list.length; i++) {
@@ -96,7 +126,9 @@ export function checkOpenings(model: BuildingModel): Issue[] {
           const [b0, b1] = b.faces[i]!;
           return a0 < b1 - tolerance && b0 < a1 - tolerance;
         });
-        const up = a.opening.sillHeight < b.opening.sillHeight + b.opening.height && b.opening.sillHeight < a.opening.sillHeight + a.opening.height;
+        const up =
+          a.opening.sillHeight < b.opening.sillHeight + b.opening.height &&
+          b.opening.sillHeight < a.opening.sillHeight + a.opening.height;
         if (!along || !up) continue;
         issues.push({ level: "ERROR", id: a.opening.id, message: `opening overlaps ${b.opening.id}` });
         issues.push({ level: "ERROR", id: b.opening.id, message: `opening overlaps ${a.opening.id}` });
@@ -119,11 +151,13 @@ export function checkOutlines(model: BuildingModel): Issue[] {
   const issues: Issue[] = [];
   for (const storey of model.storeys) {
     for (const element of outlined(storey)) {
-      for (const problem of polygonProblems(element.outline)) issues.push({ level: "ERROR", id: element.id, message: problem });
+      for (const problem of polygonProblems(element.outline))
+        issues.push({ level: "ERROR", id: element.id, message: problem });
     }
     for (const room of storey.rooms) {
       if (!room.dimensionOutline) continue;
-      for (const problem of polygonProblems(room.dimensionOutline)) issues.push({ level: "ERROR", id: room.id, message: `dimension outline: ${problem}` });
+      for (const problem of polygonProblems(room.dimensionOutline))
+        issues.push({ level: "ERROR", id: room.id, message: `dimension outline: ${problem}` });
     }
   }
   return issues;
@@ -154,24 +188,53 @@ export function checkStairs(model: BuildingModel): Issue[] {
   for (const storey of model.storeys) {
     for (const stair of storey.stairs ?? []) {
       const target = storeys.get(stair.toStoreyId);
-      if (!target) issues.push({ level: "ERROR", id: stair.id, message: `toStoreyId ${stair.toStoreyId} is not a storey in the model` });
-      else if (target.id === storey.id) issues.push({ level: "ERROR", id: stair.id, message: "toStoreyId is its own storey: a stair must climb to another one" });
+      if (!target)
+        issues.push({
+          level: "ERROR",
+          id: stair.id,
+          message: `toStoreyId ${stair.toStoreyId} is not a storey in the model`,
+        });
+      else if (target.id === storey.id)
+        issues.push({
+          level: "ERROR",
+          id: stair.id,
+          message: "toStoreyId is its own storey: a stair must climb to another one",
+        });
       else if (target.elevation <= storey.elevation)
-        issues.push({ level: "ERROR", id: stair.id, message: `toStoreyId ${target.id} is at ${target.elevation} mm, not above ${storey.id} at ${storey.elevation} mm` });
+        issues.push({
+          level: "ERROR",
+          id: stair.id,
+          message: `toStoreyId ${target.id} is at ${target.elevation} mm, not above ${storey.id} at ${storey.elevation} mm`,
+        });
       else {
         const next = nextStoreyUp(model, storey);
-        if (next && next.id !== target.id) issues.push({ level: "ERROR", id: stair.id, message: `toStoreyId ${target.id} skips ${next.id}, the next storey up` });
+        if (next && next.id !== target.id)
+          issues.push({
+            level: "ERROR",
+            id: stair.id,
+            message: `toStoreyId ${target.id} skips ${next.id}, the next storey up`,
+          });
       }
 
       const kinds = stair.segments.map((s) => s.kind);
-      if (kinds[0] !== "flight") issues.push({ level: "ERROR", id: stair.id, message: "the first segment is a landing: a stair must start with a flight" });
+      if (kinds[0] !== "flight")
+        issues.push({
+          level: "ERROR",
+          id: stair.id,
+          message: "the first segment is a landing: a stair must start with a flight",
+        });
       for (let i = 1; i < kinds.length; i++) {
         if (kinds[i] === "landing" && kinds[i - 1] === "landing") {
-          issues.push({ level: "ERROR", id: stair.id, message: `${stair.segments[i]!.id} is a landing straight after ${stair.segments[i - 1]!.id}` });
+          issues.push({
+            level: "ERROR",
+            id: stair.id,
+            message: `${stair.segments[i]!.id} is a landing straight after ${stair.segments[i - 1]!.id}`,
+          });
         }
       }
       for (const seg of stair.segments) {
-        if (seg.kind === "flight" && flightRun(seg) === 0) issues.push({ level: "ERROR", id: stair.id, message: `flight ${seg.id} has no plan run` });
+        if (seg.kind === "flight" && flightRun(seg) === 0)
+          issues.push({ level: "ERROR", id: stair.id, message: `flight ${seg.id} has no plan run` });
       }
 
       stair.segments.forEach((seg, i) => {
@@ -185,7 +248,11 @@ export function checkStairs(model: BuildingModel): Issue[] {
         for (const [point, what] of meetings) {
           const off = distanceToOutline(point, outline);
           if (off > LANDING_TOLERANCE) {
-            issues.push({ level: "ERROR", id: seg.id, message: `${what} ${Math.round(off)} mm away from this landing` });
+            issues.push({
+              level: "ERROR",
+              id: seg.id,
+              message: `${what} ${Math.round(off)} mm away from this landing`,
+            });
           }
         }
       });

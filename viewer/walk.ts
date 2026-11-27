@@ -70,7 +70,13 @@ export function stepDistance(deltaSeconds: number): number {
  * The next camera position: X/Z moved along the heading basis, Y snapped to `eyeY`. No geometry
  * query, so walls and floors are passed through.
  */
-export function walkStep(position: THREE.Vector3, basis: HeadingBasis, offset: THREE.Vector2 | null, deltaSeconds: number, eyeY: number): THREE.Vector3 {
+export function walkStep(
+  position: THREE.Vector3,
+  basis: HeadingBasis,
+  offset: THREE.Vector2 | null,
+  deltaSeconds: number,
+  eyeY: number,
+): THREE.Vector3 {
   const next = position.clone();
   if (offset && offset.lengthSq() > 0) {
     const d = stepDistance(deltaSeconds);

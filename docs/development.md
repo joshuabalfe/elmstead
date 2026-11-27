@@ -3,12 +3,14 @@
 ## Commands
 
 ```sh
-npm test            # vitest: units, schema, helpers, loading, rendering, GUIDs, IFC + validator, 3D vs plan
-npm run test:fast   # the same without uv, Chromium or CLI subprocess tests
-npm run typecheck   # tsc for src/models/tests/scripts, and separately for viewer/
-npm run check       # model checks only, writing nothing
-npm run all         # build, then render if the build succeeded
-npm run schema      # regenerate schema/building.schema.json from the zod schema
+npm test              # vitest: units, schema, helpers, loading, rendering, GUIDs, IFC + validator, 3D vs plan
+npm run test:fast     # the same without uv, Chromium or CLI subprocess tests
+npm run typecheck     # tsc for src/models/tests/scripts, and separately for viewer/
+npm run format        # prettier --write
+npm run format:check  # prettier --check (CI)
+npm run check         # model checks only, writing nothing
+npm run all           # build, then render if the build succeeded
+npm run schema        # regenerate schema/building.schema.json from the zod schema
 ```
 
 The IFC tests call the real validator, so `uv` must be installed. The first run downloads
@@ -42,39 +44,39 @@ tests table below).
 
 ## Tests
 
-| File | Covers |
-|---|---|
-| `tests/units.test.ts` | `mm()`, `m()`, arithmetic helpers, and the branded type (with `@ts-expect-error`) |
-| `tests/schema.test.ts` | valid and invalid models, and a check that `schema/building.schema.json` is up to date |
-| `tests/helpers.test.ts` | `mid`, `rectWalls`, `face`, `faceCrossing`, `centredOn`, `door`/`window` with components |
-| `tests/polygon.test.ts` | `spans()`, and `polygonProblems()` for repeated points, zero area, crossings, touching and collinear overlaps |
-| `tests/roundtrip.test.ts` | the volumes the round-trip check expects for every element |
-| `tests/load.test.ts` | loading a model file; schema errors attributed to element ids; JSON formatting |
-| `tests/paths.test.ts` | a model's entry point, output name and constraints file |
-| `tests/render.test.ts` | plan determinism, SVG snapshot, wall splitting, door and window symbols, labels, PNG size, door geometry, drawing primitives and their SVG |
-| `tests/door.test.ts` | door frames; doorways: no component/swing, plan gap without leaf/swing, opening-only IFC |
-| `tests/guid.test.ts` | UUIDv5 and IFC GUID compression against reference vectors; fixed GlobalIds for known ids |
-| `tests/io.test.ts` | atomic writes leave the previous file and no temp file after a failure |
-| `tests/ifc.test.ts` | byte-identical IFC, GlobalId stability, door and window types, window partitioning, round-trip volumes, validator pass and fail cases |
-| `tests/plan-vs-3d.test.ts` | the viewer's Top view shows the same walls, rooms and openings as the plan, for the example cottage and the two-storey fixture |
-| `tests/plan-vs-3d-elmstead.test.ts` | the same for each Elmstead storey, and that the check catches a room outline run to a wall's centreline |
-| `tests/viewer-storey-selection.test.ts` | the floor picker: the status note for an unknown storey id, hidden storeys' geometry, the selector and the camera |
-| `tests/viewer-storey-keys.test.ts` | the storey keyboard shortcut: stepping through floors, the ends, the selector's focus, modifiers, single-storey models, snapshots and walk mode |
-| `tests/viewer-presentation.test.ts` | the railings, the stair's tread bands, the ground slab's colour, and that no uploaded texture exceeds 1024 × 1024 texels |
-| `tests/window.test.ts` | frames and glazing bars: pane ratios, no overlaps, frame inside the window's size, fit checks, IFC volumes, plan symbol |
-| `tests/checks.test.ts` | schema-issue attribution, component checks plus id, zero-length wall, opening host/fit/overlap and outline rules |
-| `tests/cli.test.ts` | `build`/`check`/`all`, failure fixtures, render-before-build and missing-Chromium warnings, exit statuses, constraints; a base model draws no Diff snapshots |
-| `tests/cli-revisions.test.ts` | building, checking and rendering revisions, their constraints, and the diff file and summary |
-| `tests/cli-diff-snapshots.test.ts` | a revision's Diff snapshots: drawn with a warning until the base is built, in full after (the slowest CLI tests: each render writes ten 3D pictures) |
-| `tests/viewer-diff-mode.test.ts` | Diff mode in the viewer: the toggles, colours and outlines, the plan drawing and the changes panel |
-| `tests/viewer-diff-ghosts.test.ts` | Diff mode's removed elements (ghosts), Transparency and hover status |
-| `tests/ci-config.test.ts` | the CI matrix's groups, its `rest` excludes and `test:fast`'s excludes name the same heavy files |
-| `tests/validate.test.ts` | validator bridge: non-JSON output, truncated JSON, wrong-shaped lines, summary defaults, crash status and exit 1 with findings (fake `uv`) |
-| `tests/viewer.test.ts` | layer disposal keeping shared materials, path confinement, malformed encoding and `?view=` fallback; measurement maths, snap choice and click slop; element id/name labels; plan-overlay geometry (scale, run order, depth, text placement) |
-| `tests/viewer-identify.test.ts` | the Ids toggle, hover tooltip content, drag/view/walk/storey composition, the `?ids` lifecycle, room-id labels and the snapshot exemption in headless Chromium |
-| `tests/viewer-measure.test.ts` | snapped picks, drag/tap handling, Clear/Escape, model changes and the snapshot exemption in headless Chromium |
-| `tests/snapshot.test.ts` | a viewer failure is an ERROR and the server closes |
-| `tests/toolchain.test.ts` | web-ifc and uv/IfcOpenShell are available |
+| File                                    | Covers                                                                                                                                                                                                                                      |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/units.test.ts`                   | `mm()`, `m()`, arithmetic helpers, and the branded type (with `@ts-expect-error`)                                                                                                                                                           |
+| `tests/schema.test.ts`                  | valid and invalid models, and a check that `schema/building.schema.json` is up to date                                                                                                                                                      |
+| `tests/helpers.test.ts`                 | `mid`, `rectWalls`, `face`, `faceCrossing`, `centredOn`, `door`/`window` with components                                                                                                                                                    |
+| `tests/polygon.test.ts`                 | `spans()`, and `polygonProblems()` for repeated points, zero area, crossings, touching and collinear overlaps                                                                                                                               |
+| `tests/roundtrip.test.ts`               | the volumes the round-trip check expects for every element                                                                                                                                                                                  |
+| `tests/load.test.ts`                    | loading a model file; schema errors attributed to element ids; JSON formatting                                                                                                                                                              |
+| `tests/paths.test.ts`                   | a model's entry point, output name and constraints file                                                                                                                                                                                     |
+| `tests/render.test.ts`                  | plan determinism, SVG snapshot, wall splitting, door and window symbols, labels, PNG size, door geometry, drawing primitives and their SVG                                                                                                  |
+| `tests/door.test.ts`                    | door frames; doorways: no component/swing, plan gap without leaf/swing, opening-only IFC                                                                                                                                                    |
+| `tests/guid.test.ts`                    | UUIDv5 and IFC GUID compression against reference vectors; fixed GlobalIds for known ids                                                                                                                                                    |
+| `tests/io.test.ts`                      | atomic writes leave the previous file and no temp file after a failure                                                                                                                                                                      |
+| `tests/ifc.test.ts`                     | byte-identical IFC, GlobalId stability, door and window types, window partitioning, round-trip volumes, validator pass and fail cases                                                                                                       |
+| `tests/plan-vs-3d.test.ts`              | the viewer's Top view shows the same walls, rooms and openings as the plan, for the example cottage and the two-storey fixture                                                                                                              |
+| `tests/plan-vs-3d-elmstead.test.ts`     | the same for each Elmstead storey, and that the check catches a room outline run to a wall's centreline                                                                                                                                     |
+| `tests/viewer-storey-selection.test.ts` | the floor picker: the status note for an unknown storey id, hidden storeys' geometry, the selector and the camera                                                                                                                           |
+| `tests/viewer-storey-keys.test.ts`      | the storey keyboard shortcut: stepping through floors, the ends, the selector's focus, modifiers, single-storey models, snapshots and walk mode                                                                                             |
+| `tests/viewer-presentation.test.ts`     | the railings, the stair's tread bands, the ground slab's colour, and that no uploaded texture exceeds 1024 × 1024 texels                                                                                                                    |
+| `tests/window.test.ts`                  | frames and glazing bars: pane ratios, no overlaps, frame inside the window's size, fit checks, IFC volumes, plan symbol                                                                                                                     |
+| `tests/checks.test.ts`                  | schema-issue attribution, component checks plus id, zero-length wall, opening host/fit/overlap and outline rules                                                                                                                            |
+| `tests/cli.test.ts`                     | `build`/`check`/`all`, failure fixtures, render-before-build and missing-Chromium warnings, exit statuses, constraints; a base model draws no Diff snapshots                                                                                |
+| `tests/cli-revisions.test.ts`           | building, checking and rendering revisions, their constraints, and the diff file and summary                                                                                                                                                |
+| `tests/cli-diff-snapshots.test.ts`      | a revision's Diff snapshots: drawn with a warning until the base is built, in full after (the slowest CLI tests: each render writes ten 3D pictures)                                                                                        |
+| `tests/viewer-diff-mode.test.ts`        | Diff mode in the viewer: the toggles, colours and outlines, the plan drawing and the changes panel                                                                                                                                          |
+| `tests/viewer-diff-ghosts.test.ts`      | Diff mode's removed elements (ghosts), Transparency and hover status                                                                                                                                                                        |
+| `tests/ci-config.test.ts`               | the CI matrix's groups, its `rest` excludes and `test:fast`'s excludes name the same heavy files                                                                                                                                            |
+| `tests/validate.test.ts`                | validator bridge: non-JSON output, truncated JSON, wrong-shaped lines, summary defaults, crash status and exit 1 with findings (fake `uv`)                                                                                                  |
+| `tests/viewer.test.ts`                  | layer disposal keeping shared materials, path confinement, malformed encoding and `?view=` fallback; measurement maths, snap choice and click slop; element id/name labels; plan-overlay geometry (scale, run order, depth, text placement) |
+| `tests/viewer-identify.test.ts`         | the Ids toggle, hover tooltip content, drag/view/walk/storey composition, the `?ids` lifecycle, room-id labels and the snapshot exemption in headless Chromium                                                                              |
+| `tests/viewer-measure.test.ts`          | snapped picks, drag/tap handling, Clear/Escape, model changes and the snapshot exemption in headless Chromium                                                                                                                               |
+| `tests/snapshot.test.ts`                | a viewer failure is an ERROR and the server closes                                                                                                                                                                                          |
+| `tests/toolchain.test.ts`               | web-ifc and uv/IfcOpenShell are available                                                                                                                                                                                                   |
 
 The three viewer files above share Chromium, the viewer's server and the pixel helpers through
 `tests/support/viewer-page.ts` (call `useViewer()` at the top of the file). Their tests run one
@@ -132,7 +134,7 @@ cancels its stale run. Three kinds of job, all started together:
 - **scope**: decides whether **full** is needed. A pull request that only changes `docs/`,
   `openspec/`, `.agents/` or `*.md` skips it; pushes to `main` always run it. It needs no
   checkout, so it finishes in seconds.
-- **fast**: `npm ci`, `npm run typecheck`, a schema freshness check
+- **fast**: `npm ci`, `npm run typecheck`, `npm run format:check`, a schema freshness check
   (`npm run schema && git diff --exit-code schema/`) and `npm run test:fast`. It is the quick
   signal; **full** does not wait for it.
 - **full**: installs uv and Chromium's system libraries, then runs `npm test`, including the
@@ -149,29 +151,29 @@ The actions are pinned by commit SHA, matching the repo's exact-version rule.
 
 ## Generated files
 
-| File | Regenerate with | Notes |
-|---|---|---|
-| `out/**` | `npm run build` / `npm run render` | git-ignored; never edit |
-| `out/<name>.constraints.json` | `npm run build` | resolved constraints for the viewer's red labels; written only when the model has a constraints file |
-| `schema/building.schema.json` | `npm run schema` | committed; `tests/schema.test.ts` fails if it is stale |
-| `validator/validate.py.lock` | `uv lock --script validator/validate.py` | run after changing the script's dependencies |
-| `tests/__snapshots__/*.svg` | `npx vitest run -u` | review the diff before committing |
+| File                          | Regenerate with                          | Notes                                                                                                |
+| ----------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `out/**`                      | `npm run build` / `npm run render`       | git-ignored; never edit                                                                              |
+| `out/<name>.constraints.json` | `npm run build`                          | resolved constraints for the viewer's red labels; written only when the model has a constraints file |
+| `schema/building.schema.json` | `npm run schema`                         | committed; `tests/schema.test.ts` fails if it is stale                                               |
+| `validator/validate.py.lock`  | `uv lock --script validator/validate.py` | run after changing the script's dependencies                                                         |
+| `tests/__snapshots__/*.svg`   | `npx vitest run -u`                      | review the diff before committing                                                                    |
 
 ## Conventions
 
 - **TypeScript:** strict, with `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` and
   `verbatimModuleSyntax`. ES modules, with `.js` extensions on relative imports.
 - **Code style:** one-line arrow consts for small helpers, function declarations for larger bodies,
-  JSDoc on exports. No formatter is configured and lines may run long; keep the shape of the file
-  you are editing.
+  JSDoc on exports. Prettier formats the repo; run `npm run format` before committing, and
+  `npm run format:check` runs in CI.
 - **Lengths:** always `Mm`. Convert to metres (`toMetres`) only for display.
 - **Determinism:** no `Date.now()`, no random numbers, and no iteration over unordered sources in
   anything that ends up in `out/`.
 - **Messages:** report problems as an `Issue` (`src/checks/issue.ts`) against an element id.
 - **Versions:** pin dependencies exactly. Check the current release before adding or upgrading a
   dependency.
-- **Commits:** keep each change small and runnable. Run `npm test` and `npm run typecheck` before
-  committing.
+- **Commits:** keep each change small and runnable. Run `npm test`, `npm run typecheck` and
+  `npm run format` before committing.
 
 ## Adding a new element type
 

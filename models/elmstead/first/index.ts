@@ -27,7 +27,19 @@ import { coreD, coreW, firstFloor, firstFloorStructure } from "../shared.js";
 import { openings } from "./openings.js";
 import { rooms } from "./rooms.js";
 import { stairs } from "./stair.js";
-import { bayFrontLeftY, bayFrontRightY, bayLeftY, bayOutX, bayRightY, stairArrivalX, stairRearX, stairLeftY, stairRightY, stairFrontX, walls } from "./walls.js";
+import {
+  bayFrontLeftY,
+  bayFrontRightY,
+  bayLeftY,
+  bayOutX,
+  bayRightY,
+  stairArrivalX,
+  stairRearX,
+  stairLeftY,
+  stairRightY,
+  stairFrontX,
+  walls,
+} from "./walls.js";
 
 /** The hole in the first floor: the stair well and the half landing in the extension. */
 export const stairwellOutline: Polygon = [

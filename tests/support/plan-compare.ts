@@ -22,7 +22,8 @@ export const planPixels = (m: BuildingModel, storey: Storey = m.storeys[0]!): Ra
   const w = x1 - x0;
   const h = y1 - y0;
   const data = new Uint8Array(w * h * 4);
-  for (let y = 0; y < h; y++) data.set(full.data.subarray(((y0 + y) * full.width + x0) * 4, ((y0 + y) * full.width + x1) * 4), y * w * 4);
+  for (let y = 0; y < h; y++)
+    data.set(full.data.subarray(((y0 + y) * full.width + x0) * 4, ((y0 + y) * full.width + x1) * 4), y * w * 4);
   return { width: w, height: h, data };
 };
 
@@ -42,13 +43,20 @@ export function compareEveryStorey(models: readonly (readonly [path: string, sou
       const v = s.walls.flatMap((w) => [w.start[axis], w.end[axis]]);
       return Math.max(...v) - Math.min(...v);
     };
-    const comparable = (s: Storey) => s.walls.length > 0 && span(s, "x") >= 2000 && span(s, "y") >= 2000 && !s.walls.some((w) => w.profile);
+    const comparable = (s: Storey) =>
+      s.walls.length > 0 && span(s, "x") >= 2000 && span(s, "y") >= 2000 && !s.walls.some((w) => w.profile);
     for (const storey of source.storeys.filter(comparable)) {
       it(`shows the same walls, rooms and openings as the plan: ${path} ${storey.id}`, async () => {
         const m = structuredClone(source) as BuildingModel;
         const name = `test-${path.replace(/\W+/g, "-")}`;
         await publish(name, m);
-        const r = comparePlanTo3d(planPixels(m, m.storeys.find((s) => s.id === storey.id)!), await topView(name, storey.id));
+        const r = comparePlanTo3d(
+          planPixels(
+            m,
+            m.storeys.find((s) => s.id === storey.id)!,
+          ),
+          await topView(name, storey.id),
+        );
         expect(r.aspect).toBeCloseTo(1, 2); // undistorted
         expect(r.compared).toBeGreaterThan(100_000);
         expect(r.badTiles, "tiles where the 3D view shows something else than the plan").toEqual([]);

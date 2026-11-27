@@ -28,7 +28,9 @@ const messageOf = (e: unknown): string => (e instanceof Error ? e.message : Stri
 async function verifyIfc(model: BuildingModel, ifc: Uint8Array, ifcPath: string, issues: Issue[]): Promise<void> {
   const rt = await roundTripChecks(model, ifc);
   issues.push(...rt);
-  console.log(`geom    ${ifcPath}: ${rt.length ? `${rt.length} problems` : "every element meshes in web-ifc; opening cuts verified by volume"}`);
+  console.log(
+    `geom    ${ifcPath}: ${rt.length ? `${rt.length} problems` : "every element meshes in web-ifc; opening cuts verified by volume"}`,
+  );
   const v = validateIfc(ifcPath);
   issues.push(...v.issues);
   console.log(`valid   ${ifcPath}: ${v.errors} errors, ${v.warnings} warnings (ifcopenshell.validate)`);
@@ -38,7 +40,11 @@ async function verifyIfc(model: BuildingModel, ifc: Uint8Array, ifcPath: string,
  * The model checks, then the model's constraints when it has them, printing how many were met.
  * Returns whether neither reported an ERROR, and the constraints' resolved geometry.
  */
-function runChecks(loaded: LoadedModel, constraints: LoadedConstraints | undefined, issues: Issue[]): { ok: boolean; resolved: ResolvedConstraint[] } {
+function runChecks(
+  loaded: LoadedModel,
+  constraints: LoadedConstraints | undefined,
+  issues: Issue[],
+): { ok: boolean; resolved: ResolvedConstraint[] } {
   const checked = checkModel(loaded.model);
   let resolved: ResolvedConstraint[] = [];
   if (constraints) {
@@ -46,7 +52,11 @@ function runChecks(loaded: LoadedModel, constraints: LoadedConstraints | undefin
     const own = constraints.revision?.ownPath;
     // A revision checked against its base's constraints says where it can take a broken one back.
     const inherited = own !== undefined && own !== constraints.path;
-    checked.push(...(inherited ? report.issues.map((i) => ({ ...i, message: `${i.message}; the revision can remove or replace it in ${own}` })) : report.issues));
+    checked.push(
+      ...(inherited
+        ? report.issues.map((i) => ({ ...i, message: `${i.message}; the revision can remove or replace it in ${own}` }))
+        : report.issues),
+    );
     resolved = report.resolved;
     const edits = constraints.revision?.edits;
     const tally = edits ? ` (${edits.removed} removed, ${edits.replaced} replaced, ${edits.added} added)` : "";
@@ -60,12 +70,19 @@ function runChecks(loaded: LoadedModel, constraints: LoadedConstraints | undefin
 function printDiff(loaded: LoadedModel): ModelDiff | undefined {
   if (!loaded.base) return undefined;
   const d = diffModels(loaded.base.model, loaded.model);
-  console.log(`diff    ${loaded.name}: ${d.added.length} added, ${d.changed.length} changed, ${d.removed.length} removed`);
+  console.log(
+    `diff    ${loaded.name}: ${d.added.length} added, ${d.changed.length} changed, ${d.removed.length} removed`,
+  );
   return d;
 }
 
 /** Returns true when the build wrote its files without an ERROR. */
-async function runBuild(loaded: LoadedModel, constraints: LoadedConstraints | undefined, out: string, issues: Issue[]): Promise<boolean> {
+async function runBuild(
+  loaded: LoadedModel,
+  constraints: LoadedConstraints | undefined,
+  out: string,
+  issues: Issue[],
+): Promise<boolean> {
   const checked = runChecks(loaded, constraints, issues);
   const diff = printDiff(loaded); // informational: a revision adding and removing things is the point
   if (!checked.ok) return false; // nothing written: fix the model first
@@ -91,7 +108,13 @@ async function runBuild(loaded: LoadedModel, constraints: LoadedConstraints | un
 }
 
 /** `constraints` is undefined in `all`, whose build step has already checked them. */
-async function runRender(loaded: LoadedModel, constraints: LoadedConstraints | undefined, out: string, flags: Set<string>, issues: Issue[]): Promise<void> {
+async function runRender(
+  loaded: LoadedModel,
+  constraints: LoadedConstraints | undefined,
+  out: string,
+  flags: Set<string>,
+  issues: Issue[],
+): Promise<void> {
   if (!runChecks(loaded, constraints, issues).ok) return; // nothing written: fix the model first
   for (const p of renderAll(loaded.name, loaded.model, out, { ids: flags.has("--ids") })) console.log(`render  ${p}`);
   if (flags.has("--no-3d")) return;
@@ -102,7 +125,11 @@ async function runRender(loaded: LoadedModel, constraints: LoadedConstraints | u
   // A revision is also snapshotted in Diff mode; its removed elements' ghosts need the base's IFC.
   const base = loaded.base ? loaded.name.split("@")[0]! : undefined;
   if (base && !existsSync(join(out, `${base}.ifc`))) {
-    issues.push({ level: "WARNING", id: loaded.name, message: `Diff snapshots drawn without removed elements: no ${base}.ifc yet — build ${loaded.base!.path} first` });
+    issues.push({
+      level: "WARNING",
+      id: loaded.name,
+      message: `Diff snapshots drawn without removed elements: no ${base}.ifc yet — build ${loaded.base!.path} first`,
+    });
   }
   const r = await render3d(loaded.name, out, { diff: base !== undefined });
   for (const p of r.written) console.log(`render  ${p}`);

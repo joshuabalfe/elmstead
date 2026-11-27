@@ -6,7 +6,15 @@
 import { describe, expect, it } from "vitest";
 import twoStorey from "./fixtures/two-storey/index.js";
 import type { Issue } from "../src/checks/issue.js";
-import { flightFootprint, flightProfile, flightProfileArea, flightRun, flightTreads, stairLevels, turnBetween } from "../src/geometry/stair.js";
+import {
+  flightFootprint,
+  flightProfile,
+  flightProfileArea,
+  flightRun,
+  flightTreads,
+  stairLevels,
+  turnBetween,
+} from "../src/geometry/stair.js";
 import { m, mm, pt, stair, stairFlight, stairLanding } from "../src/model/index.js";
 import { renderFloor, renderPlan, renderWallTops } from "../src/render/plan.js";
 import { C } from "../src/render/style.js";
@@ -14,7 +22,8 @@ import { checkIds, checkOutlines, checkStairs } from "../src/checks/model.js";
 import { BuildingModelSchema, type BuildingModel, type Stair, type StairFlight } from "../src/schema/schema.js";
 import { STYLES } from "../src/ifc/styles.js";
 
-const model = (source: unknown = twoStorey): BuildingModel => BuildingModelSchema.parse(JSON.parse(JSON.stringify(source)));
+const model = (source: unknown = twoStorey): BuildingModel =>
+  BuildingModelSchema.parse(JSON.parse(JSON.stringify(source)));
 
 /** The fixture's stair, and the storey it hangs off. */
 const stairOf = (m: BuildingModel): Stair => m.storeys[0]!.stairs![0]!;
@@ -58,7 +67,10 @@ describe("stair schema", () => {
 
   it("rejects a landing outline of two points", () => {
     const raw: any = JSON.parse(JSON.stringify(twoStorey));
-    raw.storeys[0].stairs[0].segments[1].outline = [{ x: 0, y: 0 }, { x: 1000, y: 0 }];
+    raw.storeys[0].stairs[0].segments[1].outline = [
+      { x: 0, y: 0 },
+      { x: 1000, y: 0 },
+    ];
     expect(BuildingModelSchema.safeParse(raw).success).toBe(false);
   });
 
@@ -71,9 +83,19 @@ describe("stair schema", () => {
 
 describe("stair helpers", () => {
   it("stair() records the destination storey's id and keeps the segment order", () => {
-    const first: any = { id: "storey-first", name: "First", elevation: 3050, walls: [], openings: [], slabs: [], rooms: [] };
+    const first: any = {
+      id: "storey-first",
+      name: "First",
+      elevation: 3050,
+      walls: [],
+      openings: [],
+      slabs: [],
+      rooms: [],
+    };
     const lower = stairFlight("stair-flight-lower", pt(mm(0), mm(0)), pt(m(2), mm(0)), { width: mm(800), risers: 8 });
-    const landing = stairLanding("stair-landing-half", [pt(m(2), mm(0)), pt(m(3), mm(0)), pt(m(3), m(1))], { thickness: mm(150) });
+    const landing = stairLanding("stair-landing-half", [pt(m(2), mm(0)), pt(m(3), mm(0)), pt(m(3), m(1))], {
+      thickness: mm(150),
+    });
     const upper = stairFlight("stair-flight-upper", pt(m(3), m(1)), pt(m(1), m(1)), { width: mm(800), risers: 8 });
     const s = stair("stair-main", first, [lower, landing, upper]);
     expect(s.toStoreyId).toBe("storey-first");
@@ -90,7 +112,12 @@ describe("stair helpers", () => {
       risers: 8,
     });
     const outline = [pt(mm(0), mm(0)), pt(m(1), mm(0)), pt(m(1), m(1))];
-    expect(stairLanding("l", outline, { thickness: mm(150) })).toEqual({ kind: "landing", id: "l", outline, thickness: 150 });
+    expect(stairLanding("l", outline, { thickness: mm(150) })).toEqual({
+      kind: "landing",
+      id: "l",
+      outline,
+      thickness: 150,
+    });
   });
 });
 
@@ -117,9 +144,24 @@ describe("derived stair geometry", () => {
   });
 
   it("counts one more riser when a stair ends with a top landing", () => {
-    const first: any = { id: "storey-first", name: "First", elevation: 1950, walls: [], openings: [], slabs: [], rooms: [] };
-    const flight = stairFlight("stair-flight-lower", pt(mm(0), mm(0)), pt(mm(1500), mm(0)), { width: mm(900), risers: 6 });
-    const landing = stairLanding("stair-landing-top", [pt(mm(1500), mm(-450)), pt(mm(2400), mm(-450)), pt(mm(2400), mm(450)), pt(mm(1500), mm(450))], { thickness: mm(150) });
+    const first: any = {
+      id: "storey-first",
+      name: "First",
+      elevation: 1950,
+      walls: [],
+      openings: [],
+      slabs: [],
+      rooms: [],
+    };
+    const flight = stairFlight("stair-flight-lower", pt(mm(0), mm(0)), pt(mm(1500), mm(0)), {
+      width: mm(900),
+      risers: 6,
+    });
+    const landing = stairLanding(
+      "stair-landing-top",
+      [pt(mm(1500), mm(-450)), pt(mm(2400), mm(-450)), pt(mm(2400), mm(450)), pt(mm(1500), mm(450))],
+      { thickness: mm(150) },
+    );
     const levels = stairLevels(stair("stair-top", first, [flight, landing]), 1950);
     expect(levels.totalRisers).toBe(7);
     expect(levels.riser).toBeCloseTo(1950 / 7, 9);
@@ -224,7 +266,9 @@ describe("stair checks", () => {
     const m = model();
     m.storeys.push({ ...m.storeys[1]!, id: "storey-second", name: "Second floor", elevation: mm(6100) });
     stairOf(m).toStoreyId = "storey-second";
-    expect(ids(checkStairs(m)).join()).toMatch(/stair-main: toStoreyId storey-second skips storey-first, the next storey up/);
+    expect(ids(checkStairs(m)).join()).toMatch(
+      /stair-main: toStoreyId storey-second skips storey-first, the next storey up/,
+    );
   });
 
   it("rejects a stair that starts with a landing", () => {
@@ -234,14 +278,26 @@ describe("stair checks", () => {
 
   it("accepts a top landing at the end of the last flight", () => {
     const m = mutateStair((s) => {
-      s.segments.push(stairLanding("stair-landing-top", [pt(mm(2600), mm(1800)), pt(mm(3400), mm(1800)), pt(mm(3400), mm(2600)), pt(mm(2600), mm(2600))], { thickness: mm(150) }));
+      s.segments.push(
+        stairLanding(
+          "stair-landing-top",
+          [pt(mm(2600), mm(1800)), pt(mm(3400), mm(1800)), pt(mm(3400), mm(2600)), pt(mm(2600), mm(2600))],
+          { thickness: mm(150) },
+        ),
+      );
     });
     expect(checkStairs(m)).toEqual([]);
   });
 
   it("rejects a top landing its last flight misses", () => {
     const m = mutateStair((s) => {
-      s.segments.push(stairLanding("stair-landing-top", [pt(mm(2700), mm(1800)), pt(mm(3500), mm(1800)), pt(mm(3500), mm(2600)), pt(mm(2700), mm(2600))], { thickness: mm(150) }));
+      s.segments.push(
+        stairLanding(
+          "stair-landing-top",
+          [pt(mm(2700), mm(1800)), pt(mm(3500), mm(1800)), pt(mm(3500), mm(2600)), pt(mm(2700), mm(2600))],
+          { thickness: mm(150) },
+        ),
+      );
     });
     const found = ids(checkStairs(m)).filter((i) => i.startsWith("stair-landing-top"));
     expect(found).toHaveLength(1);
@@ -250,7 +306,9 @@ describe("stair checks", () => {
 
   it("rejects two landings in a row", () => {
     const m = mutateStair((s) => s.segments.splice(2, 0, { ...s.segments[1], id: "stair-landing-second" }));
-    expect(ids(checkStairs(m)).join()).toMatch(/stair-main: stair-landing-second is a landing straight after stair-landing-half/);
+    expect(ids(checkStairs(m)).join()).toMatch(
+      /stair-main: stair-landing-second is a landing straight after stair-landing-half/,
+    );
   });
 
   it("rejects a flight with no plan run", () => {
@@ -259,7 +317,9 @@ describe("stair checks", () => {
   });
 
   it("rejects a landing its flights miss", () => {
-    const m = mutateStair((s) => (s.segments[1].outline = s.segments[1].outline.map((p: any) => ({ x: p.x + 100, y: p.y }))));
+    const m = mutateStair(
+      (s) => (s.segments[1].outline = s.segments[1].outline.map((p: any) => ({ x: p.x + 100, y: p.y }))),
+    );
     const found = ids(checkStairs(m)).filter((i) => i.startsWith("stair-landing-half"));
     expect(found).toHaveLength(2);
     expect(found.join()).toMatch(/stair-flight-lower ends 100 mm away from this landing/);
@@ -267,13 +327,21 @@ describe("stair checks", () => {
   });
 
   it("accepts a landing its flights meet within a millimetre", () => {
-    const m = mutateStair((s) => (s.segments[1].outline = s.segments[1].outline.map((p: any) => ({ x: p.x + 0.5, y: p.y }))));
+    const m = mutateStair(
+      (s) => (s.segments[1].outline = s.segments[1].outline.map((p: any) => ({ x: p.x + 0.5, y: p.y }))),
+    );
     expect(checkStairs(m)).toEqual([]);
   });
 
   it("rejects a self-intersecting landing outline", () => {
-    const m = mutateStair((s) =>
-      (s.segments[1].outline = [pt(mm(4400), mm(1000)), pt(mm(5200), mm(2600)), pt(mm(5200), mm(1000)), pt(mm(4400), mm(2600))]),
+    const m = mutateStair(
+      (s) =>
+        (s.segments[1].outline = [
+          pt(mm(4400), mm(1000)),
+          pt(mm(5200), mm(2600)),
+          pt(mm(5200), mm(1000)),
+          pt(mm(4400), mm(2600)),
+        ]),
     );
     expect(ids(checkOutlines(m)).join()).toMatch(/stair-landing-half: outline crosses itself/);
   });

@@ -35,7 +35,12 @@ const TOLERANCE = 5;
 function kindAt(r: Raster, x: number, y: number): Kind {
   const i = (y * r.width + x) * 4;
   for (const [kind, [cr, cg, cb]] of KINDS) {
-    if (Math.abs(r.data[i]! - cr) <= TOLERANCE && Math.abs(r.data[i + 1]! - cg) <= TOLERANCE && Math.abs(r.data[i + 2]! - cb) <= TOLERANCE) return kind;
+    if (
+      Math.abs(r.data[i]! - cr) <= TOLERANCE &&
+      Math.abs(r.data[i + 1]! - cg) <= TOLERANCE &&
+      Math.abs(r.data[i + 2]! - cb) <= TOLERANCE
+    )
+      return kind;
   }
   return Kind.Other;
 }
@@ -103,7 +108,11 @@ export interface CompareOptions {
 }
 
 /** Compare the plan (as rendered to PNG) with a screenshot of the 3D Top view in plan style. */
-export function comparePlanTo3d(plan: Raster, top: Raster, { tile = 500, step = 250, tileLimit = 0.1 }: CompareOptions = {}): Comparison {
+export function comparePlanTo3d(
+  plan: Raster,
+  top: Raster,
+  { tile = 500, step = 250, tileLimit = 0.1 }: CompareOptions = {},
+): Comparison {
   // The two rasters antialias their outer wall edges differently, and no tolerance can make a
   // 1-pixel gradient agree across scales, so the comparison stays a few pixels inside the wall box.
   const inset = 3;
@@ -180,7 +189,11 @@ export function comparePlanTo3d(plan: Raster, top: Raster, { tile = 500, step = 
       // Tiles mostly of text, lines or antialiasing say little either way.
       if (n < 0.25 * t * t || d / n <= tileLimit) continue;
       const m = (px: number) => Math.round((px / pxPerMm / 1000) * 100) / 100;
-      badTiles.push({ x: [m(x0), m(Math.min(w, x0 + t))], y: [m(h - Math.min(h, y0 + t)), m(h - y0)], mismatch: Math.round((d / n) * 1000) / 1000 });
+      badTiles.push({
+        x: [m(x0), m(Math.min(w, x0 + t))],
+        y: [m(h - Math.min(h, y0 + t)), m(h - y0)],
+        mismatch: Math.round((d / n) * 1000) / 1000,
+      });
     }
   }
   badTiles.sort((a, b) => b.mismatch - a.mismatch);

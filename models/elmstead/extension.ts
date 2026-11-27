@@ -9,7 +9,19 @@
  * basement half landing and the rear hall are planned.
  */
 import { mm, pt, sub, wall, type Mm, type Wall } from "../../src/model/index.js";
-import { atticHalfLanding, atticRidgeHeight, atticRidgeX, coreD, coreW, extRearX, extRightY, externalRuns, externalWall, firstFloor, mainHalfLanding } from "./shared.js";
+import {
+  atticHalfLanding,
+  atticRidgeHeight,
+  atticRidgeX,
+  coreD,
+  coreW,
+  extRearX,
+  extRightY,
+  externalRuns,
+  externalWall,
+  firstFloor,
+  mainHalfLanding,
+} from "./shared.js";
 
 const party = externalRuns.party;
 const extRight = externalRuns.extRight;
@@ -17,9 +29,17 @@ const extLength = sub(extRearX, coreW);
 
 /** The main half landing's extension walls, flat-topped up to the attic half landing. */
 const mainHeight = sub(atticHalfLanding.elevation, mainHalfLanding.elevation);
-export const mainHalfLandingRear = externalWall("wall-extension-rear-main-half-landing", externalRuns.extRear, mainHeight);
+export const mainHalfLandingRear = externalWall(
+  "wall-extension-rear-main-half-landing",
+  externalRuns.extRear,
+  mainHeight,
+);
 export const mainHalfLandingWalls: Wall[] = [
-  wall("wall-party-extension-main-half-landing", party.start, pt(coreW, coreD), { thickness: party.thickness, height: mainHeight, justification: party.justification }),
+  wall("wall-party-extension-main-half-landing", party.start, pt(coreW, coreD), {
+    thickness: party.thickness,
+    height: mainHeight,
+    justification: party.justification,
+  }),
   mainHalfLandingRear,
   externalWall("wall-extension-right-main-half-landing", extRight, mainHeight),
 ];
@@ -36,7 +56,10 @@ export const atticHalfLandingWalls: Wall[] = [
   wall("wall-party-extension-attic-half-landing", party.start, pt(coreW, coreD), {
     thickness: party.thickness,
     justification: party.justification,
-    profile: [{ along: mm(0), up: eaves }, { along: extLength, up: roofAt(coreW) }],
+    profile: [
+      { along: mm(0), up: eaves },
+      { along: extLength, up: roofAt(coreW) },
+    ],
   }),
   externalWall("wall-extension-rear-attic-half-landing", externalRuns.extRear, eaves),
   // Run out to the rear wall's outer face (not the canonical run's inner-face end) so the taper
@@ -45,6 +68,9 @@ export const atticHalfLandingWalls: Wall[] = [
   wall("wall-extension-right-attic-half-landing", extRight.start, pt(extRearX, extRightY), {
     thickness: extRight.thickness,
     justification: extRight.justification,
-    profile: [{ along: mm(0), up: roofAt(coreW) }, { along: extLength, up: eaves }],
+    profile: [
+      { along: mm(0), up: roofAt(coreW) },
+      { along: extLength, up: eaves },
+    ],
   }),
 ];

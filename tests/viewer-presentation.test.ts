@@ -1,6 +1,16 @@
 /** How the viewer presents railings, stairs, the ground slab and overlay textures. See plan-vs-3d.test.ts. */
 import { describe, expect, it } from "vitest";
-import { browser, model, near, publish, samePixels, server, useViewer, viewOf, VIEWPORT } from "./support/viewer-page.js";
+import {
+  browser,
+  model,
+  near,
+  publish,
+  samePixels,
+  server,
+  useViewer,
+  viewOf,
+  VIEWPORT,
+} from "./support/viewer-page.js";
 
 useViewer();
 

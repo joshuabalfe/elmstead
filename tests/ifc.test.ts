@@ -107,8 +107,14 @@ describe("IFC writer", () => {
         const lines = (type: number) => ids(api, id, type).map((e) => api.GetLine(id, e));
         const value = (v: { value?: string } | string | null) => (typeof v === "string" ? v : (v?.value ?? null));
         return {
-          types: lines(WebIFC.IFCWINDOWTYPE).map((t) => [value(t.PartitioningType), value(t.UserDefinedPartitioningType)]),
-          instances: lines(WebIFC.IFCWINDOW).map((w) => [value(w.PartitioningType), value(w.UserDefinedPartitioningType)]),
+          types: lines(WebIFC.IFCWINDOWTYPE).map((t) => [
+            value(t.PartitioningType),
+            value(t.UserDefinedPartitioningType),
+          ]),
+          instances: lines(WebIFC.IFCWINDOW).map((w) => [
+            value(w.PartitioningType),
+            value(w.UserDefinedPartitioningType),
+          ]),
         };
       } finally {
         api.CloseModel(id);
@@ -155,10 +161,14 @@ describe("IFC writer", () => {
       // The opening's shape: the profile its body extrudes, found through the IfcOpeningElement's representation.
       const lines = new Map([...ifc.matchAll(/^#(\d+)=(.*);$/gm)].map((m) => [m[1]!, m[2]!]));
       const refs = (line: string) => [...line.matchAll(/#(\d+)/g)].map((m) => m[1]!);
-      const opening = [...lines.values()].find((l) => l.startsWith("IFCOPENINGELEMENT(") && l.includes(`'${id} opening'`))!;
+      const opening = [...lines.values()].find(
+        (l) => l.startsWith("IFCOPENINGELEMENT(") && l.includes(`'${id} opening'`),
+      )!;
       let frontier = refs(opening);
       for (let depth = 0; depth < 6; depth++) {
-        const profile = frontier.map((r) => lines.get(r)!).find((l) => /^IFC(ARBITRARYCLOSED|RECTANGLE)PROFILEDEF\(/.test(l));
+        const profile = frontier
+          .map((r) => lines.get(r)!)
+          .find((l) => /^IFC(ARBITRARYCLOSED|RECTANGLE)PROFILEDEF\(/.test(l));
         if (profile) return { profile, lines, refs };
         frontier = frontier.flatMap((r) => refs(lines.get(r) ?? ""));
       }
@@ -170,9 +180,23 @@ describe("IFC writer", () => {
       const { profile, lines, refs } = openingProfile(ifc, "window-living");
       expect(profile).toMatch(/^IFCARBITRARYCLOSEDPROFILEDEF\(/);
       const polyline = lines.get(refs(profile)[0]!)!;
-      const points = refs(polyline).map((r) => lines.get(r)!.match(/\(([-\d.E]+),([-\d.E]+)\)/)!.slice(1).map(Number));
+      const points = refs(polyline).map((r) =>
+        lines
+          .get(r)!
+          .match(/\(([-\d.E]+),([-\d.E]+)\)/)!
+          .slice(1)
+          .map(Number),
+      );
       // Opening-local x from its near jamb; y across the left-justified 200 mm wall, inside (left) at 200.
-      expect(points).toEqual([[0, -10], [1200, -10], [1200, 100], [1310, 210], [-110, 210], [0, 100], [0, -10]]);
+      expect(points).toEqual([
+        [0, -10],
+        [1200, -10],
+        [1200, 100],
+        [1310, 210],
+        [-110, 210],
+        [0, 100],
+        [0, -10],
+      ]);
     });
 
     it("keeps a rectangle for windows without a reveal", async () => {
@@ -200,11 +224,17 @@ describe("IFC writer", () => {
 describe("a pitched wall", () => {
   const gable = () => {
     const m = BuildingModelSchema.parse(JSON.parse(JSON.stringify(cottage)));
-    m.storeys[0]!.walls = [makeWall("wall-gable", pt(mm(0), mm(0)), pt(mm(4000), mm(0)), {
-      thickness: mm(200),
-      profile: [{ along: mm(0), up: mm(1200) }, { along: mm(2000), up: mm(2600) }, { along: mm(4000), up: mm(1200) }],
-      justification: "left",
-    })];
+    m.storeys[0]!.walls = [
+      makeWall("wall-gable", pt(mm(0), mm(0)), pt(mm(4000), mm(0)), {
+        thickness: mm(200),
+        profile: [
+          { along: mm(0), up: mm(1200) },
+          { along: mm(2000), up: mm(2600) },
+          { along: mm(4000), up: mm(1200) },
+        ],
+        justification: "left",
+      }),
+    ];
     m.storeys[0]!.openings = [];
     return m;
   };
@@ -247,7 +277,9 @@ describe("a stair in IFC", () => {
   it("types a straight stair and an odd angle", async () => {
     const straight = structuredClone(stairModel);
     straight.storeys[0]!.stairs![0]!.segments = [structuredClone(stair.segments[0]!)];
-    expect(enumValue((await lines(await write(straight), WebIFC.IFCSTAIR))[0]!.PredefinedType)).toBe("STRAIGHT_RUN_STAIR");
+    expect(enumValue((await lines(await write(straight), WebIFC.IFCSTAIR))[0]!.PredefinedType)).toBe(
+      "STRAIGHT_RUN_STAIR",
+    );
 
     const odd = structuredClone(stairModel);
     const upper = odd.storeys[0]!.stairs![0]!.segments[2]!;
@@ -295,7 +327,8 @@ describe("a stair in IFC", () => {
         .map((e) => api.GetLine(id, e))
         .flatMap((c) => c.RelatedElements.map((e: { value: number }) => tag(e.value)));
       expect(contained).toContain("stair-main");
-      for (const part of ["stair-flight-lower", "stair-flight-upper", "stair-landing-half"]) expect(contained).not.toContain(part);
+      for (const part of ["stair-flight-lower", "stair-flight-upper", "stair-landing-half"])
+        expect(contained).not.toContain(part);
     } finally {
       api.CloseModel(id);
     }
@@ -303,7 +336,13 @@ describe("a stair in IFC", () => {
 
   it("derives GlobalIds from the stair, flight and landing ids", async () => {
     const ifc = new TextDecoder().decode(await write(stairModel));
-    for (const key of ["stair-main", "stair-flight-lower", "stair-flight-upper", "stair-landing-half", "stair-main#aggregates"]) {
+    for (const key of [
+      "stair-main",
+      "stair-flight-lower",
+      "stair-flight-upper",
+      "stair-landing-half",
+      "stair-main#aggregates",
+    ]) {
       expect(ifc).toContain(`('${ifcGuid(key)}'`);
     }
   });
@@ -321,7 +360,10 @@ describe("a stair in IFC", () => {
     const geom = await ifcGeometry(ifc);
     // Flight: stepped area less the tapered soffit, × width. run 1800, rise 1525, riser 190.625,
     // waist 150: (run×rise/2 − run×(rise−riser−waist)/2) × width.
-    expect(geom.get("stair-flight-lower")!.volume).toBeCloseTo(((1800 * 1525) / 2 - (1800 * (1525 - 190.625 - 150)) / 2) * 800, 0);
+    expect(geom.get("stair-flight-lower")!.volume).toBeCloseTo(
+      ((1800 * 1525) / 2 - (1800 * (1525 - 190.625 - 150)) / 2) * 800,
+      0,
+    );
     // Landing: 800 × 1600 outline × 150 thick.
     expect(geom.get("stair-landing-half")!.volume).toBeCloseTo(800 * 1600 * 150, 0);
     expect(geom.has("stair-main")).toBe(false); // the container has no body, and is not expected to
@@ -359,7 +401,11 @@ describe("a railing in IFC", () => {
     const base = BuildingModelSchema.parse(JSON.parse(JSON.stringify(cottage)));
     base.storeys[0]!.railings = [
       railing("railing-level", pt(mm(0), mm(0)), pt(m(3), mm(0)), { height: mm(900) }),
-      railing("railing-sloped", pt(mm(0), mm(1000)), pt(mm(880), mm(1000)), { height: mm(900), startBase: mm(150), endBase: mm(600) }),
+      railing("railing-sloped", pt(mm(0), mm(1000)), pt(mm(880), mm(1000)), {
+        height: mm(900),
+        startBase: mm(150),
+        endBase: mm(600),
+      }),
     ];
     return base;
   })();
@@ -408,7 +454,9 @@ describe("a railing in IFC", () => {
       expect(depth).toBeCloseTo(Math.hypot(880, 450), 6);
       const position = api.GetLine(id, railSolid.Position.value);
       const axis = api.GetLine(id, position.Axis.value);
-      const ratios = axis.DirectionRatios.map((v: { value?: number } | number) => (typeof v === "number" ? v : v.value));
+      const ratios = axis.DirectionRatios.map((v: { value?: number } | number) =>
+        typeof v === "number" ? v : v.value,
+      );
       expect(ratios[2]).toBeGreaterThan(0.4); // the slope, not a vertical box
     } finally {
       api.CloseModel(id);
@@ -419,7 +467,8 @@ describe("a railing in IFC", () => {
     const ifc = await write(railingModel);
     expect(await roundTripChecks(railingModel, ifc)).toEqual([]);
     const geom = await ifcGeometry(ifc);
-    for (const r of railingModel.storeys[0]!.railings!) expect(geom.get(r.id)!.volume).toBeCloseTo(railingGeometry(r).volume, 0);
+    for (const r of railingModel.storeys[0]!.railings!)
+      expect(geom.get(r.id)!.volume).toBeCloseTo(railingGeometry(r).volume, 0);
   });
 });
 
@@ -453,7 +502,10 @@ describe("IfcOpenShell validator", () => {
 
   it("passes a stair, its flights and its landing with no errors or warnings", async () => {
     const path = join(dir, "stair.ifc");
-    writeFileSync(path, await writeIfc(BuildingModelSchema.parse(JSON.parse(JSON.stringify(twoStorey))), { fileName: "stair.ifc" }));
+    writeFileSync(
+      path,
+      await writeIfc(BuildingModelSchema.parse(JSON.parse(JSON.stringify(twoStorey))), { fileName: "stair.ifc" }),
+    );
     const v = validateIfc(path);
     expect(v.issues).toEqual([]);
     expect([v.errors, v.warnings]).toEqual([0, 0]);
