@@ -4,6 +4,9 @@ A model is a TypeScript module in `models/` that default-exports a `BuildingMode
 [`models/examples/example-cottage/`](../models/examples/example-cottage/), a full working example: an `index.ts` and
 its `constraints.ts`.
 
+The [edit-an-existing-building-model](../.agents/skills/edit-an-existing-building-model/SKILL.md) skill is the order of
+work for changing a model, and says when to stop and add a type to the schema instead.
+
 A larger model splits across more files in its folder, as in
 [`models/elmstead/`](../models/elmstead/):
 
@@ -433,8 +436,13 @@ and keeps every window centred. The JSON diff is about 40 lines.
 
 ## Constraints
 
-A constraint records a real measurement, such as "the living-room window starts 1175 mm from the
-inside corner", so that no later edit can quietly break it. Every `check`, `build`, `render` and
+The [record-model-constraints](../.agents/skills/record-model-constraints/SKILL.md) skill is the short
+version of this section.
+
+A constraint records an immovable, real measurement, such as "the living-room window starts 1175 mm
+from the inside corner". Its job is to stop that measurement being broken by accident, above all
+when other dimensions change: widen a room, thicken a wall or move a partition, and a window that
+was measured on site can drift without anything looking wrong. Every `check`, `build`, `render` and
 `all` measures the model's constraints. If one is broken, the command writes nothing and exits 1:
 
 ```
@@ -442,9 +450,11 @@ constr  models/examples/example-cottage/constraints.ts: 5 of 6 met
 ERROR   living-corner-to-window: is 1200 mm, should be 1175 ±10 mm (room-living)
 ```
 
-**When a constraint fails, fix the model, not the constraint.** Change or add a constraint only
-for a new measurement, and say where it came from in its `note`. Don't record positions traced
-from a drawing as constraints.
+**When a constraint fails, fix the model, not the constraint.** **Ask the user before changing,
+loosening, replacing or removing an existing constraint**, in a model or in a revision, and say
+which one and why; that includes a new measurement that disagrees with a recorded one. Add a
+constraint only for a measurement the user gives, and say where it came from in its `note`. Don't
+record positions traced from a drawing as constraints.
 
 The **Constraints** button (off by default) shows each constraint in red at the midpoint of its
 measured span, labelled with its id and required distance, with a thick red dotted line along the
@@ -532,9 +542,13 @@ room's storey).
 
 ## Revisions
 
+The [propose-a-model-revision](../.agents/skills/propose-a-model-revision/SKILL.md) skill is the order
+of work for writing one.
+
 A revision is a named variant of a folder model, such as a proposed extension or alteration. It is
-written as edits on the base model, so a correction to the existing building reaches every revision
-without being made twice. A revision is either one file or a folder, laid out however a large
+written as a list of edits that are applied to a copy of the base model (the base is never changed),
+so a correction made in the base, to the building as it is, reaches every revision without being
+made twice. A revision is either one file or a folder, laid out however a large
 project needs:
 
 ```
@@ -707,4 +721,5 @@ proposed one before applying `revise` for the rest.
 
 Room heights (rooms are 2D outlines in IFC), wall types (external or internal), roofs, curved walls,
 winder and spiral stairs. Don't approximate these with the existing types. Propose a
-schema change instead (see [Development](development.md#adding-a-new-element-type)).
+schema change instead (see [Development](development.md#adding-a-new-element-type), and the
+[add-support-for-new-element-types](../.agents/skills/add-support-for-new-element-types/SKILL.md) skill).

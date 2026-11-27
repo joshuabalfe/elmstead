@@ -177,22 +177,76 @@ The actions are pinned by commit SHA, matching the repo's exact-version rule.
 
 ## Adding a new element type
 
-Keep the schema small. Add a type only when a real model needs it, and agree the shape first.
-Then work through this list:
+Keep the schema small. Add a type only when a real model needs it, and agree the shape first. An
+existing type, a new optional field on one, or a modelling pattern (as the external and half-landing
+storeys are) often does the job.
+
+The plan SVG, the IFC and the viewer are three separate renderings of one model. A type that is
+right in two and wrong in the third passes every unit test, so decide how it looks in each, and its
+colours, before you write code. The [`add-support-for-new-element-types`](../.agents/skills/add-support-for-new-element-types/SKILL.md)
+skill walks through that. Then work through this list in order. The railing (`src/geometry/railing.ts`
+and every file that mentions `railing`) is the most recent example.
+
+**The model**
 
 1. **Schema:** add a strict zod object with `.meta({ id })` in `src/schema/schema.ts`, put it on
    the storey (or wherever it belongs), and export its inferred type. Use `Mm` for every length
    and give it an `id`.
-2. **JSON Schema:** run `npm run schema` and commit `schema/building.schema.json`.
-3. **Helpers** (optional): add authoring helpers to `src/model/helpers.ts`.
-4. **IFC:** map it to an IFC4 entity in `src/ifc/writer.ts`:
-   - GlobalId from `ifcGuid(id)`, and `Tag` set to the id
+2. **Ids:** add its collection to `STOREY_COLLECTIONS` and its kind to the `IdNode` union and
+   `idNodes` in `src/schema/ids.ts`. Id uniqueness, GlobalIds, constraints and the diff all find
+   elements through it.
+3. **JSON Schema:** run `npm run schema` and commit `schema/building.schema.json`.
+4. **Revisions:** add its schema to `SCHEMAS` in `src/model/revise.ts`, so a revision can add,
+   replace and remove it.
+5. **Diff:** add its kind to `COMPARED` in `src/diff/index.ts`, and its collection to the ones
+   `signature` leaves out of a storey. A kind missing here never shows up in a revision's diff.
+6. **Helpers** (optional): add authoring helpers to `src/model/helpers.ts`.
+7. **Checks:** add model-level rules for it to `src/checks/`. Constraints can point at a kind
+   only if `src/constraints/` looks it up; add it there only when a measurement needs it.
+8. **Geometry** (when the IFC, the round-trip and the plan share it): put it in
+   `src/geometry/<kind>.ts`, as the railing and stair do, so the three cannot disagree.
+
+**The IFC**
+
+9. **Writer:** map it to an IFC4 entity in `src/ifc/writer.ts`:
+   - GlobalId from `ifcGuid(id)`, and `Tag` set to the id (the viewer finds elements by `Tag`)
    - spatial containment
    - geometry and a style
-5. **Round-trip:** add a volume (or other geometric) check to `src/ifc/roundtrip.ts`.
-6. **Plan:** draw it in `src/render/plan.ts` with `class` and `data-id` attributes.
-7. **Checks:** add model-level rules for it to `src/checks/`.
-8. **Tests:** cover the schema, the writer (GlobalIds and validation) and the renderer, and
-   update the SVG snapshot.
-9. **Example:** use it in a model, then run the pipeline and look at the PNGs.
-10. **Docs:** update [modelling.md](modelling.md) and [ifc.md](ifc.md).
+10. **IFC colour:** add its entry to `STYLES` in `src/ifc/styles.ts`. It must be far from every
+    other entry (see [IFC output](ifc.md#colours)).
+11. **Round-trip:** add a volume (or other geometric) check to `src/ifc/roundtrip.ts`.
+
+**The plan**
+
+12. **Draw it** in `src/render/plan.ts` with `class` and `data-id` attributes. Say whether it
+    widens the drawing's extent (`makeView`) and where it falls in the draw order.
+13. **Plan colour:** add it to `C` in `src/render/style.ts`. It must stay clear of wall, room and
+    paper unless the element should take part in the plan-versus-3D comparison (see
+    [Rendering](rendering.md#colours)).
+
+**The viewer**
+
+14. **Storey ownership:** add it to the owner map in `applyStoreyVisibility` in `viewer/main.ts`,
+    so the storey picker hides it with its storey.
+15. **Bounds:** add its points to `shownBox`, and its height to `setView`'s vertical extent, if
+    either can reach beyond the walls, slabs and rooms.
+16. **Presentation:** if it needs a recolour in plan style or a shader patch, add it to
+    `patchMaterial`. The viewer recognises it by its IFC colour (`viewer/style-of.ts`), so step 10
+    decides whether this is possible.
+17. **Plan-versus-3D:** the comparison either compares the element or ignores it. A plan colour
+    that matches none of wall, room or paper is ignored (`isIgnoredColour` in
+    `tests/support/plan-vs-3d.ts`); a storey with pitched walls or walls under 2 m across is
+    skipped (`comparable` in `tests/support/plan-compare.ts`). Make that a decision, and write
+    down why. ELM-11 and ELM-17 each had to extend the skip rule.
+
+**Tests, example and docs**
+
+18. **Tests:** cover the schema, the ids (`tests/ids.test.ts`), the revision and the diff
+    (`tests/revise.test.ts`, `tests/diff.test.ts`), the checks, the writer (GlobalIds and
+    validation), the round-trip, the renderer with its SVG snapshot, and the viewer's
+    presentation (`tests/viewer-presentation.test.ts`). `tests/railing.test.ts` is a model for a
+    geometry module's own test.
+19. **Example:** use it in a model, then run the pipeline and look at the plan PNG, the 3D PNGs
+    and the viewer, with the element's storey shown alone and in a Diff view of a revision that
+    adds it.
+20. **Docs:** update [modelling.md](modelling.md), [ifc.md](ifc.md) and [rendering.md](rendering.md).
