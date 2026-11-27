@@ -20,9 +20,9 @@ to these docs for the detail. A person can read them as checklists.
 
 | Skill | Use it to |
 |---|---|
-| [edit-an-existing-building-model](../.agents/skills/edit-an-existing-building-model/SKILL.md) | change a model: the check, build, render loop and its traps |
+| [edit-an-existing-building-model](../.agents/skills/edit-an-existing-building-model/SKILL.md) | change the base model, the building as it is: the check, build, render loop and its traps |
 | [record-model-constraints](../.agents/skills/record-model-constraints/SKILL.md) | record a measurement, or handle a failing constraint |
-| [propose-a-model-revision](../.agents/skills/propose-a-model-revision/SKILL.md) | write and review a named alteration of a model |
+| [propose-a-model-revision](../.agents/skills/propose-a-model-revision/SKILL.md) | write and review a proposed alternative (a revision), leaving the base model untouched |
 | [add-support-for-new-element-types](../.agents/skills/add-support-for-new-element-types/SKILL.md) | add an element type or geometry variant, correct in the IFC, plan and viewer |
 | [diagnose-a-failing-check](../.agents/skills/diagnose-a-failing-check/SKILL.md) | decide whether a failure is the model, a constraint, the pipeline or the environment |
 | [inspect-the-rendered-output](../.agents/skills/inspect-the-rendered-output/SKILL.md) | look at the plan, 3D and Diff pictures and any viewer state |

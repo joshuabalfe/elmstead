@@ -17,9 +17,9 @@ Skills for working on a model and its output (the OpenSpec skills are under
 
 | Skill | Use it to |
 |---|---|
-| `edit-an-existing-building-model` | change a model in `models/`: the check, build, render loop and its traps |
+| `edit-an-existing-building-model` | change the base model, the building as it is: the check, build, render loop and its traps |
 | `record-model-constraints` | record a measurement the user gave, or handle a failing constraint |
-| `propose-a-model-revision` | write, build and review a named alteration of a folder model |
+| `propose-a-model-revision` | write, build and review a proposed alternative (a revision), leaving the base model untouched |
 | `add-support-for-new-element-types` | add an element type or geometry variant, correct in the IFC, plan and viewer |
 | `diagnose-a-failing-check` | decide whether a failure is the model, a constraint, the pipeline or the environment |
 | `inspect-the-rendered-output` | look at the plan, 3D and Diff pictures and any viewer URL state |

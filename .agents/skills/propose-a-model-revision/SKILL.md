@@ -1,15 +1,25 @@
 ---
 name: propose-a-model-revision
-description: Write, check, build and review a revision of a model, meaning a named proposal or alteration to an existing building (an extension, a knock-through, a wider window, a demolition) written as edits on the base model. Use when asked to "propose", "draft an alternative", "what if we...", "show the change to...", or to see what a change does to the existing building. Not for correcting the building as it is, which is a plain edit to the base model.
+description: Write, check, build and review a revision, meaning a proposed alternative to an existing building (an extension, a knock-through, a wider window, a demolition) kept in the model's `revisions/` folder, leaving the base model untouched. Use when asked to "propose", "draft an alternative", "what if we...", "show the change to...", or to see what a change does to the existing building. Not for correcting the building as it is: that changes the base model itself, with edit-an-existing-building-model.
 ---
 
 # Propose a model revision
 
-A revision is a named variant of a **folder model**, written as edits on the base. A correction to
-the existing building made in the base reaches every revision without being made twice, so keep
-the two apart: "the window is actually 1.1 m" is a base edit
-([edit-an-existing-building-model](../edit-an-existing-building-model/SKILL.md)); "widen the window to 1.8 m" is a
-revision.
+Two different things get called "an edit to the model". Keep them apart:
+
+| | What it is | Where | Skill |
+|---|---|---|---|
+| **The base model** | the building as it is | `models/<model>/` (`index.ts`) | [edit-an-existing-building-model](../edit-an-existing-building-model/SKILL.md) |
+| **A revision** | a proposed alternative to it | `models/<model>/revisions/` | this skill |
+
+- Correcting the base is changing the building's description: "the window is actually 1.1 m". Do it
+  in the base itself, and every revision picks it up.
+- A revision never changes the base. It is a list of edits that `revise(base, [...])` applies to a
+  **copy** of the base: "widen the window to 1.8 m". Its output is a separate model named
+  `<model>@<revision>`.
+
+If you cannot tell which the user means, ask: "is the window really 1.1 m, or do you want to see it
+widened?"
 
 ## Where it goes and what it is called
 

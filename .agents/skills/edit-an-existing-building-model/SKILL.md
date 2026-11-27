@@ -1,9 +1,13 @@
 ---
 name: edit-an-existing-building-model
-description: Change a building model in `models/` (Elmstead, the example cottage or another): move, add or resize walls, doors, windows, rooms, slabs, stairs or railings, add a storey, change a dimension, or fix a failed check. Use for any request about what the building contains or how big it is, such as "make the kitchen wider", "add a window", "move the stair", "trace the first floor". Not for changing the pipeline, schema or viewer.
+description: Change the base model of an existing building in `models/` (Elmstead, the example cottage or another): the building as it is described in the repo. Move, add or resize walls, doors, windows, rooms, slabs, stairs or railings, add a storey, correct a dimension, or fix a failed check. Use for requests like "the kitchen is actually wider", "add the window that is there", "move the stair to where it really is", "trace the first floor". For a proposed alternative that must leave the base alone ("what if we widened the kitchen"), use propose-a-model-revision. Not for changing the pipeline, schema or viewer.
 ---
 
-# Edit a building model
+# Edit an existing building model
+
+This changes the **base model**: the building as it is. A proposal for how it might change is a
+*revision*, which leaves the base untouched ([propose-a-model-revision](../propose-a-model-revision/SKILL.md)).
+If you cannot tell which the user means, ask.
 
 A model is TypeScript in `models/` that is checked, built to JSON and IFC, and drawn. You change the
 model, and everything else is regenerated. Never edit `out/`, `schema/building.schema.json`, SVG

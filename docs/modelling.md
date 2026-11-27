@@ -503,8 +503,9 @@ The [propose-a-model-revision](../.agents/skills/propose-a-model-revision/SKILL.
 of work for writing one.
 
 A revision is a named variant of a folder model, such as a proposed extension or alteration. It is
-written as edits on the base model, so a correction to the existing building reaches every revision
-without being made twice. A revision is either one file or a folder, laid out however a large
+written as a list of edits that are applied to a copy of the base model (the base is never changed),
+so a correction made in the base, to the building as it is, reaches every revision without being
+made twice. A revision is either one file or a folder, laid out however a large
 project needs:
 
 ```
