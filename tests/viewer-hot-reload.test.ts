@@ -173,13 +173,28 @@ describe("rebuilt IFCs", () => {
   it("ends walk mode when the shown model is rebuilt", async () => {
     await resetCottage();
     await open(`model=${COTTAGE}&view=top&style=plan&walk=1`);
-    expect(await page.getAttribute("#walk", "aria-pressed")).toBe("true");
+    await page.waitForFunction(() => document.querySelector("#walk")?.getAttribute("aria-pressed") === "true", null, {
+      timeout: 10_000,
+    });
 
     const beforeReloads = await reloads();
     await publishAtomic(COTTAGE, await cottage());
     await settled(beforeReloads);
 
     expect(await page.getAttribute("#walk", "aria-pressed")).toBe("false");
+  }, 120_000);
+
+  it("carries the shown storeys over a rebuild", async () => {
+    const two = await model("tests/fixtures/two-storey");
+    await publishAtomic(TWO, two);
+    await open(`model=${TWO}&view=top&style=plan&storeys=storey-ground`);
+
+    const beforeReloads = await reloads();
+    await publishAtomic(TWO, two);
+    await settled(beforeReloads);
+
+    expect(new URL(page.url()).searchParams.get("storeys")).toBe("storey-ground");
+    expect(await page.inputValue("#storeys")).toBe("storey-ground");
   }, 120_000);
 
   it("redraws the Diff when its base is rebuilt", async () => {
@@ -218,6 +233,7 @@ describe("rebuilt IFCs", () => {
   it("reports an unreadable rebuild and recovers", async () => {
     await resetCottage();
     await open(`model=${COTTAGE}&view=top&style=plan`);
+    const before = await pixels();
     const beforeReloads = await reloads();
     const target = join(outDir, `${COTTAGE}.ifc`);
     writeFileSync(`${target}.bad`, "not an ifc");
@@ -229,6 +245,7 @@ describe("rebuilt IFCs", () => {
       { timeout: 60_000 },
     );
     expect(await reloads()).toBe(beforeReloads);
+    expect(same(await pixels(), before)).toBe(false);
 
     await publishAtomic(COTTAGE, await cottage());
     await settled(beforeReloads);

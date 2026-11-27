@@ -117,9 +117,9 @@ routes.
 - `src/frontend/vite/vite.config.ts` serves `/models.json` (the IFCs in `out/`), `/out/*` and the web-ifc WASM
   from `node_modules`, so nothing comes from a CDN. `ELMSTEAD_OUT_DIR` serves another folder in
   place of `out/` (the tests use it). Requests are confined to those directories; traversal,
-  sibling-directory prefixes and malformed percent-encoding return 404. It tells the viewer which
-  model an IFC `change` or `add` belongs to, so an atomic rename is noticed too and the page does
-  not reload.
+  sibling-directory prefixes and malformed percent-encoding return 404. In development it tells the
+  viewer which model an IFC `change` or `add` belongs to, so an atomic rename is noticed too and the
+  page does not reload; the preview build is unchanged.
 - `scene/engine.ts` loads the IFC through ThatOpen's IFC loader and sets up the camera views.
   - In the scene Y is up and plan north is −Z.
   - The four corner buttons show true isometric views: an orthographic camera from a plan corner,
@@ -323,4 +323,4 @@ routes.
   `?style=ifc` or `?style=plan` in the URL forces a style.
 - `npm run view` runs the same app for interactive use. It updates the changed model in place,
   keeping the camera and the page; a rebuild of a model that is not on screen only refreshes the
-  pickers.
+  pickers, while a shown revision's rebuilt base redraws its Diff and ghosts.

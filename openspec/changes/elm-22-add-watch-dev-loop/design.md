@@ -176,8 +176,9 @@ rebuild reloads the page.
   appears in the picker, that walk mode ends, that a rebuilt base refreshes the diff and ghosts
   (including after turning Diff on when it was off during the rebuild), and that an unreadable IFC
   reports an error and a later valid publish recovers.
-- The spawned process itself is not automated; the mapping and queue tests carry the contract, and
-  the live watcher is exercised in the manual smoke test on macOS.
+- A subprocess test runs the real watcher on the example cottage with a temporary output folder,
+  proves an atomic save builds and SIGTERM exits 0, and checks an unknown path exits 2. The mapping
+  and queue unit tests carry the rest; the live two-terminal loop is also smoke-tested by hand.
 
 ## Risks / Trade-offs
 

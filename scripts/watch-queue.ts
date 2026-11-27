@@ -21,6 +21,8 @@ export interface BuildQueue {
 export function createBuildQueue({ debounceMs, run }: BuildQueueOptions): BuildQueue {
   const pending = new Set<string>();
   const queue: string[] = [];
+  /** Targets already waiting in `queue`, so two saves during a build make one follow-up. */
+  const queued = new Set<string>();
   let timer: ReturnType<typeof setTimeout> | undefined;
   let building = false;
   let stopped = false;
@@ -38,6 +40,7 @@ export function createBuildQueue({ debounceMs, run }: BuildQueueOptions): BuildQ
       settle();
       return;
     }
+    queued.delete(target);
     building = true;
     try {
       await run(target);
@@ -53,7 +56,11 @@ export function createBuildQueue({ debounceMs, run }: BuildQueueOptions): BuildQ
   const flush = () => {
     timer = undefined;
     if (stopped) return;
-    for (const target of pending) queue.push(target);
+    for (const target of pending) {
+      if (queued.has(target)) continue;
+      queued.add(target);
+      queue.push(target);
+    }
     pending.clear();
     void drain();
   };
@@ -71,6 +78,7 @@ export function createBuildQueue({ debounceMs, run }: BuildQueueOptions): BuildQ
       timer = undefined;
       pending.clear();
       queue.length = 0;
+      queued.clear();
       settle();
     },
     whenIdle() {

@@ -1872,6 +1872,8 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     const r = resident.get(name);
     if (!r) return;
     resident.delete(name);
+    // A reload disposes before `load` does its own scene sweep, so take this object out here too.
+    world.scene.three.remove(r.model.object);
     for (const s of r.stairs) s.edges.geometry.dispose();
     if (currentModel === r.model) currentModel = null;
     try {
@@ -1894,6 +1896,9 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     hoverEpoch++;
     hideHover();
     elementLabels.clear();
+    // The old model's plan layers and labels are drawings of it; clear them even if this load fails.
+    clearLabelLayers();
+    window.__elmsteadRoomLabels = [];
     clearMeasurements();
     setStatus(`loading ${name}.ifc…`);
     // Take the shown model out of the scene; keep this model's revisions loaded, dispose the rest.
@@ -2491,13 +2496,17 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     );
   }
 
-  /** Remove the ghost base from the scene before its resident is disposed. */
-  function clearGhost(): void {
+  /** Remove the ghost base and the shown model's dressing before a Diff base reload. */
+  async function clearGhost(): Promise<void> {
+    const model = currentModel;
+    if (model) {
+      await undress(model);
+      return;
+    }
     if (ghostModel) ghostModel.object.removeFromParent();
     ghostModel = null;
     ghostItems = new Map();
     ghostLabels.clear();
-    window.__elmsteadGhosts = [];
   }
 
   /**
@@ -2519,9 +2528,9 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
       if (name !== shown) {
         if (viewState.diff && revision !== null && name === currentBaseModel) {
           await withHeldFrame(async () => {
-            clearGhost();
+            await clearGhost();
             await disposeResident(name);
-            await show(shown, { keepView: true });
+            if (currentName === shown) await show(shown, { keepView: true });
           });
           if (currentName === shown) announceReload();
         } else {
@@ -2530,9 +2539,13 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
         return;
       }
       await exitWalk();
+      if (currentName !== name) {
+        await disposeResident(name);
+        return;
+      }
       await withHeldFrame(async () => {
         await disposeResident(name);
-        await show(name, { keepView: true });
+        if (currentName === name) await show(name, { keepView: true });
       });
       if (currentName === name) announceReload();
     });

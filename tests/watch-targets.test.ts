@@ -28,6 +28,8 @@ beforeAll(() => {
   file(at("examples", "example-cottage", "revisions", "lean-to.ts"));
   file(at("examples", "single.ts"));
   file(at("examples", "single.constraints.ts"));
+  file(at("single.ts"));
+  file(at("single.constraints.ts"));
   file(at("orphan", "helper.ts"));
   file(at("notes.md"));
 });
@@ -73,13 +75,16 @@ describe("targetFor", () => {
   });
 
   it("does not map a base model change to its revisions", () => {
-    expect(targetFor(root, at("elmstead", "index.ts"))).not.toContain("revisions");
+    expect(targetFor(root, at("elmstead", "index.ts"))).toBe(at("elmstead"));
+    expect(targetFor(root, at("elmstead", "revisions", "missing.ts"))).toBeUndefined();
   });
 
   it("maps a single-file model and its constraints, never the constraints as a model", () => {
     expect(targetFor(root, at("examples", "single.ts"))).toBe(at("examples", "single.ts"));
     expect(targetFor(root, at("examples", "single.constraints.ts"))).toBe(at("examples", "single.ts"));
     expect(targetFor(root, at("examples", "constraints.ts"))).toBeUndefined();
+    expect(targetFor(root, at("single.ts"))).toBe(at("single.ts"));
+    expect(targetFor(root, at("single.constraints.ts"))).toBe(at("single.ts"));
   });
 
   it("ignores paths outside models/", () => {
@@ -113,6 +118,14 @@ describe("scopeFor", () => {
     expect(scopeFor(root, at("examples", "single.constraints.ts"))).toEqual({
       roots: [at("examples")],
       targets: new Set([at("examples", "single.ts")]),
+    });
+    expect(scopeFor(root, at("single.ts"))).toEqual({
+      roots: [root],
+      targets: new Set([at("single.ts")]),
+    });
+    expect(scopeFor(root, at("single.constraints.ts"))).toEqual({
+      roots: [root],
+      targets: new Set([at("single.ts")]),
     });
   });
 

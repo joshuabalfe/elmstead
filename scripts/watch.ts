@@ -39,9 +39,24 @@ function main(): void {
   let child: ChildProcess | null = null;
   let stopped = false;
   let warnedNullName = false;
+  const ignored = new Set<string>();
 
-  const allowed = (target: string, root: string): boolean =>
-    scopes.some((scope) => scope.roots.includes(root) && (scope.targets === null || scope.targets.has(target)));
+  // One watcher per directory: overlapping path arguments merge into one allowed-target set.
+  const plans = new Map<string, Set<string> | null>();
+  for (const scope of scopes) {
+    for (const root of scope.roots) {
+      const current = plans.get(root);
+      if (current === undefined) plans.set(root, scope.targets);
+      else if (current === null) continue;
+      else if (scope.targets === null) plans.set(root, null);
+      else for (const target of scope.targets) current.add(target);
+    }
+  }
+
+  const allowed = (root: string, target: string): boolean => {
+    const targets = plans.get(root);
+    return targets === null || targets?.has(target) === true;
+  };
 
   const build = (target: string): Promise<void> =>
     new Promise((resolveBuild) => {
@@ -53,12 +68,12 @@ function main(): void {
       child = started;
       started.on("error", (error) => {
         console.error(`watch   could not start the build: ${String(error)}`);
-        child = null;
+        if (child === started) child = null;
         resolveBuild();
       });
       started.on("exit", (code) => {
         if (!stopped) console.log(`watch   ${code === 0 ? "built" : "failed; still watching"} ${shown(target)}`);
-        child = null;
+        if (child === started) child = null;
         resolveBuild();
       });
     });
@@ -91,7 +106,12 @@ function main(): void {
     // A deleted source rebuilds nothing and removes no output.
     if (!existsSync(file)) return;
     const target = targetFor(MODELS, file);
-    if (target && allowed(target, root)) queue.add(target);
+    if (target) {
+      if (allowed(root, target)) queue.add(target);
+    } else if (file.endsWith(".ts") && !ignored.has(file)) {
+      ignored.add(file);
+      console.log(`watch   ${shown(file)} is not a model or revision; no build`);
+    }
   };
 
   const start = (root: string): void => {
@@ -112,9 +132,9 @@ function main(): void {
     workers.add(watcher);
   };
 
-  for (const scope of scopes) for (const root of scope.roots) start(root);
+  for (const root of plans.keys()) start(root);
   if (stopped) return;
-  console.log(`watch   watching ${[...new Set(scopes.flatMap((scope) => scope.roots))].map(shown).join(", ")}`);
+  console.log(`watch   watching ${[...plans.keys()].map(shown).join(", ")}`);
 
   process.on("SIGINT", () => stop(0));
   process.on("SIGTERM", () => stop(0));

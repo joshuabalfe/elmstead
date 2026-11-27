@@ -23,17 +23,29 @@ export function App({ store }: AppProps) {
     if (!container.current) return;
     let cancelled = false;
     let off: (() => void) | undefined;
+    let started = false;
+    let pending: IfcEventPayload | null = null;
     createViewer(container.current, store)
       .then(async (api) => {
         if (cancelled) return;
         setEngine(api);
-        await api.start();
-        if (cancelled) return;
         if (import.meta.hot) {
-          const onIfc = (payload: IfcEventPayload) => void api.reloadModel(payload.name);
+          const onIfc = (payload: IfcEventPayload) => {
+            if (!started) {
+              pending = payload;
+              return;
+            }
+            void api.reloadModel(payload.name);
+          };
           import.meta.hot.on(IFC_EVENT, onIfc);
           off = () => import.meta.hot?.off(IFC_EVENT, onIfc);
         }
+        await api.start();
+        started = true;
+        if (cancelled) return;
+        const missed = pending;
+        pending = null;
+        if (missed) void api.reloadModel(missed.name);
       })
       .catch((error: unknown) => {
         const message = String(error);

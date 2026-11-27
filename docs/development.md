@@ -34,8 +34,10 @@ npm run watch models/examples/example-cottage/revisions/rear-extension.ts
 Each save runs `build` for its model, with the checks, JSON, IFC, round-trip and IfcOpenShell
 validation, debounced and one build at a time. It writes no plan or 3D snapshot. A model that fails
 to load or check writes nothing, so the previous outputs stay; a model that fails IFC verification
-leaves the files it wrote, and the watcher reports the failure and keeps running. The viewer reloads
-the rebuilt model in place. Stop the watcher with Ctrl-C.
+leaves the files it wrote, and the watcher reports the failure and keeps running. A shared helper
+folder under `revisions/` without its own `index.ts` belongs to the revisions that import it, so
+saving it alone builds nothing. A path that does not resolve to a model or revision prints the usage
+and exits 2. The viewer reloads the rebuilt model in place. Stop the watcher with Ctrl-C.
 
 ## Model checks
 
@@ -75,6 +77,7 @@ tests table below).
 | `tests/paths.test.ts`                   | a model's entry point, output name and constraints file                                                                                                                                                                                     |
 | `tests/watch-targets.test.ts`           | the watcher's source-to-target mapping: model roots, revisions, constraints, single-file models and ignored paths                                                                                                                           |
 | `tests/watch-queue.test.ts`             | the watcher's debounce and single-build queue: bursts, saves during a build, failed builds and stop                                                                                                                                         |
+| `tests/watch-command.test.ts`           | the watcher process: an atomic save builds into a temporary output folder, SIGTERM exits 0, and an unknown path exits 2                                                                                                                     |
 | `tests/render.test.ts`                  | plan determinism, SVG snapshot, wall splitting, door and window symbols, labels, PNG size, door geometry, drawing primitives and their SVG                                                                                                  |
 | `tests/door.test.ts`                    | door frames; doorways: no component/swing, plan gap without leaf/swing, opening-only IFC                                                                                                                                                    |
 | `tests/guid.test.ts`                    | UUIDv5 and IFC GUID compression against reference vectors; fixed GlobalIds for known ids                                                                                                                                                    |
