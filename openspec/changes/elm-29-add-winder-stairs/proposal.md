@@ -24,7 +24,7 @@ and the wrong footprint into the stairwell.
 - Model checks cover the winder: valid outline, pivot and entry, its place in the stair, and that
   the next flight starts on its exit edge.
 - The IFC writes a winder as an `IfcStairFlight` with `PredefinedType` `WINDER`, and the `IfcStair`
-  gets `QUARTER_WINDING_STAIR` when the winder turns through 90°.
+  gets `QUARTER_WINDING_STAIR` when it is a winder and one flight, with the winder turning through 90°.
 - The round-trip checks a winder's volume.
 - The plan draws a winder with its outline, a tread line on each fan ray and a walking arrow.
 - A model can use it: `stairWinder` is added to the authoring helpers.
@@ -41,18 +41,21 @@ None.
 ### Modified Capabilities
 
 - `building-schema`: a stair segment may be a winder; its shape, and how its levels and treads are derived.
-- `model-checks`: unique ids include winders; a winder's outline, pivot and place in the stair.
+- `model-checks`: unique ids include winders; a winder's outline, pivot, place in the stair and flight.
+- `model-authoring`: a `stairWinder` helper beside the flight and landing helpers.
 - `ifc-export`: winder as an `IfcStairFlight`, the `IfcStair` type for a winding stair, and decomposition.
 - `ifc-verification`: a winder's expected volume.
-- `plan-rendering`: a winder's plan symbol and its query class.
+- `plan-rendering`: a winder's plan symbol and query class, and its absence from the viewer's overlay.
+- `ifc-viewer`: stair banding counts a winder's risers.
 
 ## Impact
 
 - `src/shared/schema/` (`schema.ts`, `ids.ts`), `schema/building.schema.json` (regenerated).
 - `src/shared/geometry/stair.ts` (levels, fan rays, treads).
-- `src/backend/model/helpers.ts`, `src/backend/checks/model.ts`, `src/backend/ifc/writer.ts`,
-  `src/backend/ifc/roundtrip.ts`.
+- `src/backend/model/helpers.ts`, `src/backend/checks/model.ts`, `src/backend/ifc/writer.ts`
+  (including a multi-solid body), `src/backend/ifc/roundtrip.ts`.
 - `src/shared/render/plan.ts`; the viewer's stair riser height in `src/frontend/scene/engine.ts`.
 - `tests/`: schema, ids, checks, writer, round-trip, plan snapshot, viewer; a winder in a fixture.
-- `docs/modelling.md`, `docs/ifc.md`, `docs/rendering.md`, `.agents/skills/start-a-new-building-model/SKILL.md`.
+- `docs/modelling.md`, `docs/ifc.md`, `docs/rendering.md`, `docs/development.md`, `docs/architecture.md`
+  and the `start-a-new-building-model` and `edit-an-existing-building-model` skills.
 - No new dependency, no new IFC colour and no new plan colour: a winder is a stair solid like a flight.

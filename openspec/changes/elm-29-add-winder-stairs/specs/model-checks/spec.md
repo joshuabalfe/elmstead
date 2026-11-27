@@ -90,8 +90,8 @@ with fewer than two risers, so the checks do not repeat that rule.
 
 ### Requirement: Winder outline and pivot
 
-A winder's outline SHALL have at least three distinct points, SHALL be convex and SHALL NOT cross
-itself. Its `pivot` SHALL be a point of the outline and its `entry` an adjacent point, so the other
+A winder's outline SHALL have at least three distinct points and SHALL be strictly convex: no three
+consecutive points in a line. Its `pivot` SHALL be a point of the outline and its `entry` an adjacent point, so the other
 point beside the pivot is its exit. A violation SHALL be an ERROR against the winder.
 
 #### Scenario: Pivot off the outline
@@ -107,6 +107,11 @@ point beside the pivot is its exit. A violation SHALL be an ERROR against the wi
 #### Scenario: Concave outline
 
 - **WHEN** a winder's outline has a reflex corner
+- **THEN** the checks report an ERROR against the winder
+
+#### Scenario: Collinear point
+
+- **WHEN** a winder's outline has a point in the middle of one of its edges
 - **THEN** the checks report an ERROR against the winder
 
 #### Scenario: Valid square winder

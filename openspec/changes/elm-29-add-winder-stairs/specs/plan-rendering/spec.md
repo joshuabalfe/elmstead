@@ -28,13 +28,30 @@ Every element SHALL be an SVG group with a `class` (`wall`, `door`, `window`, `r
 - **WHEN** the SVG is queried for `[data-id="railing-front-north"]`
 - **THEN** it returns the group drawing that railing
 
+### Requirement: Stairs stay out of the viewer's plan overlay
+
+Stairs SHALL be drawn by `renderPlan` alone. `renderFloor`, `renderWallTops` and
+`renderPlanAnnotations`, which `viewer/main.ts` composites into its plan-style overlay, SHALL NOT
+draw them, so the plan-style overlay is unchanged. The viewer's stair readability recolour is
+separate presentation (see `ifc-viewer`), not part of the overlay.
+
+#### Scenario: Shared renderer functions emit no stair
+
+- **WHEN** `renderFloor`, `renderWallTops` or `renderPlanAnnotations` runs on a storey with a stair
+- **THEN** its SVG contains no `stair`, `stair-flight`, `stair-landing` or `stair-winder` group
+
+#### Scenario: Viewer overlay is unchanged
+
+- **WHEN** the viewer builds its plan-style overlay for a storey with a stair
+- **THEN** the overlay is what it was before this change, and the stair appears only as IFC geometry
+
 ## ADDED Requirements
 
 ### Requirement: Winder symbols
 
 A winder SHALL be a group with class `stair-winder` and its model id inside its stair's group. It
 SHALL draw its outline, a tread line along each interior fan line and an arrow along its walking
-line, from the middle of its entry edge to the middle of its exit edge. It SHALL be drawn in the
+line, from the middle of its entry edge to the start of the flight after it. It SHALL be drawn in the
 stair layer, in full rather than cut.
 
 #### Scenario: Winding stair symbols

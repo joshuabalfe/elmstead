@@ -5,7 +5,7 @@
 A stair is an ordered list of segments, flights and landings. Every level is derived: the rise
 comes from the two storeys, the riser height from the total riser count, and a flight's going from
 its plan run (`src/shared/geometry/stair.ts`). The IFC writer, the round-trip, the plan, the checks
-and the viewer's bounds each walk the segments. See proposal.md for why a winder cannot be said with
+and the viewer's band height each walk the segments. See proposal.md for why a winder cannot be said with
 a flight or a landing.
 
 A winder is a quarter-turn (or other) fan of treads around a newel post, usually in the corner of
@@ -49,8 +49,13 @@ and the revision and diff code, which handle a stair whole, need no change.
 ### 2. Shape
 
 ```ts
-{
-  kind: ("winder", id, outline, pivot, entry, risers);
+interface StairWinder {
+  kind: "winder";
+  id: string;
+  outline: Point[];
+  pivot: Point;
+  entry: Point;
+  risers: number;
 }
 ```
 
@@ -107,7 +112,10 @@ floorplan that prompted this change (fan lines read by eye at about 27° and 64�
 against 30° and 60°). A winder with unequal fan angles, or a fixed walking-line tread depth, is a
 different shape that this schema does not say; it is a non-goal.
 
-The treads partition the outline exactly, which the checks and the round-trip rely on.
+The treads partition the outline exactly, which the checks and the round-trip rely on. A fan line
+can end exactly on an outline corner (the 45° line of a two-riser winder on a square does): the
+points of a tread are merged within a tolerance, so the two treads share the corner and neither
+repeats a point or becomes degenerate.
 
 ### 5. IFC: an `IfcStairFlight` of type `WINDER`, one solid per tread
 
@@ -119,13 +127,22 @@ The treads partition the outline exactly, which the checks and the round-trip re
   flight has. A soffit under a fan needs a swept or boolean shape, and the round-trip's
   area-times-height volume check is exact for prisms. Trade-off: the winder is heavier than the real
   one, and the headroom beneath is not modelled either, as for a flight.
-- `IfcStair.PredefinedType` is `QUARTER_WINDING_STAIR` when the stair starts with a winder turning
-  through 90° within 1°, and `NOTDEFINED` otherwise. The existing flight-turn rule is unchanged.
+- `IfcStair.PredefinedType` is `QUARTER_WINDING_STAIR` only for a stair that is one winder and one
+  flight, with the winder turning through 90° within 1°. A longer stair that starts with a winder
+  may go on to turn again, which the name would not describe, so it is `NOTDEFINED`, as is any other
+  angle. The flight-turn rule is unchanged for stairs without a winder. The 1° tolerance differs from
+  the flight rule's `1e-6` because a winder's angle comes from an outline of whole millimetres; say so
+  in a comment beside `stairType`.
+- The writer's `body()` builds a representation of one solid, so a winder needs a small variant that
+  takes several. It is a refactor of that helper, not a new representation type.
+- `NumberOfRisers` and `NumberOfTreads` are both N, where a flight has R and R−1. Whether IFC4's
+  where-rules accept that is not known from reading; the check is `validator/validate.py` on the
+  winder fixture (`docs/ifc.md`, "IfcOpenShell validation"). If a rule rejects it, the attributes
+  change and the spec's winder attributes scenario with them.
 
 ### 6. Checks
 
-Segment order (winder first, then a flight), the outline (three distinct points, convex, not
-self-intersecting), the pivot and entry (outline points, adjacent), and the flight after the winder.
+Segment order (winder first, then a flight), the outline (three distinct points and strictly convex, so no collinear point and no crossing), the pivot and entry (outline points, adjacent), and the flight after the winder.
 A winder joins `outlined()` in `src/backend/checks/model.ts`, so it gets the same distinct-point and
 self-intersection checks as a landing; convexity and the pivot rules are new.
 
@@ -139,8 +156,7 @@ own keeps its "replace its stair" hint, which tests for the `"stair "` prefix.
 ### 7. Plan
 
 A winder draws as a `stair-winder` group: its outline, a tread line on each interior fan line and a
-walking arrow. The arrow is a polyline from the entry edge's middle through the middle of each fan
-line to the exit edge's middle, ending in the same arrowhead as a flight. Stair colours are reused
+walking arrow. The arrow is a polyline from the entry edge's middle through the middle of each fan line to the start of the flight after it, so it still ends where the flight's arrow begins when that flight is narrower than the exit edge, ending in the same arrowhead as a flight. Stair colours are reused
 and stairs stay the last geometry layer, so the plan-versus-3D comparison ignores them as it ignores
 flights. The plan's extent includes the winder outline.
 

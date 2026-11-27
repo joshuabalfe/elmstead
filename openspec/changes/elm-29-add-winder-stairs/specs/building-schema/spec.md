@@ -95,6 +95,11 @@ equal parts. Tread k SHALL be at k risers above the winder's base, so the winder
 - **WHEN** a winder with 3 risers turns through 90° about its pivot
 - **THEN** it has three treads, with fan lines 30° and 60° from its entry edge, and its last tread is 3 risers up
 
+#### Scenario: Fan line through a corner
+
+- **WHEN** a fan line ends exactly on an outline corner, as the 45° line of a two-riser winder on a square does
+- **THEN** the two treads on either side share that corner as one point, and no tread repeats a point
+
 #### Scenario: Sector containing an outline corner
 
 - **WHEN** a fan line leaves one side of a square winder outline and the next leaves the adjacent side
