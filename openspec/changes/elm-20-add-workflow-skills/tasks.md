@@ -24,7 +24,7 @@
 
 ## 5. `propose-a-model-revision`
 
-- [ ] 5.1 Write `.agents/skills/propose-a-model-revision/SKILL.md`: layout, `revise` edits, the revision's constraints, storeys fixed to the base's, build and render by path, reading the diff, and when to make the base parametric. Verify against `models/examples/example-cottage/revisions/` and `docs/modelling.md#revisions`, and run `npm run all` on a revision as the skill says.
+- [x] 5.1 Write `.agents/skills/propose-a-model-revision/SKILL.md`: layout, `revise` edits, the revision's constraints, storeys fixed to the base's, build and render by path, reading the diff, and when to make the base parametric. Verify against `models/examples/example-cottage/revisions/` and `docs/modelling.md#revisions`, and run `npm run all` on a revision as the skill says.
 
 ## 6. `diagnose-a-failing-check`
 
