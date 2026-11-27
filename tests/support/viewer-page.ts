@@ -21,6 +21,8 @@ declare global {
   interface Window {
     __elmsteadStoreyChanges?: number;
     __elmsteadStoreySweeps?: number;
+    __elmsteadViews?: number;
+    __elmsteadChooseView?: (view: string) => Promise<void>;
   }
 }
 

@@ -83,8 +83,11 @@ style, so they have three jobs, and a new one must be chosen for all three:
 
 ## 3D snapshots
 
-`render` starts the viewer (below) on a free port, opens it in headless Chromium through
-Playwright, and saves a 1200 × 900 PNG for each of five cameras:
+`render` starts the viewer (below) on a free port and opens it in headless Chromium through
+Playwright once per snapshot set — plain, and Diff for a revision. The first camera loads with the
+page; each later camera switches the view in the same page and is captured once it has drawn, so
+the IFC is converted once per set rather than once per camera. It saves a 1200 × 900 PNG for each
+of five cameras:
 
 - `sw`, `se`, `ne`, `nw`: perspective views from each plan corner, looking down. The names are plan
   corners whatever `site.northAngle` is, so a file keeps showing the same corner.
@@ -99,7 +102,7 @@ openings cut, doors and glazing in place, colours applied.
   still draws the plans. Any other viewer failure is an ERROR and exits 1.
 - The viewer server and browser close on every success and failure path, and screenshots are
   written atomically alongside the other outputs.
-- Pass `--no-3d` to skip the snapshots. They add about 5 seconds.
+- Pass `--no-3d` to skip the snapshots. They add a few seconds.
 
 ## The viewer
 
@@ -152,7 +155,9 @@ routes.
   - `?camera=px,py,pz,tx,ty,tz` places a perspective camera at p looking at t, in the scene's
     metres (Y up, IFC +Y along −Z), for close-ups such as one window.
   - With `?snapshot=1` in the URL it hides the navigation and sets `window.__elmsteadReady` once the
-    frame is drawn, which is what the snapshot driver waits for.
+    first camera's frame is drawn. The driver then switches the remaining snapshot cameras through
+    `window.__elmsteadChooseView` and waits on `window.__elmsteadViews`, so one page load serves
+    every camera of a snapshot set.
 - Hover identification: the **Show IDs on Hover** switch or `?ids=1` (off by default, ignored in snapshots)
   shows a constraint-style haloed label at the hovered point with the model id and name of the
   element under it, drawn above everything like the measurement readout. `src/frontend/scene/identify.ts` maps each fragments item's `Tag`/`Name`/`LongName` to
