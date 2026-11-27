@@ -16,7 +16,7 @@ export function useViewerShortcuts(engine: ViewerApi | null, state: ViewerState)
         target instanceof HTMLElement &&
         target.matches("input:not([type=checkbox]):not([type=radio]), select, textarea");
       // The storey slider treats every arrow as its own step. The viewer decides instead, except in
-      // walk mode, where the arrows walk; stop the event before the slider's own handler sees it.
+      // first-person mode, where the arrows move the camera; stop the event before the slider's own handler sees it.
       const storeySlider = target instanceof HTMLElement && target.closest("#storeys") !== null && !state.walking;
       if (storeySlider && ARROWS.has(event.code)) {
         event.preventDefault();

@@ -333,9 +333,9 @@ describe("switching revisions keeps the view", () => {
 
   it("leaves walk mode", async () => {
     await open(`model=${COTTAGE}&view=top&labels=0&walk=1`);
-    expect(await page.getAttribute("#walk", "aria-pressed")).toBe("true");
+    expect(await page.isChecked("#walk")).toBe(true);
     await choose("rear-extension");
-    expect(await page.getAttribute("#walk", "aria-pressed")).toBe("false");
+    expect(await page.isChecked("#walk")).toBe(false);
     expect(modelParam()).toBe(`${COTTAGE}@rear-extension`);
   }, 120_000);
 });

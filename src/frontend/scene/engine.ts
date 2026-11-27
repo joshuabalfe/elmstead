@@ -11,7 +11,7 @@
  * &measure=1&style=plan|ifc&camera=px,py,pz,tx,ty,tz&walk=1&ids=0|1 (snapshot hides the UI and sets
  * window.__elmsteadReady once the first frame is drawn; labels and the plan style are on by
  * default and constraints start off, except in snapshots, which show the IFC alone; walk=1 enters
- * first-person walk mode and measure=1 starts the measurement tool, both ignored in snapshots).
+ * first-person free-fly mode and measure=1 starts the measurement tool, both ignored in snapshots).
  * The Ids button or ?ids=1 shows each element's model id and name at the hovered point on hover, in the constraint
  * label's style and above everything, and
  * room labels carry the room id under name and area.
@@ -67,7 +67,7 @@ export interface ViewerApi {
   toggleMeasure(): Promise<void>;
   clearMeasurements(): void;
   toggleWalk(): Promise<void>;
-  enterWalk(lock: boolean): Promise<void>;
+  enterWalk(lock: boolean, keepPose?: boolean): Promise<void>;
   exitWalk(): Promise<void>;
   toggleDiff(): Promise<void>;
   setXray(on: boolean): Promise<void>;
@@ -999,7 +999,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
       if (identify.requested()) identify.setIdentifying(true);
       // `?walk=1` and `?measure=1` apply once, at startup; a model change leaves both modes alone.
       // Walk wins when both are present.
-      if (walk.requested()) void walk.enter(false);
+      if (walk.requested()) void walk.enter(false, false);
       else if (measure.requested()) measure.setMeasuring(true);
       // Two frames so the renderer has drawn the final camera position before a snapshot.
       requestAnimationFrame(() =>

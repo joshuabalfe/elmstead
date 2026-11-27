@@ -178,7 +178,7 @@ describe("rebuilt IFCs", () => {
   it("ends walk mode when the shown model is rebuilt", async () => {
     await resetCottage();
     await open(`model=${COTTAGE}&view=top&style=plan&walk=1`);
-    await page.waitForFunction(() => document.querySelector("#walk")?.getAttribute("aria-pressed") === "true", null, {
+    await page.waitForFunction(() => document.querySelector<HTMLInputElement>("#walk")?.checked === true, null, {
       timeout: 60_000,
     });
 
@@ -186,7 +186,7 @@ describe("rebuilt IFCs", () => {
     await publishAtomic(COTTAGE, await cottage());
     await settled(beforeReloads);
 
-    expect(await page.getAttribute("#walk", "aria-pressed")).toBe("false");
+    expect(await page.isChecked("#walk")).toBe(false);
   }, 120_000);
 
   it("carries the shown storeys over a rebuild", async () => {
