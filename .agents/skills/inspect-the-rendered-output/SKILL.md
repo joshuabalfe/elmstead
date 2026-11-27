@@ -30,7 +30,7 @@ npm run all -- --ids models/<model>    # the same, with every element's id on th
 
 1. **Plan PNG, per storey.** What the model says, drawn directly from the JSON. Check walls, door
    swings, window symbols, room fills and names, dimensions, and anything you added.
-2. **3D PNGs.** What *the IFC* says, so what any other IFC viewer will show. These are in the IFC's
+2. **3D PNGs.** What _the IFC_ says, so what any other IFC viewer will show. These are in the IFC's
    own colours (`?style=ifc`), not the plan's. Check that openings are cut, doors and glazing are
    in place, and a new element is there and the right colour.
 3. **Diff PNGs (revisions).** Added is green, changed is yellow, removed is red ghosts. Check the
@@ -69,21 +69,21 @@ try {
 Write the picture to your scratch directory, not the repo. The first argument is the query string;
 `@` in a revision name is `%40`. Then Read the PNG.
 
-| Parameter | What it does | Use it to check |
-|---|---|---|
-| `model=<name>` | the model, or `<model>%40<revision>` | which output to open (required) |
-| `view=sw\|se\|ne\|nw\|top` | camera; any other value is `top` | a corner or the plan view |
-| `camera=px,py,pz,tx,ty,tz` | a perspective camera at p looking at t, in scene metres (Y up, plan north is −Z) | a close-up of one window, door or joint |
-| `storeys=a,b` | show only those storey ids | one storey alone; floors hiding each other |
-| `style=plan\|ifc` | plan colours or the IFC's own | what other IFC viewers will show (`ifc`) |
-| `diff=1` | Diff mode (revisions only) | what a revision changes, with the changes panel |
-| `xray=1` | Transparency | what is behind or inside something |
-| `constraints=1` | the model's constraints as red labels and spans | whether a measurement holds |
-| `labels=0\|1` | room labels, on by default | clear labels out of the way |
-| `ids=1` | hover shows an element's id | the id of a thing to edit; needs a pointer, see below |
-| `measure=1`, `walk=1` | measurement tool, first-person mode | interactive only; the tests show how to drive them |
-| `orient=project` | views on plan axes, ignoring `site.northAngle` | comparing against the plan pixel for pixel |
-| `snapshot=1` | hides the UI, IFC colours, ignores `ids`, `measure` and `walk` | what `render` uses; leave it off to see the toolbar and panels |
+| Parameter                  | What it does                                                                     | Use it to check                                                |
+| -------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `model=<name>`             | the model, or `<model>%40<revision>`                                             | which output to open (required)                                |
+| `view=sw\|se\|ne\|nw\|top` | camera; any other value is `top`                                                 | a corner or the plan view                                      |
+| `camera=px,py,pz,tx,ty,tz` | a perspective camera at p looking at t, in scene metres (Y up, plan north is −Z) | a close-up of one window, door or joint                        |
+| `storeys=a,b`              | show only those storey ids                                                       | one storey alone; floors hiding each other                     |
+| `style=plan\|ifc`          | plan colours or the IFC's own                                                    | what other IFC viewers will show (`ifc`)                       |
+| `diff=1`                   | Diff mode (revisions only)                                                       | what a revision changes, with the changes panel                |
+| `xray=1`                   | Transparency                                                                     | what is behind or inside something                             |
+| `constraints=1`            | the model's constraints as red labels and spans                                  | whether a measurement holds                                    |
+| `labels=0\|1`              | room labels, on by default                                                       | clear labels out of the way                                    |
+| `ids=1`                    | hover shows an element's id                                                      | the id of a thing to edit; needs a pointer, see below          |
+| `measure=1`, `walk=1`      | measurement tool, first-person mode                                              | interactive only; the tests show how to drive them             |
+| `orient=project`           | views on plan axes, ignoring `site.northAngle`                                   | comparing against the plan pixel for pixel                     |
+| `snapshot=1`               | hides the UI, IFC colours, ignores `ids`, `measure` and `walk`                   | what `render` uses; leave it off to see the toolbar and panels |
 
 `ids=1` labels the element under the pointer, so a still screenshot shows none. Add
 `await page.mouse.move(x, y);` before `page.screenshot` (`tests/viewer-identify.test.ts` does this).

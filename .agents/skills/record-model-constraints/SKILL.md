@@ -9,7 +9,7 @@ description: Record a real, immovable measurement as a constraint on a model, or
 
 A constraint is an **immovable, real measurement**: a known distance between two named points, such
 as the inside corner and a window's jamb. Its job is to stop that measurement being broken by
-accident, above all when you change *other* dimensions: make a room wider, thicken a wall, move a
+accident, above all when you change _other_ dimensions: make a room wider, thicken a wall, move a
 partition, and a window that was measured on site can drift without anything looking wrong. The
 constraint turns that into a failure.
 
@@ -56,6 +56,7 @@ drawing.
    - `measure`: `"straight"`, `"x"`, `"y"`, or `{ along: wallId }` for a tape along a wall. Distances
      are unsigned and in plan only; heights cannot be constrained yet.
    - `tolerance` defaults to 10 mm. Every point must be on the group's storey.
+
 4. `npm run check models/<model>`. The new constraint should be met. If it is not, your model does
    not match what the user measured: that is the finding, so tell them.
 
@@ -77,7 +78,7 @@ failures at once usually share one cause, so look for the one edit that moved al
    brackets is the element or room it is about.
 2. Find what the edit moved. The point helpers name wall faces and openings, so the likely cause is
    a wall thickness, an opening's `offsetAlongWall` or `centredOn` target, or a wall end.
-3. Change the *model* so the measured distance is met again. If you cannot, or two constraints now
+3. Change the _model_ so the measured distance is met again. If you cannot, or two constraints now
    disagree with each other, stop and ask the user: do not touch the constraint yourself.
 4. If a model id in a constraint no longer exists (a rename or deletion), that is an ERROR too.
    Pointing the constraint at the new id is still a change to a constraint, so ask first, and do it

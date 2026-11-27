@@ -7,10 +7,10 @@ description: Write, check, build and review a revision, meaning a proposed alter
 
 Two different things get called "an edit to the model". Keep them apart:
 
-| | What it is | Where | Skill |
-|---|---|---|---|
-| **The base model** | the building as it is | `models/<model>/` (`index.ts`) | [edit-an-existing-building-model](../edit-an-existing-building-model/SKILL.md) |
-| **A revision** | a proposed alternative to it | `models/<model>/revisions/` | this skill |
+|                    | What it is                   | Where                          | Skill                                                                          |
+| ------------------ | ---------------------------- | ------------------------------ | ------------------------------------------------------------------------------ |
+| **The base model** | the building as it is        | `models/<model>/` (`index.ts`) | [edit-an-existing-building-model](../edit-an-existing-building-model/SKILL.md) |
+| **A revision**     | a proposed alternative to it | `models/<model>/revisions/`    | this skill                                                                     |
 
 - Correcting the base is changing the building's description: "the window is actually 1.1 m". Do it
   in the base itself, and every revision picks it up.
@@ -52,8 +52,8 @@ export default revise(base, [
 ```
 
 - Edits are `remove(...ids)`, `replace(...elements)`, `addTo(storey, { walls, openings, slabs,
-  rooms, stairs, railings })` and `addComponents({ doors, windows })`. Always go through `revise`:
-  pushing to `ground.walls` in a revision changes the *base itself* for every model in the process.
+rooms, stairs, railings })` and `addComponents({ doors, windows })`. Always go through `revise`:
+  pushing to `ground.walls` in a revision changes the _base itself_ for every model in the process.
 - An edit that names an id the base does not have, adds one it already has, or puts a value in the
   wrong collection is an ERROR against that id. So a revision breaks loudly if its base changes.
 - **Removing does not cascade.** Remove a wall and its openings stay, and `check` reports them. List
@@ -62,7 +62,7 @@ export default revise(base, [
   Lengthen at the end, or re-place the openings in the same revision.
 - Take ids from the base (`ground.walls.find(...)`) and derive from faces (`face`, `centredOn`),
   as for any model.
-- If the revision needs to *reshape* the building (move a rear wall that rooms, slabs and openings
+- If the revision needs to _reshape_ the building (move a rear wall that rooms, slabs and openings
   all derive from), editing values is poor: make the base export a function of that dimension and
   call it from the revision ([Modelling](../../../docs/modelling.md#when-to-make-the-base-parametric-instead)).
   That changes the base, so agree it first.

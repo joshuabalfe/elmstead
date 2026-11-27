@@ -6,7 +6,7 @@ description: Change the base model of an existing building in `models/` (Elmstea
 # Edit an existing building model
 
 This changes the **base model**: the building as it is. A proposal for how it might change is a
-*revision*, which leaves the base untouched ([propose-a-model-revision](../propose-a-model-revision/SKILL.md)).
+_revision_, which leaves the base untouched ([propose-a-model-revision](../propose-a-model-revision/SKILL.md)).
 If you cannot tell which the user means, ask.
 
 A model is TypeScript in `models/` that is checked, built to JSON and IFC, and drawn. You change the
@@ -38,7 +38,7 @@ npm run all models/<model>       # build, then render if the build passed
   The floor structure belongs to the storey above it; see Coordinates in the modelling doc before
   moving a floor level.
 - **Ids.** Lower-case kebab, prefixed by kind (`wall-`, `door-`, `room-`), unique across the whole
-  model, and *stable*: the IFC GlobalId comes from the id, so renaming makes a different element.
+  model, and _stable_: the IFC GlobalId comes from the id, so renaming makes a different element.
   Renaming is for when the user asks.
 - **Derive, don't hard-code.** Take room corners from `face(wall, side)`, centre openings with
   `centredOn`, and use a named size (`extWallT`) once. Then a changed wall thickness moves the rooms
