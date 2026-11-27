@@ -8,8 +8,8 @@
 
 ## 2. `inspect-the-rendered-output`
 
-- [ ] 2.1 Write `.agents/skills/inspect-the-rendered-output/SKILL.md`: producing the plan and 3D PNGs, running the viewer, and what each URL parameter is for. Verify every parameter it names appears in `viewer/main.ts` or `viewer/walk.ts`, and run each command as written.
-- [ ] 2.2 Following the skill, produce the Elmstead plan, a 3D snapshot and a Diff-mode view of `models/elmstead/revisions/*`. Verify each output exists and any step that needed more than the skill says is fixed in the skill.
+- [x] 2.1 Write `.agents/skills/inspect-the-rendered-output/SKILL.md`: producing the plan and 3D PNGs, running the viewer, and what each URL parameter is for. Verify every parameter it names appears in `viewer/main.ts` or `viewer/walk.ts`, and run each command as written.
+- [x] 2.2 Following the skill, produce the Elmstead plan, a 3D snapshot and a Diff-mode view of the example cottage's `rear-extension` revision. Verify each output exists and any step that needed more than the skill says is fixed in the skill.
 
 ## 3. `add-support-for-new-element-types`
 
@@ -24,7 +24,7 @@
 
 ## 5. `propose-a-model-revision`
 
-- [ ] 5.1 Write `.agents/skills/propose-a-model-revision/SKILL.md`: layout, `revise` edits, the revision's constraints, storeys fixed to the base's, build and render by path, reading the diff, and when to make the base parametric. Verify against `models/elmstead/revisions/` and `docs/modelling.md#revisions`, and run `npm run all` on a revision as the skill says.
+- [ ] 5.1 Write `.agents/skills/propose-a-model-revision/SKILL.md`: layout, `revise` edits, the revision's constraints, storeys fixed to the base's, build and render by path, reading the diff, and when to make the base parametric. Verify against `models/examples/example-cottage/revisions/` and `docs/modelling.md#revisions`, and run `npm run all` on a revision as the skill says.
 
 ## 6. `diagnose-a-failing-check`
 
