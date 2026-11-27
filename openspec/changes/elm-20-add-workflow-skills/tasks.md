@@ -33,5 +33,5 @@
 
 ## 7. Register and check
 
-- [ ] 7.1 Add a row for every skill written to the skills table in `AGENTS.md`. Verify the names match the directories and `npx openspec validate --all` passes.
+- [x] 7.1 Add a row for every skill written to the skills table in `AGENTS.md`. Verify the names match the directories and `npx openspec validate --all` passes.
 - [ ] 7.2 Run `npm test` and `npm run typecheck` and confirm both pass, and that `git status` shows no change under `out/`, `schema/` or `tests/__snapshots__/`.

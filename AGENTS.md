@@ -12,6 +12,18 @@ Your harness may not load them itself, so before starting a task, list `.agents/
 the front matter of each `SKILL.md`. When a skill's description fits the task, read the whole file
 and follow it. When the user names a skill (for example `/openspec-propose`), use that one.
 
+Skills for working on a model and its output (the OpenSpec skills are under
+[Changes](#changes-openspec)):
+
+| Skill | Use it to |
+|---|---|
+| `edit-a-building-model` | change a model in `models/`: the check, build, render loop and its traps |
+| `record-model-constraints` | record a measurement the user gave, or handle a failing constraint |
+| `propose-a-model-revision` | write, build and review a named alteration of a folder model |
+| `add-support-for-new-element-types` | add an element type or geometry variant, correct in the IFC, plan and viewer |
+| `diagnose-a-failing-check` | decide whether a failure is the model, a constraint, the pipeline or the environment |
+| `inspect-the-rendered-output` | look at the plan, 3D and Diff pictures and any viewer URL state |
+
 ## Commands
 
 ```sh
