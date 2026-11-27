@@ -37,7 +37,9 @@ export function useViewerShortcuts(engine: ViewerApi | null, state: ViewerState)
         void engine.stepRevision(event.code === "ArrowRight" ? 1 : -1);
       }
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    // Capture so preventDefault runs before a focused select's native arrow handling, which would
+    // otherwise move the select and the shortcut both.
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
   }, [engine, state.walking, state.diffAvailable, state.storeyLabelHidden, state.revisionHidden]);
 }
