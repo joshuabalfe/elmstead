@@ -10,8 +10,9 @@ and the viewer can say exactly what a proposal adds, removes and changes.
 ### Requirement: Elements are matched by id
 
 The diff SHALL match a revision's elements with its base model's by id. The compared kinds SHALL be
-walls, openings, slabs, rooms, stairs, railings, storeys and components. A stair SHALL be compared
-as a whole, including its segments.
+every element kind the id walk names on a storey, plus storeys and components, taken from the
+element-kind table rather than a separate list. A stair SHALL be compared as a whole, including its
+segments.
 
 #### Scenario: Same id in both
 
@@ -22,6 +23,11 @@ as a whole, including its segments.
 
 - **WHEN** a revision removes `window-rear` and adds an identical window as `window-rear-new`
 - **THEN** the diff reports `window-rear` as removed and `window-rear-new` as added
+
+#### Scenario: Every storey kind is compared
+
+- **WHEN** a revision changes one element of every storey kind — a wall, a door, a window, a slab, a room, a stair and a railing
+- **THEN** the diff lists each of them as changed, with no kind skipped
 
 ### Requirement: Added, removed and changed
 
