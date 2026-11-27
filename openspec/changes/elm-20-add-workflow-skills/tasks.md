@@ -28,8 +28,8 @@
 
 ## 6. `diagnose-a-failing-check`
 
-- [ ] 6.1 List the distinct failure modes from the messages in `src/checks`, `src/constraints`, the round-trip and validator output, the plan-versus-3D failure output and the CLI failure fixtures, with the cause and fix of each. Verify each message string exists with `git grep`. If fewer than about five distinct modes are found, add a short "when a check fails" section to `edit-a-building-model` instead of a skill and record the decision.
-- [ ] 6.2 Otherwise write `.agents/skills/diagnose-a-failing-check/SKILL.md` from that list. Verify front matter and links as in 3.1, and that each failure fixture in `tests/fixtures` leads to the listed cause.
+- [x] 6.1 List the distinct failure modes from the messages in `src/checks`, `src/constraints`, the round-trip and validator output, the plan-versus-3D failure output and the CLI failure fixtures, with the cause and fix of each. Verify each message string exists with `git grep`. If fewer than about five distinct modes are found, add a short "when a check fails" section to `edit-a-building-model` instead of a skill and record the decision.
+- [x] 6.2 Otherwise write `.agents/skills/diagnose-a-failing-check/SKILL.md` from that list. Verify front matter and links as in 3.1, and that each failure fixture in `tests/fixtures` leads to the listed cause.
 
 ## 7. Register and check
 
