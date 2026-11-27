@@ -17,6 +17,7 @@ Skills for working on a model and its output (the OpenSpec skills are under
 
 | Skill                               | Use it to                                                                                     |
 | ----------------------------------- | --------------------------------------------------------------------------------------------- |
+| `start-a-new-building-model`        | start a model of a building that has none: what to ask, from material or from memory          |
 | `edit-an-existing-building-model`   | change the base model, the building as it is: the check, build, render loop and its traps     |
 | `record-model-constraints`          | record a measurement the user gave, or handle a failing constraint                            |
 | `propose-a-model-revision`          | write, build and review a proposed alternative (a revision), leaving the base model untouched |

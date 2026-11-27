@@ -4,7 +4,9 @@ A model is a TypeScript module in `models/` that default-exports a `BuildingMode
 [`models/examples/example-cottage/`](../models/examples/example-cottage/), a full working example: an `index.ts` and
 its `constraints.ts`.
 
-The [edit-an-existing-building-model](../.agents/skills/edit-an-existing-building-model/SKILL.md) skill is the order of
+The [start-a-new-building-model](../.agents/skills/start-a-new-building-model/SKILL.md) skill is what to ask and in what
+order to build when there is no model yet. The
+[edit-an-existing-building-model](../.agents/skills/edit-an-existing-building-model/SKILL.md) skill is the order of
 work for changing a model, and says when to stop and add a type to the schema instead.
 
 A larger model splits across more files in its folder, as in
