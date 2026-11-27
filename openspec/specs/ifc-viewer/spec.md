@@ -685,6 +685,16 @@ model.
 - **WHEN** the viewer is opened with `?storeys=storey-ground,storey-first-floor`
 - **THEN** the selector shows the first floor and both storeys are drawn
 
+#### Scenario: Another floor chosen mid-change
+
+- **WHEN** the user chooses a second floor before the first change has finished
+- **THEN** the viewer eases from where it is to the second floor, and it ends exactly as if that floor had been chosen alone
+
+#### Scenario: With Transparency
+
+- **WHEN** Transparency is on and the user chooses another floor
+- **THEN** the floor change is swept as usual, with the entering and leaving storeys fading to and from the see-through opacity
+
 #### Scenario: Upper storey alone
 
 - **WHEN** the viewer is opened with `?storeys=` naming only an upper storey
@@ -721,7 +731,7 @@ Arrow Up SHALL show the next storey above the highest storey now shown, and Arro
 
 ### Requirement: Storey shortcut scope
 
-The storey shortcut SHALL be ignored in walk mode, where the arrows keep walking, with Ctrl, Alt, Meta or Shift held, for a single-storey model, in snapshot mode, while a form control other than the storey selector has focus, for an auto-repeated key press, and while an earlier step is still being drawn. While the storey selector has focus the shortcut SHALL still step it, and the browser's own arrow-key handling for it SHALL NOT also act. The selector's tooltip SHALL name the keys.
+The storey shortcut SHALL be ignored in walk mode, where the arrows keep walking, with Ctrl, Alt, Meta or Shift held, for a single-storey model, in snapshot mode, and while a form control other than the storey selector has focus. While the storey selector has focus the shortcut SHALL still step it, and the browser's own arrow-key handling for it SHALL NOT also act. The selector's tooltip SHALL name the keys.
 
 #### Scenario: Walk mode
 
@@ -736,7 +746,7 @@ The storey shortcut SHALL be ignored in walk mode, where the arrows keep walking
 #### Scenario: Held key
 
 - **WHEN** the user holds Arrow Down on a three-storey model
-- **THEN** the selection steps down once, not once per auto-repeat
+- **THEN** the selection keeps stepping down at the auto-repeat rate until the key is released or the lowest storey is shown
 
 #### Scenario: Selector focused
 
@@ -1362,21 +1372,27 @@ session SHALL NOT keep that session's colours, fading or outlines once they are 
 - **WHEN** the user views a revision in Diff mode, turns Diff off, switches to another revision and back
 - **THEN** the first revision is drawn in its normal colours, with no outlines
 
-### Requirement: Diff lands in one picture
+### Requirement: View changes land complete
 
-Turning Diff mode or Transparency on or off, and switching revision with either on, SHALL keep the
-previous picture drawn until the new one is complete, with its colours, outlines, fading, ghosts and
-plan drawing applied. No frame SHALL show a half-applied picture.
+Turning Diff mode or Transparency on or off SHALL crossfade from the previous finished picture to the
+finished new one over about 60 ms, or replace it in one frame when the user prefers reduced motion.
+Switching revision with either on SHALL keep the previous picture drawn until the new one is
+complete. No frame SHALL show a half-applied picture.
 
 #### Scenario: Toggling Diff
 
 - **WHEN** the user turns Diff mode on
-- **THEN** every frame drawn shows either the picture before or the finished Diff picture
+- **THEN** the picture changes from the previous finished picture to the finished Diff picture, through a crossfade of those two pictures
 
 #### Scenario: Toggling Transparency
 
 - **WHEN** the user turns Transparency on
-- **THEN** every frame drawn shows either the picture before or the finished see-through picture
+- **THEN** the picture changes from the previous finished picture to the finished see-through picture, through a crossfade of those two pictures
+
+#### Scenario: Reduced motion
+
+- **WHEN** the user prefers reduced motion and turns Diff mode or Transparency on or off
+- **THEN** the new picture replaces the old in one frame, with no crossfade
 
 #### Scenario: Switching with Diff on
 

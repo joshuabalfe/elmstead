@@ -23,10 +23,9 @@ export function useViewerShortcuts(engine: ViewerApi | null, state: ViewerState)
       if (event.code === "ArrowUp" || event.code === "ArrowDown") {
         if (state.walking || state.storeyLabelHidden) return;
         // A focused select would also move its own value, and the opposite way round: its floors
-        // run lowest first. Swallow repeats too, or the select still moves on them.
+        // run lowest first. Prevent repeats too, or the select still moves on them.
         if (form && (target as HTMLElement).id !== "storeys") return;
         event.preventDefault();
-        if (event.repeat) return;
         void engine.stepStorey(event.code === "ArrowUp" ? 1 : -1);
         return;
       }

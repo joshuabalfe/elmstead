@@ -87,10 +87,14 @@ declare global {
     __elmsteadError?: string;
     /** Increments after a storey choice has been applied and drawn; tests wait on it. */
     __elmsteadStoreyChanges?: number;
+    /** Increments when a floor change starts its section sweep, so tests can tell it from an instant change. */
+    __elmsteadStoreySweeps?: number;
     /** Increments after a revision choice has been loaded and drawn; tests wait on it. */
     __elmsteadRevisionChanges?: number;
     /** Increments after a rebuilt IFC has replaced the shown scene; tests wait on it. */
     __elmsteadReloads?: number;
+    /** Increments when a Diff or Transparency toggle starts its crossfade; tests read it. */
+    __elmsteadViewFades?: number;
     /** Increments after a Diff, Transparency or changes-panel choice has been applied and drawn. */
     __elmsteadViewChanges?: number;
     /** The shown diff's ids by status while Diff mode is on, for tests; null otherwise. */
@@ -249,6 +253,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   const shownCategories: Record<DiffStatus, boolean> = { added: true, changed: true, removed: true };
   /** Opacity of what Transparency fades. */
   const FADE = 0.35;
+  const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   /** The shown revision's diff while Diff mode is on: its base, the diff, and each listed id's status. */
   let shownDiff: { baseName: string; base: BuildingModel; diff: ModelDiff; status: StatusById } | null = null;
   /** Each base model's JSON once fetched, for diffing its revisions. */
@@ -691,7 +696,11 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     else params.set("storeys", shownStoreys.join(","));
     history.replaceState(null, "", `?${params}`);
     populateStoreySelector(modelJson);
-    await applyStoreyVisibility(currentModel);
+    await applyStoreyVisibility(currentModel, true);
+    // A later choice may have taken over while this one animated; that choice owns the finishing work.
+    const shown = new Set(shownStoreys ?? ordered.map((s) => s.id));
+    const latestTop = [...ordered].reverse().find((s) => shown.has(s.id))?.id;
+    if (topId !== latestTop) return;
     updateLowestElevation();
     setStatus(`${currentName}.ifc`);
     // The camera stays put: only the drawings change, so floors compare from one viewpoint.
@@ -700,17 +709,135 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     repickHover();
   }
 
+  /** How long a floor change takes to ease to its new floor level, in milliseconds. */
+  const STOREY_EASE_MS = 60;
+  /** Exponential time constant: about 95% of a floor change is done after STOREY_EASE_MS. */
+  const STOREY_TAU_MS = STOREY_EASE_MS / 3;
+
   /**
-   * Show exactly the selected storeys through fragments: each item is visible when the storey its Tag
-   * — or its Name, for spaces — belongs to is. Items that name no model element are left alone; they
-   * carry no geometry. Storey layers follow the same selection, so labels, floors and constraints
-   * travel with their storey.
+   * A height clear of every model, where the sweep plane rests between floor changes. The plane stays
+   * in the renderer at all times, so materials compile with clipping once rather than on a first
+   * sweep; between sweeps it clips nothing.
    */
-  async function applyStoreyVisibility(model: FragmentsModel) {
-    const storeyItems = new Map<string, number[]>();
-    if (!modelJson) return;
-    // Which storey owns each element id, from the model JSON: the IFC is the geometry, but the JSON is
-    // the authority on which storey an element belongs to.
+  const SWEEP_PARKED = 1_000_000;
+
+  /**
+   * The section plane a floor change sweeps: it clips everything above its height. The renderer
+   * holds this one array by reference, so moving the plane is picked up in place.
+   */
+  const sweepPlane = new THREE.Plane(new THREE.Vector3(0, -1, 0), SWEEP_PARKED);
+  const sweepPlanes: THREE.Plane[] = [sweepPlane];
+  world.renderer.three.clippingPlanes = sweepPlanes;
+
+  /** Each storey's items, read once per loaded model so a sweep need not walk the model again. */
+  let storeyItemCache: { modelId: string; byStorey: Map<string, number[]> } | null = null;
+
+  /** The storeys last fully shown; null until the first model's storeys have been applied. */
+  let settledStoreys: Set<string> | null = null;
+
+  interface StoreyLayerFade {
+    materials: {
+      material: THREE.Material;
+      opacity: number;
+      transparent: boolean;
+      depthWrite: boolean;
+    }[];
+  }
+
+  /** One storey crossing the section plane: its items, overlay groups and current fade. */
+  interface StoreyMotionEntry {
+    id: string;
+    items: number[];
+    groups: THREE.Group[];
+    layers: StoreyLayerFade | null;
+    opacity: number;
+    /** The opacity the storey rests at when shown: 1, or the see-through opacity under Transparency. */
+    rest: number;
+    target: number;
+  }
+
+  /** A floor change in flight: every transitioning storey and the plane easing to its new level. */
+  interface StoreyMotion {
+    model: FragmentsModel;
+    entries: Map<string, StoreyMotionEntry>;
+    target: Set<string>;
+    plane: number;
+    targetPlane: number;
+    running: boolean;
+    waiters: (() => void)[];
+  }
+
+  let storeyMotion: StoreyMotion | null = null;
+  /** Retargets run in order, so two quick choices cannot both create the same storey's entry. */
+  let storeyChain: Promise<void> = Promise.resolve();
+
+  /**
+   * The height (scene m) any of a storey's elements reaches. A storey with no walls, such as the
+   * street level, is topped by its railings; a stair climbs to the storey above.
+   */
+  function storeyTop(storey: Storey, byId: Map<string, Storey>): number {
+    let top = storey.elevation + Math.max(0, ...storey.walls.map((w) => wallHeight(w)));
+    for (const o of storey.openings) top = Math.max(top, storey.elevation + o.sillHeight + o.height);
+    for (const slab of storey.slabs) top = Math.max(top, storey.elevation + slab.elevationOffset);
+    for (const r of storey.railings ?? [])
+      top = Math.max(top, storey.elevation + Math.max(r.startBase ?? 0, r.endBase ?? 0) + r.height);
+    for (const st of storey.stairs ?? []) top = Math.max(top, byId.get(st.toStoreyId)?.elevation ?? storey.elevation);
+    return top / 1000;
+  }
+
+  /**
+   * A sweep height that keeps a floor's drawings: clear of its wall tops and labels. The next
+   * storey's floor structure starts just above it, so a thin sliver can show at the cut.
+   */
+  const SWEEP_MARGIN = (LABEL_LIFT + 2) / 1000;
+
+  /**
+   * Make a storey's overlay layers fadeable, remembering their resting states. The constraint spans
+   * share one material across storeys, so they are left alone and pop with their storey instead.
+   */
+  function beginLayerFade(groups: THREE.Group[]): StoreyLayerFade {
+    const seen = new Set<THREE.Material>();
+    const materials: StoreyLayerFade["materials"] = [];
+    for (const group of groups) {
+      group.traverse((object) => {
+        const material = (object as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+        if (!material) return;
+        for (const m of Array.isArray(material) ? material : [material]) {
+          if (m === constraintLineMaterial || seen.has(m)) continue;
+          seen.add(m);
+          materials.push({ material: m, opacity: m.opacity, transparent: m.transparent, depthWrite: m.depthWrite });
+          if (!m.transparent) {
+            m.transparent = true;
+            m.needsUpdate = true;
+          }
+          if (m.depthWrite) {
+            m.depthWrite = false;
+            m.needsUpdate = true;
+          }
+        }
+      });
+    }
+    return { materials };
+  }
+
+  function applyLayerFade(layers: StoreyLayerFade, t: number): void {
+    for (const { material, opacity } of layers.materials) material.opacity = opacity * t;
+  }
+
+  function endLayerFade(layers: StoreyLayerFade): void {
+    for (const { material, opacity, transparent, depthWrite } of layers.materials) {
+      material.opacity = opacity;
+      material.transparent = transparent;
+      material.depthWrite = depthWrite;
+      material.needsUpdate = true;
+    }
+  }
+
+  /** The items each storey owns, from the model JSON: the IFC is the geometry, the JSON the authority. */
+  async function storeyItemsOf(model: FragmentsModel): Promise<Map<string, number[]>> {
+    if (storeyItemCache?.modelId === model.modelId) return storeyItemCache.byStorey;
+    const byStorey = new Map<string, number[]>();
+    if (!modelJson) return byStorey;
     const owner = new Map<string, string>();
     for (const s of modelJson.storeys) {
       for (const w of s.walls) owner.set(w.id, s.id);
@@ -725,18 +852,228 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     }
     // Fragments' spatial tree does not surface every storey, so map items by their Tag (elements) or
     // Name (spaces, whose Tag the writer leaves empty) instead of walking it.
-    const items = await model.getItems();
-    for (const [localId, item] of items) {
+    for (const [localId, item] of await model.getItems()) {
       const key = (item.data.Tag?.value ?? item.data.Name?.value) as string | undefined;
       const storey = key ? owner.get(key) : undefined;
       if (!storey) continue;
-      storeyItems.set(storey, [...(storeyItems.get(storey) ?? []), localId]);
+      byStorey.set(storey, [...(byStorey.get(storey) ?? []), localId]);
     }
-    for (const [storey, ids] of storeyItems) await model.setVisible(ids, isShown(storey));
-    for (const [id, groups] of storeyLayers) for (const g of groups) g.visible = isShown(id);
-    for (const [id, group] of diffOutlines) group.visible = isShown(id);
-    if (ghostModel) for (const [id, ids] of ghostItems) await ghostModel.setVisible(ids, isShown(id));
+    storeyItemCache = { modelId: model.modelId, byStorey };
+    return byStorey;
+  }
+
+  /** Finish a floor change at once: every transitioning storey at its target, the plane parked. */
+  async function finishStoreyMotionNow(): Promise<void> {
+    const motion = storeyMotion;
+    if (!motion) return;
+    storeyMotion = null;
+    for (const entry of motion.entries.values()) {
+      if (entry.target > 0) {
+        if (entry.items.length) {
+          if (entry.rest === 1) await motion.model.resetOpacity(entry.items);
+          else await motion.model.setOpacity(entry.items, entry.rest);
+        }
+        if (entry.layers) endLayerFade(entry.layers);
+      } else {
+        if (entry.items.length) {
+          await motion.model.setVisible(entry.items, false);
+          await motion.model.resetOpacity(entry.items);
+        }
+        if (entry.layers) endLayerFade(entry.layers);
+        for (const group of entry.groups) group.visible = false;
+      }
+    }
+    await fragments.core.update(true);
+    sweepPlane.constant = SWEEP_PARKED;
+    settledStoreys = new Set(motion.target);
+    await fragments.core.update(true);
+    for (const resolve of motion.waiters.splice(0)) resolve();
+  }
+
+  /** Finish any floor change at once, queued behind a retarget already in flight. */
+  function finishStoreyMotion(): Promise<void> {
+    storeyChain = storeyChain.then(finishStoreyMotionNow);
+    return storeyChain;
+  }
+
+  /** Resolves once the running floor change has settled, even if another target arrives first. */
+  function storeyMotionSettled(): Promise<void> {
+    const motion = storeyMotion;
+    if (!motion) return Promise.resolve();
+    return new Promise((resolve) => motion.waiters.push(resolve));
+  }
+
+  /**
+   * The opacity a shown storey rests at. Transparency fades every element, so entering and leaving
+   * storeys sweep between 0 and that opacity rather than 0 and 1.
+   */
+  function storeyRestOpacity(): number {
+    return viewState.xray ? FADE : 1;
+  }
+
+  /** Hide and restore each storey the motion has finished with; park the plane when none is left. */
+  async function settleStoreyMotion(motion: StoreyMotion): Promise<void> {
+    if (storeyMotion !== motion) return;
+    for (const [id, entry] of [...motion.entries]) {
+      if (entry.target === 0 && entry.opacity === 0) {
+        if (entry.items.length) {
+          await motion.model.setVisible(entry.items, false);
+          await motion.model.resetOpacity(entry.items);
+        }
+        if (entry.layers) endLayerFade(entry.layers);
+        for (const group of entry.groups) group.visible = false;
+        motion.entries.delete(id);
+      } else if (entry.target > 0 && entry.opacity === entry.target) {
+        if (entry.items.length) {
+          if (entry.rest === 1) await motion.model.resetOpacity(entry.items);
+          else await motion.model.setOpacity(entry.items, entry.rest);
+        }
+        if (entry.layers) endLayerFade(entry.layers);
+        entry.layers = null;
+        motion.entries.delete(id);
+      }
+    }
+    if (storeyMotion !== motion) return;
+    if (motion.entries.size > 0) {
+      startStoreyMotion(motion);
+      return;
+    }
+    // Flush at the clipped state before parking, so the last frame cannot show stale geometry.
+    await fragments.core.update(true);
+    sweepPlane.constant = SWEEP_PARKED;
+    settledStoreys = new Set(motion.target);
+    storeyMotion = null;
+    await fragments.core.update(true);
+    for (const resolve of motion.waiters.splice(0)) resolve();
+  }
+
+  /** Ease every transitioning storey and the plane toward its target; settle when all arrive. */
+  function startStoreyMotion(motion: StoreyMotion): void {
+    if (motion.running) return;
+    motion.running = true;
+    let last = performance.now();
+    const tick = (now: number) => {
+      if (storeyMotion !== motion) return;
+      const dt = Math.min(64, Math.max(0, now - last));
+      last = now;
+      const k = 1 - Math.exp(-dt / STOREY_TAU_MS);
+      motion.plane += (motion.targetPlane - motion.plane) * k;
+      if (Math.abs(motion.targetPlane - motion.plane) < 0.0005) motion.plane = motion.targetPlane;
+      sweepPlane.constant = motion.plane;
+      let moving = motion.plane !== motion.targetPlane;
+      for (const entry of motion.entries.values()) {
+        entry.opacity += (entry.target - entry.opacity) * k;
+        if (Math.abs(entry.target - entry.opacity) < 0.01) entry.opacity = entry.target;
+        if (entry.layers) applyLayerFade(entry.layers, entry.opacity / entry.rest);
+        if (entry.items.length) void motion.model.setOpacity(entry.items, entry.opacity);
+        if (entry.opacity !== entry.target) moving = true;
+      }
+      fragments.core.update();
+      if (moving) {
+        requestAnimationFrame(tick);
+        return;
+      }
+      motion.running = false;
+      storeyChain = storeyChain.then(() => settleStoreyMotion(motion));
+    };
+    requestAnimationFrame(tick);
+  }
+
+  /** Point the running floor change at `target`, creating or flipping storeys as needed. */
+  function retargetStoreyMotion(model: FragmentsModel, ordered: Storey[], target: Set<string>): Promise<void> {
+    storeyChain = storeyChain.then(async () => {
+      const byStorey = await storeyItemsOf(model);
+      const byId = new Map(modelJson!.storeys.map((s) => [s.id, s]));
+      const highest = (list: Storey[]) => (list.length ? Math.max(...list.map((s) => storeyTop(s, byId))) : 0);
+      const rest = storeyRestOpacity();
+      if (!storeyMotion || storeyMotion.model !== model) {
+        await finishStoreyMotionNow();
+        const shown = settledStoreys ?? new Set(ordered.map((s) => s.id));
+        const plane = highest(ordered.filter((s) => shown.has(s.id))) + SWEEP_MARGIN;
+        sweepPlane.constant = plane;
+        storeyMotion = {
+          model,
+          entries: new Map(),
+          target,
+          plane,
+          targetPlane: highest(ordered.filter((s) => target.has(s.id))) + SWEEP_MARGIN,
+          running: false,
+          waiters: [],
+        };
+        window.__elmsteadStoreySweeps = (window.__elmsteadStoreySweeps ?? 0) + 1;
+      } else {
+        storeyMotion.target = target;
+        storeyMotion.targetPlane = highest(ordered.filter((s) => target.has(s.id))) + SWEEP_MARGIN;
+      }
+      const motion = storeyMotion;
+      const shown = settledStoreys ?? new Set(ordered.map((s) => s.id));
+      for (const storey of ordered) {
+        const entry = motion.entries.get(storey.id);
+        const inTarget = target.has(storey.id);
+        if (entry) {
+          entry.target = inTarget ? entry.rest : 0;
+          if (!inTarget && !entry.layers) entry.layers = beginLayerFade(entry.groups);
+          continue;
+        }
+        const wasShown = shown.has(storey.id);
+        if (inTarget === wasShown) continue;
+        const groups = storeyLayers.get(storey.id) ?? [];
+        const items = byStorey.get(storey.id) ?? [];
+        const layers = beginLayerFade(groups);
+        if (inTarget) {
+          applyLayerFade(layers, 0);
+          for (const group of groups) group.visible = true;
+          if (items.length) {
+            // Fade it while still hidden, so showing it cannot flash at full opacity first.
+            await model.setOpacity(items, 0);
+            await model.setVisible(items, true);
+          }
+          motion.entries.set(storey.id, { id: storey.id, items, groups, layers, opacity: 0, rest, target: rest });
+        } else {
+          applyLayerFade(layers, 1);
+          motion.entries.set(storey.id, { id: storey.id, items, groups, layers, opacity: rest, rest, target: 0 });
+        }
+      }
+      startStoreyMotion(motion);
+    });
+    return storeyChain;
+  }
+
+  /**
+   * Show exactly the selected storeys through fragments: each item is visible when the storey its Tag
+   * — or its Name, for spaces — belongs to is. Items that name no model element are left alone; they
+   * carry no geometry. Storey layers follow the same selection, so labels, floors and constraints
+   * travel with their storey. A floor choice sweeps a section plane between the two floor levels,
+   * fading the storeys at Transparency's opacity when it is on; snapshots, Diff and reduced motion
+   * apply the choice at once, as does a model's first application.
+   */
+  async function applyStoreyVisibility(model: FragmentsModel, animate = false) {
+    if (!modelJson) return;
+    const ordered = storeysLowestFirst(modelJson);
+    const target = new Set(ordered.filter((s) => isShown(s.id)).map((s) => s.id));
+    const sweepNow = animate && !snapshot && !viewState.diff && !prefersReducedMotion();
+    if (!sweepNow) {
+      await finishStoreyMotion();
+      for (const [storey, ids] of await storeyItemsOf(model)) await model.setVisible(ids, isShown(storey));
+      for (const [id, groups] of storeyLayers) for (const g of groups) g.visible = isShown(id);
+      for (const [id, group] of diffOutlines) group.visible = isShown(id);
+      if (ghostModel) for (const [id, ids] of ghostItems) await ghostModel.setVisible(ids, isShown(id));
+      settledStoreys = target;
+      publishChanges();
+      return;
+    }
+    if (
+      !storeyMotion &&
+      settledStoreys &&
+      target.size === settledStoreys.size &&
+      [...target].every((id) => settledStoreys!.has(id))
+    ) {
+      publishChanges();
+      return;
+    }
+    await retargetStoreyMotion(model, ordered, target);
     publishChanges();
+    await storeyMotionSettled();
   }
 
   /** Bounding box of the shown storeys' plan geometry, so the walk pose centres on what is visible. */
@@ -1551,6 +1888,8 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
    */
   async function load(name: string, { keepView = false }: { keepView?: boolean } = {}) {
     const epoch = ++loadEpoch;
+    await finishStoreyMotion();
+    settledStoreys = null;
     currentModel = null;
     hoverEpoch++;
     hideHover();
@@ -1835,38 +2174,90 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   /** View changes run one after another, so two quick clicks can't interleave their dressing. */
   let viewChain: Promise<void> = Promise.resolve();
 
+  /** How long a Diff or Transparency toggle crossfades from the previous picture to the new one. */
+  const VIEW_FADE_MS = 60;
+
+  interface ViewFade {
+    play(): Promise<void>;
+    remove(): void;
+  }
+
+  /** Keep the last drawn frame over the canvas, so a view change can dissolve into the new picture. */
+  function beginViewFade(): ViewFade | null {
+    if (!canvas.width || !canvas.height) return null;
+    const fade = document.createElement("canvas");
+    fade.width = canvas.width;
+    fade.height = canvas.height;
+    fade.dataset.viewFade = "";
+    fade.setAttribute("aria-hidden", "true");
+    Object.assign(fade.style, {
+      position: "absolute",
+      inset: "0",
+      width: "100%",
+      height: "100%",
+      pointerEvents: "none",
+    });
+    const context = fade.getContext("2d");
+    if (!context) return null;
+    context.drawImage(canvas, 0, 0);
+    container.appendChild(fade);
+    window.__elmsteadViewFades = (window.__elmsteadViewFades ?? 0) + 1;
+    return {
+      async play() {
+        const animation = fade.animate([{ opacity: 1 }, { opacity: 0 }], {
+          duration: VIEW_FADE_MS,
+          easing: "ease-out",
+          fill: "forwards",
+        });
+        await animation.finished.catch(() => {});
+        fade.remove();
+      },
+      remove() {
+        fade.remove();
+      },
+    };
+  }
+
   /**
    * Apply a change to the view (a toggle, a panel checkbox) to the shown model, with the old picture
-   * held until the new one is complete, then tell tests it has been drawn.
+   * held until the new one is complete. A Diff or Transparency toggle then crossfades the old
+   * picture away. Tell tests the change has been drawn once the fade is done too.
    */
-  function applyViewChange(change: () => void): Promise<void> {
+  function applyViewChange(change: () => void, animate = false): Promise<void> {
     viewChain = viewChain.then(async () => {
+      await finishStoreyMotion();
+      const fade = animate && !snapshot && !prefersReducedMotion() ? beginViewFade() : null;
       const model = currentModel;
-      holdingFrame++;
-      world.renderer!.enabled = false;
       try {
-        change();
-        if (model && modelJson) {
-          const epoch = loadEpoch;
-          await refreshDiff(model.modelId, modelJson);
-          await loadLabels(model.modelId, modelJson, epoch);
-          if (epoch !== loadEpoch) return;
-          applyStyle();
-          await dressModel(model, model.modelId);
-          setStatus(`${model.modelId}.ifc${storeysNote}${diffNote}`);
-          window.__elmsteadNote = diffNote;
+        holdingFrame++;
+        world.renderer!.enabled = false;
+        try {
+          change();
+          if (model && modelJson) {
+            const epoch = loadEpoch;
+            await refreshDiff(model.modelId, modelJson);
+            await loadLabels(model.modelId, modelJson, epoch);
+            if (epoch !== loadEpoch) return;
+            applyStyle();
+            await dressModel(model, model.modelId);
+            setStatus(`${model.modelId}.ifc${storeysNote}${diffNote}`);
+            window.__elmsteadNote = diffNote;
+          }
+        } finally {
+          world.renderer!.enabled = --holdingFrame === 0;
         }
+        // The new picture is ready to draw under the old one; fade it in straight away.
+        if (fade) await fade.play();
+        else await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       } finally {
-        world.renderer!.enabled = --holdingFrame === 0;
+        fade?.remove();
       }
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => (window.__elmsteadViewChanges = (window.__elmsteadViewChanges ?? 0) + 1)),
-      );
+      window.__elmsteadViewChanges = (window.__elmsteadViewChanges ?? 0) + 1;
     });
     return viewChain;
   }
 
-  const toggleDiff = () => applyViewChange(() => setFlag("diff", (viewState.diff = !viewState.diff)));
+  const toggleDiff = () => applyViewChange(() => setFlag("diff", (viewState.diff = !viewState.diff)), true);
 
   const SIGN: Record<DiffStatus, string> = { added: "+", changed: "~", removed: "−" };
 
@@ -2004,19 +2395,11 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     return highest < 0 ? undefined : ordered[highest + direction]?.id;
   }
 
-  /** True while a step is being drawn, so a key press in that time is dropped rather than queued. */
-  let stepping = false;
-
   async function stepStorey(direction: 1 | -1): Promise<void> {
-    if (snapshot || savedView || store.getSnapshot().storeyLabelHidden || stepping) return;
+    if (snapshot || savedView || store.getSnapshot().storeyLabelHidden) return;
     const next = neighbourStorey(direction);
     if (!next) return;
-    stepping = true;
-    try {
-      await applyStoreyChoice(next);
-    } finally {
-      stepping = false;
-    }
+    await applyStoreyChoice(next);
   }
   /** Every model in out/, with its revisions; filled at startup. */
   let groups = new Map<string, ModelGroup>();
@@ -2080,6 +2463,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
    */
   async function applyRevisionChoice(rev: string | null): Promise<void> {
     await exitWalk(); // as a model change does; the view it restores is the one kept
+    await finishStoreyMotion();
     await withHeldFrame(() => show(joinName(currentBaseModel, rev), { keepView: true }));
     requestAnimationFrame(() =>
       requestAnimationFrame(() => (window.__elmsteadRevisionChanges = (window.__elmsteadRevisionChanges ?? 0) + 1)),
@@ -2122,6 +2506,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
    */
   async function reloadModel(name: string): Promise<void> {
     const turn = viewChain.then(async () => {
+      await finishStoreyMotion();
       try {
         const names: string[] = await (await fetch("/models.json")).json();
         groups = groupModels(names);
@@ -2179,7 +2564,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   }
 
   async function setXray(on: boolean): Promise<void> {
-    await applyViewChange(() => setFlag("xray", (viewState.xray = on)));
+    await applyViewChange(() => setFlag("xray", (viewState.xray = on)), true);
   }
 
   async function toggleXray(): Promise<void> {

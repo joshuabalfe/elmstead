@@ -77,4 +77,40 @@ describe("storey selection", () => {
     });
     expect(picker).toEqual({ value: "", text: "Custom" });
   }, 120_000);
+
+  it("retargets when another floor is chosen before the change finishes", async () => {
+    const m = await model("models/elmstead");
+    await publish("test-storey-retarget", m);
+    const camera = "16,11,6,5.2,1.5,-4.2";
+    const query = `view=top&labels=0&style=plan&camera=${camera}`;
+    await viewOf("test-storey-retarget", query);
+    const before = await page.evaluate(() => window.__elmsteadStoreyChanges ?? 0);
+    // No waiting between choices: each retargets the sweep already in flight.
+    const targets = ["storey-ground", "storey-first-floor", "storey-street", "storey-basement"];
+    for (const id of targets) await page.selectOption("#storeys", id);
+    await page.waitForFunction((n: number) => (window.__elmsteadStoreyChanges ?? 0) >= n, before + targets.length, {
+      timeout: 60_000,
+    });
+    expect(new URL(page.url()).searchParams.get("storeys")).toBe("storey-basement");
+    // The rapid run settles exactly as a fresh load of the final selection does.
+    const rapid = await canvasPixels();
+    const fresh = await viewOf("test-storey-retarget", `${query}&storeys=storey-basement`);
+    expect(samePixels(rapid, fresh)).toBe(true);
+  }, 120_000);
+
+  it("sweeps the floor change with Transparency on, and settles see-through", async () => {
+    const m = await model("models/elmstead");
+    await publish("test-storey-xray", m);
+    const camera = "16,11,6,5.2,1.5,-4.2";
+    const query = `view=top&labels=0&style=plan&camera=${camera}&xray=1`;
+    await viewOf("test-storey-xray", query);
+    const sweeps = await page.evaluate(() => window.__elmsteadStoreySweeps ?? 0);
+    await selectStorey("storey-ground");
+    // Transparency must not fall back to hiding and showing the floors at once.
+    expect(await page.evaluate(() => window.__elmsteadStoreySweeps ?? 0)).toBe(sweeps + 1);
+    // The sweep hands over to the same see-through picture as a fresh load of that floor.
+    const swept = await canvasPixels();
+    const fresh = await viewOf("test-storey-xray", `${query}&storeys=storey-basement,storey-street,storey-ground`);
+    expect(samePixels(swept, fresh)).toBe(true);
+  }, 120_000);
 });

@@ -273,20 +273,25 @@ routes.
   of the building. With Diff on, it fades only the unchanged elements, so the changes stay solid. In
   plan style it fades the plan drawing too, so it also works from the top. It stays on across model
   and revision switches.
-- Each Diff, Transparency or panel change lands in one picture: the previous picture stays drawn
-  until the new one is complete, as for a revision switch.
+- Diff and Transparency crossfade from the previous finished picture to the new one over 60 ms, so
+  the colours, outlines, fading and plan drawing arrive together rather than half-applied. The
+  crossfade is skipped when the user prefers reduced motion. A changes-panel checkbox lands in one
+  picture.
 - The **Up to:** selector lists the model's storeys lowest first; choosing one shows that storey and
   every storey below it, hiding those above, and the topmost choice shows everything. A choice
   updates the loaded model in place without moving the camera, so floors compare from one viewpoint;
   the compass follows the shown footprint, and the view buttons re-frame on request. The choice is
-  written to `?storeys=` so the URL shares it. A `?storeys=` set that is not one floor's prefix
-  shows a disabled **Custom** value until a floor is chosen. The selector is hidden for a
-  single-storey model.
+  written to `?storeys=` so the URL shares it. A choice eases to the new floor with a short section
+  sweep, with Transparency on too: the entering and leaving storeys fade to and from the see-through
+  opacity, and choosing again while it runs retargets the sweep from where it is. Diff and reduced
+  motion apply the choice at once. A `?storeys=` set that is not one floor's prefix shows a disabled
+  **Custom** value until a floor is chosen. The selector is hidden for a single-storey model.
 - **Arrow Up** and **Arrow Down** step that selector one floor: up shows the next storey above the
   highest one shown, down hides the highest one shown. They stop at the first and last floor rather
-  than wrapping, and from a custom set they step from its highest storey. They are ignored in walk
-  mode (where the arrows walk), in snapshots, with a modifier held, for auto-repeat, while a step is
-  still drawing, and while a form control other than the storey selector has focus.
+  than wrapping, and from a custom set they step from its highest storey. Holding either key keeps
+  stepping at the auto-repeat rate. They are ignored in walk mode (where the arrows walk), in
+  snapshots, with a modifier held, and while a form control other than the storey selector has
+  focus.
 - `?storeys=a,b` shows only those storeys: everything the IFC contains or aggregates in the others is
   hidden, with their labels and floor planes. An id that names no storey is noted in the status line
   and ignored; omitting the parameter shows every storey. With one storey shown, the Top view is
