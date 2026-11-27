@@ -12,6 +12,7 @@ import { BuildingModelSchema, type BuildingModel, type StairWinder } from "../sr
 import { addTo, mm, pt, remove, replace, revise, stairWinder } from "../src/backend/model/index.js";
 import { diffModels } from "../src/shared/diff/index.js";
 import { checkModel, checkOutlines } from "../src/backend/checks/model.js";
+import { renderFloor, renderPlan, renderWallTops } from "../src/shared/render/plan.js";
 
 const raw = (): any => JSON.parse(JSON.stringify(winderStair));
 const model = (source: unknown = winderStair): BuildingModel =>
@@ -319,5 +320,68 @@ describe("winders in revisions and the diff", () => {
     const winder = stairNow(b).segments[0]!;
     expect(() => revise(b, [replace(winder as never)])).toThrow(/stair winder.*replace its stair/);
     expect(() => revise(b, [remove("stair-winder-turn")])).toThrow(/replace its stair/);
+  });
+});
+
+describe("winder plan symbols", () => {
+  const plan = (m: BuildingModel = model(), storey = 0, ids = false) => renderPlan(m, m.storeys[storey]!, { ids });
+
+  it("draws a winder group beside its flight, inside the stair's group", () => {
+    const out = plan();
+    expect(out).toContain('class="stair" data-id="stair-main"');
+    expect(out).toContain('class="stair-winder" data-id="stair-winder-turn"');
+    expect(out).toContain('class="stair-flight" data-id="stair-flight-main"');
+    expect(out.match(/class="stair-winder"/g)).toHaveLength(1);
+    expect(out.indexOf('class="stair" ')).toBeLessThan(out.indexOf('class="stair-winder"'));
+  });
+
+  it("draws the winder's outline, a line on each interior fan line and an arrow", () => {
+    const out = plan();
+    const winder = out.slice(out.indexOf('class="stair-winder"'), out.indexOf('class="stair-flight"'));
+    expect(winder.match(/<polygon[^>]*stroke="#5c8a55"/g)).toHaveLength(1); // the outline
+    expect(winder.match(/<line[^>]*stroke="#5c8a55"/g)).toHaveLength(2); // two fan lines for three risers
+    expect(winder.match(/<polyline/g)).toHaveLength(1); // the walking line
+    expect(winder.match(/fill="#5c8a55"/g)).toHaveLength(1); // its arrowhead
+  });
+
+  it("draws one arrow per segment: the winder's and the flight's", () => {
+    const out = plan();
+    expect(out.match(/fill="#5c8a55"/g)).toHaveLength(2);
+    // 1 outline, 2 fan lines, 1 walking line; 1 footprint, 7 tread lines, 1 arrow shaft.
+    expect(out.match(/stroke="#5c8a55"/g)).toHaveLength(13);
+  });
+
+  it("labels the winder's id only with --ids", () => {
+    expect(plan(model(), 0, true)).toContain(">stair-winder-turn<");
+    expect(plan(model(), 0, false)).not.toContain(">stair-winder-turn<");
+  });
+
+  it("includes a winder outside every room and slab in the drawing extent", () => {
+    const outside = model();
+    const shift = 20000;
+    for (const seg of stairOf(outside).segments) {
+      if (seg.kind === "flight") {
+        seg.start = pt(mm(seg.start.x + shift), mm(seg.start.y));
+        seg.end = pt(mm(seg.end.x + shift), mm(seg.end.y));
+      } else if (seg.kind === "winder") {
+        seg.outline = seg.outline.map((p) => pt(mm(p.x + shift), mm(p.y)));
+        seg.pivot = pt(mm(seg.pivot.x + shift), mm(seg.pivot.y));
+        seg.entry = pt(mm(seg.entry.x + shift), mm(seg.entry.y));
+      }
+    }
+    expect(plan()).toContain(">4200<");
+    expect(plan(outside)).toContain(">24000<"); // from the walls' west face to the winder's east edge
+  });
+
+  it("keeps the winder out of the overlays the viewer composites, and off other storeys", () => {
+    const m = model();
+    for (const out of [renderFloor(m.storeys[0]!).svg, renderWallTops(m.storeys[0]!, m.components).svg])
+      expect(out).not.toContain("stair");
+    expect(plan(m, 1)).not.toContain("stair-winder");
+  });
+
+  it("draws the same plan every time, and matches the committed reference drawing", async () => {
+    expect(plan()).toBe(plan());
+    await expect(plan()).toMatchFileSnapshot("__snapshots__/winder-stair.storey-ground.plan.svg");
   });
 });

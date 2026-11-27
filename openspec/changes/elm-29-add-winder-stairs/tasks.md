@@ -29,8 +29,8 @@ placeholder. No existing model has a winder, so no placeholder can run.
 
 ## 4. Plan
 
-- [ ] 4.1 In `src/shared/render/plan.ts`, draw a winder as a `stair-winder` group: outline, tread lines on the interior fan lines and a walking arrow ending where the next flight starts; and include its outline in the drawing extent. Verify with a plan test for the group, its `data-id`, two fan lines for 3 risers, an arrow, `--ids` drawing the winder's id, and that `renderFloor`, `renderWallTops` and `renderPlanAnnotations` draw none of it.
-- [ ] 4.2 Give the fixture its own plan SVG snapshot, reviewed before it is written. Verify the example cottage's snapshot is byte-identical and `tests/render.test.ts` passes without `-u` on the existing snapshots.
+- [x] 4.1 In `src/shared/render/plan.ts`, draw a winder as a `stair-winder` group: outline, tread lines on the interior fan lines and a walking arrow ending where the next flight starts; and include its outline in the drawing extent. Verify with a plan test for the group, its `data-id`, two fan lines for 3 risers, an arrow, `--ids` drawing the winder's id, and that `renderFloor`, `renderWallTops` and `renderPlanAnnotations` draw none of it.
+- [x] 4.2 Give the fixture its own plan SVG snapshot, reviewed before it is written. Verify the example cottage's snapshot is byte-identical and `tests/render.test.ts` passes without `-u` on the existing snapshots.
 
 ## 5. Viewer
 

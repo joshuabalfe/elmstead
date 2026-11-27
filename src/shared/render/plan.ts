@@ -2,7 +2,7 @@ import { faceOffsets, wallDirection, wallLength, wallPoint, wallSegmentFootprint
 import { jambEdges, openingOutline, openingProfile } from "../geometry/opening.js";
 import { area, bounds, centroid, spans, type Bounds } from "../geometry/polygon.js";
 import { POST_SIZE, railingPostPoints } from "../geometry/railing.js";
-import { flightFootprint, flightTreads, stairLevels } from "../geometry/stair.js";
+import { flightFootprint, flightTreads, stairLevels, winderFan } from "../geometry/stair.js";
 import { GLAZING_BAR_DEPTH, windowDivision } from "../geometry/window.js";
 import { dot, perpLeft, toVec, unit, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";
 import type {
@@ -582,6 +582,25 @@ function flightArrow(f: StairFlight, view: View): Node[] {
   return [line(at(0.18), tail, { stroke: C.stair, "stroke-width": 1.2 }), head];
 }
 
+/**
+ * A winder's walking-direction arrow: a line from the middle of its entry edge through the middle of
+ * each fan line, on to where the next flight starts, with a head at the end. Its last point is the
+ * flight's start rather than the middle of the exit edge, so it meets the flight's own arrow even when
+ * the flight is narrower than the edge.
+ */
+function winderArrow(path: Vec[], view: View): Node[] {
+  const px = path.map(view.toPx);
+  const tip = px[px.length - 1]!;
+  const along = unit(vsub(tip, px[px.length - 2]!));
+  const tail = vsub(tip, vscale(along, 7));
+  const across = perpLeft(along);
+  const head = polygon([tip, vadd(tail, vscale(across, 3.5)), vsub(tail, vscale(across, 3.5))], {
+    fill: C.stair,
+    stroke: "none",
+  });
+  return [polyline(px, { stroke: C.stair, "stroke-width": 1.2 }), head];
+}
+
 /** An element id label, in the same style as the wall and opening ones. */
 const idLabel = (p: Vec, id: string): Node =>
   text(v(p.x, p.y + 3), id, {
@@ -636,7 +655,23 @@ function drawStairs(model: BuildingModel, storey: Storey, view: View, opts: Plan
         parts.push(group({ class: "stair-landing", "data-id": seg.id }, body));
         return;
       }
-      if (seg.kind === "winder") throw new Error(`${seg.id}: winders are not drawn yet`); // ELM-29 task 4.1
+      if (seg.kind === "winder") {
+        const fan = winderFan(seg);
+        const next = s.segments[i + 1];
+        const path = [
+          ...fan.walkingLine.slice(0, -1),
+          next?.kind === "flight" ? toVec(next.start) : fan.walkingLine.at(-1)!,
+        ];
+        const outline = seg.outline.map(toVec);
+        const body = [
+          polygon(outline.map(view.toPx), { fill: "none", stroke: C.stair, "stroke-width": 1 }),
+          ...fan.rays.map((r) => line(view.toPx(r.from), view.toPx(r.to), { stroke: C.stair, "stroke-width": 0.7 })),
+          ...winderArrow(path, view),
+        ];
+        if (opts.ids) body.push(idLabel(view.toPx(centroid(outline)), seg.id));
+        parts.push(group({ class: "stair-winder", "data-id": seg.id }, body));
+        return;
+      }
       const level = levels?.[i];
       const going = level?.kind === "flight" ? level.going : 0;
       const body = [
