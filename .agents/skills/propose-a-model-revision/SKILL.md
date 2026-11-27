@@ -73,8 +73,9 @@ A revision is checked against its base's constraints, unchanged. When it moves s
 measured, say so in its own constraints file with `reviseConstraints(base, [...])`:
 `removeConstraint(id, why)`, `replaceConstraint({...})`, `addGroups(...)`. A removed or replaced
 constraint needs a real source in its `note` (drawings, a survey), like any other
-([record-model-constraints](../record-model-constraints/SKILL.md)). Never remove one only to get
-past the error. The error names the file to revise it in.
+([record-model-constraints](../record-model-constraints/SKILL.md)). **Ask the user before removing
+or replacing a base constraint**, and never do it only to get past the error. The error names the
+file to revise it in.
 
 ## Build it and read the diff
 

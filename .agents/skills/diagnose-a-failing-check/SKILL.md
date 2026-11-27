@@ -15,7 +15,7 @@ Decide which side the cause is on *before you change anything*:
 | Side | Looks like | You do |
 |---|---|---|
 | **The model** | the message is about a wall, door, room, stair, revision edit | fix `models/` |
-| **A constraint** | `is N mm, should be M ±T mm` | fix the model, never the constraint: [record-model-constraints](../record-model-constraints/SKILL.md) |
+| **A constraint** | `is N mm, should be M ±T mm` | fix the model, and ask the user before touching the constraint: [record-model-constraints](../record-model-constraints/SKILL.md) |
 | **The pipeline** | the model's own checks passed, then `round-trip:` or an IFC validation finding | do not paper over it in the model; tell the user |
 | **The environment** | `could not run uv`, `validator crashed`, Chromium missing | fix the setup |
 

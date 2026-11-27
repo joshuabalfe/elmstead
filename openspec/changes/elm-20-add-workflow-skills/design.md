@@ -69,6 +69,19 @@ stop rule: when the schema cannot express what the model needs, stop and use
 `add-support-for-new-element-types` instead of bending an existing type. Six of nine sampled
 `ELM-X` model pull requests ended up changing `src/`, so this hand-off is the part with the value.
 
+**The base model and a revision have one meaning each.** The base model is the building as it is
+(`models/<model>/`); a revision is a proposed alternative in `revisions/`, applied by `revise()` to a
+copy of the base, so it never changes the base. "An edit to the model" is not used for either.
+`edit-an-existing-building-model` and `propose-a-model-revision` open with the same table, and each
+tells the agent to ask the user when it is unclear which is meant (review feedback on the first draft,
+which used "an edit to the base model" for both).
+
+**Changing an existing constraint needs the user's permission.** `AGENTS.md` said to change one only
+for a measurement the user gives; it now says to ask before changing, loosening, replacing or removing
+one, in a model or a revision, even when the user's new measurement disagrees with it. The rule is in
+`AGENTS.md`, `docs/modelling.md` and each skill that touches constraints. It is an instruction to
+agents, not pipeline behaviour, so no spec changes. Nothing enforces it mechanically.
+
 **`record-model-constraints` keeps one rule sharp.** A constraint is a real measurement the user
 gave, with its source in `note`; a failure means fix the model. It covers where constraints live
 (folder, single file, revision), how points and tolerances are written, and reading the failure

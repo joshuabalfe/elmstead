@@ -40,3 +40,12 @@
 
 - [x] 8.1 Add a Skills table to `docs/README.md`, and one-line pointers at the top of `docs/modelling.md` (and its Constraints and Revisions sections), `docs/rendering.md` (The viewer) and `docs/getting-started.md` (Reading the output). Verify every link resolves with `test -e`, that each skill named exists, and that no pointer restates a step from the skill.
 - [x] 8.2 Run `npm test` and `npm run typecheck`. Verify both pass and `git status` shows no generated-file change.
+
+## 9. Review feedback
+
+- [x] 9.1 Rename `edit-a-building-model` to `edit-an-existing-building-model` everywhere. Verify `git grep edit-a-building-model` finds nothing outside the archive and every skill and docs link still resolves.
+- [x] 9.2 Use one vocabulary for the base model (the building as it is) and a revision (a proposed alternative applied to a copy of it) in both skills, the docs and the skill tables. Verify neither skill uses "edit to the base model" for both.
+- [x] 9.3 State what a constraint is for (an immovable, real measurement that edits to other dimensions must not break) in `AGENTS.md`, `docs/modelling.md` and `record-model-constraints`. Verify each says so.
+- [x] 9.4 Require asking the user before changing, loosening, replacing or removing an existing constraint, in `AGENTS.md`, `docs/modelling.md` and the four skills that touch constraints. Verify each of those files says so.
+- [x] 9.5 Run `npm test`, `npm run typecheck` and `npx openspec validate --all`. Verify all pass and `git status` shows no generated-file change.
+

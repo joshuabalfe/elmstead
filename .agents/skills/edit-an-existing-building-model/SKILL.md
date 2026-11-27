@@ -50,7 +50,8 @@ npm run all models/<model>       # build, then render if the build passed
 - **Pitched or diagonal walls.** `faceCrossing` finds where a face of a wall at an angle meets a
   line. A storey with pitched walls is skipped by the plan-versus-3D comparison.
 - **Measurements.** A number the user measured is a constraint ([record-model-constraints](../record-model-constraints/SKILL.md)). A number you traced from a drawing, or guessed, is not:
-  say it is provisional in a comment and in your reply. If a constraint fails, fix the model.
+  say it is provisional in a comment and in your reply. If a constraint fails, fix the model, and
+  ask the user before changing, loosening or removing any existing constraint.
 - **Tests pin Elmstead.** `tests/elmstead.test.ts` and the plan-versus-3D tests count doors, index
   into `storeys[0]` and list storeys. Adding a storey or a door can break them legitimately. Update
   the expectation deliberately, and say why in the commit.

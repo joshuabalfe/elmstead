@@ -1,20 +1,34 @@
 ---
 name: record-model-constraints
-description: Record a real measurement as a constraint on a model, or deal with a constraint that fails. Use when the user gives a measurement ("the window starts 1175 mm from the corner", "the room is 3.1 m wide"), asks to lock a dimension, or `check`, `build` or `render` prints `ERROR` for a constraint (`constr ... met` with a failure). Not for deciding a dimension yourself, or for a number traced from a drawing.
+description: Record a real, immovable measurement as a constraint on a model, or deal with a constraint that fails or that an edit would break. Use when the user gives a measurement ("the window starts 1175 mm from the corner", "the room is 3.1 m wide"), asks to lock a dimension, or `check`, `build` or `render` prints `ERROR` for a constraint (`constr ... met` with a failure). Not for deciding a dimension yourself, or for a number traced from a drawing.
 ---
 
 # Record model constraints
 
-A constraint is a real measurement that no later edit may quietly break. It lives beside the model,
-never in `building.json` or the IFC, and every `check`, `build` and `render` measures it. A broken
-one stops the command, writes nothing and exits 1.
+## What a constraint is for
+
+A constraint is an **immovable, real measurement**: a known distance between two named points, such
+as the inside corner and a window's jamb. Its job is to stop that measurement being broken by
+accident, above all when you change *other* dimensions: make a room wider, thicken a wall, move a
+partition, and a window that was measured on site can drift without anything looking wrong. The
+constraint turns that into a failure.
+
+It lives beside the model, never in `building.json` or the IFC, and every `check`, `build` and
+`render` measures it. A broken one stops the command, writes nothing and exits 1.
 
 ## The rule
 
-**When a constraint fails, fix the model, not the constraint.** Add or change a constraint only when
-the user gives you a measurement, and put where it came from in its `note` ("from the owner",
-"measured on site 12 March"). Do not record a position you traced from a drawing, and do not
-loosen the `tolerance` or change the `distance` to make a failure go away (`AGENTS.md`).
+**When a constraint fails, fix the model, not the constraint.**
+
+**Ask the user before you change, loosen, replace or remove an existing constraint**, in a model or
+in a revision, and say which one and why ("this edit would move `living-corner-to-window` from 1175
+to 1125 mm: change the edit, or is the 1175 wrong?"). That includes a new measurement from the user
+that disagrees with one on record: confirm which is right before replacing it. Never loosen the
+`tolerance`, change the `distance` or delete the constraint to make a failure go away (`AGENTS.md`).
+
+Add a constraint only when the user gives you a measurement, and put where it came from in its
+`note` ("from the owner", "measured on site 12 March"). Do not record a position you traced from a
+drawing.
 
 ## Adding one
 
@@ -63,12 +77,14 @@ failures at once usually share one cause, so look for the one edit that moved al
    brackets is the element or room it is about.
 2. Find what the edit moved. The point helpers name wall faces and openings, so the likely cause is
    a wall thickness, an opening's `offsetAlongWall` or `centredOn` target, or a wall end.
-3. Change the *model* so the measured distance is met again. If two constraints now disagree with
-   each other, the measurements or the model's structure need discussing: ask the user.
-4. If a model id in a constraint no longer exists (a rename or deletion), that is an ERROR too. Update
-   the constraint's id to the new one only when the same element still exists.
+3. Change the *model* so the measured distance is met again. If you cannot, or two constraints now
+   disagree with each other, stop and ask the user: do not touch the constraint yourself.
+4. If a model id in a constraint no longer exists (a rename or deletion), that is an ERROR too.
+   Pointing the constraint at the new id is still a change to a constraint, so ask first, and do it
+   only when the same element still exists.
 5. To see them: the viewer's **Constraints** button, or `?constraints=1`, draws each in red on the
    model ([inspect-the-rendered-output](../inspect-the-rendered-output/SKILL.md)).
 
 In a revision, a failure from its base's constraints says where the revision can remove or replace
-the constraint. Do that only when the revision is meant to change that measured thing.
+the constraint. Do that only when the revision is meant to change that measured thing, and ask the
+user first.
