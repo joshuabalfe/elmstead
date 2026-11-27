@@ -43,6 +43,9 @@ Also:
   clear of wall, room and paper unless the element joins the plan-versus-3D comparison.
 - Fix `docs/ifc.md`'s list of elements that carry surface colours, which omits railings.
 - Add the six skills to the skills table in `AGENTS.md`.
+- Point the docs at the skills: a Skills table in `docs/README.md` and one-line pointers in
+  `docs/modelling.md`, `docs/rendering.md` and `docs/getting-started.md`, so a person or agent that
+  starts from the docs finds them.
 
 Nothing in `src/`, `viewer/`, `models/` or the schema changes, so every output stays byte-identical.
 
@@ -60,6 +63,6 @@ unchanged, so the change sets `skip_specs: true`.
 ## Impact
 
 - New: six directories under `.agents/skills/`, each with a `SKILL.md`.
-- Edited: `docs/development.md`, `docs/ifc.md`, `docs/rendering.md` and the skills table in
-  `AGENTS.md`.
+- Edited: `docs/README.md`, `docs/development.md`, `docs/getting-started.md`, `docs/ifc.md`,
+  `docs/modelling.md`, `docs/rendering.md` and the skills table in `AGENTS.md`.
 - No dependency, schema, generated-file or output change.

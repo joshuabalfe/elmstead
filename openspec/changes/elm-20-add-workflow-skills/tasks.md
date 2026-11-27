@@ -35,3 +35,8 @@
 
 - [x] 7.1 Add a row for every skill written to the skills table in `AGENTS.md`. Verify the names match the directories and `npx openspec validate --all` passes.
 - [x] 7.2 Run `npm test` and `npm run typecheck` and confirm both pass, and that `git status` shows no change under `out/`, `schema/` or `tests/__snapshots__/`.
+
+## 8. Point the docs at the skills
+
+- [x] 8.1 Add a Skills table to `docs/README.md`, and one-line pointers at the top of `docs/modelling.md` (and its Constraints and Revisions sections), `docs/rendering.md` (The viewer) and `docs/getting-started.md` (Reading the output). Verify every link resolves with `test -e`, that each skill named exists, and that no pointer restates a step from the skill.
+- [x] 8.2 Run `npm test` and `npm run typecheck`. Verify both pass and `git status` shows no generated-file change.

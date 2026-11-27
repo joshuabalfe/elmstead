@@ -103,6 +103,10 @@ openings cut, doors and glazing in place, colours applied.
 
 ## The viewer
 
+To see a viewer state from a script, headless, use the
+[inspect-the-rendered-output](../.agents/skills/inspect-the-rendered-output/SKILL.md) skill: it has a
+recipe and a table of the URL parameters below.
+
 `viewer/` is a small Vite app built on
 [@thatopen/components](https://github.com/ThatOpen/engine_components) and three.js.
 

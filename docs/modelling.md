@@ -4,6 +4,9 @@ A model is a TypeScript module in `models/` that default-exports a `BuildingMode
 [`models/examples/example-cottage/`](../models/examples/example-cottage/), a full working example: an `index.ts` and
 its `constraints.ts`.
 
+The [edit-a-building-model](../.agents/skills/edit-a-building-model/SKILL.md) skill is the order of
+work for changing a model, and says when to stop and add a type to the schema instead.
+
 A larger model splits across more files in its folder, as in
 [`models/elmstead/`](../models/elmstead/):
 
@@ -400,6 +403,9 @@ and keeps every window centred. The JSON diff is about 40 lines.
 
 ## Constraints
 
+The [record-model-constraints](../.agents/skills/record-model-constraints/SKILL.md) skill is the short
+version of this section.
+
 A constraint records a real measurement, such as "the living-room window starts 1175 mm from the
 inside corner", so that no later edit can quietly break it. Every `check`, `build`, `render` and
 `all` measures the model's constraints. If one is broken, the command writes nothing and exits 1:
@@ -492,6 +498,9 @@ Every point, and the wall measured along, must be on the group's storey (for a r
 room's storey).
 
 ## Revisions
+
+The [propose-a-model-revision](../.agents/skills/propose-a-model-revision/SKILL.md) skill is the order
+of work for writing one.
 
 A revision is a named variant of a folder model, such as a proposed extension or alteration. It is
 written as edits on the base model, so a correction to the existing building reaches every revision
@@ -635,4 +644,5 @@ proposed one before applying `revise` for the rest.
 
 Room heights (rooms are 2D outlines in IFC), wall types (external or internal), roofs, curved walls,
 winder and spiral stairs. Don't approximate these with the existing types. Propose a
-schema change instead (see [Development](development.md#adding-a-new-element-type)).
+schema change instead (see [Development](development.md#adding-a-new-element-type), and the
+[add-support-for-new-element-types](../.agents/skills/add-support-for-new-element-types/SKILL.md) skill).
