@@ -106,6 +106,41 @@ describe("Diff mode", () => {
     expect(await picturesDuring(() => viewChange(() => page.click("#xray")))).toBe(2);
     expect(await picturesDuring(() => chooseRevision("no-kitchen-window"))).toBe(2);
   }, 180_000);
+
+  it("crossfades the Diff and Transparency toggles", async () => {
+    await open(`${REV}&view=se`);
+    for (const id of ["#diff", "#xray"]) {
+      const { fades, changes } = await page.evaluate(() => ({
+        fades: window.__elmsteadViewFades ?? 0,
+        changes: window.__elmsteadViewChanges ?? 0,
+      }));
+      await page.click(id);
+      // The previous picture is copied over the canvas, then fades as the new one is drawn.
+      await page.waitForFunction((n: number) => (window.__elmsteadViewFades ?? 0) > n, fades, { timeout: 60_000 });
+      await page.waitForFunction((n: number) => (window.__elmsteadViewChanges ?? 0) > n, changes, {
+        timeout: 60_000,
+      });
+      expect(await page.locator("[data-view-fade]").count()).toBe(0);
+    }
+  }, 180_000);
+
+  it("replaces the picture in one frame with reduced motion", async () => {
+    await open(`${REV}&view=se`);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    try {
+      const before = await page.evaluate(() => ({
+        fades: window.__elmsteadViewFades ?? 0,
+        changes: window.__elmsteadViewChanges ?? 0,
+      }));
+      await page.click("#xray");
+      await page.waitForFunction((n: number) => (window.__elmsteadViewChanges ?? 0) > n, before.changes, {
+        timeout: 60_000,
+      });
+      expect(await page.evaluate(() => window.__elmsteadViewFades ?? 0)).toBe(before.fades);
+    } finally {
+      await page.emulateMedia({ reducedMotion: "no-preference" });
+    }
+  }, 120_000);
 });
 
 describe("Diff in the plan drawing", () => {

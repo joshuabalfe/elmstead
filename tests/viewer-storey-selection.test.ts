@@ -97,4 +97,20 @@ describe("storey selection", () => {
     const fresh = await viewOf("test-storey-retarget", `${query}&storeys=storey-basement`);
     expect(samePixels(rapid, fresh)).toBe(true);
   }, 120_000);
+
+  it("sweeps the floor change with Transparency on, and settles see-through", async () => {
+    const m = await model("models/elmstead");
+    await publish("test-storey-xray", m);
+    const camera = "16,11,6,5.2,1.5,-4.2";
+    const query = `view=top&labels=0&style=plan&camera=${camera}&xray=1`;
+    await viewOf("test-storey-xray", query);
+    const sweeps = await page.evaluate(() => window.__elmsteadStoreySweeps ?? 0);
+    await selectStorey("storey-ground");
+    // Transparency must not fall back to hiding and showing the floors at once.
+    expect(await page.evaluate(() => window.__elmsteadStoreySweeps ?? 0)).toBe(sweeps + 1);
+    // The sweep hands over to the same see-through picture as a fresh load of that floor.
+    const swept = await canvasPixels();
+    const fresh = await viewOf("test-storey-xray", `${query}&storeys=storey-basement,storey-street,storey-ground`);
+    expect(samePixels(swept, fresh)).toBe(true);
+  }, 120_000);
 });

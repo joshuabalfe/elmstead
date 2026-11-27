@@ -19,6 +19,7 @@ import type { BuildingModel } from "../../src/shared/schema/schema.js";
 declare global {
   interface Window {
     __elmsteadViewChanges?: number;
+    __elmsteadViewFades?: number;
     __elmsteadRevisionChanges?: number;
     __elmsteadDiff?: Record<"added" | "changed" | "removed", string[]> | null;
     __elmsteadOutlines?: Record<"added" | "changed" | "removed", number>;

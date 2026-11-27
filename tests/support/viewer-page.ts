@@ -20,6 +20,7 @@ import type { Raster } from "./plan-vs-3d.js";
 declare global {
   interface Window {
     __elmsteadStoreyChanges?: number;
+    __elmsteadStoreySweeps?: number;
   }
 }
 
