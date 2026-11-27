@@ -712,34 +712,14 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
   if (opts.ids) {
     for (const w of walls) {
       const p = view.toPx(wallPoint(w, wallLength(w) * 0.25, (faceOffsets(w).left + faceOffsets(w).right) / 2));
-      out.push(
-        text(v(p.x, p.y + 3), w.id, {
-          "font-size": 8,
-          "text-anchor": "middle",
-          fill: C.id,
-          stroke: C.paper,
-          "stroke-width": 2.5,
-          "stroke-linejoin": "round",
-          "paint-order": "stroke",
-        }),
-      );
+      out.push(idLabel(p, w.id));
     }
     for (const o of storey.openings) {
       const w = wallById.get(o.wallId);
       if (!w) continue;
       const { left, right } = faceOffsets(w);
       const p = view.toPx(wallPoint(w, o.offsetAlongWall + o.width / 2, (left + right) / 2));
-      out.push(
-        text(v(p.x, p.y + 3), o.id, {
-          "font-size": 8,
-          "text-anchor": "middle",
-          fill: C.id,
-          stroke: C.paper,
-          "stroke-width": 2.5,
-          "stroke-linejoin": "round",
-          "paint-order": "stroke",
-        }),
-      );
+      out.push(idLabel(p, o.id));
     }
   }
 

@@ -27,12 +27,12 @@ const messageOf = (e: unknown): string => (e instanceof Error ? e.message : Stri
 
 /** Geometry round-trip and IfcOpenShell validation of an IFC already written to disk. */
 async function verifyIfc(model: BuildingModel, ifc: Uint8Array, ifcPath: string, issues: Issue[]): Promise<void> {
-  const rt = await roundTripChecks(model, ifc);
+  // Independent checks run together; issues and lines keep the round-trip-first order.
+  const [rt, v] = await Promise.all([roundTripChecks(model, ifc), validateIfc(ifcPath)]);
   issues.push(...rt);
   console.log(
     `geom    ${ifcPath}: ${rt.length ? `${rt.length} problems` : "every element meshes in web-ifc; opening cuts verified by volume"}`,
   );
-  const v = validateIfc(ifcPath);
   issues.push(...v.issues);
   console.log(`valid   ${ifcPath}: ${v.errors} errors, ${v.warnings} warnings (ifcopenshell.validate)`);
 }

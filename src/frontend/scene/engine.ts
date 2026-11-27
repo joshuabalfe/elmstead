@@ -356,6 +356,8 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   const FLAT_LABEL_BASE = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
   const labelYaw = new THREE.Quaternion();
   const WORLD_UP = new THREE.Vector3(0, 1, 0);
+  /** Every flat label, so orienting them on a camera update need not traverse the whole label tree. */
+  const flatLabels: THREE.Mesh[] = [];
 
   /**
    * A label lying flat on a ceiling, at the plan's text scale, so an upper storey's floor can hide
@@ -371,7 +373,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     );
     mesh.quaternion.copy(FLAT_LABEL_BASE);
     mesh.renderOrder = renderOrder;
-    mesh.userData.flatLabel = true; // updateLabelOrientation rotates these
+    flatLabels.push(mesh);
     return mesh;
   }
 
@@ -379,9 +381,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   function updateLabelOrientation() {
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(world.camera.three.quaternion);
     labelYaw.setFromAxisAngle(WORLD_UP, labelHeading(right));
-    labels.traverse((obj) => {
-      if (obj.userData.flatLabel) obj.quaternion.copy(labelYaw).multiply(FLAT_LABEL_BASE);
-    });
+    for (const label of flatLabels) label.quaternion.copy(labelYaw).multiply(FLAT_LABEL_BASE);
   }
 
   /** Constraint labels draw above everything, including their dotted spans. */
@@ -486,6 +486,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     constraints.clear();
     planLayers.clear();
     storeyLayers.clear();
+    flatLabels.length = 0;
   }
 
   /**
@@ -1076,8 +1077,23 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     await storeyMotionSettled();
   }
 
-  /** Bounding box of the shown storeys' plan geometry, so the walk pose centres on what is visible. */
+  /** Bounding box of the shown storeys' plan geometry, so the walk pose centres on what is visible.
+   * The compass asks for it on every camera update, so it is cached until the model, the selection
+   * or the fallback box changes. Callers only read it (getCenter/clone). */
+  let shownBoxCache: {
+    model: BuildingModel | null;
+    storeys: string[] | null;
+    fallback: THREE.Box3;
+    result: THREE.Box3;
+  } | null = null;
   function shownBox(): THREE.Box3 {
+    const c = shownBoxCache;
+    if (c && c.model === modelJson && c.storeys === shownStoreys && c.fallback === box) return c.result;
+    const result = computeShownBox();
+    shownBoxCache = { model: modelJson, storeys: shownStoreys, fallback: box, result };
+    return result;
+  }
+  function computeShownBox(): THREE.Box3 {
     if (!modelJson) return box;
     const pts = modelJson.storeys
       .filter((s) => isShown(s.id))

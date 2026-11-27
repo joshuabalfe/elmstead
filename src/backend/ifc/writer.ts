@@ -36,6 +36,7 @@ import type {
   Window,
   WindowComponent,
 } from "../../shared/schema/schema.js";
+import { ifcApi } from "./api.js";
 import { ifcGuid } from "./guid.js";
 import { STYLES, type StyleName } from "../../shared/ifc/styles.js";
 
@@ -87,17 +88,6 @@ function stairType(flights: readonly StairFlight[]) {
     if (Math.abs(turn - 180) < 1e-6) return IFC4.IfcStairTypeEnum.HALF_TURN_STAIR;
   }
   return IFC4.IfcStairTypeEnum.NOTDEFINED;
-}
-
-let apiPromise: Promise<WebIFC.IfcAPI> | undefined;
-async function ifcApi(): Promise<WebIFC.IfcAPI> {
-  apiPromise ??= (async () => {
-    const api = new WebIFC.IfcAPI();
-    await api.Init();
-    api.SetLogLevel(WebIFC.LogLevel.LOG_LEVEL_ERROR);
-    return api;
-  })();
-  return apiPromise;
 }
 
 export async function writeIfc(model: BuildingModel, opts: WriteOptions): Promise<Uint8Array> {
@@ -217,6 +207,15 @@ class Writer {
       posLen(xDim),
       posLen(yDim),
     );
+  }
+
+  /** One leaf/frame/pane box: local X runs along the wall from the opening's centre, rects from its left edge. */
+  private piece(r: Rect, depth: number, style: StyleName, width: number) {
+    const profile = this.rectangle(r.x + r.w / 2 - width / 2, 0, r.w, depth);
+    const at = r.z === 0 ? null : new IFC4.IfcAxis2Placement3D(this.pt3(0, 0, r.z), null, null);
+    const solid = new IFC4.IfcExtrudedAreaSolid(profile, at, this.zAxis, posLen(r.h));
+    this.write(new IFC4.IfcStyledItem(solid, [this.surfaceStyle(style)], null));
+    return solid;
   }
 
   // ── Spatial structure ─────────────────────────────────────────────────────
@@ -480,15 +479,10 @@ class Writer {
     const hingeOnDoorLeft = (swing.hinge === "start") === opensLeft;
     const design = d.componentId ? this.doorDesigns.get(d.componentId) : undefined;
     const { leaf, frame } = doorDivision(d, design);
-    // Door-local X runs along the wall from the opening's centre; the rects are from its left edge.
-    const piece = (r: Rect, depth: number, style: StyleName) => {
-      const profile = this.rectangle(r.x + r.w / 2 - d.width / 2, 0, r.w, depth);
-      const at = r.z === 0 ? null : new IFC4.IfcAxis2Placement3D(this.pt3(0, 0, r.z), null, null);
-      const solid = new IFC4.IfcExtrudedAreaSolid(profile, at, this.zAxis, posLen(r.h));
-      this.write(new IFC4.IfcStyledItem(solid, [this.surfaceStyle(style)], null));
-      return solid;
-    };
-    const items = [piece(leaf, PANEL_THICKNESS, "door"), ...frame.map((f) => piece(f, GLAZING_BAR_DEPTH, "frame"))];
+    const items = [
+      this.piece(leaf, PANEL_THICKNESS, "door", d.width),
+      ...frame.map((f) => this.piece(f, GLAZING_BAR_DEPTH, "frame", d.width)),
+    ];
     const body = new IFC4.IfcShapeRepresentation(this.bodyCtx, label("Body"), label("SweptSolid"), items);
     return this.write(
       new IFC4.IfcDoor(
@@ -520,17 +514,9 @@ class Writer {
     const design = win.componentId ? this.windowDesigns.get(win.componentId) : undefined;
     const { panes, bars, frame } = windowDivision(win, design);
     const partitioning = windowPartitioning(design);
-    // Window-local X runs along the wall from the opening's centre; the rects are from its left edge.
-    const piece = (r: Rect, depth: number, style: StyleName) => {
-      const profile = this.rectangle(r.x + r.w / 2 - win.width / 2, 0, r.w, depth);
-      const at = r.z === 0 ? null : new IFC4.IfcAxis2Placement3D(this.pt3(0, 0, r.z), null, null);
-      const solid = new IFC4.IfcExtrudedAreaSolid(profile, at, this.zAxis, posLen(r.h));
-      this.write(new IFC4.IfcStyledItem(solid, [this.surfaceStyle(style)], null));
-      return solid;
-    };
     const items = [
-      ...panes.map((p) => piece(p, PANEL_THICKNESS, "glazing")),
-      ...[...frame, ...bars].map((b) => piece(b, GLAZING_BAR_DEPTH, "frame")),
+      ...panes.map((p) => this.piece(p, PANEL_THICKNESS, "glazing", win.width)),
+      ...[...frame, ...bars].map((b) => this.piece(b, GLAZING_BAR_DEPTH, "frame", win.width)),
     ];
     const body = new IFC4.IfcShapeRepresentation(this.bodyCtx, label("Body"), label("SweptSolid"), items);
     return this.write(
