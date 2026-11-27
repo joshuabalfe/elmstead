@@ -17,7 +17,12 @@ for (const m of workflow.matchAll(/- group: (\S+)\n\s+args: ([\s\S]*?)(?=\n\s+- 
 const fast = JSON.parse(readFileSync("package.json", "utf8")).scripts["test:fast"] as string;
 
 // Run by the matrix's `rest` group, but excluded from test:fast: they need uv or the CLI's Chromium.
-const NEED_UV_OR_CHROMIUM = ["tests/ifc.test.ts", "tests/snapshot.test.ts", "tests/toolchain.test.ts"];
+const NEED_UV_OR_CHROMIUM = [
+  "tests/ifc.test.ts",
+  "tests/snapshot.test.ts",
+  "tests/toolchain.test.ts",
+  "tests/watch-command.test.ts",
+];
 
 describe("CI test groups", () => {
   const named = [...groups]

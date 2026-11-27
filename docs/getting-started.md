@@ -108,8 +108,8 @@ first, so measurements run along X, Y or Z rather than diagonally. Each pair add
 measurement showing the straight-line, horizontal and vertical distances in millimetres.
 Measurements stay in the viewer only; **Clear** removes them. Every view uses the plan's colours
 (room fills for floors, charcoal wall tops), with door gaps and window symbols on the wall tops and
-door swings on the floor, so the **Top** view reads like the plan. When an IFC in `out/` changes it
-reloads itself, so leave it open while you edit and re-run `build`.
+door swings on the floor, so the **Top** view reads like the plan. When a model's IFC in `out/`
+changes it updates in place, keeping your view; `npm run watch` rebuilds on save.
 
 Everything is served locally, so the viewer works offline. Stop it with Ctrl-C.
 

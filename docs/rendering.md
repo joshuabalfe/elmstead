@@ -118,8 +118,9 @@ routes.
 - `src/frontend/vite/vite.config.ts` serves `/models.json` (the IFCs in `out/`), `/out/*` and the web-ifc WASM
   from `node_modules`, so nothing comes from a CDN. `ELMSTEAD_OUT_DIR` serves another folder in
   place of `out/` (the tests use it). Requests are confined to those directories; traversal,
-  sibling-directory prefixes and malformed percent-encoding return 404. It reloads on `change`
-  and `add`, so an atomic IFC rename is noticed too.
+  sibling-directory prefixes and malformed percent-encoding return 404. In development it tells the
+  viewer which model an IFC `change` or `add` belongs to, so an atomic rename is noticed too and the
+  page does not reload; the preview build is unchanged.
 - `scene/engine.ts` loads the IFC through ThatOpen's IFC loader and sets up the camera views.
   - In the scene Y is up and plan north is −Z.
   - The N, W, E and S camera snaps show true isometric views from true north, west, east and south:
@@ -279,17 +280,20 @@ routes.
   of the building. With Diff on, it fades only the unchanged elements, so the changes stay solid. In
   plan style it fades the plan drawing too, so it also works from the top. It stays on across model
   and revision switches.
-- Each Diff, Transparency or panel change lands in one picture: the previous picture stays drawn
-  until the new one is complete, as for a revision switch.
+- Diff and Transparency crossfade from the previous finished picture to the new one over 60 ms, so
+  the colours, outlines, fading and plan drawing arrive together rather than half-applied. The
+  crossfade is skipped when the user prefers reduced motion. A changes-panel checkbox lands in one
+  picture.
 - The **Levels:** vertical slider lists the model's storeys lowest first, with one notch per storey
   and the highest at the top; choosing a notch or dragging the handle shows that storey and every
   storey below it, hiding those above, and the topmost notch shows everything. A choice updates the
   loaded model in place without moving the camera, so floors compare from one viewpoint; the compass
   follows the shown footprint, and the view buttons re-frame on request. The choice is written to
-  `?storeys=` so the URL shares it. A choice eases to the new floor with a short section sweep;
-  choosing again while it runs retargets the sweep from where it is. A `?storeys=` set that is not
-  one floor's prefix shows **Custom** until a floor is chosen. It is shown but disabled for a
-  single-storey model.
+  `?storeys=` so the URL shares it. A choice eases to the new floor with a short section sweep, with
+  Transparency on too: the entering and leaving storeys fade to and from the see-through opacity,
+  and choosing again while it runs retargets the sweep from where it is. Diff and reduced motion
+  apply the choice at once. A `?storeys=` set that is not one floor's prefix shows **Custom** until a
+  floor is chosen. It is shown but disabled for a single-storey model.
 - **Arrow Up** and **Arrow Down** step that selector one floor: up shows the next storey above the
   highest one shown, down hides the highest one shown. They stop at the first and last floor rather
   than wrapping, and from a custom set they step from its highest storey. Holding either key keeps
@@ -324,5 +328,6 @@ routes.
 - Snapshots (`?snapshot=1`) show the IFC's own colours apart from the stair readability presentation,
   so the 3D PNGs still check what other viewers will show for everything but the stair recolour.
   `?style=ifc` or `?style=plan` in the URL forces a style.
-- `npm run view` runs the same app for interactive use. It reloads the page whenever an IFC in
-  `out/` changes.
+- `npm run view` runs the same app for interactive use. It updates the changed model in place,
+  keeping the camera and the page; a rebuild of a model that is not on screen only refreshes the
+  pickers, while a shown revision's rebuilt base redraws its Diff and ghosts.

@@ -87,8 +87,14 @@ declare global {
     __elmsteadError?: string;
     /** Increments after a storey choice has been applied and drawn; tests wait on it. */
     __elmsteadStoreyChanges?: number;
+    /** Increments when a floor change starts its section sweep, so tests can tell it from an instant change. */
+    __elmsteadStoreySweeps?: number;
     /** Increments after a revision choice has been loaded and drawn; tests wait on it. */
     __elmsteadRevisionChanges?: number;
+    /** Increments after a rebuilt IFC has replaced the shown scene; tests wait on it. */
+    __elmsteadReloads?: number;
+    /** Increments when a Diff or Transparency toggle starts its crossfade; tests read it. */
+    __elmsteadViewFades?: number;
     /** Increments after a Diff, Transparency or changes-panel choice has been applied and drawn. */
     __elmsteadViewChanges?: number;
     /** The shown diff's ids by status while Diff mode is on, for tests; null otherwise. */
@@ -109,6 +115,7 @@ declare global {
 export interface ViewerApi {
   start(): Promise<void>;
   show(name: string, opts?: { keepView?: boolean }): Promise<void>;
+  reloadModel(name: string): Promise<void>;
   chooseModel(model: string): Promise<void>;
   applyRevisionChoice(rev: string | null): Promise<void>;
   applyStoreyChoice(topId: string): Promise<void>;
@@ -246,6 +253,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   const shownCategories: Record<DiffStatus, boolean> = { added: true, changed: true, removed: true };
   /** Opacity of what Transparency fades. */
   const FADE = 0.35;
+  const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   /** The shown revision's diff while Diff mode is on: its base, the diff, and each listed id's status. */
   let shownDiff: { baseName: string; base: BuildingModel; diff: ModelDiff; status: StatusById } | null = null;
   /** Each base model's JSON once fetched, for diffing its revisions. */
@@ -350,6 +358,8 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   const FLAT_LABEL_BASE = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
   const labelYaw = new THREE.Quaternion();
   const WORLD_UP = new THREE.Vector3(0, 1, 0);
+  /** Every flat label, so orienting them on a camera update need not traverse the whole label tree. */
+  const flatLabels: THREE.Mesh[] = [];
 
   /**
    * A label lying flat on a ceiling, at the plan's text scale, so an upper storey's floor can hide
@@ -365,7 +375,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     );
     mesh.quaternion.copy(FLAT_LABEL_BASE);
     mesh.renderOrder = renderOrder;
-    mesh.userData.flatLabel = true; // updateLabelOrientation rotates these
+    flatLabels.push(mesh);
     return mesh;
   }
 
@@ -373,9 +383,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   function updateLabelOrientation() {
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(world.camera.three.quaternion);
     labelYaw.setFromAxisAngle(WORLD_UP, labelHeading(right));
-    labels.traverse((obj) => {
-      if (obj.userData.flatLabel) obj.quaternion.copy(labelYaw).multiply(FLAT_LABEL_BASE);
-    });
+    for (const label of flatLabels) label.quaternion.copy(labelYaw).multiply(FLAT_LABEL_BASE);
   }
 
   /** Constraint labels draw above everything, including their dotted spans. */
@@ -482,6 +490,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     constraints.clear();
     planLayers.clear();
     storeyLayers.clear();
+    flatLabels.length = 0;
   }
 
   /**
@@ -744,7 +753,9 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     groups: THREE.Group[];
     layers: StoreyLayerFade | null;
     opacity: number;
-    target: 0 | 1;
+    /** The opacity the storey rests at when shown: 1, or the see-through opacity under Transparency. */
+    rest: number;
+    target: number;
   }
 
   /** A floor change in flight: every transitioning storey and the plane easing to its new level. */
@@ -859,8 +870,11 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     if (!motion) return;
     storeyMotion = null;
     for (const entry of motion.entries.values()) {
-      if (entry.target === 1) {
-        if (entry.items.length) await motion.model.resetOpacity(entry.items);
+      if (entry.target > 0) {
+        if (entry.items.length) {
+          if (entry.rest === 1) await motion.model.resetOpacity(entry.items);
+          else await motion.model.setOpacity(entry.items, entry.rest);
+        }
         if (entry.layers) endLayerFade(entry.layers);
       } else {
         if (entry.items.length) {
@@ -891,6 +905,14 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     return new Promise((resolve) => motion.waiters.push(resolve));
   }
 
+  /**
+   * The opacity a shown storey rests at. Transparency fades every element, so entering and leaving
+   * storeys sweep between 0 and that opacity rather than 0 and 1.
+   */
+  function storeyRestOpacity(): number {
+    return viewState.xray ? FADE : 1;
+  }
+
   /** Hide and restore each storey the motion has finished with; park the plane when none is left. */
   async function settleStoreyMotion(motion: StoreyMotion): Promise<void> {
     if (storeyMotion !== motion) return;
@@ -903,8 +925,11 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
         if (entry.layers) endLayerFade(entry.layers);
         for (const group of entry.groups) group.visible = false;
         motion.entries.delete(id);
-      } else if (entry.target === 1 && entry.opacity === 1) {
-        if (entry.items.length) await motion.model.resetOpacity(entry.items);
+      } else if (entry.target > 0 && entry.opacity === entry.target) {
+        if (entry.items.length) {
+          if (entry.rest === 1) await motion.model.resetOpacity(entry.items);
+          else await motion.model.setOpacity(entry.items, entry.rest);
+        }
         if (entry.layers) endLayerFade(entry.layers);
         entry.layers = null;
         motion.entries.delete(id);
@@ -941,7 +966,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
       for (const entry of motion.entries.values()) {
         entry.opacity += (entry.target - entry.opacity) * k;
         if (Math.abs(entry.target - entry.opacity) < 0.01) entry.opacity = entry.target;
-        if (entry.layers) applyLayerFade(entry.layers, entry.opacity);
+        if (entry.layers) applyLayerFade(entry.layers, entry.opacity / entry.rest);
         if (entry.items.length) void motion.model.setOpacity(entry.items, entry.opacity);
         if (entry.opacity !== entry.target) moving = true;
       }
@@ -962,6 +987,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
       const byStorey = await storeyItemsOf(model);
       const byId = new Map(modelJson!.storeys.map((s) => [s.id, s]));
       const highest = (list: Storey[]) => (list.length ? Math.max(...list.map((s) => storeyTop(s, byId))) : 0);
+      const rest = storeyRestOpacity();
       if (!storeyMotion || storeyMotion.model !== model) {
         await finishStoreyMotionNow();
         const shown = settledStoreys ?? new Set(ordered.map((s) => s.id));
@@ -976,6 +1002,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
           running: false,
           waiters: [],
         };
+        window.__elmsteadStoreySweeps = (window.__elmsteadStoreySweeps ?? 0) + 1;
       } else {
         storeyMotion.target = target;
         storeyMotion.targetPlane = highest(ordered.filter((s) => target.has(s.id))) + SWEEP_MARGIN;
@@ -986,7 +1013,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
         const entry = motion.entries.get(storey.id);
         const inTarget = target.has(storey.id);
         if (entry) {
-          entry.target = inTarget ? 1 : 0;
+          entry.target = inTarget ? entry.rest : 0;
           if (!inTarget && !entry.layers) entry.layers = beginLayerFade(entry.groups);
           continue;
         }
@@ -999,13 +1026,14 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
           applyLayerFade(layers, 0);
           for (const group of groups) group.visible = true;
           if (items.length) {
-            await model.setVisible(items, true);
+            // Fade it while still hidden, so showing it cannot flash at full opacity first.
             await model.setOpacity(items, 0);
+            await model.setVisible(items, true);
           }
-          motion.entries.set(storey.id, { id: storey.id, items, groups, layers, opacity: 0, target: 1 });
+          motion.entries.set(storey.id, { id: storey.id, items, groups, layers, opacity: 0, rest, target: rest });
         } else {
           applyLayerFade(layers, 1);
-          motion.entries.set(storey.id, { id: storey.id, items, groups, layers, opacity: 1, target: 0 });
+          motion.entries.set(storey.id, { id: storey.id, items, groups, layers, opacity: rest, rest, target: 0 });
         }
       }
       startStoreyMotion(motion);
@@ -1017,20 +1045,15 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
    * Show exactly the selected storeys through fragments: each item is visible when the storey its Tag
    * — or its Name, for spaces — belongs to is. Items that name no model element are left alone; they
    * carry no geometry. Storey layers follow the same selection, so labels, floors and constraints
-   * travel with their storey. A floor choice sweeps a section plane between the two floor levels;
-   * snapshots, Diff, Transparency and reduced motion apply the choice at once, as does a model's
-   * first application.
+   * travel with their storey. A floor choice sweeps a section plane between the two floor levels,
+   * fading the storeys at Transparency's opacity when it is on; snapshots, Diff and reduced motion
+   * apply the choice at once, as does a model's first application.
    */
   async function applyStoreyVisibility(model: FragmentsModel, animate = false) {
     if (!modelJson) return;
     const ordered = storeysLowestFirst(modelJson);
     const target = new Set(ordered.filter((s) => isShown(s.id)).map((s) => s.id));
-    const sweepNow =
-      animate &&
-      !snapshot &&
-      !viewState.diff &&
-      !viewState.xray &&
-      !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const sweepNow = animate && !snapshot && !viewState.diff && !prefersReducedMotion();
     if (!sweepNow) {
       await finishStoreyMotion();
       for (const [storey, ids] of await storeyItemsOf(model)) await model.setVisible(ids, isShown(storey));
@@ -1055,8 +1078,23 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     await storeyMotionSettled();
   }
 
-  /** Bounding box of the shown storeys' plan geometry, so the walk pose centres on what is visible. */
+  /** Bounding box of the shown storeys' plan geometry, so the walk pose centres on what is visible.
+   * The compass asks for it on every camera update, so it is cached until the model, the selection
+   * or the fallback box changes. Callers only read it (getCenter/clone). */
+  let shownBoxCache: {
+    model: BuildingModel | null;
+    storeys: string[] | null;
+    fallback: THREE.Box3;
+    result: THREE.Box3;
+  } | null = null;
   function shownBox(): THREE.Box3 {
+    const c = shownBoxCache;
+    if (c && c.model === modelJson && c.storeys === shownStoreys && c.fallback === box) return c.result;
+    const result = computeShownBox();
+    shownBoxCache = { model: modelJson, storeys: shownStoreys, fallback: box, result };
+    return result;
+  }
+  function computeShownBox(): THREE.Box3 {
     if (!modelJson) return box;
     const pts = modelJson.storeys
       .filter((s) => isShown(s.id))
@@ -1818,8 +1856,8 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   /**
    * The shown model's loaded revisions, Existing included, by name. Loading a model into Fragments is
    * most of a switch, so each one stays loaded once shown and a switch only swaps which one is in
-   * the scene. Choosing another model disposes them; a rebuild reloads the page (see vite.config.ts),
-   * so nothing goes stale.
+   * the scene. Choosing another model disposes them; a rebuilt IFC is released and fetched again
+   * (see reloadModel), so nothing goes stale.
    */
   const resident = new Map<string, Resident>();
   /** The model group the latest load is for, so a load overtaken by a model change can clean up. */
@@ -1851,6 +1889,8 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     const r = resident.get(name);
     if (!r) return;
     resident.delete(name);
+    // A reload disposes before `load` does its own scene sweep, so take this object out here too.
+    world.scene.three.remove(r.model.object);
     for (const s of r.stairs) s.edges.geometry.dispose();
     if (currentModel === r.model) currentModel = null;
     try {
@@ -1873,6 +1913,9 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     hoverEpoch++;
     hideHover();
     elementLabels.clear();
+    // The old model's plan layers and labels are drawings of it; clear them even if this load fails.
+    clearLabelLayers();
+    window.__elmsteadRoomLabels = [];
     clearMeasurements();
     setStatus(`loading ${name}.ifc…`);
     // Take the shown model out of the scene; keep this model's revisions loaded, dispose the rest.
@@ -2153,39 +2196,90 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   /** View changes run one after another, so two quick clicks can't interleave their dressing. */
   let viewChain: Promise<void> = Promise.resolve();
 
+  /** How long a Diff or Transparency toggle crossfades from the previous picture to the new one. */
+  const VIEW_FADE_MS = 60;
+
+  interface ViewFade {
+    play(): Promise<void>;
+    remove(): void;
+  }
+
+  /** Keep the last drawn frame over the canvas, so a view change can dissolve into the new picture. */
+  function beginViewFade(): ViewFade | null {
+    if (!canvas.width || !canvas.height) return null;
+    const fade = document.createElement("canvas");
+    fade.width = canvas.width;
+    fade.height = canvas.height;
+    fade.dataset.viewFade = "";
+    fade.setAttribute("aria-hidden", "true");
+    Object.assign(fade.style, {
+      position: "absolute",
+      inset: "0",
+      width: "100%",
+      height: "100%",
+      pointerEvents: "none",
+    });
+    const context = fade.getContext("2d");
+    if (!context) return null;
+    context.drawImage(canvas, 0, 0);
+    container.appendChild(fade);
+    window.__elmsteadViewFades = (window.__elmsteadViewFades ?? 0) + 1;
+    return {
+      async play() {
+        const animation = fade.animate([{ opacity: 1 }, { opacity: 0 }], {
+          duration: VIEW_FADE_MS,
+          easing: "ease-out",
+          fill: "forwards",
+        });
+        await animation.finished.catch(() => {});
+        fade.remove();
+      },
+      remove() {
+        fade.remove();
+      },
+    };
+  }
+
   /**
    * Apply a change to the view (a toggle, a panel checkbox) to the shown model, with the old picture
-   * held until the new one is complete, then tell tests it has been drawn.
+   * held until the new one is complete. A Diff or Transparency toggle then crossfades the old
+   * picture away. Tell tests the change has been drawn once the fade is done too.
    */
-  function applyViewChange(change: () => void): Promise<void> {
+  function applyViewChange(change: () => void, animate = false): Promise<void> {
     viewChain = viewChain.then(async () => {
       await finishStoreyMotion();
+      const fade = animate && !snapshot && !prefersReducedMotion() ? beginViewFade() : null;
       const model = currentModel;
-      holdingFrame++;
-      world.renderer!.enabled = false;
       try {
-        change();
-        if (model && modelJson) {
-          const epoch = loadEpoch;
-          await refreshDiff(model.modelId, modelJson);
-          await loadLabels(model.modelId, modelJson, epoch);
-          if (epoch !== loadEpoch) return;
-          applyStyle();
-          await dressModel(model, model.modelId);
-          setStatus(`${model.modelId}.ifc${storeysNote}${diffNote}`);
-          window.__elmsteadNote = diffNote;
+        holdingFrame++;
+        world.renderer!.enabled = false;
+        try {
+          change();
+          if (model && modelJson) {
+            const epoch = loadEpoch;
+            await refreshDiff(model.modelId, modelJson);
+            await loadLabels(model.modelId, modelJson, epoch);
+            if (epoch !== loadEpoch) return;
+            applyStyle();
+            await dressModel(model, model.modelId);
+            setStatus(`${model.modelId}.ifc${storeysNote}${diffNote}`);
+            window.__elmsteadNote = diffNote;
+          }
+        } finally {
+          world.renderer!.enabled = --holdingFrame === 0;
         }
+        // The new picture is ready to draw under the old one; fade it in straight away.
+        if (fade) await fade.play();
+        else await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
       } finally {
-        world.renderer!.enabled = --holdingFrame === 0;
+        fade?.remove();
       }
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => (window.__elmsteadViewChanges = (window.__elmsteadViewChanges ?? 0) + 1)),
-      );
+      window.__elmsteadViewChanges = (window.__elmsteadViewChanges ?? 0) + 1;
     });
     return viewChain;
   }
 
-  const toggleDiff = () => applyViewChange(() => setFlag("diff", (viewState.diff = !viewState.diff)));
+  const toggleDiff = () => applyViewChange(() => setFlag("diff", (viewState.diff = !viewState.diff)), true);
 
   const SIGN: Record<DiffStatus, string> = { added: "+", changed: "~", removed: "−" };
 
@@ -2365,6 +2459,18 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
 
   /** Revision switches in flight; the renderer draws only when there are none. */
   let holdingFrame = 0;
+
+  /** Keep the old drawing buffer while `work` replaces the scene, then draw the finished result. */
+  async function withHeldFrame(work: () => Promise<void>): Promise<void> {
+    holdingFrame++;
+    world.renderer!.enabled = false;
+    try {
+      await work();
+    } finally {
+      world.renderer!.enabled = --holdingFrame === 0;
+    }
+  }
+
   /** True while a revision step is loading, so a key press in that time is dropped rather than queued. */
   let switching = false;
 
@@ -2376,13 +2482,8 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
    */
   async function applyRevisionChoice(rev: string | null): Promise<void> {
     await exitWalk(); // as a model change does; the view it restores is the one kept
-    holdingFrame++;
-    world.renderer!.enabled = false;
-    try {
-      await show(joinName(currentBaseModel, rev), { keepView: true });
-    } finally {
-      world.renderer!.enabled = --holdingFrame === 0;
-    }
+    await finishStoreyMotion();
+    await withHeldFrame(() => show(joinName(currentBaseModel, rev), { keepView: true }));
     requestAnimationFrame(() =>
       requestAnimationFrame(() => (window.__elmsteadRevisionChanges = (window.__elmsteadRevisionChanges ?? 0) + 1)),
     );
@@ -2400,6 +2501,74 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     } finally {
       switching = false;
     }
+  }
+
+  /** Tell tests a rebuilt model has been drawn. */
+  function announceReload(): void {
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => (window.__elmsteadReloads = (window.__elmsteadReloads ?? 0) + 1)),
+    );
+  }
+
+  /** Remove the ghost base and the shown model's dressing before a Diff base reload. */
+  async function clearGhost(): Promise<void> {
+    const model = currentModel;
+    if (model) {
+      await undress(model);
+      return;
+    }
+    if (ghostModel) ghostModel.object.removeFromParent();
+    ghostModel = null;
+    ghostItems = new Map();
+    ghostLabels.clear();
+  }
+
+  /**
+   * A rebuilt IFC: refresh the pickers, release the stale copy and, when it is the shown model or the
+   * base behind its Diff, swap the new model into the same view.
+   */
+  async function reloadModel(name: string): Promise<void> {
+    const turn = viewChain.then(async () => {
+      await finishStoreyMotion();
+      try {
+        const names: string[] = await (await fetch("/models.json")).json();
+        groups = groupModels(names);
+        populateRevisionSelector(currentBaseModel, groups.get(currentBaseModel) ?? { base: true, revisions: [] });
+      } catch {
+        // Keep the current pickers; the scene reload below still matters.
+      }
+      baseJson.delete(name);
+      const shown = currentName;
+      if (name !== shown) {
+        if (viewState.diff && revision !== null && name === currentBaseModel) {
+          await withHeldFrame(async () => {
+            await clearGhost();
+            await disposeResident(name);
+            if (currentName === shown) await show(shown, { keepView: true });
+          });
+          if (currentName === shown) announceReload();
+        } else {
+          await disposeResident(name);
+        }
+        return;
+      }
+      await exitWalk();
+      if (currentName !== name) {
+        await disposeResident(name);
+        return;
+      }
+      await withHeldFrame(async () => {
+        await disposeResident(name);
+        if (currentName === name) await show(name, { keepView: true });
+      });
+      if (currentName === name) announceReload();
+    });
+    viewChain = turn.catch((error: unknown) => {
+      const message = `could not reload ${name}.ifc: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(message);
+      setStatus(message);
+    });
+    return viewChain;
   }
 
   async function chooseView(view: CameraView): Promise<void> {
@@ -2422,7 +2591,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   }
 
   async function setXray(on: boolean): Promise<void> {
-    await applyViewChange(() => setFlag("xray", (viewState.xray = on)));
+    await applyViewChange(() => setFlag("xray", (viewState.xray = on)), true);
   }
 
   async function toggleXray(): Promise<void> {
@@ -2474,6 +2643,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   return {
     start,
     show,
+    reloadModel,
     chooseModel,
     applyRevisionChoice,
     applyStoreyChoice,

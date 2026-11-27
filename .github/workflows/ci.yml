@@ -75,7 +75,7 @@ jobs:
           - group: viewer-presentation
             args: tests/viewer-presentation.test.ts
           - group: viewer-revisions
-            args: tests/viewer-revisions.test.ts
+            args: tests/viewer-revisions.test.ts tests/viewer-hot-reload.test.ts
           - group: viewer-diff-mode
             args: tests/viewer-diff-mode.test.ts
           - group: viewer-diff-ghosts
@@ -96,6 +96,7 @@ jobs:
               --exclude tests/viewer-storey-keys.test.ts
               --exclude tests/viewer-presentation.test.ts
               --exclude tests/viewer-revisions.test.ts
+              --exclude tests/viewer-hot-reload.test.ts
               --exclude tests/viewer-diff-mode.test.ts
               --exclude tests/viewer-diff-ghosts.test.ts
               --exclude tests/viewer-identify.test.ts
