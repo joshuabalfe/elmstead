@@ -32,7 +32,8 @@ export default defineBuilding({
   project: { id: "project-elmstead", name: "Elmstead" },
   // Measured from a north-up street map of Picton Rd: the terrace frontage bears about 153°/333°,
   // so the front faces about 063° (east-north-east). Good to about ±2°.
-  site: { id: "site-default", name: "Default site", northAngle: deg(153) },
+  // The front wall is plan west (see shared.ts), so the elevations' front faces plan 90°.
+  site: { id: "site-default", name: "Default site", northAngle: deg(153), frontAngle: deg(90) },
   building: { id: "building-elmstead", name: "Elmstead" },
   components,
   storeys: [basement, street, ground, mainHalfLandingStorey, first, atticHalfLandingStorey, attic],

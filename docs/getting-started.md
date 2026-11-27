@@ -90,12 +90,14 @@ npm run view
 
 This opens a local [ThatOpen](https://github.com/ThatOpen) viewer (Vite dev server, normally
 http://localhost:5173) that loads the IFC files in `out/`. It has a model picker and
-four corner camera buttons and a Top button, and opens in the Top view. The Top view is drawn true
-north up, like the plans, and each corner button is named for the true direction it looks from. It shows the plan's room labels and
+two crosses of camera snaps: Front/Back/Left/Right flat elevations aligned to the model's front,
+with Top in the middle, and N/W/E/S isometric views, and opens in the Top view. The Top view is
+drawn true north up, like the plans, and the N/W/E/S buttons are isometric views from those true
+directions. It shows the plan's room labels and
 dimensions at ceiling height, the model's measured constraints as red labels and dotted spans, and
-a compass pointing to true north. The **Labels** button hides the room text, and the
-**Constraints** button shows or hides the red constraints, which start hidden. The **Ids**
-button, or `?ids=1`, shows the model id of the element under the cursor (and its name, when it
+a compass pointing to true north. The **Show Labels** switch hides the room text, and the
+**Show Constraints** switch shows or hides the red constraints, which start hidden. The **Show IDs on Hover**
+switch, or `?ids=1`, shows the model id of the element under the cursor (and its name, when it
 has one) as a haloed label at the hovered point, in the constraint label's style and drawn above
 everything like the measurements — the id to name when asking for an edit, such as
 `wall-hall-living`. Room labels carry the room id under the name and area, since rooms have no

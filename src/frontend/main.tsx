@@ -1,3 +1,5 @@
+import "@blueprintjs/core/lib/css/blueprint.css";
+import "@blueprintjs/icons/lib/css/blueprint-icons.css";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.js";
 import { initialState, ViewerStore } from "./state/store.js";

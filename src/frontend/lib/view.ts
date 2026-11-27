@@ -1,7 +1,14 @@
-import { VIEWS, type View } from "../../shared/render/views.js";
+import {
+  CAMERA_VIEWS,
+  type CameraView,
+  type CardinalView,
+  type ElevationView,
+  type View,
+} from "../../shared/render/views.js";
 
 /** The requested camera view, falling back to the plan-like top view for anything unknown. */
-export const parseView = (value: string | null): View => (VIEWS.includes(value as View) ? (value as View) : "top");
+export const parseView = (value: string | null): CameraView =>
+  CAMERA_VIEWS.includes(value as CameraView) ? (value as CameraView) : "top";
 
 export interface CameraForView {
   direction: readonly [number, number, number];
@@ -21,19 +28,41 @@ export function labelHeading(right: { x: number; z: number }): number {
 export const parseOrient = (value: string | null): "north" | "project" => (value === "project" ? "project" : "north");
 
 /**
- * Interactive corner views are true isometric: equal X, Y and Z direction components behind an
- * orthographic camera foreshorten all three axes equally. Snapshots keep the lower perspective
- * corner cameras that the rendered 3D PNGs have always used. Top is an orthographic plan view.
- *
- * The corners stay on the plan diagonals, where they show the building's corners. `northAngle`
- * (degrees counter-clockwise from plan +y) turns only Top: it looks down from a hair to true south,
- * so true north is up the screen. The scene has plan +y along −Z.
+ * Camera snaps are axonometric: the N/W/E/S snaps stand on the model's true axes and turn with
+ * `northAngle`, while the flat Front/Back/Left/Right elevations stay level and follow the model's
+ * `frontAngle`. Both angles are degrees counter-clockwise from plan +y. The plan-corner ids keep the
+ * snapshot cameras the 3D PNGs have always used. Top looks straight down, turned so true north is
+ * up the screen. The scene has plan +y along −Z.
  */
-export function cameraForView(view: View, snapshot: boolean, northAngle = 0): CameraForView {
+export function cameraForView(view: CameraView, snapshot: boolean, northAngle = 0, frontAngle = 180): CameraForView {
   if (view === "top") {
     const a = (northAngle * Math.PI) / 180;
     // True south in plan axes is (sin a, −cos a).
     return { direction: [0.0001 * Math.sin(a), 1, 0.0001 * Math.cos(a)], projection: "Orthographic" };
+  }
+  if (view === "n" || view === "e" || view === "s" || view === "w") {
+    const a = (northAngle * Math.PI) / 180;
+    const [x, y] = SNAP_DIRECTIONS[view];
+    // True north is (−sin a, cos a) in plan axes; east is 90° clockwise from it.
+    const planX = x * Math.cos(a) - y * Math.sin(a);
+    const planY = x * Math.sin(a) + y * Math.cos(a);
+    return {
+      direction: [Math.SQRT2 * planX, snapshot ? 0.7 : 1, -Math.SQRT2 * planY],
+      projection: snapshot ? "Perspective" : "Orthographic",
+    };
+  }
+  if (view === "front" || view === "back" || view === "left" || view === "right") {
+    const a = (frontAngle * Math.PI) / 180;
+    const [frontX, frontY] = [-Math.sin(a), Math.cos(a)];
+    const flat: Record<ElevationView, readonly [number, number]> = {
+      front: [frontX, -frontY],
+      back: [-frontX, frontY],
+      left: [frontY, frontX],
+      right: [-frontY, -frontX],
+    };
+    const nudge = (n: number) => (Math.abs(n) < 1e-12 ? 0 : n);
+    const [x, z] = flat[view];
+    return { direction: [nudge(x), 0, nudge(z)], projection: "Orthographic" };
   }
   const [x, y] = CORNERS[view];
   return {
@@ -42,7 +71,7 @@ export function cameraForView(view: View, snapshot: boolean, northAngle = 0): Ca
   };
 }
 
-/** Where each corner camera stands, in plan x and y. */
+/** Where each plan-corner camera stands, in plan x and y. */
 const CORNERS: Record<Exclude<View, "top">, readonly [number, number]> = {
   sw: [-1, -1],
   se: [1, -1],
@@ -50,21 +79,13 @@ const CORNERS: Record<Exclude<View, "top">, readonly [number, number]> = {
   nw: [-1, 1],
 };
 
-const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
-
-/**
- * A corner button's label: the nearest of the eight compass points to the true direction its camera
- * stands in, ties going clockwise. With no north angle it is the corner's own name.
- */
-export function cornerLabel(view: Exclude<View, "top">, northAngle = 0): (typeof COMPASS)[number] {
-  const a = (northAngle * Math.PI) / 180;
-  const [x, y] = CORNERS[view];
-  // True east and north in plan axes: north is (−sin a, cos a), east 90° clockwise from it.
-  const east = x * Math.cos(a) + y * Math.sin(a);
-  const north = -x * Math.sin(a) + y * Math.cos(a);
-  const bearing = ((((Math.atan2(east, north) * 180) / Math.PI) % 360) + 360) % 360;
-  return COMPASS[Math.floor(bearing / 45 + 0.5) % 8]!;
-}
+/** Where each true-axis snap stands, in plan x and y before the north angle turns it. */
+const SNAP_DIRECTIONS: Record<CardinalView, readonly [number, number]> = {
+  n: [0, 1],
+  e: [1, 0],
+  s: [0, -1],
+  w: [-1, 0],
+};
 
 /**
  * How much more of the screen the plan box needs in the Top view once it is turned by `northAngle`:

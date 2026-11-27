@@ -268,6 +268,8 @@ export const SiteSchema = z
     name: z.string().min(1),
     /** Angle of true north, counter-clockwise from plan +y. Default 0 (north is up). */
     northAngle: DegSchema.optional(),
+    /** Angle of the front's outward direction, counter-clockwise from plan +y. Default 180 (south). */
+    frontAngle: DegSchema.optional(),
   })
   .meta({ id: "Site" });
 
