@@ -139,7 +139,7 @@ touches the filesystem layout of `out/`.
 | IFC validation | IfcOpenShell via `uv run`                                          | the reference open-source validator, including EXPRESS rules; uv keeps it to one locked script with no manual Python setup |
 | Plan rendering | hand-written SVG + resvg                                           | deterministic, no browser needed, and the SVG can be read and snapshot-tested                                              |
 | 3D viewing     | @thatopen/components + three.js, Playwright for headless snapshots | renders the real IFC; the same page works interactively and headless                                                       |
-| Viewer UI      | React 19 + Vite                                                    | component state for the controls; the scene stays imperative on ThatOpen                                                   |
+| Viewer UI      | React 19 + Vite + Blueprint                                        | component state for the controls; the scene stays imperative on ThatOpen                                                   |
 | Running TS     | tsx, with `tsc` used only for type-checking                        | no build step; models are imported directly                                                                                |
 
 All dependency versions are pinned exactly in `package.json` and `validator/validate.py`.

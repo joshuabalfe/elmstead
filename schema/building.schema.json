@@ -78,6 +78,9 @@
         },
         "northAngle": {
           "type": "number"
+        },
+        "frontAngle": {
+          "type": "number"
         }
       },
       "required": [

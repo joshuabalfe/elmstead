@@ -3,8 +3,8 @@
  * writer: every element we wrote has a body, and every wall has lost exactly its openings' volume
  * (i.e. the IfcRelVoidsElement cuts really happen in a viewer).
  */
-import * as WebIFC from "web-ifc";
 import type { Issue } from "../checks/issue.js";
+import { ifcApi } from "./api.js";
 import { doorDivision } from "../../shared/geometry/door.js";
 import { revealSplay } from "../../shared/geometry/opening.js";
 import { area as polygonArea } from "../../shared/geometry/polygon.js";
@@ -49,9 +49,7 @@ function meshVolume(positions: Float64Array | number[], indices: Uint32Array): n
 }
 
 export async function ifcGeometry(ifc: Uint8Array): Promise<Map<string, ElementGeometry>> {
-  const api = new WebIFC.IfcAPI();
-  await api.Init();
-  api.SetLogLevel(WebIFC.LogLevel.LOG_LEVEL_ERROR);
+  const api = await ifcApi();
   const modelID = api.OpenModel(ifc);
   const out = new Map<string, ElementGeometry>();
   try {

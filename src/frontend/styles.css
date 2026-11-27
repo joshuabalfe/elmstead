@@ -1,3 +1,6 @@
+:root {
+  --viewer-nav-width: 248px;
+}
 html,
 body {
   margin: 0;
@@ -18,47 +21,199 @@ body {
 }
 #bar {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
   display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-sizing: border-box;
+  width: var(--viewer-nav-width);
+  padding: 14px;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.94);
+  border-right: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
+}
+#bar .nav-group {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
+}
+#bar .nav-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+#bar .nav-field-label,
+#bar .nav-field-note {
+  font-size: 12px;
+  line-height: 1.2;
+  color: #5f6b7c;
+}
+#bar .nav-field-note {
+  font-style: italic;
+}
+#bar .storey-slider {
+  --storey-step: 24px;
+  --storey-end-space: 8px;
+  box-sizing: border-box;
+  height: calc(2 * var(--storey-end-space) + var(--storey-steps, 1) * var(--storey-step));
+  padding: var(--storey-end-space) 0;
+}
+/* Level names sit left; the track and eye sit right, in line with the switches. The labels'
+   width keeps each notch's tick butted against the track. */
+#bar .storey-slider .bp6-slider-handle .bp6-slider-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 8px 10px;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  color: #5f6b7c;
+  transform: none;
+  pointer-events: none;
 }
-#bar button,
-#bar select {
-  font: inherit;
-  padding: 3px 8px;
+#bar .storey-slider .bp6-slider.bp6-vertical {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
 }
-#labels[aria-pressed="true"] {
+#bar .storey-slider .bp6-slider.bp6-vertical .bp6-slider-track {
+  left: auto;
+  right: 19px;
+}
+#bar .storey-slider .bp6-slider.bp6-vertical .bp6-slider-handle {
+  left: auto;
+  right: 14px;
+}
+#bar .storey-slider .bp6-slider-axis .bp6-slider-label {
+  width: calc(100% - 61px);
+  color: #3b4658;
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: right;
+}
+#bar .storey-slider .bp6-slider-axis .bp6-slider-label::before {
+  content: "";
+  position: absolute;
+  right: -16px;
+  top: 50%;
+  width: 16px;
+  height: 2px;
+  border-radius: 1px;
+  background: #8f99a8;
+  transform: translateY(-50%);
+}
+#bar .storey-slider .storey-option {
+  cursor: pointer;
+  white-space: nowrap;
+}
+#bar .storey-slider .storey-option:hover {
+  color: #215db0;
+  text-decoration: underline;
+}
+#bar .storey-slider .storey-option-current {
   font-weight: 600;
+  color: #215db0;
 }
-#constraints[aria-pressed="true"] {
+#bar .storey-slider .bp6-disabled .storey-option,
+#bar .storey-slider .bp6-disabled .storey-option:hover {
+  cursor: default;
+  color: inherit;
+  text-decoration: none;
+}
+#bar .nav-label {
+  margin: 0;
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  color: #5f6b7c;
+  text-transform: uppercase;
 }
-#ids[aria-pressed="true"] {
-  font-weight: 600;
+#bar .nav-switch {
+  margin: 0;
 }
-#measure[aria-pressed="true"] {
-  font-weight: 600;
+#bar .nav-switch .nav-switch-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
-#walk[aria-pressed="true"] {
-  font-weight: 600;
+#bar .nav-switch .nav-switch-label .bp6-icon {
+  color: #5f6b7c;
 }
-#diff[aria-pressed="true"],
-#xray[aria-pressed="true"] {
-  font-weight: 600;
+#bar .camera-pad,
+#bar .camera-elevations {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
 }
-#clear:disabled {
-  opacity: 0.5;
+#bar .camera-pad {
+  grid-template-areas:
+    ". north ."
+    "west . east"
+    ". south .";
+}
+#bar .camera-elevations {
+  grid-template-areas:
+    ". back ."
+    "left centre right"
+    ". front .";
+  margin-bottom: 8px;
+}
+#bar .camera-snap {
+  width: 100%;
+  min-width: 0;
+  min-height: 20px;
+  padding: 0 2px;
+  font-size: 11px;
+}
+#bar .camera-pad .camera-snap-n {
+  grid-area: north;
+}
+#bar .camera-pad .camera-snap-w {
+  grid-area: west;
+}
+#bar .camera-pad .camera-snap-e {
+  grid-area: east;
+}
+#bar .camera-pad .camera-snap-s {
+  grid-area: south;
+}
+#bar .camera-elevations .camera-snap-front {
+  grid-area: front;
+}
+#bar .camera-elevations .camera-snap-back {
+  grid-area: back;
+}
+#bar .camera-elevations .camera-snap-left {
+  grid-area: left;
+}
+#bar .camera-elevations .camera-snap-right {
+  grid-area: right;
+}
+#bar .camera-elevations .camera-snap-top {
+  grid-area: centre;
+}
+#bar .bp6-divider {
+  margin: 0;
 }
 #status {
-  color: #666;
-  margin-left: 4px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  color: #5f6b7c;
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+#status:empty {
+  display: none;
 }
 body.measuring #container canvas {
   cursor: crosshair;
@@ -89,11 +244,11 @@ body.snapshot #measure-hint {
 }
 #measure-list {
   position: absolute;
-  left: 16px;
+  left: calc(var(--viewer-nav-width) + 16px);
   bottom: 16px;
   margin: 0;
   padding: 8px 12px 8px 28px;
-  max-width: min(520px, calc(100vw - 140px));
+  max-width: min(520px, calc(100vw - var(--viewer-nav-width) - 40px));
   max-height: 30vh;
   overflow: auto;
   background: rgba(255, 255, 255, 0.92);
