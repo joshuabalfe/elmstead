@@ -36,7 +36,7 @@ components. A duplicate SHALL be an ERROR against that id whose message names bo
 #### Scenario: Winder and flight share an id
 
 - **WHEN** a stair winder and a stair flight have the same id
-- **THEN** the checks report an ERROR against that id saying it is used by a stair flight and a stair winder
+- **THEN** the checks report an ERROR against that id saying it is used by a stair winder and a stair flight
 
 #### Scenario: Railing and wall share an id
 

@@ -18,8 +18,8 @@ placeholder. No existing model has a winder, so no placeholder can run.
 ## 2. Authoring helper and checks
 
 - [x] 2.1 Add `stairWinder(id, outline, { pivot, entry, risers })` to `src/backend/model/helpers.ts` and export it as the other helpers are, and use it in the fixture. Verify with a helper test, in the style of `tests/railing.test.ts`, for each `model-authoring` scenario.
-- [ ] 2.2 In `src/backend/checks/model.ts`, add winders to `outlined()` so they get the distinct-point and self-intersection checks, and add the winder rules: first segment and followed by a flight, strictly convex outline, pivot and entry as adjacent outline points, and the next flight starting on the exit edge with both ends of its start edge on it, running away from the outline. Verify with one test per scenario in the `model-checks` delta spec, and that `npm run check` on the fixture reports no ERROR.
-- [ ] 2.3 Verify a revision can add, replace and remove a stair with a winder, and the diff reports it, in `tests/revise.test.ts` and `tests/diff.test.ts`, using the fixture. No change to `SCHEMAS` or `COMPARED` is expected; if a test shows one is needed, make it.
+- [x] 2.2 In `src/backend/checks/model.ts`, add winders to `outlined()` so they get the distinct-point and self-intersection checks, and add the winder rules: first segment and followed by a flight, strictly convex outline, pivot and entry as adjacent outline points, and the next flight starting on the exit edge with both ends of its start edge on it, running away from the outline. Verify with one test per scenario in the `model-checks` delta spec, and that `npm run check` on the fixture reports no ERROR.
+- [x] 2.3 Verify a revision can add, replace and remove a stair with a winder, and the diff reports it, in `tests/revise.test.ts` and `tests/diff.test.ts`, using the fixture. No change to `SCHEMAS` or `COMPARED` is expected; if a test shows one is needed, make it.
 
 ## 3. IFC
 

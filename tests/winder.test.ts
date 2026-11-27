@@ -9,7 +9,9 @@ import { area } from "../src/shared/geometry/polygon.js";
 import { toVec } from "../src/shared/geometry/vec.js";
 import { idNodes } from "../src/shared/schema/ids.js";
 import { BuildingModelSchema, type BuildingModel, type StairWinder } from "../src/shared/schema/schema.js";
-import { mm, pt, stairWinder } from "../src/backend/model/index.js";
+import { addTo, mm, pt, remove, replace, revise, stairWinder } from "../src/backend/model/index.js";
+import { diffModels } from "../src/shared/diff/index.js";
+import { checkModel, checkOutlines } from "../src/backend/checks/model.js";
 
 const raw = (): any => JSON.parse(JSON.stringify(winderStair));
 const model = (source: unknown = winderStair): BuildingModel =>
@@ -184,5 +186,138 @@ describe("stairWinder helper", () => {
     const stair = model().storeys[0]!.stairs![0]!;
     expect(stair.toStoreyId).toBe("storey-first");
     expect(stair.segments.map((s) => s.id)).toEqual(["stair-winder-turn", "stair-flight-main"]);
+  });
+});
+
+describe("winder checks", () => {
+  const mutate = (fn: (stair: any) => void): BuildingModel => {
+    const r = raw();
+    fn(r.storeys[0].stairs[0]);
+    return model(r);
+  };
+  const errors = (m: BuildingModel) => checkModel(m).filter((i) => i.level === "ERROR");
+  const about = (m: BuildingModel, id: string) => errors(m).filter((i) => i.id === id);
+  const SW = { x: 3100, y: 3900 };
+  const SE = { x: 4000, y: 3900 };
+  const NE = { x: 4000, y: 4800 };
+  const NW = { x: 3100, y: 4800 };
+
+  it("passes the fixture, a winder then a flight", () => {
+    expect(errors(model())).toEqual([]);
+  });
+
+  it("reports a winder and a flight sharing an id, naming both kinds", () => {
+    const m = mutate((s) => (s.segments[1].id = "stair-winder-turn"));
+    expect(errors(m).map((i) => `${i.id}: ${i.message}`)).toContain(
+      "stair-winder-turn: id is used by a stair winder and a stair flight",
+    );
+  });
+
+  it("rejects a winder after a flight and a landing", () => {
+    const m = mutate((s) => {
+      const [winder, flight] = s.segments;
+      s.segments = [
+        flight,
+        { kind: "landing", id: "stair-landing-x", outline: winder.outline, thickness: 150 },
+        winder,
+      ];
+    });
+    expect(
+      about(m, "stair-main")
+        .map((i) => i.message)
+        .join("\n"),
+    ).toMatch(/winder must be the first segment/);
+  });
+
+  it("rejects a winder that is the last segment", () => {
+    const m = mutate((s) => s.segments.pop());
+    expect(
+      about(m, "stair-main")
+        .map((i) => i.message)
+        .join("\n"),
+    ).toMatch(/must be followed by one/);
+  });
+
+  it("rejects a pivot off the outline and an entry not beside the pivot", () => {
+    expect(
+      about(
+        mutate((s) => (s.segments[0].pivot = { x: 3000, y: 3900 })),
+        "stair-winder-turn",
+      )[0]!.message,
+    ).toMatch(/pivot is not one of the outline's points/);
+    expect(
+      about(
+        mutate((s) => (s.segments[0].entry = NE)),
+        "stair-winder-turn",
+      )[0]!.message,
+    ).toMatch(/entry is not beside the pivot/);
+  });
+
+  it("rejects a concave outline and a point in a line", () => {
+    const concave = mutate((s) => (s.segments[0].outline = [SW, SE, { x: 3550, y: 4300 }, NE, NW]));
+    expect(
+      about(concave, "stair-winder-turn")
+        .map((i) => i.message)
+        .join("\n"),
+    ).toMatch(/not strictly convex/);
+    const inLine = mutate((s) => (s.segments[0].outline = [SW, { x: 3550, y: 3900 }, SE, NE, NW]));
+    expect(about(inLine, "stair-winder-turn").length).toBeGreaterThan(0);
+  });
+
+  it("applies the usual outline checks to a winder", () => {
+    const repeated = mutate((s) => (s.segments[0].outline = [SW, SE, NE, NE, NW]));
+    expect(checkOutlines(repeated).some((i) => i.id === "stair-winder-turn")).toBe(true);
+  });
+
+  it("rejects a flight that misses, overhangs or runs back into the exit edge", () => {
+    const flight = (s: any) => s.segments[1];
+    const missed = mutate((s) => {
+      flight(s).start.y -= 100;
+      flight(s).end.y -= 100;
+    });
+    expect(about(missed, "stair-winder-turn")[0]!.message).toMatch(/starts 100 mm from this winder's exit edge/);
+    const wide = mutate((s) => (flight(s).width = 1100));
+    expect(about(wide, "stair-winder-turn")[0]!.message).toMatch(/wider than this winder's exit edge/);
+    const back = mutate((s) => (flight(s).end = { x: 3550, y: 5650 }));
+    expect(about(back, "stair-winder-turn")[0]!.message).toMatch(/runs back into this winder/);
+  });
+
+  it("accepts a flight narrower than the exit edge, and one as wide as it", () => {
+    expect(errors(mutate((s) => (s.segments[1].width = 600)))).toEqual([]);
+    expect(errors(mutate((s) => (s.segments[1].width = 900)))).toEqual([]);
+  });
+});
+
+describe("winders in revisions and the diff", () => {
+  const stairNow = (m: BuildingModel) => m.storeys[0]!.stairs![0]!;
+  const withRisers = (m: BuildingModel, risers: number) => {
+    const s = structuredClone(stairNow(m));
+    (s.segments[0] as StairWinder).risers = risers;
+    return s;
+  };
+
+  it("replaces a stair with a winder whole, and the diff reports the stair as changed", () => {
+    const b = model();
+    const r = revise(b, [replace(withRisers(b, 4))]);
+    expect((stairNow(r).segments[0] as StairWinder).risers).toBe(4);
+    expect((stairNow(b).segments[0] as StairWinder).risers).toBe(3);
+    expect(diffModels(b, r).changed).toEqual([{ id: "stair-main", kind: "stair", storey: "storey-ground" }]);
+  });
+
+  it("removes a stair with a winder, and adds it back to a model without one", () => {
+    const b = model();
+    const without = revise(b, [remove("stair-main")]);
+    expect(without.storeys[0]!.stairs ?? []).toEqual([]);
+    expect(diffModels(b, without).removed).toEqual([{ id: "stair-main", kind: "stair", storey: "storey-ground" }]);
+    const back = revise(without, [addTo("storey-ground", { stairs: [stairNow(b)] })]);
+    expect(diffModels(without, back).added).toEqual([{ id: "stair-main", kind: "stair", storey: "storey-ground" }]);
+    expect(checkModel(back).filter((i) => i.level === "ERROR")).toEqual([]);
+  });
+
+  it("will not edit a winder on its own, and says to replace its stair", () => {
+    const b = model();
+    const winder = stairNow(b).segments[0]!;
+    expect(() => revise(b, [replace(winder as never)])).toThrow(/stair winder.*replace its stair/);
+    expect(() => revise(b, [remove("stair-winder-turn")])).toThrow(/replace its stair/);
   });
 });
