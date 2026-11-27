@@ -685,6 +685,11 @@ model.
 - **WHEN** the viewer is opened with `?storeys=storey-ground,storey-first-floor`
 - **THEN** the selector shows the first floor and both storeys are drawn
 
+#### Scenario: Another floor chosen mid-change
+
+- **WHEN** the user chooses a second floor before the first change has finished
+- **THEN** the viewer eases from where it is to the second floor, and it ends exactly as if that floor had been chosen alone
+
 #### Scenario: Upper storey alone
 
 - **WHEN** the viewer is opened with `?storeys=` naming only an upper storey
@@ -721,7 +726,7 @@ Arrow Up SHALL show the next storey above the highest storey now shown, and Arro
 
 ### Requirement: Storey shortcut scope
 
-The storey shortcut SHALL be ignored in walk mode, where the arrows keep walking, with Ctrl, Alt, Meta or Shift held, for a single-storey model, in snapshot mode, while a form control other than the storey selector has focus, for an auto-repeated key press, and while an earlier step is still being drawn. While the storey selector has focus the shortcut SHALL still step it, and the browser's own arrow-key handling for it SHALL NOT also act. The selector's tooltip SHALL name the keys.
+The storey shortcut SHALL be ignored in walk mode, where the arrows keep walking, with Ctrl, Alt, Meta or Shift held, for a single-storey model, in snapshot mode, and while a form control other than the storey selector has focus. While the storey selector has focus the shortcut SHALL still step it, and the browser's own arrow-key handling for it SHALL NOT also act. The selector's tooltip SHALL name the keys.
 
 #### Scenario: Walk mode
 
@@ -736,7 +741,7 @@ The storey shortcut SHALL be ignored in walk mode, where the arrows keep walking
 #### Scenario: Held key
 
 - **WHEN** the user holds Arrow Down on a three-storey model
-- **THEN** the selection steps down once, not once per auto-repeat
+- **THEN** the selection keeps stepping down at the auto-repeat rate until the key is released or the lowest storey is shown
 
 #### Scenario: Selector focused
 
