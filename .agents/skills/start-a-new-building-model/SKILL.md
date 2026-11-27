@@ -97,10 +97,12 @@ is started, so it is not built on something that must be undone.
 
 ## 4. Build in order
 
-Put the model in `models/`. A model with more than one storey is a **folder** from the start (`index.ts`,
-`constraints.ts`, `shared.ts`, then per storey `walls.ts`, `openings.ts`, `rooms.ts`), because
-splitting a file later renames everything. A single storey can be a folder or a single file. Name
-it for the building, and give every element a stable id ([Ids](../../../docs/modelling.md#ids)).
+Put the model in `models/`. Make it a **folder** (`index.ts`, `constraints.ts`, `shared.ts`, then
+per storey `walls.ts`, `openings.ts`, `rooms.ts`) when it has more than one storey, and also when
+the user might later want to propose alterations, because a revision can only be made of a folder
+model ([Revisions](../../../docs/modelling.md#revisions)). A single storey with no such plan can be
+a single file. Name it for the building, and give every element a stable id
+([Ids](../../../docs/modelling.md#ids)).
 
 Work in this order, and after each step run `npm run check models/<model>`, and from walls onward
 `npm run all models/<model>` and look at the plan

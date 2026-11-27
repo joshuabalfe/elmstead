@@ -4,7 +4,7 @@
 
 See proposal.md for why. The current state:
 
-- Ten skills sit in `.agents/skills/`, six for model work. All of them assume a model exists;
+- Twelve skills sit in `.agents/skills/`, six for model work and six for OpenSpec. All of them assume a model exists;
   `edit-an-existing-building-model` opens with "read the model's folder first".
 - `docs/modelling.md` opens with the example cottage and a short skeleton, and lists "Things the
   schema does not have yet": room heights, wall types, roofs, curved walls, winder and spiral stairs.
@@ -69,8 +69,9 @@ say goes to `add-support-for-new-element-types` first, so the model is not start
 that has to be undone.
 
 **Build order is shared dimensions, walls, openings, rooms**, the order the Elmstead folder already
-uses, with `check`, `all` and `inspect-the-rendered-output` after each step. A model with more than
-one storey is a folder from the start, since splitting it later is a rename of everything.
+uses, with `check`, `all` and `inspect-the-rendered-output` after each step. A model is a
+folder when it has more than one storey or the user might later propose alterations, because a
+revision is a variant of a folder model (`docs/modelling.md#revisions`).
 
 **The skill ends at the first model that builds and renders**, then points at
 `edit-an-existing-building-model` for everything after. It does not cover ongoing edits.
