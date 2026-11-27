@@ -15,7 +15,10 @@ import {
   flightRun,
   stairLevels,
   turnBetween,
+  winderFan,
+  winderFrame,
   type FlightLevel,
+  type WinderLevel,
 } from "../../shared/geometry/stair.js";
 import { v, type Vec } from "../../shared/geometry/vec.js";
 import { faceOffsets, wallDirection, wallHeight, wallLength, wallSideProfile } from "../../shared/geometry/wall.js";
@@ -31,6 +34,8 @@ import type {
   Stair,
   StairFlight,
   StairLanding,
+  StairSegment,
+  StairWinder,
   Storey,
   Wall,
   Window,
@@ -88,6 +93,28 @@ function stairType(flights: readonly StairFlight[]) {
     if (Math.abs(turn - 180) < 1e-6) return IFC4.IfcStairTypeEnum.HALF_TURN_STAIR;
   }
   return IFC4.IfcStairTypeEnum.NOTDEFINED;
+}
+
+/**
+ * How far a winder's turn may be from a right angle and still be a quarter turn. Looser than the
+ * flights' 1e-6° above: a flight's direction is a drawn line, but a winder's angle comes from an
+ * outline of whole millimetres, so a true right angle can come out a fraction of a degree off.
+ */
+const QUARTER_TURN_TOLERANCE = 1;
+
+/**
+ * The IfcStairTypeEnum of a stair that starts with a winder: a quarter winding stair when it is that
+ * winder and one flight and the winder turns through a right angle. Anything longer may go on to turn
+ * again, which the name would not say, so it is NOTDEFINED, as is any other angle.
+ */
+function winderStairType(segments: readonly StairSegment[]) {
+  const winder = segments[0];
+  if (winder?.kind !== "winder" || segments.length !== 2 || segments[1]!.kind !== "flight")
+    return IFC4.IfcStairTypeEnum.NOTDEFINED;
+  const frame = winderFrame(winder);
+  return typeof frame !== "string" && Math.abs(frame.turn - 90) <= QUARTER_TURN_TOLERANCE
+    ? IFC4.IfcStairTypeEnum.QUARTER_WINDING_STAIR
+    : IFC4.IfcStairTypeEnum.NOTDEFINED;
 }
 
 export async function writeIfc(model: BuildingModel, opts: WriteOptions): Promise<Uint8Array> {
@@ -194,9 +221,17 @@ class Writer {
 
   /** Extrusion of a profile straight up by `depth`, as a Body/SweptSolid shape, optionally coloured. */
   private body(profile: InstanceType<typeof IFC4.IfcProfileDef>, depth: number, style?: StyleName) {
-    const solid = new IFC4.IfcExtrudedAreaSolid(profile, null, this.zAxis, posLen(depth));
-    if (style) this.write(new IFC4.IfcStyledItem(solid, [this.surfaceStyle(style)], null));
-    return new IFC4.IfcShapeRepresentation(this.bodyCtx, label("Body"), label("SweptSolid"), [solid]);
+    return this.bodyOf([{ profile, depth }], style);
+  }
+
+  /** A body of several extruded solids, each with its own profile and depth, all in one style. */
+  private bodyOf(parts: { profile: InstanceType<typeof IFC4.IfcProfileDef>; depth: number }[], style?: StyleName) {
+    const solids = parts.map(({ profile, depth }) => {
+      const solid = new IFC4.IfcExtrudedAreaSolid(profile, null, this.zAxis, posLen(depth));
+      if (style) this.write(new IFC4.IfcStyledItem(solid, [this.surfaceStyle(style)], null));
+      return solid;
+    });
+    return new IFC4.IfcShapeRepresentation(this.bodyCtx, label("Body"), label("SweptSolid"), solids);
   }
 
   private rectangle(cx: number, cy: number, xDim: number, yDim: number) {
@@ -638,15 +673,16 @@ class Writer {
         placement,
         null,
         ident(s.id),
-        stairType(flights),
+        s.segments[0]?.kind === "winder" ? winderStairType(s.segments) : stairType(flights),
       ),
     );
     const levels = stairLevels(s, rise);
-    const parts = levels.segments.map((l) =>
-      l.kind === "flight"
+    const parts = levels.segments.map((l) => {
+      if (l.kind === "winder") return this.stairWinder(l.segment, l, levels.riser, placement);
+      return l.kind === "flight"
         ? this.stairFlight(l.segment, l, levels.riser, placement)
-        : this.stairLanding(l.segment, l.level, placement),
-    );
+        : this.stairLanding(l.segment, l.level, placement);
+    });
     this.write(new IFC4.IfcRelAggregates(guid(`${s.id}#aggregates`), null, null, null, stair, parts));
     return stair;
   }
@@ -747,6 +783,46 @@ class Writer {
         new IFC4.IfcProductDefinitionShape(null, null, [body]),
         ident(r.id),
         predefinedType,
+      ),
+    );
+  }
+
+  /**
+   * A winder: an IfcStairFlight of type WINDER with one solid per tread. Tread k's plan polygon is
+   * extruded from the winder's base up to k risers, so each tread is a solid block and the treads
+   * together fill the winder's outline. The attributes count its treads, which are its risers; a fan
+   * of wedges has no single tread length, so that one is left out.
+   */
+  private stairWinder(
+    w: StairWinder,
+    level: WinderLevel,
+    riser: number,
+    parent: InstanceType<typeof IFC4.IfcLocalPlacement>,
+  ) {
+    const placement = this.placement(parent, 0, 0, round9(level.base));
+    const parts = winderFan(w).treads.map((tread, k) => ({
+      profile: new IFC4.IfcArbitraryClosedProfileDef(
+        IFC4.IfcProfileTypeEnum.AREA,
+        null,
+        this.closedPolyline(tread.map((p) => v(round9(p.x), round9(p.y)))),
+      ),
+      depth: round9((k + 1) * riser),
+    }));
+    return this.write(
+      new IFC4.IfcStairFlight(
+        guid(w.id),
+        null,
+        label(w.id),
+        null,
+        null,
+        placement,
+        new IFC4.IfcProductDefinitionShape(null, null, [this.bodyOf(parts, "stair")]),
+        ident(w.id),
+        new IFC4.IfcInteger(w.risers),
+        new IFC4.IfcInteger(w.risers),
+        posLen(round9(riser)),
+        null,
+        IFC4.IfcStairFlightTypeEnum.WINDER,
       ),
     );
   }

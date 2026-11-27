@@ -58,6 +58,7 @@ import {
 } from "../lib/measure.js";
 import { diffModels, type DiffStatus, type ModelDiff } from "../../shared/diff/index.js";
 import { styleOfColour } from "./style-of.js";
+import { stairBandRiser } from "./stair-bands.js";
 import {
   DIFF_COLOURS,
   diffFloor,
@@ -1912,17 +1913,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     if (epoch !== loadEpoch) return;
     parseStoreysParam(json);
     populateStoreySelector(json);
-    // One shared riser for the banding: Fragments renders all stairs under one material, so the
-    // shader cannot hold a riser per stair. Take the largest so the stair with the most steps reads
-    // correctly; other stairs band on it too.
-    stairRiser = 0;
-    for (const s of json?.storeys ?? []) {
-      for (const st of s.stairs ?? []) {
-        const to = json!.storeys.find((x) => x.id === st.toStoreyId);
-        const total = st.segments.reduce((n, g) => (g.kind === "flight" ? n + g.risers : n), 0);
-        if (to && total > 0) stairRiser = Math.max(stairRiser, (to.elevation - s.elevation) / total / 1000);
-      }
-    }
+    stairRiser = stairBandRiser(json);
     const loaded = await loadResident(name, group);
     if (!loaded) throw new Error(`out/${name}.ifc not found`);
     const { entry, fresh } = loaded;

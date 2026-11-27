@@ -1,11 +1,20 @@
 import { openingExtent } from "../../shared/geometry/opening.js";
-import { distanceToOutline, polygonProblems } from "../../shared/geometry/polygon.js";
+import { centroid, distanceToOutline, polygonProblems } from "../../shared/geometry/polygon.js";
 import { railingRun } from "../../shared/geometry/railing.js";
-import { flightRun } from "../../shared/geometry/stair.js";
+import { flightDirection, flightRun, winderFrame } from "../../shared/geometry/stair.js";
 import { wallLength, wallTopMin } from "../../shared/geometry/wall.js";
-import { toVec, type Vec } from "../../shared/geometry/vec.js";
+import { cross, dot, perpLeft, toVec, vadd, vscale, vsub, type Vec } from "../../shared/geometry/vec.js";
 import { idNodes } from "../../shared/schema/ids.js";
-import type { BuildingModel, Opening, Polygon, Storey, Wall } from "../../shared/schema/schema.js";
+import type {
+  BuildingModel,
+  Opening,
+  Polygon,
+  Stair,
+  StairFlight,
+  StairWinder,
+  Storey,
+  Wall,
+} from "../../shared/schema/schema.js";
 import { checkComponents } from "./components.js";
 import type { Issue } from "./issue.js";
 
@@ -138,12 +147,14 @@ export function checkOpenings(model: BuildingModel): Issue[] {
   return issues;
 }
 
-/** Every outline-bearing element on a storey: rooms, slabs and stair landings. */
+/** Every outline-bearing element on a storey: rooms, slabs, stair landings and stair winders. */
 function outlined(storey: Storey): { id: string; outline: Polygon }[] {
   return [
     ...storey.rooms,
     ...storey.slabs,
-    ...(storey.stairs ?? []).flatMap((s) => s.segments.flatMap((seg) => (seg.kind === "landing" ? [seg] : []))),
+    ...(storey.stairs ?? []).flatMap((s) =>
+      s.segments.flatMap((seg) => (seg.kind === "landing" || seg.kind === "winder" ? [seg] : [])),
+    ),
   ];
 }
 
@@ -217,11 +228,11 @@ export function checkStairs(model: BuildingModel): Issue[] {
       }
 
       const kinds = stair.segments.map((s) => s.kind);
-      if (kinds[0] !== "flight")
+      if (kinds[0] === "landing")
         issues.push({
           level: "ERROR",
           id: stair.id,
-          message: "the first segment is a landing: a stair must start with a flight",
+          message: "the first segment is a landing: a stair must start with a flight or a winder",
         });
       for (let i = 1; i < kinds.length; i++) {
         if (kinds[i] === "landing" && kinds[i - 1] === "landing") {
@@ -236,6 +247,8 @@ export function checkStairs(model: BuildingModel): Issue[] {
         if (seg.kind === "flight" && flightRun(seg) === 0)
           issues.push({ level: "ERROR", id: stair.id, message: `flight ${seg.id} has no plan run` });
       }
+
+      issues.push(...checkWinders(stair));
 
       stair.segments.forEach((seg, i) => {
         if (seg.kind !== "landing") return;
@@ -259,6 +272,70 @@ export function checkStairs(model: BuildingModel): Issue[] {
     }
   }
   return issues;
+}
+
+/** Whether every turn of an outline is the same way and none is straight. Needs three or more points. */
+function strictlyConvex(pts: readonly Vec[]): boolean {
+  const n = pts.length;
+  let sign = 0;
+  for (let i = 0; i < n; i++) {
+    const c = cross(vsub(pts[(i + 1) % n]!, pts[i]!), vsub(pts[(i + 2) % n]!, pts[(i + 1) % n]!));
+    if (Math.abs(c) < 1e-9) return false;
+    if (sign === 0) sign = Math.sign(c);
+    else if (Math.sign(c) !== sign) return false;
+  }
+  return true;
+}
+
+/**
+ * A winder must be the first segment and followed by a flight (a flight before it, or nothing after
+ * it, leaves a riser line owned twice or by nobody). Its outline must be strictly convex and its pivot
+ * and entry points of it, beside each other. The flight after it must start on its exit edge, as wide as
+ * the edge at most, and run away from the winder. All errors are against the winder, or the stair for
+ * its place in it. The outline's distinct points and crossings are checked with the other outlines.
+ */
+function checkWinders(stair: Stair): Issue[] {
+  const issues: Issue[] = [];
+  stair.segments.forEach((seg, i) => {
+    if (seg.kind !== "winder") return;
+    const err = (id: string, message: string): number => issues.push({ level: "ERROR", id, message });
+    if (i > 0)
+      err(stair.id, `${seg.id} is a winder after ${stair.segments[i - 1]!.id}: a winder must be the first segment`);
+    const after = stair.segments[i + 1];
+    if (after?.kind !== "flight")
+      err(stair.id, `${seg.id} is not followed by a flight: a winder must be followed by one`);
+
+    const outline = seg.outline.map(toVec);
+    if (outline.length >= 3 && polygonProblems(outline).length === 0 && !strictlyConvex(outline))
+      err(seg.id, "outline is not strictly convex: it has a reflex corner or three points in a line");
+    const frame = winderFrame(seg);
+    if (typeof frame === "string") return void err(seg.id, frame);
+    if (after?.kind !== "flight" || flightRun(after) === 0) return;
+    checkFlightMeetsWinder(seg, after, frame.pivot, frame.exit, outline, err);
+  });
+  return issues;
+}
+
+function checkFlightMeetsWinder(
+  winder: StairWinder,
+  flight: StairFlight,
+  pivot: Vec,
+  exit: Vec,
+  outline: Vec[],
+  err: (id: string, message: string) => number,
+): void {
+  const exitEdge = [pivot, exit];
+  const start = toVec(flight.start);
+  const d = flightDirection(flight);
+  const half = vscale(perpLeft(d), flight.width / 2);
+  const off = distanceToOutline(start, exitEdge);
+  if (off > LANDING_TOLERANCE) err(winder.id, `${flight.id} starts ${Math.round(off)} mm from this winder's exit edge`);
+  else if (
+    Math.max(distanceToOutline(vadd(start, half), exitEdge), distanceToOutline(vsub(start, half), exitEdge)) >
+    LANDING_TOLERANCE
+  )
+    err(winder.id, `${flight.id} is wider than this winder's exit edge, so its start edge runs past it`);
+  else if (dot(d, vsub(centroid(outline), start)) >= 0) err(winder.id, `${flight.id} runs back into this winder`);
 }
 
 /** Every cross-element rule, run before any output is written. */

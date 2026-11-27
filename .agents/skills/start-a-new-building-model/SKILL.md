@@ -90,7 +90,7 @@ which they would most want kept right, so the model says where measuring would p
 Before modelling, compare the answers with "Things the schema does not have yet" in
 [Modelling](../../../docs/modelling.md#things-the-schema-does-not-have-yet). Do not copy that list
 here, because it changes. If the building needs something on it, such as a roof, a curved wall, an
-external or internal wall type, a room height, or a winder or spiral stair, **stop**. Do not
+external or internal wall type, a room height, or a spiral stair, **stop**. Do not
 approximate it with an existing type. Tell the user, and use
 [add-support-for-new-element-types](../add-support-for-new-element-types/SKILL.md) before the model
 is started, so it is not built on something that must be undone.

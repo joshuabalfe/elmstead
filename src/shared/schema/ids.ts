@@ -19,6 +19,7 @@ import type {
   Stair,
   StairFlight,
   StairLanding,
+  StairWinder,
   Storey,
   Wall,
   Window,
@@ -63,6 +64,7 @@ export type IdNode =
   | (OnStorey<"stair", Stair> & Placed)
   | OnStorey<"stair flight", StairFlight>
   | OnStorey<"stair landing", StairLanding>
+  | OnStorey<"stair winder", StairWinder>
   | (OnStorey<"railing", Railing> & Placed);
 
 /** The kinds of node that live on a storey. */
