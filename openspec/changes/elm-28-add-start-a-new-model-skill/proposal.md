@@ -29,7 +29,9 @@ memory, there is nothing to trace and every number is an estimate. The skill ask
      `add-support-for-new-element-types` before modelling starts, never approximating;
   4. builds in order (shared dimensions, walls, openings, rooms), checking and looking at each
      step, and records constraints only for measurements the user gave;
-  5. hands off to `edit-an-existing-building-model` once the model builds.
+  5. rechecks the built model against every input it was given, in a table shown to the user,
+     before it is called done;
+  6. hands off to `edit-an-existing-building-model` once the model builds.
 - Add a row for it to the skills table in `AGENTS.md`, and to the Skills table in `docs/README.md`.
 - Add a one-line pointer to it in `docs/modelling.md`, beside the pointer to the edit skill.
 

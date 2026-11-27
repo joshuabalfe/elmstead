@@ -6,6 +6,7 @@
 - [x] 1.2 Check the skill's claims against the repo. Verify the schema-gap list is linked and not copied, the layout it names matches `models/elmstead/` and `models/examples/example-cottage/`, and each command it shows runs as written.
 
 - [x] 1.3 Add the link step to the Material track: try the link first, fetch only the given URL, fetch the floorplan and photos it names into a directory outside the repo, report what could and could not be read, and treat it all as provisional. Verify the steps read in order and no step asks the user for a file before the link was tried.
+- [x] 1.4 Add a recheck step before "Done": list every input, read the model's value from `out/<name>.building.json` and the plan, compare in a table, resolve each mismatch by fixing the model or asking, and never change an input to match the model. Verify it on the material-track scratch model: every input row is found in the build output and matches.
 
 ## 2. Walk it through both tracks
 

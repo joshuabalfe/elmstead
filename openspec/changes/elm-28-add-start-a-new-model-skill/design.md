@@ -73,7 +73,15 @@ uses, with `check`, `all` and `inspect-the-rendered-output` after each step. A m
 folder when it has more than one storey or the user might later propose alterations, because a
 revision is a variant of a folder model (`docs/modelling.md#revisions`).
 
-**The skill ends at the first model that builds and renders**, then points at
+**The model is rechecked against its inputs before it is done.** A constraint guards only a number
+the user measured, so a traced or estimated number can drift with every check passing. The skill
+lists every input (numbers and statements, including counts), reads the model's value from the build
+output (`out/<name>.building.json` and the plan's clear room spans and overall dimensions, not the
+source file), compares them in a table shown to the user, and resolves each mismatch by fixing the
+model or asking which source is right. It never changes an input to match the model. Alternative:
+rely on looking at the plan, which shows a wrong room size only to someone who remembers the input.
+
+**The skill ends at the first model that builds and renders and is rechecked**, then points at
 `edit-an-existing-building-model` for everything after. It does not cover ongoing edits.
 
 ## Risks / Trade-offs

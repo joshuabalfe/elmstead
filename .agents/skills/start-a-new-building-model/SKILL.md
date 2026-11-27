@@ -127,11 +127,49 @@ A model built from estimates and traced numbers starts with none, and that is co
 user which dimensions are unprotected, and offer to add constraints when they measure. Follow
 [record-model-constraints](../record-model-constraints/SKILL.md) for how.
 
-## 6. Done
+## 6. Recheck the model against what you were given
+
+A model that builds and looks right can still be wrong: a constraint guards only a number the user
+measured, so a traced or estimated number can slip without any check failing. Before you call the
+model done, go back to **every input** (each number and statement the user, a document or a link
+gave you) and compare it with what the model now says. Do not rely on memory of what you typed.
+
+1. **List the inputs**, one row each, from the conversation and the sources: the overall size,
+   storey levels and heights, wall thicknesses, each room's size, each door and window (which wall,
+   where, how big), the stair, and the counts (storeys, rooms, doors, windows). Include things given
+   in words ("the front door is on the south wall, by the corner").
+2. **Read the model's value**, from the build output and not from your source file. Run
+   `npm run all models/<model>`, then read `out/<name>.building.json` (wall `start`, `end`,
+   `thickness`, `height`; opening `offsetAlongWall`, `width`, `height`, `sillHeight`; room
+   `outline`; storey `elevation`) and the plan (each room's clear span and area, and the overall
+   dimensions). A plan's room spans are **clear wall-to-wall**, so compare them with a source's
+   internal room sizes, not its overall ones. An opening's `offsetAlongWall` is from the wall's
+   start, so work out the distance to a corner before comparing it with a measurement.
+3. **Compare** in a table and show it to the user:
+
+   | Input | Source | Model says | Match |
+   | ----- | ------ | ---------- | ----- |
+
+   A difference larger than the rounding in the source (a listing's sizes are rounded) is a
+   **mismatch**. A number you could not check, because the model has no matching value, is a
+   **gap**. Both go in the table.
+
+4. **Resolve each mismatch.** If the model is wrong, fix the model and run the loop again. If two
+   sources disagree, or the input looks wrong, ask the user which is right, as you did in intake,
+   and do not quietly pick one. Never change an input to match the model.
+5. **Check the status of each number** is still said out loud: nothing you estimated or traced has
+   quietly become a constraint or lost its "provisional" or "estimate" comment.
+
+A measurement the user gave as a distance between two named points is a constraint, and `check`
+already measures it, so the table only needs to confirm the constraint exists and passes
+([record-model-constraints](../record-model-constraints/SKILL.md)).
+
+## 7. Done
 
 The model is done when `npm run all models/<model>` builds, validates and renders, you have looked
-at the plan for each storey and a 3D view, and `npm test` and `npm run typecheck` pass. Give the
-user a short list of what is **provisional** and what is an **estimate**, so they know what to
-check first. Commit in small, runnable steps.
+at the plan for each storey and a 3D view, the recheck table has no unexplained mismatch, and
+`npm test` and `npm run typecheck` pass. Give the user the table, and a short list of what is
+**provisional** and what is an **estimate**, so they know what to check first. Commit in small,
+runnable steps.
 
 From here every change is an edit: [edit-an-existing-building-model](../edit-an-existing-building-model/SKILL.md).
