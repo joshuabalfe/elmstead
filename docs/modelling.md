@@ -34,7 +34,7 @@ Only `index.ts`'s default export is the model; the other files are ordinary modu
 Pass the folder (`models/elmstead`) to the commands, and outputs are named after it.
 
 ```ts
-import { defineBuilding, m, mm, pt, rectWalls, door, window } from "../../src/model/index.js";
+import { defineBuilding, m, mm, pt, rectWalls, door, window } from "../../src/backend/model/index.js";
 
 const walls = rectWalls("wall", pt(mm(0), mm(0)), m(8), m(6), { thickness: mm(200), height: m(2.4) });
 
@@ -70,7 +70,7 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
   `m(1.2345)` throws.
 - Do arithmetic on `Mm` values with `add`, `sub`, `neg`, `scale` (rounds to the nearest mm),
   `div` (throws unless the result is a whole number) and `divRound`. All are exported from
-  `src/model/index.ts`.
+  `src/backend/model/index.ts`.
 
 ## Coordinates
 
@@ -184,7 +184,7 @@ doors and windows as instances of one type.
   its own overall width and height).
 - So a component is worth having whenever two openings are built the same way, whatever their
   sizes; a one-off design is a component used once.
-- `build` checks that each `componentId` exists and is the right kind (`src/checks/components.ts`),
+- `build` checks that each `componentId` exists and is the right kind (`src/backend/checks/components.ts`),
   and stops before writing anything if not.
 - Ids: `door-type-…` and `window-type-…`.
 
@@ -218,7 +218,7 @@ windowComponent("window-type-front", "Front window", {
   ratios, so the design fits any size of window. The ratios share out what is left inside the
   frame after the bars.
 - In IFC each pane is a glass panel, and the frame and bars are 70 mm deep white pieces standing
-  proud of the glass (`src/geometry/window.ts`). None of them overlap.
+  proud of the glass (`src/shared/geometry/window.ts`). None of them overlap.
 - On the plan, every frame or bar piece the cut passes through shows as a small block across the
   glazing lines: the jambs and the vertical bars.
 - `build` checks that the frame and bars leave room for glass in every window of the design.
@@ -398,7 +398,7 @@ extension's walls in `extension.ts`.
 
 ## Helpers
 
-All of these are in `src/model/helpers.ts` and exported from `src/model/index.ts`. They only
+All of these are in `src/backend/model/helpers.ts` and exported from `src/backend/model/index.ts`. They only
 build plain values, so a model can always write the JSON shape out directly instead.
 
 | Helper                                                                                   | What it does                                                                                                   |
@@ -473,7 +473,7 @@ The file default-exports groups of constraints, each for one storey or one room.
 a constraints file has no constraints, and the commands print no `constr` line.
 
 ```ts
-import { corner, defineConstraints, inRoom, jamb, mm, roomCorner } from "../../src/constraints/index.js";
+import { corner, defineConstraints, inRoom, jamb, mm, roomCorner } from "../../src/backend/constraints/index.js";
 
 export default defineConstraints([
   inRoom("room-living", [
@@ -574,7 +574,7 @@ base's storeys: it cannot add, remove or change a storey.
 ```ts
 // models/examples/example-cottage/revisions/rear-extension.ts (a sketch; the real one does more)
 import base from "../index.js";
-import { addTo, door, mm, remove, replace, revise, wall } from "../../../../src/model/index.js";
+import { addTo, door, mm, remove, replace, revise, wall } from "../../../../src/backend/model/index.js";
 
 const north = base.storeys[0]!.walls.find((w) => w.id === "wall-north")!;
 
@@ -631,7 +631,7 @@ import {
   replaceConstraint,
   reviseConstraints,
   roomCorner,
-} from "../../../../src/constraints/index.js";
+} from "../../../../src/backend/constraints/index.js";
 
 export default reviseConstraints(base, [
   removeConstraint("kitchen-rear-wall-length", "rear wall demolished for the extension"),

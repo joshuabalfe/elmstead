@@ -6,7 +6,7 @@
  * owner measured. The back door's "Reduced Height" is taken as 1.8 m. Positions are traced; widths
  * chosen, not measured.
  */
-import { centredOn, door, m, mm, window, type Opening } from "../../../src/model/index.js";
+import { centredOn, door, m, mm, window, type Opening } from "../../../src/backend/model/index.js";
 import { internalDoor, standardWindow } from "../components/index.js";
 import { central, rear, extRear, leftBedRear, showerLeft, front } from "./walls.js";
 

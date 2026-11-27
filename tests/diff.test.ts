@@ -3,7 +3,7 @@ import cottage from "../models/examples/example-cottage/index.js";
 import rearExtension from "../models/examples/example-cottage/revisions/rear-extension.js";
 import elmstead from "../models/elmstead/index.js";
 import twoStorey from "./fixtures/two-storey/index.js";
-import { diffModels, type ModelDiff } from "../src/diff/index.js";
+import { diffModels, type ModelDiff } from "../src/shared/diff/index.js";
 import {
   addComponents,
   addTo,
@@ -15,9 +15,15 @@ import {
   revise,
   wall,
   windowComponent,
-} from "../src/model/index.js";
-import { idNodes } from "../src/schema/ids.js";
-import { BuildingModelSchema, type BuildingModel, type Door, type Wall, type Window } from "../src/schema/schema.js";
+} from "../src/backend/model/index.js";
+import { idNodes } from "../src/shared/schema/ids.js";
+import {
+  BuildingModelSchema,
+  type BuildingModel,
+  type Door,
+  type Wall,
+  type Window,
+} from "../src/shared/schema/schema.js";
 
 const model = (source: unknown): BuildingModel => BuildingModelSchema.parse(JSON.parse(JSON.stringify(source)));
 const base = () => model(cottage);

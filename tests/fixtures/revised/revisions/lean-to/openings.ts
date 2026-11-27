@@ -1,4 +1,4 @@
-import { doorway, mm } from "../../../../../src/model/index.js";
+import { doorway, mm } from "../../../../../src/backend/model/index.js";
 import base from "../../index.js";
 
 const north = base.storeys[0]!.walls.find((w) => w.id === "wall-north")!;

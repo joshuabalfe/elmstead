@@ -18,7 +18,7 @@
  * right); shared.ts maps one to the other. True north is 153° counter-clockwise from plan +y, so
  * the front faces about 063° (east-north-east).
  */
-import { defineBuilding, deg } from "../../src/model/index.js";
+import { defineBuilding, deg } from "../../src/backend/model/index.js";
 import { attic } from "./attic/index.js";
 import { basement } from "./basement/index.js";
 import { components } from "./components/index.js";

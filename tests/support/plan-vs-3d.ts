@@ -7,7 +7,7 @@
  * in overlapping tiles: a mismatch confined to a small area (one door gap) would vanish in a
  * whole-image percentage but stands out in its tile.
  */
-import { C, PNG_ZOOM, PX_PER_MM } from "../../src/render/style.js";
+import { C, PNG_ZOOM, PX_PER_MM } from "../../src/shared/render/style.js";
 
 /** RGBA, row-major, 4 bytes per pixel. */
 export interface Raster {

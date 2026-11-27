@@ -1,5 +1,5 @@
 // A revision that widens the living-room window, which base constraints measure.
-import { mm, replace, revise, type Window } from "../../../../src/model/index.js";
+import { mm, replace, revise, type Window } from "../../../../src/backend/model/index.js";
 import base from "../index.js";
 
 const living = base.storeys[0]!.openings.find((o) => o.id === "window-living") as Window;

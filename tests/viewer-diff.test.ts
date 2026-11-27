@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import cottage from "../models/examples/example-cottage/index.js";
 import rearExtension from "../models/examples/example-cottage/revisions/rear-extension.js";
-import { diffModels } from "../src/diff/index.js";
-import { renderFloor, renderWallTops } from "../src/render/plan.js";
-import type { Node } from "../src/render/svg.js";
-import { BuildingModelSchema, type BuildingModel, type Point, type Storey } from "../src/schema/schema.js";
+import { diffModels } from "../src/shared/diff/index.js";
+import { renderFloor, renderWallTops } from "../src/shared/render/plan.js";
+import type { Node } from "../src/shared/render/svg.js";
+import { BuildingModelSchema, type BuildingModel, type Point, type Storey } from "../src/shared/schema/schema.js";
 import {
   CHANGED_OUTLINE,
   DIFF_COLOURS,
@@ -16,7 +16,7 @@ import {
   recolourPlan,
   removedPlan,
   statusById,
-} from "../viewer/diff.js";
+} from "../src/frontend/lib/diff.js";
 
 const model = (source: unknown): BuildingModel => BuildingModelSchema.parse(JSON.parse(JSON.stringify(source)));
 const base = model(cottage);
@@ -170,7 +170,7 @@ describe("removedPlan", () => {
 describe("diff colours and plan style", () => {
   it("are recognised as no IFC presentation colour, so plan style never patches a diff material", async () => {
     const THREE = await import("three");
-    const { styleOfColour } = await import("../viewer/style-of.js");
+    const { styleOfColour } = await import("../src/frontend/scene/style-of.js");
     for (const colours of Object.values(DIFF_COLOURS)) {
       for (const hex of Object.values(colours)) expect(styleOfColour(new THREE.Color(hex)), hex).toBeUndefined();
     }
@@ -178,8 +178,8 @@ describe("diff colours and plan style", () => {
 
   it("still recognises the IFC's own colours", async () => {
     const THREE = await import("three");
-    const { styleOfColour } = await import("../viewer/style-of.js");
-    const { STYLES } = await import("../src/ifc/styles.js");
+    const { styleOfColour } = await import("../src/frontend/scene/style-of.js");
+    const { STYLES } = await import("../src/shared/ifc/styles.js");
     const wall = STYLES.wall.rgb;
     expect(styleOfColour(new THREE.Color().setRGB(wall[0], wall[1], wall[2], THREE.SRGBColorSpace))).toBe("wall");
   });

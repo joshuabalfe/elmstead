@@ -2,7 +2,7 @@
 
 `npm run build` writes `out/<name>.ifc` (IFC4, STEP format) from `out/<name>.building.json`
 using [web-ifc](https://github.com/ThatOpen/engine_web-ifc) 0.0.80. The writer is
-`src/ifc/writer.ts`. Never write or patch IFC by hand. Change the model or the writer instead.
+`src/backend/ifc/writer.ts`. Never write or patch IFC by hand. Change the model or the writer instead.
 
 ## Spatial structure
 
@@ -27,7 +27,7 @@ Units: millimetres for length, m² for area, m³ for volume and radians for plan
 | Opening          | `IfcOpeningElement` + `IfcRelVoidsElement`                                                                       | box the size of the opening, extended 10 mm past each face of the wall so the cut is clean. A window with a `reveal` is an `IfcArbitraryClosedProfileDef` of its plan outline instead, square from one face to the middle of the wall and splayed to the other, its splayed jambs carried on 10 mm past the face     |
 | Door             | `IfcDoor` + `IfcRelFillsElement`                                                                                 | 50 mm leaf in the opening; with its component's frame, three 70 mm deep `frame`-coloured pieces (jambs and head) and the leaf shrunk to fit inside them. `OperationType` is `SINGLE_SWING_LEFT` or `SINGLE_SWING_RIGHT` from `swing`                                                                                 |
 | Doorway          | `IfcOpeningElement` + `IfcRelVoidsElement` only                                                                  | no `IfcDoor` or `IfcRelFillsElement`; the opening's `Tag` is the doorway id and its `Name` the doorway's name                                                                                                                                                                                                        |
-| Window           | `IfcWindow` + `IfcRelFillsElement`                                                                               | 50 mm glazing panel at the sill height; with its component's frame and glazing bars, one panel per pane and a 70 mm deep `frame`-coloured box per frame piece and bar, none overlapping (`src/geometry/window.ts`)                                                                                                   |
+| Window           | `IfcWindow` + `IfcRelFillsElement`                                                                               | 50 mm glazing panel at the sill height; with its component's frame and glazing bars, one panel per pane and a 70 mm deep `frame`-coloured box per frame piece and bar, none overlapping (`src/shared/geometry/window.ts`)                                                                                            |
 | Slab             | `IfcSlab` (`FLOOR`)                                                                                              | outline extruded up to `elevationOffset`, `thickness` deep                                                                                                                                                                                                                                                           |
 | Stair            | `IfcStair`, `PredefinedType` from its flights' turn                                                              | none. A container only, so its geometry is counted once, through its flights and landings, which are aggregated under it by one `IfcRelAggregates`                                                                                                                                                                   |
 | Stair flight     | `IfcStairFlight` (`STRAIGHT`), aggregated under its stair                                                        | the stepped side profile with a flat tapered soffit (a hollow waist, not a solid block) extruded across the flight's `width`. Local X runs along the flight and local Y is up, so the extrusion goes across. `NumberOfRisers`, `NumberOfTreads` (risers − 1), `RiserHeight` and `TreadLength` are the derived values |
@@ -55,12 +55,12 @@ Units: millimetres for length, m² for area, m³ for volume and radians for plan
 
 ## Colours
 
-The surface colours are the `STYLES` table in `src/ifc/styles.ts`: `wall`, `slab`, `ground`, `door`,
+The surface colours are the `STYLES` table in `src/shared/ifc/styles.ts`: `wall`, `slab`, `ground`, `door`,
 `glazing`, `frame`, `stair` and `railing`. They are presentation only, but the viewer depends on them:
 
-- `styleOfColour` in `viewer/style-of.ts` matches each material's colour to the nearest `STYLES`
+- `styleOfColour` in `src/frontend/scene/style-of.ts` matches each material's colour to the nearest `STYLES`
   entry, within a distance of 0.02 in three.js's linear working space, and `patchMaterial` in
-  `viewer/main.ts` repaints what it recognises. In plan style a `wall` entry gets charcoal tops, a
+  `src/frontend/main.ts` repaints what it recognises. In plan style a `wall` entry gets charcoal tops, a
   `slab` or `ground` entry has its tops discarded, and a `stair` entry gets tread bands.
 - So **a new entry must be well clear of every existing one**, above all `wall`, `slab` and
   `ground`. A colour too close to `wall` has its upward faces painted charcoal; too close to `slab`
@@ -96,7 +96,7 @@ As a result:
 - Moving or resizing an element keeps its GlobalId, so IFC tools see the same element, changed.
 - Renaming an id produces a new GlobalId.
 
-The implementation is in `src/ifc/guid.ts`. `tests/guid.test.ts` checks it against the RFC 4122
+The implementation is in `src/backend/ifc/guid.ts`. `tests/guid.test.ts` checks it against the RFC 4122
 UUIDv5 vector and IfcOpenShell's own GUID compression.
 
 ## Verification
@@ -105,7 +105,7 @@ UUIDv5 vector and IfcOpenShell's own GUID compression.
 
 ### 1. Geometry round-trip (web-ifc)
 
-`src/ifc/roundtrip.ts` re-opens the IFC, meshes every element and compares the mesh volumes with
+`src/backend/ifc/roundtrip.ts` re-opens the IFC, meshes every element and compares the mesh volumes with
 the model:
 
 - **Wall:** length × thickness × height, minus every opening in it. This only matches if the
@@ -127,7 +127,7 @@ executes with pinned `ifcopenshell==0.9.0.post1`. It runs `ifcopenshell.validate
 - inverse attributes
 - IFC4's EXPRESS where-rules, for example `IfcPositiveLengthMeasure.WR1`
 
-Each finding is printed as one JSON line. `src/ifc/validate.ts` turns these into issues:
+Each finding is printed as one JSON line. `src/backend/ifc/validate.ts` turns these into issues:
 
 ```
 ERROR   wall-south: ifc: Depth: … IfcPositiveLengthMeasure.WR1

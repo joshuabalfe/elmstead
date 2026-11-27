@@ -8,7 +8,7 @@
  * The ground floor keeps the walls below the main half landing (../ground/walls.ts) until the
  * basement half landing and the rear hall are planned.
  */
-import { mm, pt, sub, wall, type Mm, type Wall } from "../../src/model/index.js";
+import { mm, pt, sub, wall, type Mm, type Wall } from "../../src/backend/model/index.js";
 import {
   atticHalfLanding,
   atticRidgeHeight,

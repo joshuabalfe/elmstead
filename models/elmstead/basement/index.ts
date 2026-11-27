@@ -16,7 +16,17 @@
  * a 900 mm square top landing, and a final rise onto the pavement. The front-wall piers and the
  * shower-room end-wall thickening await the eye check.
  */
-import { add, mm, pt, scale, stair, stairFlight, stairLanding, sub, type Storey } from "../../../src/model/index.js";
+import {
+  add,
+  mm,
+  pt,
+  scale,
+  stair,
+  stairFlight,
+  stairLanding,
+  sub,
+  type Storey,
+} from "../../../src/backend/model/index.js";
 import { basementFloor, coreD, coreW, extRearX, extRightY, frontStepGoing } from "../shared.js";
 import { street } from "../street.js";
 import { openings } from "./openings.js";

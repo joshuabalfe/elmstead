@@ -14,7 +14,7 @@ import {
   mm,
   roomCorner,
   wallEnd,
-} from "../../../src/constraints/index.js";
+} from "../../../src/backend/constraints/index.js";
 
 const livingSouthWest = corner({ wall: "wall-west", face: "east" }, { wall: "wall-south", face: "north" });
 

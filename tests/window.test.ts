@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import cottage from "../models/examples/example-cottage/index.js";
-import { checkComponents } from "../src/checks/components.js";
-import { windowDivision } from "../src/geometry/window.js";
-import { roundTripChecks } from "../src/ifc/roundtrip.js";
-import { writeIfc } from "../src/ifc/writer.js";
-import { renderPlan } from "../src/render/plan.js";
-import { mm } from "../src/model/index.js";
-import { BuildingModelSchema, type BuildingModel, type Glazing } from "../src/schema/schema.js";
+import { checkComponents } from "../src/backend/checks/components.js";
+import { windowDivision } from "../src/shared/geometry/window.js";
+import { roundTripChecks } from "../src/backend/ifc/roundtrip.js";
+import { writeIfc } from "../src/backend/ifc/writer.js";
+import { renderPlan } from "../src/shared/render/plan.js";
+import { mm } from "../src/backend/model/index.js";
+import { BuildingModelSchema, type BuildingModel, type Glazing } from "../src/shared/schema/schema.js";
 
 const sixPanes: Glazing = { columns: [1, 2, 1], rows: [1, 1], barWidth: mm(60) };
 

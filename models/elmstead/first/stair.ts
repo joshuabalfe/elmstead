@@ -11,7 +11,17 @@
  * The half landing is a storey of its own (../shared.ts), so the stair is two, as the main stair is
  * (../ground/stair.ts), and the wall at the back of the landing stands on it.
  */
-import { face, mid, mm, pt, stairFlight, sub, wall, type Stair, type Storey } from "../../../src/model/index.js";
+import {
+  face,
+  mid,
+  mm,
+  pt,
+  stairFlight,
+  sub,
+  wall,
+  type Stair,
+  type Storey,
+} from "../../../src/backend/model/index.js";
 import { atticHalfLandingWalls } from "../extension.js";
 import { atticFloor, atticHalfLanding, atticStairRisers, coreW, studT } from "../shared.js";
 import { bathLeft, partyIn, spine, spineEndX, spineY } from "../ground/walls.js";

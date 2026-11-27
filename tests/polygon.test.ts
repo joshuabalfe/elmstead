@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { polygonProblems, spans } from "../src/geometry/polygon.js";
+import { polygonProblems, spans } from "../src/shared/geometry/polygon.js";
 
 const P = (x: number, y: number) => ({ x, y });
 // L shape: 0..4000 wide at the bottom, 0..1000 wide above y = 2000.

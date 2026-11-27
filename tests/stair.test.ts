@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from "vitest";
 import twoStorey from "./fixtures/two-storey/index.js";
-import type { Issue } from "../src/checks/issue.js";
+import type { Issue } from "../src/backend/checks/issue.js";
 import {
   flightFootprint,
   flightProfile,
@@ -14,13 +14,13 @@ import {
   flightTreads,
   stairLevels,
   turnBetween,
-} from "../src/geometry/stair.js";
-import { m, mm, pt, stair, stairFlight, stairLanding } from "../src/model/index.js";
-import { renderFloor, renderPlan, renderWallTops } from "../src/render/plan.js";
-import { C } from "../src/render/style.js";
-import { checkIds, checkOutlines, checkStairs } from "../src/checks/model.js";
-import { BuildingModelSchema, type BuildingModel, type Stair, type StairFlight } from "../src/schema/schema.js";
-import { STYLES } from "../src/ifc/styles.js";
+} from "../src/shared/geometry/stair.js";
+import { m, mm, pt, stair, stairFlight, stairLanding } from "../src/backend/model/index.js";
+import { renderFloor, renderPlan, renderWallTops } from "../src/shared/render/plan.js";
+import { C } from "../src/shared/render/style.js";
+import { checkIds, checkOutlines, checkStairs } from "../src/backend/checks/model.js";
+import { BuildingModelSchema, type BuildingModel, type Stair, type StairFlight } from "../src/shared/schema/schema.js";
+import { STYLES } from "../src/shared/ifc/styles.js";
 
 const model = (source: unknown = twoStorey): BuildingModel =>
   BuildingModelSchema.parse(JSON.parse(JSON.stringify(source)));

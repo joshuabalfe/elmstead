@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import cottage from "../models/examples/example-cottage/index.js";
 import elmstead from "../models/elmstead/index.js";
-import { area } from "../src/geometry/polygon.js";
-import { expectedVolumes } from "../src/ifc/roundtrip.js";
-import { BuildingModelSchema, type BuildingModel } from "../src/schema/schema.js";
+import { area } from "../src/shared/geometry/polygon.js";
+import { expectedVolumes } from "../src/backend/ifc/roundtrip.js";
+import { BuildingModelSchema, type BuildingModel } from "../src/shared/schema/schema.js";
 
 const parse = (source: unknown): BuildingModel => BuildingModelSchema.parse(JSON.parse(JSON.stringify(source)));
 

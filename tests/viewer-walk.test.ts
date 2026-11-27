@@ -11,7 +11,7 @@ import {
   stepDistance,
   walkRequested,
   walkStep,
-} from "../viewer/walk.js";
+} from "../src/frontend/lib/walk.js";
 
 const origin = new THREE.Vector3(2, EYE_HEIGHT, 3);
 const north = headingBasis(new THREE.Vector3(0, 0, -1)); // looking along plan north, scene −Z

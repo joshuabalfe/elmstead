@@ -22,7 +22,7 @@
  * a simple polygon and the stair well is a hole in the middle of the floor. The half landing's
  * window is on the main half landing's storey (../ground/stair.ts), not this one.
  */
-import { mm, pt, type Polygon, type Storey } from "../../../src/model/index.js";
+import { mm, pt, type Polygon, type Storey } from "../../../src/backend/model/index.js";
 import { coreD, coreW, firstFloor, firstFloorStructure } from "../shared.js";
 import { openings } from "./openings.js";
 import { rooms } from "./rooms.js";

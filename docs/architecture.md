@@ -17,7 +17,7 @@ flowchart LR
    arithmetic and helpers ("every window is `windowW` wide"). Changing one variable changes every
    element derived from it.
 2. **The JSON contract.** The CLI imports the model, round-trips it through JSON and parses it with
-   the zod schema in `src/schema/schema.ts`. The result is written to `out/<name>.building.json`.
+   the zod schema in `src/shared/schema/schema.ts`. The result is written to `out/<name>.building.json`.
    This file sits between authoring and everything downstream, so it can be diffed, and a model
    could be written in another language as long as it produces the same JSON.
    `schema/building.schema.json` is the same schema exported as JSON Schema (draft 2020-12).
@@ -64,17 +64,25 @@ flowchart LR
 models/              building models (the only files you normally edit)
 schema/              generated JSON Schema (committed; a test fails if it is stale)
 src/
-  schema/            units (Mm, mm(), m(), deg()), the zod schema, and the id walk (ids.ts)
-  model/             authoring helpers: wall, rectWalls, face, rectRoom, door, window, centredOn; revise
-  geometry/          2D vector, wall, opening and polygon maths shared by renderers, writer and checks
-  checks/            Issue type, formatting and schema-error mapping; model-level checks
-  constraints/       constraints beside a model: schema, helpers, loader, point resolution, check
-  cli/               command entry point, model loading, deterministic JSON formatting
-  paths.ts           a model's name, entry point and constraints file; a revision's base
-  ifc/               IFC writer, GUIDs, round-trip geometry checks, validator bridge
-  render/            plan drawing primitives and SVG, PNG rasterising, 3D snapshot driver
+  shared/            browser-safe code, imported by the pipeline and the viewer
+    schema/          units (Mm, mm(), m(), deg()), the zod schema, and the id walk (ids.ts)
+    geometry/        2D vector, wall, opening and polygon maths
+    render/          plan drawing primitives and SVG, style, and view names
+    diff/            model diff computation
+    constraints/     constraint group schema and the resolved-constraint contract
+    ifc/styles.ts    the IFC presentation colours
+  backend/           Node-only pipeline
+    model/           authoring helpers: wall, rectWalls, face, rectRoom, door, window, centredOn; revise
+    checks/          Issue type, formatting and schema-error mapping; model-level checks
+    constraints/     constraint loading, point resolution and checking
+    cli/             command entry point, model loading, deterministic JSON formatting
+    paths.ts         a model's name, entry point and constraints file; a revision's base
+    ifc/             IFC writer, GUIDs, round-trip geometry checks, validator bridge
+    render/          PNG rasterising and the 3D snapshot driver
+    io.ts            atomic file writes
+    root.ts          project root and the default output directory
+  frontend/          React + Vite browser viewer, also used for 3D snapshots
 validator/           validate.py (PEP 723 script for uv) and its lockfile
-viewer/              ThatOpen + Vite browser viewer, also used for 3D snapshots
 scripts/             one-off generators (JSON Schema export) and viewer measurement (benchmark, before/after)
 tests/               vitest suites, fixtures and the plan SVG snapshot
 ```
@@ -83,16 +91,44 @@ tests/               vitest suites, fixtures and the plan SVG snapshot
 
 ```mermaid
 flowchart TD
-  cli --> schema & checks & constraints & ifc & render & paths
-  constraints --> schema & geometry & checks & paths
+  subgraph shared["src/shared (browser-safe)"]
+    schema
+    geometry
+    plan
+    diff
+    constraints
+    styles
+  end
+  subgraph backend["src/backend (Node)"]
+    cli
+    checks
+    backendConstraints["constraints"]
+    ifc
+    model
+    render
+    paths
+  end
+  subgraph frontend["src/frontend (browser)"]
+    viewer
+  end
+
+  viewer --> schema & geometry & plan & diff & constraints & styles
+  cli --> checks & backendConstraints & ifc & render & paths & diff
+  backendConstraints --> schema & geometry & checks & paths & constraints
   model --> schema & geometry
-  ifc --> schema & geometry & checks
-  render --> schema & geometry & checks
+  ifc --> schema & geometry & checks & styles
+  render --> schema & geometry & plan & checks
+  plan --> schema & geometry
   geometry --> schema
+  diff --> schema
+  constraints --> schema & geometry
 ```
 
-`schema` depends on nothing in the project. `geometry` depends only on schema types. The CLI is the
-only module that touches the filesystem layout of `out/`.
+`schema` depends on nothing in the project. `geometry` depends only on schema types. `plan`,
+`diff` and the shared constraint contract depend only on shared modules. `src/backend` may import
+`src/shared`; `src/shared` imports neither `src/backend` nor `src/frontend`, and
+`tests/frontend-boundaries.test.ts` enforces that direction. The CLI is the only module that
+touches the filesystem layout of `out/`.
 
 ## Key technology choices
 
@@ -103,6 +139,7 @@ only module that touches the filesystem layout of `out/`.
 | IFC validation | IfcOpenShell via `uv run`                                          | the reference open-source validator, including EXPRESS rules; uv keeps it to one locked script with no manual Python setup |
 | Plan rendering | hand-written SVG + resvg                                           | deterministic, no browser needed, and the SVG can be read and snapshot-tested                                              |
 | 3D viewing     | @thatopen/components + three.js, Playwright for headless snapshots | renders the real IFC; the same page works interactively and headless                                                       |
+| Viewer UI      | React 19 + Vite                                                    | component state for the controls; the scene stays imperative on ThatOpen                                                   |
 | Running TS     | tsx, with `tsc` used only for type-checking                        | no build step; models are imported directly                                                                                |
 
 All dependency versions are pinned exactly in `package.json` and `validator/validate.py`.

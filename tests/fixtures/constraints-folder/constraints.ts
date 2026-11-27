@@ -1,4 +1,4 @@
-import { defineConstraints, inStorey, jamb, mm } from "../../../src/constraints/index.js";
+import { defineConstraints, inStorey, jamb, mm } from "../../../src/backend/constraints/index.js";
 
 export default defineConstraints([
   inStorey("storey-ground", [

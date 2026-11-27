@@ -5,7 +5,7 @@
  * Measured from the owner's plan image at 8 m = 1689 px (about 4.74 mm per px), rounded to 25 mm.
  * The living room and hallway sizes are the owner's measurements, not traced.
  */
-import { add, face, faceCrossing, mm, pt, sub, wall } from "../../../src/model/index.js";
+import { add, face, faceCrossing, mm, pt, sub, wall } from "../../../src/backend/model/index.js";
 import {
   coreD,
   coreW,

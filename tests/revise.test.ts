@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import cottage from "../models/examples/example-cottage/index.js";
-import { loadModel } from "../src/cli/load.js";
-import { checkModel } from "../src/checks/model.js";
+import { loadModel } from "../src/backend/cli/load.js";
+import { checkModel } from "../src/backend/checks/model.js";
 import {
   addComponents,
   addTo,
@@ -15,8 +15,8 @@ import {
   wall,
   window,
   windowComponent,
-} from "../src/model/index.js";
-import { BuildingModelSchema, type BuildingModel, type Wall, type Window } from "../src/schema/schema.js";
+} from "../src/backend/model/index.js";
+import { BuildingModelSchema, type BuildingModel, type Wall, type Window } from "../src/shared/schema/schema.js";
 
 const base = (): BuildingModel => BuildingModelSchema.parse(JSON.parse(JSON.stringify(cottage)));
 const ground = (m: BuildingModel) => m.storeys[0]!;

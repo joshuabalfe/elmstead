@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import cottage from "../models/examples/example-cottage/index.js";
-import { checkComponents } from "../src/checks/components.js";
-import { checkOpenings } from "../src/checks/model.js";
-import { doorDivision } from "../src/geometry/door.js";
-import { ifcGuid } from "../src/ifc/guid.js";
-import { roundTripChecks } from "../src/ifc/roundtrip.js";
-import { writeIfc } from "../src/ifc/writer.js";
-import { doorway, mm } from "../src/model/index.js";
-import { doorGeometry, renderFloor, renderPlan, renderWallTops } from "../src/render/plan.js";
-import { BuildingModelSchema, type BuildingModel, type Door } from "../src/schema/schema.js";
+import { checkComponents } from "../src/backend/checks/components.js";
+import { checkOpenings } from "../src/backend/checks/model.js";
+import { doorDivision } from "../src/shared/geometry/door.js";
+import { ifcGuid } from "../src/backend/ifc/guid.js";
+import { roundTripChecks } from "../src/backend/ifc/roundtrip.js";
+import { writeIfc } from "../src/backend/ifc/writer.js";
+import { doorway, mm } from "../src/backend/model/index.js";
+import { doorGeometry, renderFloor, renderPlan, renderWallTops } from "../src/shared/render/plan.js";
+import { BuildingModelSchema, type BuildingModel, type Door } from "../src/shared/schema/schema.js";
 
 /** The cottage with its external doors given a frame. */
 function framed(width: number): BuildingModel {

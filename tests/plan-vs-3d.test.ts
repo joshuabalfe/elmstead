@@ -11,7 +11,7 @@
 import { describe, expect, it } from "vitest";
 import cottage from "../models/examples/example-cottage/index.js";
 import twoStorey from "./fixtures/two-storey/index.js";
-import { C } from "../src/render/style.js";
+import { C } from "../src/shared/render/style.js";
 import { isIgnoredColour } from "./support/plan-vs-3d.js";
 import { compareEveryStorey } from "./support/plan-compare.js";
 import { useViewer } from "./support/viewer-page.js";

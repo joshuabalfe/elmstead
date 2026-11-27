@@ -1,5 +1,5 @@
 /** Elmstead's door designs. Sizes are each door's own (../ground/openings.ts). */
-import { doorComponent, mm } from "../../../src/model/index.js";
+import { doorComponent, mm } from "../../../src/backend/model/index.js";
 
 /** The front door's frame; the owner measured 50 mm, within a 1 m opening. */
 export const frontDoor = doorComponent("door-type-front", "Front door", { frame: { width: mm(50) } });

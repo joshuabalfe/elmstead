@@ -1,4 +1,4 @@
-import { inStorey, jamb, mm } from "../../src/constraints/index.js";
+import { inStorey, jamb, mm } from "../../src/backend/constraints/index.js";
 
 const width = {
   id: "window-living-width",

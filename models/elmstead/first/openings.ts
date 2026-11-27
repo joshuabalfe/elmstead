@@ -6,8 +6,8 @@
  * The half landing's window in the extension's rear wall is on the main half landing's storey
  * (../ground/stair.ts), which holds the extension's walls at that level.
  */
-import { wallLength } from "../../../src/geometry/wall.js";
-import { add, divRound, door, doorway, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
+import { wallLength } from "../../../src/shared/geometry/wall.js";
+import { add, divRound, door, doorway, m, mm, sub, window, type Opening } from "../../../src/backend/model/index.js";
 import { bayWindow, crossBarWindow, crossWindow, internalDoor } from "../components/index.js";
 import { frontDoorOffset, frontDoorWidth } from "../ground/openings.js";
 import {

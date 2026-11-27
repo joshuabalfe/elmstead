@@ -14,8 +14,20 @@
  * The railings follow the nosing line: base 150 mm at the first tread, 600 mm at the threshold,
  * and start 20 mm up the flight so the bottom post sits wholly on the first tread.
  */
-import { add, div, m, mm, pt, railing, scale, stair, stairFlight, sub, type Mm } from "../../src/model/index.js";
-import type { Storey } from "../../src/schema/schema.js";
+import {
+  add,
+  div,
+  m,
+  mm,
+  pt,
+  railing,
+  scale,
+  stair,
+  stairFlight,
+  sub,
+  type Mm,
+} from "../../src/backend/model/index.js";
+import type { Storey } from "../../src/shared/schema/schema.js";
 import { frontDoorCentreY } from "./ground/openings.js";
 import { ground } from "./ground/index.js";
 import {

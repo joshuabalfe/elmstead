@@ -11,8 +11,8 @@ import {
   mm,
   roomCorner,
   wallEnd,
-} from "../src/constraints/index.js";
-import { loadConstraints } from "../src/constraints/load.js";
+} from "../src/backend/constraints/index.js";
+import { loadConstraints } from "../src/backend/constraints/load.js";
 import {
   ConstraintError,
   faceSide,
@@ -20,12 +20,12 @@ import {
   measureConstraint,
   resolvePoint,
   type Scope,
-} from "../src/constraints/resolve.js";
-import { loadModel } from "../src/cli/load.js";
-import { checkConstraints } from "../src/constraints/check.js";
-import { ConstraintsFileSchema, type Constraint, type Measure, type Point } from "../src/constraints/schema.js";
-import { deg, pt } from "../src/model/index.js";
-import { BuildingModelSchema, type BuildingModel } from "../src/schema/schema.js";
+} from "../src/backend/constraints/resolve.js";
+import { loadModel } from "../src/backend/cli/load.js";
+import { checkConstraints } from "../src/backend/constraints/check.js";
+import { ConstraintsFileSchema, type Constraint, type Measure, type Point } from "../src/shared/constraints/schema.js";
+import { deg, pt } from "../src/backend/model/index.js";
+import { BuildingModelSchema, type BuildingModel } from "../src/shared/schema/schema.js";
 
 /** Plain JSON, as the loader sees it after the round-trip. */
 function valid() {

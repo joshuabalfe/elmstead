@@ -53,7 +53,7 @@ number`: the IFC was written, re-opened and meshed, and the element did not mesh
   the element's numbers, then tell the user; do not nudge the model until the number changes.
 - An IfcOpenShell finding (`ERROR <id>: ...` after `valid`): schema, type, inverse or EXPRESS rule
   broken by what the writer produced. The id is the model's. For a new element type this is your
-  mapping in `src/ifc/writer.ts`; for an existing one it is a writer bug to report.
+  mapping in `src/backend/ifc/writer.ts`; for an existing one it is a writer bug to report.
 
 ## The environment
 

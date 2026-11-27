@@ -12,7 +12,7 @@
 import { join, resolve } from "node:path";
 import { chromium } from "playwright";
 import { createServer } from "vite";
-import { PROJECT_ROOT } from "../src/root.js";
+import { PROJECT_ROOT } from "../src/backend/root.js";
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.includes(name);
@@ -79,7 +79,7 @@ const round = (n: number, dp = 1) => Math.round(n * 10 ** dp) / 10 ** dp;
 
 process.env.ELMSTEAD_OUT_DIR ??= join(PROJECT_ROOT, "out");
 const server = await createServer({
-  configFile: join(root, "viewer/vite.config.ts"),
+  configFile: join(root, "src/frontend/vite/vite.config.ts"),
   server: { port: 0 },
   logLevel: "error",
 });

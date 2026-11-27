@@ -5,9 +5,12 @@
 ```sh
 npm test              # vitest: units, schema, helpers, loading, rendering, GUIDs, IFC + validator, 3D vs plan
 npm run test:fast     # the same without uv, Chromium or CLI subprocess tests
-npm run typecheck     # tsc for src/models/tests/scripts, and separately for viewer/
+npm run typecheck     # tsc for src/, models/, tests/ and scripts/, then separately for src/frontend/
 npm run format        # prettier --write
 npm run format:check  # prettier --check (CI)
+npm run view           # interactive viewer (Vite dev server)
+npm run viewer:build   # production viewer bundle in dist/
+npm run viewer:preview # serve the built viewer
 npm run check         # model checks only, writing nothing
 npm run all           # build, then render if the build succeeded
 npm run schema        # regenerate schema/building.schema.json from the zod schema
@@ -19,7 +22,7 @@ which `npm install` downloads (see [Getting started](getting-started.md#prerequi
 
 ## Model checks
 
-`src/checks/model.ts` holds the cross-element rules that the schema cannot express. `checkModel`
+`src/backend/checks/model.ts` holds the cross-element rules that the schema cannot express. `checkModel`
 runs them before `build` writes anything and before `render` writes a plan; an ERROR means no
 output is written and the command exits 1. The rules are:
 
@@ -73,6 +76,8 @@ tests table below).
 | `tests/ci-config.test.ts`               | the CI matrix's groups, its `rest` excludes and `test:fast`'s excludes name the same heavy files                                                                                                                                            |
 | `tests/validate.test.ts`                | validator bridge: non-JSON output, truncated JSON, wrong-shaped lines, summary defaults, crash status and exit 1 with findings (fake `uv`)                                                                                                  |
 | `tests/viewer.test.ts`                  | layer disposal keeping shared materials, path confinement, malformed encoding and `?view=` fallback; measurement maths, snap choice and click slop; element id/name labels; plan-overlay geometry (scale, run order, depth, text placement) |
+| `tests/frontend-boundaries.test.ts`     | the import boundary: shared stays browser-safe, and browser frontend code imports no Node or backend modules                                                                                                                                |
+| `tests/viewer-plugin.test.ts`           | the dev and preview routes: model list, IFCs, WASM, 404s and request confinement                                                                                                                                                            |
 | `tests/viewer-identify.test.ts`         | the Ids toggle, hover tooltip content, drag/view/walk/storey composition, the `?ids` lifecycle, room-id labels and the snapshot exemption in headless Chromium                                                                              |
 | `tests/viewer-measure.test.ts`          | snapped picks, drag/tap handling, Clear/Escape, model changes and the snapshot exemption in headless Chromium                                                                                                                               |
 | `tests/snapshot.test.ts`                | a viewer failure is an ERROR and the server closes                                                                                                                                                                                          |
@@ -121,7 +126,7 @@ npx tsx scripts/compare-viewer.ts --before ../elmstead-main elmstead
 - `compare-viewer.ts` captures plan-style views from both checkouts: the top view and two
   corners, each storey alone, and close-ups of a window, a door swing and a dimension figure. It
   writes before | after | difference images, each view's mismatch ratio, and an `index.html` to
-  `out/compare-viewer/`.
+  `out/compare-src/frontend/`.
 
 Both serve this checkout's `out/`, so build the model first.
 
@@ -135,8 +140,8 @@ cancels its stale run. Three kinds of job, all started together:
   `openspec/`, `.agents/` or `*.md` skips it; pushes to `main` always run it. It needs no
   checkout, so it finishes in seconds.
 - **fast**: `npm ci`, `npm run typecheck`, `npm run format:check`, a schema freshness check
-  (`npm run schema && git diff --exit-code schema/`) and `npm run test:fast`. It is the quick
-  signal; **full** does not wait for it.
+  (`npm run schema && git diff --exit-code schema/`), `npm run viewer:build` and
+  `npm run test:fast`. It is the quick signal; **full** does not wait for it.
 - **full**: installs uv and Chromium's system libraries, then runs `npm test`, including the
   IfcOpenShell validator and the 3D-versus-plan comparison. It runs as a matrix of groups, one
   runner each, because the browser and CLI tests fight over the cores of a single runner. Each
@@ -155,6 +160,7 @@ The actions are pinned by commit SHA, matching the repo's exact-version rule.
 | ----------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `out/**`                      | `npm run build` / `npm run render`       | git-ignored; never edit                                                                              |
 | `out/<name>.constraints.json` | `npm run build`                          | resolved constraints for the viewer's red labels; written only when the model has a constraints file |
+| `dist/**`                     | `npm run viewer:build`                   | git-ignored; the built viewer bundle                                                                 |
 | `schema/building.schema.json` | `npm run schema`                         | committed; `tests/schema.test.ts` fails if it is stale                                               |
 | `validator/validate.py.lock`  | `uv lock --script validator/validate.py` | run after changing the script's dependencies                                                         |
 | `tests/__snapshots__/*.svg`   | `npx vitest run -u`                      | review the diff before committing                                                                    |
@@ -169,7 +175,7 @@ The actions are pinned by commit SHA, matching the repo's exact-version rule.
 - **Lengths:** always `Mm`. Convert to metres (`toMetres`) only for display.
 - **Determinism:** no `Date.now()`, no random numbers, and no iteration over unordered sources in
   anything that ends up in `out/`.
-- **Messages:** report problems as an `Issue` (`src/checks/issue.ts`) against an element id.
+- **Messages:** report problems as an `Issue` (`src/backend/checks/issue.ts`) against an element id.
 - **Versions:** pin dependencies exactly. Check the current release before adding or upgrading a
   dependency.
 - **Commits:** keep each change small and runnable. Run `npm test`, `npm run typecheck` and
@@ -184,54 +190,54 @@ storeys are) often does the job.
 The plan SVG, the IFC and the viewer are three separate renderings of one model. A type that is
 right in two and wrong in the third passes every unit test, so decide how it looks in each, and its
 colours, before you write code. The [`add-support-for-new-element-types`](../.agents/skills/add-support-for-new-element-types/SKILL.md)
-skill walks through that. Then work through this list in order. The railing (`src/geometry/railing.ts`
+skill walks through that. Then work through this list in order. The railing (`src/shared/geometry/railing.ts`
 and every file that mentions `railing`) is the most recent example.
 
 **The model**
 
-1. **Schema:** add a strict zod object with `.meta({ id })` in `src/schema/schema.ts`, put it on
+1. **Schema:** add a strict zod object with `.meta({ id })` in `src/shared/schema/schema.ts`, put it on
    the storey (or wherever it belongs), and export its inferred type. Use `Mm` for every length
    and give it an `id`.
 2. **Ids:** add its collection to `STOREY_COLLECTIONS` and its kind to the `IdNode` union and
-   `idNodes` in `src/schema/ids.ts`. Id uniqueness, GlobalIds, constraints and the diff all find
+   `idNodes` in `src/shared/schema/ids.ts`. Id uniqueness, GlobalIds, constraints and the diff all find
    elements through it.
 3. **JSON Schema:** run `npm run schema` and commit `schema/building.schema.json`.
-4. **Revisions:** add its schema to `SCHEMAS` in `src/model/revise.ts`, so a revision can add,
+4. **Revisions:** add its schema to `SCHEMAS` in `src/backend/model/revise.ts`, so a revision can add,
    replace and remove it.
-5. **Diff:** add its kind to `COMPARED` in `src/diff/index.ts`, and its collection to the ones
+5. **Diff:** add its kind to `COMPARED` in `src/shared/diff/index.ts`, and its collection to the ones
    `signature` leaves out of a storey. A kind missing here never shows up in a revision's diff.
-6. **Helpers** (optional): add authoring helpers to `src/model/helpers.ts`.
-7. **Checks:** add model-level rules for it to `src/checks/`. Constraints can point at a kind
-   only if `src/constraints/` looks it up; add it there only when a measurement needs it.
+6. **Helpers** (optional): add authoring helpers to `src/backend/model/helpers.ts`.
+7. **Checks:** add model-level rules for it to `src/backend/checks/`. Constraints can point at a kind
+   only if `src/backend/constraints/` looks it up; add it there only when a measurement needs it.
 8. **Geometry** (when the IFC, the round-trip and the plan share it): put it in
-   `src/geometry/<kind>.ts`, as the railing and stair do, so the three cannot disagree.
+   `src/shared/geometry/<kind>.ts`, as the railing and stair do, so the three cannot disagree.
 
 **The IFC**
 
-9. **Writer:** map it to an IFC4 entity in `src/ifc/writer.ts`:
+9. **Writer:** map it to an IFC4 entity in `src/backend/ifc/writer.ts`:
    - GlobalId from `ifcGuid(id)`, and `Tag` set to the id (the viewer finds elements by `Tag`)
    - spatial containment
    - geometry and a style
-10. **IFC colour:** add its entry to `STYLES` in `src/ifc/styles.ts`. It must be far from every
+10. **IFC colour:** add its entry to `STYLES` in `src/shared/ifc/styles.ts`. It must be far from every
     other entry (see [IFC output](ifc.md#colours)).
-11. **Round-trip:** add a volume (or other geometric) check to `src/ifc/roundtrip.ts`.
+11. **Round-trip:** add a volume (or other geometric) check to `src/backend/ifc/roundtrip.ts`.
 
 **The plan**
 
-12. **Draw it** in `src/render/plan.ts` with `class` and `data-id` attributes. Say whether it
+12. **Draw it** in `src/shared/render/plan.ts` with `class` and `data-id` attributes. Say whether it
     widens the drawing's extent (`makeView`) and where it falls in the draw order.
-13. **Plan colour:** add it to `C` in `src/render/style.ts`. It must stay clear of wall, room and
+13. **Plan colour:** add it to `C` in `src/shared/render/style.ts`. It must stay clear of wall, room and
     paper unless the element should take part in the plan-versus-3D comparison (see
     [Rendering](rendering.md#colours)).
 
 **The viewer**
 
-14. **Storey ownership:** add it to the owner map in `applyStoreyVisibility` in `viewer/main.ts`,
+14. **Storey ownership:** add it to the owner map in `applyStoreyVisibility` in `src/frontend/scene/engine.ts`,
     so the storey picker hides it with its storey.
 15. **Bounds:** add its points to `shownBox`, and its height to `setView`'s vertical extent, if
     either can reach beyond the walls, slabs and rooms.
 16. **Presentation:** if it needs a recolour in plan style or a shader patch, add it to
-    `patchMaterial`. The viewer recognises it by its IFC colour (`viewer/style-of.ts`), so step 10
+    `patchMaterial`. The viewer recognises it by its IFC colour (`src/frontend/scene/style-of.ts`), so step 10
     decides whether this is possible.
 17. **Plan-versus-3D:** the comparison either compares the element or ignores it. A plan colour
     that matches none of wall, room or paper is ignored (`isIgnoredColour` in

@@ -1,5 +1,5 @@
 /** First-floor rooms, outlined along the faces of the walls around them (./walls.ts). */
-import { pt, type Room } from "../../../src/model/index.js";
+import { pt, type Room } from "../../../src/backend/model/index.js";
 import { extRightY } from "../shared.js";
 import { partitionRear, partitionX } from "../ground/walls.js";
 import {

@@ -7,7 +7,7 @@
  * room (both read as chimney breasts on the drawing). The stair flight in the extension belongs to
  * a later pass; the well is left open here.
  */
-import { add, face, mm, pt, wall } from "../../../src/model/index.js";
+import { add, face, mm, pt, wall } from "../../../src/backend/model/index.js";
 import { basementFloor, externalRuns, externalWall, partT } from "../shared.js";
 import { partitionX } from "../ground/walls.js";
 

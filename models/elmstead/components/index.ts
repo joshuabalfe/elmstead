@@ -1,5 +1,5 @@
 /** Elmstead's door and window components (the building's `components`), one file per kind. */
-import type { Components } from "../../../src/model/index.js";
+import type { Components } from "../../../src/backend/model/index.js";
 import { frontDoor, internalDoor } from "./doors.js";
 import {
   bayWindow,

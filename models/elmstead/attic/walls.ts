@@ -8,7 +8,7 @@
  * Heights and the ridge position are provisional (see ../shared.ts). The internal layout awaits the
  * owner's attic plan.
  */
-import { mm, pt, sub, wall } from "../../../src/model/index.js";
+import { mm, pt, sub, wall } from "../../../src/backend/model/index.js";
 import { atticRidgeHeight, atticRidgeX, coreD, coreW, externalRuns, frontT } from "../shared.js";
 
 const ridge = atticRidgeHeight;

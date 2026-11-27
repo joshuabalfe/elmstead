@@ -7,14 +7,14 @@ import elmstead from "../models/elmstead/index.js";
 import { stairwellOutline } from "../models/elmstead/first/index.js";
 import { stairArrivalX, stairLeftY, stairRightY } from "../models/elmstead/first/walls.js";
 import { coreW, extRearX } from "../models/elmstead/shared.js";
-import { checkModel } from "../src/checks/model.js";
-import { railingGeometry } from "../src/geometry/railing.js";
-import { flightFootprint, stairLevels } from "../src/geometry/stair.js";
-import { wallDirection, wallHeight, wallLength } from "../src/geometry/wall.js";
-import { face, faceCrossing, mm } from "../src/model/index.js";
-import { renderFloor, renderPlan } from "../src/render/plan.js";
-import { C } from "../src/render/style.js";
-import type { Storey } from "../src/schema/schema.js";
+import { checkModel } from "../src/backend/checks/model.js";
+import { railingGeometry } from "../src/shared/geometry/railing.js";
+import { flightFootprint, stairLevels } from "../src/shared/geometry/stair.js";
+import { wallDirection, wallHeight, wallLength } from "../src/shared/geometry/wall.js";
+import { face, faceCrossing, mm } from "../src/backend/model/index.js";
+import { renderFloor, renderPlan } from "../src/shared/render/plan.js";
+import { C } from "../src/shared/render/style.js";
+import type { Storey } from "../src/shared/schema/schema.js";
 
 type Pt = { x: number; y: number };
 

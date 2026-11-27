@@ -50,7 +50,7 @@ Answer each before any code. These are the decisions that are expensive to find 
   Does it enlarge the shown bounds or the storey's height?
 - **Checks.** What must be true of it and its neighbours: it fits its host, does not overlap,
   has a length, spans what it must (pitched walls: the profile spans the wall and an opening fits
-  under the top edge). These become rules in `src/checks/`.
+  under the top edge). These become rules in `src/backend/checks/`.
 - **Colour.** One IFC colour and one plan colour. Rules in [IFC colours](../../../docs/ifc.md#colours)
   and [plan colours](../../../docs/rendering.md#colours): the IFC one far from every `STYLES` entry,
   the plan one clear of wall, room and paper unless it is meant to be compared.
@@ -71,7 +71,7 @@ rooms and not your kind is a gap, or needs a stated reason.
 
 Traps that have each cost a change:
 
-- **A kind missing from `COMPARED` (`src/diff/index.ts`)** never appears in a revision's diff, and
+- **A kind missing from `COMPARED` (`src/shared/diff/index.ts`)** never appears in a revision's diff, and
   nothing fails.
 - **A kind missing from the viewer's owner map** stays visible when its storey is hidden.
 - **An IFC colour near `wall`, `slab` or `ground`** gets its tops painted charcoal or discarded in

@@ -2,7 +2,7 @@ import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { validateIfc, type IfcValidation } from "../src/ifc/validate.js";
+import { validateIfc, type IfcValidation } from "../src/backend/ifc/validate.js";
 
 /** Run validateIfc with a fake `uv` first on PATH. */
 function withFakeUv(script: string): IfcValidation {

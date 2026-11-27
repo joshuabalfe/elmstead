@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { wallHeight, wallSideArea, wallTopAt, wallTopMin } from "../src/geometry/wall.js";
-import { mm, pt, wall } from "../src/model/index.js";
+import { wallHeight, wallSideArea, wallTopAt, wallTopMin } from "../src/shared/geometry/wall.js";
+import { mm, pt, wall } from "../src/backend/model/index.js";
 
 const flat = wall("wall-flat", pt(mm(0), mm(0)), pt(mm(4000), mm(0)), { thickness: mm(200), height: mm(2400) });
 const gable = wall("wall-gable", pt(mm(0), mm(0)), pt(mm(4000), mm(0)), {
