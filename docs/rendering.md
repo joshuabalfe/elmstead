@@ -63,6 +63,24 @@ margins.
 So the PNG is identical on every machine. `tests/render.test.ts` snapshot-tests the cottage's
 SVG in `tests/__snapshots__/`.
 
+## Colours
+
+The plan's colours are `C` in `src/render/style.ts`. The viewer draws the same colours in plan
+style, so they have three jobs, and a new one must be chosen for all three:
+
+- **The plan-versus-3D comparison.** `tests/support/plan-vs-3d.ts` classifies each pixel as wall,
+  room or paper, within 5 per channel of `C.wall`, `C.room` or `C.paper`, and compares only those
+  pixels. A colour that matches none of the three is ignored, as stair, ground and railing pixels
+  are (`isIgnoredColour`). So a new element's plan colour is either one of those three, because it
+  should be compared, or clear of all three. Never near one by accident: a pixel that is nearly
+  wall colour is wrongly compared. Storeys with pitched walls, or walls under 2 m across, are
+  skipped altogether (`comparable` in `tests/support/plan-compare.ts`).
+- **The viewer's own recolouring.** A stair and a railing keep their IFC colours for the viewer to
+  recognise ([IFC output](ifc.md#colours)), and only the stair is recoloured on top of it.
+- **Diff mode.** Added, changed and removed elements take the diff's greens, yellows and reds (see
+  the table under [The viewer](#the-viewer)), so a colour near those reads as a change that is not
+  one.
+
 ## 3D snapshots
 
 `render` starts the viewer (below) on a free port, opens it in headless Chromium through
@@ -84,6 +102,10 @@ openings cut, doors and glazing in place, colours applied.
 - Pass `--no-3d` to skip the snapshots. They add about 5 seconds.
 
 ## The viewer
+
+To see a viewer state from a script, headless, use the
+[inspect-the-rendered-output](../.agents/skills/inspect-the-rendered-output/SKILL.md) skill: it has a
+recipe and a table of the URL parameters below.
 
 `viewer/` is a small Vite app built on
 [@thatopen/components](https://github.com/ThatOpen/engine_components) and three.js.

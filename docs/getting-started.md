@@ -78,7 +78,9 @@ ERROR   wall-hall-west: schema: storeys.0.walls.4.thickness: Too small: expected
 ```
 
 The id is always one of the model's own element ids, including for IFC validation findings, so
-you can go straight to the line in `models/` that needs changing.
+you can go straight to the line in `models/` that needs changing. The
+[diagnose-a-failing-check](../.agents/skills/diagnose-a-failing-check/SKILL.md) skill lists the
+messages and what each means.
 
 ## The 3D viewer
 

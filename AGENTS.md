@@ -12,6 +12,18 @@ Your harness may not load them itself, so before starting a task, list `.agents/
 the front matter of each `SKILL.md`. When a skill's description fits the task, read the whole file
 and follow it. When the user names a skill (for example `/openspec-propose`), use that one.
 
+Skills for working on a model and its output (the OpenSpec skills are under
+[Changes](#changes-openspec)):
+
+| Skill | Use it to |
+|---|---|
+| `edit-an-existing-building-model` | change the base model, the building as it is: the check, build, render loop and its traps |
+| `record-model-constraints` | record a measurement the user gave, or handle a failing constraint |
+| `propose-a-model-revision` | write, build and review a proposed alternative (a revision), leaving the base model untouched |
+| `add-support-for-new-element-types` | add an element type or geometry variant, correct in the IFC, plan and viewer |
+| `diagnose-a-failing-check` | decide whether a failure is the model, a constraint, the pipeline or the environment |
+| `inspect-the-rendered-output` | look at the plan, 3D and Diff pictures and any viewer URL state |
+
 ## Commands
 
 ```sh
@@ -35,9 +47,14 @@ feedback loop while iterating.
 - **Never edit generated files by hand.** That means `out/` (git-ignored),
   `schema/building.schema.json`, SVG snapshots and IFC. Regenerate them instead. See
   [docs/development.md](docs/development.md#generated-files).
-- **When a constraint fails, fix the model, not the constraint.** A model's constraints file
-  (`constraints.ts` or `<name>.constraints.ts`) holds real measurements. Change or add a
-  constraint only when the user gives a measurement, with a `note` saying where it came from. See
+- **When a constraint fails, fix the model, not the constraint.** A constraint is an immovable,
+  real measurement, such as the distance from a corner to a window, that edits to other dimensions
+  (a room made wider, a wall thickened) must not break. A model's constraints file
+  (`constraints.ts` or `<name>.constraints.ts`) holds them.
+- **Ask the user before you change, loosen, replace or remove an existing constraint**, in a model
+  or in a revision, and say which one and why. That includes a new measurement from the user that
+  disagrees with one already recorded: confirm which is right. Add a constraint only when the user
+  gives a measurement, with a `note` saying where it came from. See
   [docs/modelling.md](docs/modelling.md#constraints).
 - **Keep the schema small.** If a model needs something the schema can't express, propose a
   new element type and agree its shape before adding it. Don't invent one.

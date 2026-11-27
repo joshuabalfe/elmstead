@@ -42,12 +42,9 @@ Units: millimetres for length, m² for area, m³ for volume and radians for plan
   `DOUBLE_PANEL_HORIZONTAL`; three side by side or stacked are `TRIPLE_PANEL_VERTICAL` or
   `TRIPLE_PANEL_HORIZONTAL`. Any other grid, such as 3 × 2, is `USERDEFINED` with
   `UserDefinedPartitioningType` `"3x2 grid"`. IFC4 has no `MULTIPLE_PANEL` value.
-- Walls, slabs, doors, glazing, stair flights and stair landings carry `IfcStyledItem` surface
-  colours. These are only so they can be told apart in any viewer; they have no building meaning.
-  The stair colour is deliberately far from every other entry in `STYLES`: the viewer matches each
-  material against that table and repaints what it recognises, so a stair colour too close to the
-  wall or slab entry would have its upward faces painted or discarded (see `styleOf` in
-  `viewer/main.ts`).
+- Walls, slabs, doors, glazing, frames and glazing bars, stair flights and landings, and railings
+  carry `IfcStyledItem` surface colours (see [Colours](#colours)). They are only so the elements can
+  be told apart in any viewer; they have no building meaning.
 - A stair's `PredefinedType` comes from the turning angle between its flights: one flight is
   `STRAIGHT_RUN_STAIR`, two flights at 0°, 90° or 180° are `TWO_STRAIGHT_RUN_STAIR`,
   `QUARTER_TURN_STAIR` or `HALF_TURN_STAIR`, and anything else is `NOTDEFINED`. These are the IFC4
@@ -55,6 +52,23 @@ Units: millimetres for length, m² for area, m³ for volume and radians for plan
   rejects both spellings.
 - Door handing follows the IFC4 convention: look at the door from the side it opens towards. If
   the hinge is on your left, it is `SINGLE_SWING_LEFT`.
+
+## Colours
+
+The surface colours are the `STYLES` table in `src/ifc/styles.ts`: `wall`, `slab`, `ground`, `door`,
+`glazing`, `frame`, `stair` and `railing`. They are presentation only, but the viewer depends on them:
+
+- `styleOfColour` in `viewer/style-of.ts` matches each material's colour to the nearest `STYLES`
+  entry, within a distance of 0.02 in three.js's linear working space, and `patchMaterial` in
+  `viewer/main.ts` repaints what it recognises. In plan style a `wall` entry gets charcoal tops, a
+  `slab` or `ground` entry has its tops discarded, and a `stair` entry gets tread bands.
+- So **a new entry must be well clear of every existing one**, above all `wall`, `slab` and
+  `ground`. A colour too close to `wall` has its upward faces painted charcoal; too close to `slab`
+  and they vanish. An element the viewer should leave alone needs a colour no entry is near.
+- Nothing tests the distances yet. When adding an entry, compute it against each existing one and
+  check the element in the viewer in plan style and with `?style=ifc`.
+- The plan has its own colour table ([Rendering](rendering.md#colours)). The two tables are
+  separate, and each has its own rule.
 
 ## GlobalIds
 
