@@ -21,7 +21,16 @@ const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 export async function loadModel(path: string): Promise<LoadResult> {
   const rev = revisionOf(path);
   if (rev && !KEBAB.test(rev.revision)) {
-    return { ok: false, issues: [{ level: "ERROR", id: path, message: `revision name "${rev.revision}" must be lower-case kebab-case, e.g. rear-extension` }] };
+    return {
+      ok: false,
+      issues: [
+        {
+          level: "ERROR",
+          id: path,
+          message: `revision name "${rev.revision}" must be lower-case kebab-case, e.g. rear-extension`,
+        },
+      ],
+    };
   }
   let exported: unknown;
   try {
@@ -29,8 +38,18 @@ export async function loadModel(path: string): Promise<LoadResult> {
     exported = mod.default;
   } catch (e) {
     // A revision edit names the id it could not apply; report it there, like every other model error.
-    if (e instanceof RevisionError) return { ok: false, issues: [{ level: "ERROR", id: e.id, message: `revision: ${e.message}` }] };
-    return { ok: false, issues: [{ level: "ERROR", id: path, message: `model threw while evaluating: ${e instanceof Error ? e.stack ?? e.message : e}` }] };
+    if (e instanceof RevisionError)
+      return { ok: false, issues: [{ level: "ERROR", id: e.id, message: `revision: ${e.message}` }] };
+    return {
+      ok: false,
+      issues: [
+        {
+          level: "ERROR",
+          id: path,
+          message: `model threw while evaluating: ${e instanceof Error ? (e.stack ?? e.message) : e}`,
+        },
+      ],
+    };
   }
   if (exported === undefined) {
     return { ok: false, issues: [{ level: "ERROR", id: path, message: "model has no default export" }] };
@@ -40,16 +59,31 @@ export async function loadModel(path: string): Promise<LoadResult> {
   try {
     json = JSON.parse(JSON.stringify(exported));
   } catch (e) {
-    return { ok: false, issues: [{ level: "ERROR", id: path, message: `model cannot be written as JSON: ${e instanceof Error ? e.message : e}` }] };
+    return {
+      ok: false,
+      issues: [
+        { level: "ERROR", id: path, message: `model cannot be written as JSON: ${e instanceof Error ? e.message : e}` },
+      ],
+    };
   }
   const parsed = BuildingModelSchema.safeParse(json);
   if (!parsed.success) return { ok: false, issues: parsed.error.issues.map((i) => schemaIssue(json, i)) };
   if (!rev) return { ok: true, value: { name: modelName(path), model: parsed.data } };
   const base = await loadModel(rev.basePath);
-  if (!base.ok) return { ok: false, issues: [...base.issues, { level: "ERROR", id: path, message: `the revision's base model, ${rev.basePath}, did not validate` }] };
+  if (!base.ok)
+    return {
+      ok: false,
+      issues: [
+        ...base.issues,
+        { level: "ERROR", id: path, message: `the revision's base model, ${rev.basePath}, did not validate` },
+      ],
+    };
   const issues = storeyMismatches(base.value.model, parsed.data, rev.model);
   if (issues.length) return { ok: false, issues };
-  return { ok: true, value: { name: modelName(path), model: parsed.data, base: { path: rev.basePath, model: base.value.model } } };
+  return {
+    ok: true,
+    value: { name: modelName(path), model: parsed.data, base: { path: rev.basePath, model: base.value.model } },
+  };
 }
 
 /** A revision keeps its base's storeys: one ERROR per storey it lacks or adds. */
@@ -57,7 +91,19 @@ function storeyMismatches(base: BuildingModel, revision: BuildingModel, baseName
   const baseIds = new Set(base.storeys.map((s) => s.id));
   const revIds = new Set(revision.storeys.map((s) => s.id));
   return [
-    ...[...baseIds].filter((id) => !revIds.has(id)).map((id): Issue => ({ level: "ERROR", id, message: `storey of ${baseName} is missing from the revision; a revision keeps its base's storeys` })),
-    ...[...revIds].filter((id) => !baseIds.has(id)).map((id): Issue => ({ level: "ERROR", id, message: `storey is not in ${baseName}; a revision keeps its base's storeys` })),
+    ...[...baseIds]
+      .filter((id) => !revIds.has(id))
+      .map((id): Issue => ({
+        level: "ERROR",
+        id,
+        message: `storey of ${baseName} is missing from the revision; a revision keeps its base's storeys`,
+      })),
+    ...[...revIds]
+      .filter((id) => !baseIds.has(id))
+      .map((id): Issue => ({
+        level: "ERROR",
+        id,
+        message: `storey is not in ${baseName}; a revision keeps its base's storeys`,
+      })),
   ];
 }

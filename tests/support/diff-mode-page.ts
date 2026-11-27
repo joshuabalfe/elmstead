@@ -57,7 +57,8 @@ export async function open(query: string) {
   await drawn();
 }
 
-export const drawn = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+export const drawn = () =>
+  page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
 export const viewChanges = () => page.evaluate(() => window.__elmsteadViewChanges ?? 0);
 
 /** Run a view change (a click or a key) and wait until it has been applied and drawn. */
@@ -114,7 +115,12 @@ export function count(r: Raster, test: (red: number, green: number, blue: number
     n++;
     const p = i / 4;
     const [x, y] = [p % r.width, Math.floor(p / r.width)];
-    [box.x0, box.y0, box.x1, box.y1] = [Math.min(box.x0, x), Math.min(box.y0, y), Math.max(box.x1, x), Math.max(box.y1, y)];
+    [box.x0, box.y0, box.x1, box.y1] = [
+      Math.min(box.x0, x),
+      Math.min(box.y0, y),
+      Math.max(box.x1, x),
+      Math.max(box.y1, y),
+    ];
   }
   return { n, box };
 }
@@ -166,7 +172,9 @@ export async function findHover(status: string): Promise<{ x: number; y: number 
     for (let x = 120; x < VIEWPORT.width - 300; x += 25) {
       await page.mouse.move(x, y);
       await page.waitForTimeout(30);
-      const h = await page.evaluate(() => (window as unknown as { __elmsteadHover?: { status?: string } | null }).__elmsteadHover ?? null);
+      const h = await page.evaluate(
+        () => (window as unknown as { __elmsteadHover?: { status?: string } | null }).__elmsteadHover ?? null,
+      );
       if (h?.status === status) return { x, y };
     }
   }
@@ -179,25 +187,40 @@ export function useDiffMode() {
     try {
       browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
     } catch (e) {
-      if (/Executable doesn't exist|playwright install/i.test(String(e))) throw new Error("Chromium missing — it comes with npm install (@playwright/browser-chromium); if install scripts were skipped, run: npm rebuild @playwright/browser-chromium");
+      if (/Executable doesn't exist|playwright install/i.test(String(e)))
+        throw new Error(
+          "Chromium missing — it comes with npm install (@playwright/browser-chromium); if install scripts were skipped, run: npm rebuild @playwright/browser-chromium",
+        );
       throw e;
     }
     outDir = mkdtempSync(join(tmpdir(), "elmstead-diff-mode-"));
     process.env.ELMSTEAD_OUT_DIR = outDir;
     const cottage = await model("models/examples/example-cottage");
     await publish(COTTAGE, cottage);
-    await publish(`${COTTAGE}@rear-extension`, await model("models/examples/example-cottage/revisions/rear-extension.ts"));
+    await publish(
+      `${COTTAGE}@rear-extension`,
+      await model("models/examples/example-cottage/revisions/rear-extension.ts"),
+    );
     await publish(`${COTTAGE}@no-kitchen-window`, revise(cottage, [remove("window-kitchen")]));
     // The two-storey fixture: an upper-floor wall removed, a ground-floor wall added.
     const two = await model("tests/fixtures/two-storey");
     await publish(TWO, two);
     const upperWall = two.storeys[1]!.walls.find((w) => !two.storeys[1]!.openings.some((o) => o.wallId === w.id))!;
-    const shed = wall("wall-shed", pt(mm(-2000), mm(0)), pt(mm(-2000), mm(2000)), { thickness: mm(200), height: mm(2400) });
-    await publish(`${TWO}@both-floors`, revise(two, [remove(upperWall.id), addTo(two.storeys[0]!.id, { walls: [shed] })]));
+    const shed = wall("wall-shed", pt(mm(-2000), mm(0)), pt(mm(-2000), mm(2000)), {
+      thickness: mm(200),
+      height: mm(2400),
+    });
+    await publish(
+      `${TWO}@both-floors`,
+      revise(two, [remove(upperWall.id), addTo(two.storeys[0]!.id, { walls: [shed] })]),
+    );
     await publish(ELM, await model("models/elmstead")); // stairs, for Transparency's stair presentation
     // A base with its JSON but no IFC, and a revision of it.
     await publish(NOBASE, cottage, { ifc: false });
-    await publish(`${NOBASE}@rear-extension`, await model("models/examples/example-cottage/revisions/rear-extension.ts"));
+    await publish(
+      `${NOBASE}@rear-extension`,
+      await model("models/examples/example-cottage/revisions/rear-extension.ts"),
+    );
     server = await createServer({ configFile: "viewer/vite.config.ts", server: { port: 0 }, logLevel: "error" });
     await server.listen();
     baseUrl = server.resolvedUrls!.local[0]!;

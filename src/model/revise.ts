@@ -3,7 +3,14 @@
  * changes `base`. Every edit names ids, so a revision fails loudly when its base changes under it.
  */
 import type { z } from "zod";
-import { idNodes, RevisionError, type ComponentCollection, type IdNode, type IdPlace, type StoreyCollection } from "../schema/ids.js";
+import {
+  idNodes,
+  RevisionError,
+  type ComponentCollection,
+  type IdNode,
+  type IdPlace,
+  type StoreyCollection,
+} from "../schema/ids.js";
 import {
   DoorComponentSchema,
   OpeningSchema,
@@ -17,7 +24,6 @@ import {
   type Components,
   type Storey,
 } from "../schema/schema.js";
-
 
 /** What `addTo` puts on a storey, by collection. */
 export type StoreyAdditions = { [K in StoreyCollection]?: NonNullable<Storey[K]> };
@@ -38,7 +44,11 @@ export const remove = (...refs: Ref[]): Edit => ({ op: "remove", ids: refs.map(i
 /** Put each element or component in the place of the one with the same id. */
 export const replace = (...elements: Replacement[]): Edit => ({ op: "replace", elements });
 /** Add elements to a storey, by collection: `addTo("storey-ground", { walls: [...], openings: [...] })`. */
-export const addTo = (storey: Ref, elements: StoreyAdditions): Edit => ({ op: "addTo", storey: idOf(storey), elements });
+export const addTo = (storey: Ref, elements: StoreyAdditions): Edit => ({
+  op: "addTo",
+  storey: idOf(storey),
+  elements,
+});
 /** Add door and window components. */
 export const addComponents = (components: Partial<Components>): Edit => ({ op: "addComponents", components });
 
@@ -54,7 +64,12 @@ const SCHEMAS: Record<StoreyCollection | ComponentCollection, z.ZodType> = {
 };
 
 /** The value, checked against what its collection holds; `verb` says what was being done with it. */
-function accepted(collection: StoreyCollection | ComponentCollection, value: unknown, id: string, verb: string): unknown {
+function accepted(
+  collection: StoreyCollection | ComponentCollection,
+  value: unknown,
+  id: string,
+  verb: string,
+): unknown {
   const r = SCHEMAS[collection].safeParse(value);
   if (!r.success) {
     const detail = r.error.issues.map((i) => `${i.path.join(".") || "value"}: ${i.message}`).join("; ");
@@ -64,14 +79,19 @@ function accepted(collection: StoreyCollection | ComponentCollection, value: unk
 }
 
 /** The model's node for an id; the first, if the id is used twice (checkIds reports that). */
-const nodeOf = (model: BuildingModel, id: string): IdNode | undefined => idNodes(model).find((n) => n.element.id === id);
+const nodeOf = (model: BuildingModel, id: string): IdNode | undefined =>
+  idNodes(model).find((n) => n.element.id === id);
 
 /** Where the element or component with an id lives, or why it cannot be edited. */
 function editable(model: BuildingModel, id: string, verb: string): IdPlace {
   const node = nodeOf(model, id);
   if (!node) throw new RevisionError(id, `cannot ${verb} ${id}: it is not in the model`);
   if (node.kind === "storey") throw new RevisionError(id, `cannot ${verb} ${id}: revisions cannot change storeys`);
-  if (!("place" in node)) throw new RevisionError(id, `cannot ${verb} ${id}: a ${node.kind} is not edited on its own${node.kind.startsWith("stair ") ? "; replace its stair" : ""}`);
+  if (!("place" in node))
+    throw new RevisionError(
+      id,
+      `cannot ${verb} ${id}: a ${node.kind} is not edited on its own${node.kind.startsWith("stair ") ? "; replace its stair" : ""}`,
+    );
   return node.place;
 }
 
@@ -105,7 +125,8 @@ export function revise(base: BuildingModel, edits: readonly Edit[]): BuildingMod
         break;
       case "addTo": {
         const storey = model.storeys.find((s) => s.id === edit.storey);
-        if (!storey) throw new RevisionError(edit.storey, `cannot add to ${edit.storey}: it is not a storey of the model`);
+        if (!storey)
+          throw new RevisionError(edit.storey, `cannot add to ${edit.storey}: it is not a storey of the model`);
         for (const [collection, elements] of Object.entries(edit.elements) as [StoreyCollection, { id: string }[]][]) {
           for (const element of elements) {
             assertNew(model, element.id);

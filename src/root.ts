@@ -5,4 +5,5 @@ import { fileURLToPath } from "node:url";
 export const PROJECT_ROOT = fileURLToPath(new URL("..", import.meta.url));
 
 /** Output directory: ELMSTEAD_OUT_DIR when set, otherwise out/ at the project root. */
-export const outDir = (): string => (process.env.ELMSTEAD_OUT_DIR ? resolve(process.env.ELMSTEAD_OUT_DIR) : join(PROJECT_ROOT, "out"));
+export const outDir = (): string =>
+  process.env.ELMSTEAD_OUT_DIR ? resolve(process.env.ELMSTEAD_OUT_DIR) : join(PROJECT_ROOT, "out");

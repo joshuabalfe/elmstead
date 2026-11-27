@@ -45,22 +45,66 @@ const inner = { thickness: partT, height: wallH };
 // Central partition, stacking on the ground floor's living/bedroom partition: same face line
 // (partitionX) and same body side (towards the rear), so the two walls align vertically. The garden
 // room is behind it.
-export const central = wall("wall-central-basement", pt(partitionX, partyIn), pt(partitionX, endIn), { ...inner, justification: "left" });
+export const central = wall("wall-central-basement", pt(partitionX, partyIn), pt(partitionX, endIn), {
+  ...inner,
+  justification: "left",
+});
 const centralFront = face(central, "west");
 
 // Hallway right wall runs plan west→east with the body on its right (into the left bedroom). It
 // stops at the left bedroom's rear wall so the corridor passes the first corner openly, not blocked
 // by it.
-export const hallRight = wall("wall-hall-right-basement", pt(frontIn, hallRightY), pt(leftBedRearX, hallRightY), { ...inner, justification: "right" });
+export const hallRight = wall("wall-hall-right-basement", pt(frontIn, hallRightY), pt(leftBedRearX, hallRightY), {
+  ...inner,
+  justification: "right",
+});
 // The corridor's front edge wall runs straight down past both bedrooms to the shower. Bedroom 2 is
 // L-shaped: its rear-left leg reaches this wall, so its door sits flush with the corridor.
-export const leftBedRear = wall("wall-left-bed-rear-basement", pt(leftBedRearX, hallRightY), pt(leftBedRearX, add(showerLeftY, partT)), { ...inner, justification: "right" });
-export const bedroomDivide = wall("wall-bedroom-divide-basement", pt(frontIn, bedroomDivideY), pt(leftBedRearX, bedroomDivideY), { ...inner, justification: "left" });
+export const leftBedRear = wall(
+  "wall-left-bed-rear-basement",
+  pt(leftBedRearX, hallRightY),
+  pt(leftBedRearX, add(showerLeftY, partT)),
+  { ...inner, justification: "right" },
+);
+export const bedroomDivide = wall(
+  "wall-bedroom-divide-basement",
+  pt(frontIn, bedroomDivideY),
+  pt(leftBedRearX, bedroomDivideY),
+  { ...inner, justification: "left" },
+);
 // The end wall is thickened masonry along its whole length, like the ground floor bedroom's
 // breastBedroom: a 350 mm breast on the end wall's inner face, uniform from front wall to rear
 // wall.
-export const breastRight = wall("wall-breast-right-basement", pt(frontIn, endIn), pt(rearIn, endIn), { thickness: mm(350), height: wallH, justification: "left" });
-export const showerFront = wall("wall-shower-front-basement", pt(showerFrontX, add(showerLeftY, partT)), pt(showerFrontX, face(breastRight, "north")), { ...inner, justification: "right" });
-export const showerLeft = wall("wall-shower-left-basement", pt(showerFrontX, showerLeftY), pt(centralFront, showerLeftY), { ...inner, justification: "left" });
+export const breastRight = wall("wall-breast-right-basement", pt(frontIn, endIn), pt(rearIn, endIn), {
+  thickness: mm(350),
+  height: wallH,
+  justification: "left",
+});
+export const showerFront = wall(
+  "wall-shower-front-basement",
+  pt(showerFrontX, add(showerLeftY, partT)),
+  pt(showerFrontX, face(breastRight, "north")),
+  { ...inner, justification: "right" },
+);
+export const showerLeft = wall(
+  "wall-shower-left-basement",
+  pt(showerFrontX, showerLeftY),
+  pt(centralFront, showerLeftY),
+  { ...inner, justification: "left" },
+);
 
-export const walls = [party, end, front, rear, extRear, extRight, central, hallRight, leftBedRear, bedroomDivide, showerFront, showerLeft, breastRight];
+export const walls = [
+  party,
+  end,
+  front,
+  rear,
+  extRear,
+  extRight,
+  central,
+  hallRight,
+  leftBedRear,
+  bedroomDivide,
+  showerFront,
+  showerLeft,
+  breastRight,
+];

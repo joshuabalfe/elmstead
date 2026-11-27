@@ -10,7 +10,13 @@ describe("viewer revision names", () => {
   });
 
   it("groups names by model, in name order, listing a model that only has revisions", () => {
-    const groups = groupModels(["elmstead@rear-extension", "example-cottage", "elmstead", "elmstead@loft", "orphan@only"]);
+    const groups = groupModels([
+      "elmstead@rear-extension",
+      "example-cottage",
+      "elmstead",
+      "elmstead@loft",
+      "orphan@only",
+    ]);
     expect([...groups]).toEqual([
       ["elmstead", { base: true, revisions: ["loft", "rear-extension"] }],
       ["example-cottage", { base: true, revisions: [] }],

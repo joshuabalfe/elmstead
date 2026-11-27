@@ -27,7 +27,18 @@ export type DiffStatus = keyof ModelDiff;
  * The nodes the diff compares. The project, site and building aren't elements of the proposal, and a
  * stair's flights and landings are compared as part of their stair.
  */
-const COMPARED = new Set<IdNode["kind"]>(["storey", "wall", "door", "window", "slab", "room", "stair", "railing", "door component", "window component"]);
+const COMPARED = new Set<IdNode["kind"]>([
+  "storey",
+  "wall",
+  "door",
+  "window",
+  "slab",
+  "room",
+  "stair",
+  "railing",
+  "door component",
+  "window component",
+]);
 
 /** What is compared of a node: its JSON, a storey's without its element arrays, so only its own fields count. */
 function signature(n: IdNode): string {
@@ -36,7 +47,11 @@ function signature(n: IdNode): string {
   return JSON.stringify(fields);
 }
 
-const entry = (n: IdNode): DiffEntry => ({ id: n.element.id, kind: n.kind, ...("storey" in n ? { storey: n.storey } : {}) });
+const entry = (n: IdNode): DiffEntry => ({
+  id: n.element.id,
+  kind: n.kind,
+  ...("storey" in n ? { storey: n.storey } : {}),
+});
 
 /** The compared nodes of a model in model order, by id; the first of a duplicated id (checkIds reports it). */
 function compared(model: BuildingModel): Map<string, IdNode> {
@@ -65,7 +80,11 @@ export function diffModels(base: BuildingModel, revision: BuildingModel): ModelD
   for (const [id, n] of after) {
     if ((n.kind !== "door" && n.kind !== "window") || addedIds.has(id) || changedIds.has(id)) continue;
     const component = n.element.componentId;
-    if (changedIds.has(n.element.wallId) || (component !== undefined && (changedIds.has(component) || addedIds.has(component)))) changedIds.add(id);
+    if (
+      changedIds.has(n.element.wallId) ||
+      (component !== undefined && (changedIds.has(component) || addedIds.has(component)))
+    )
+      changedIds.add(id);
   }
   return {
     added: [...after.values()].filter((n) => addedIds.has(n.element.id)).map(entry),

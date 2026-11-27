@@ -6,7 +6,8 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 const stripExt = (path: string): string => basename(path).replace(/\.[cm]?[jt]s$/, "");
 
 /** A folder is a multi-file model; its entry point is index.ts. */
-export const entryPoint = (path: string): string => (existsSync(path) && statSync(path).isDirectory() ? join(path, "index.ts") : path);
+export const entryPoint = (path: string): string =>
+  existsSync(path) && statSync(path).isDirectory() ? join(path, "index.ts") : path;
 
 /** A revision's path, split into its base model and its own name. */
 export interface RevisionPath {
@@ -35,7 +36,11 @@ export function revisionOf(path: string): RevisionPath | undefined {
   // A folder revision has an index.ts; a folder under revisions/ without one holds helpers.
   const asFolder = !isModule(abs) || entry !== abs;
   if (asFolder && !existsSync(join(entry, "index.ts"))) return undefined;
-  return { basePath: relative(process.cwd(), base) || ".", model: basename(base), revision: asFolder ? basename(entry) : stripExt(abs) };
+  return {
+    basePath: relative(process.cwd(), base) || ".",
+    model: basename(base),
+    revision: asFolder ? basename(entry) : stripExt(abs),
+  };
 }
 
 /**

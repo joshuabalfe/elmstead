@@ -26,7 +26,10 @@ const WallProfilePointSchema = z.strictObject({ along: NonNegativeMmSchema, up: 
 const WallProfileSchema = z
   .array(WallProfilePointSchema)
   .min(2)
-  .refine((pts) => pts.every((p, i) => i === 0 || p.along > pts[i - 1]!.along), "profile along must strictly increase from the wall's start to its end")
+  .refine(
+    (pts) => pts.every((p, i) => i === 0 || p.along > pts[i - 1]!.along),
+    "profile along must strictly increase from the wall's start to its end",
+  )
   .refine((pts) => pts.some((p) => p.up > 0), "profile must rise above the floor somewhere");
 
 export const WallSchema = z
@@ -48,12 +51,14 @@ export const WallSchema = z
   .refine((w) => (w.height === undefined) !== (w.profile === undefined), "a wall has exactly one of height or profile")
   .meta({ id: "Wall" });
 
-export const SwingSchema = z.strictObject({
-  /** Which end of the opening (nearest the wall start, or the wall end) the hinge is on. */
-  hinge: z.enum(["start", "end"]),
-  /** Which side of the wall the door opens towards, looking from wall start towards wall end. */
-  side: z.enum(["left", "right"]),
-}).meta({ id: "Swing" });
+export const SwingSchema = z
+  .strictObject({
+    /** Which end of the opening (nearest the wall start, or the wall end) the hinge is on. */
+    hinge: z.enum(["start", "end"]),
+    /** Which side of the wall the door opens towards, looking from wall start towards wall end. */
+    side: z.enum(["left", "right"]),
+  })
+  .meta({ id: "Swing" });
 
 const openingBase = {
   id: IdSchema,
@@ -68,74 +73,88 @@ const openingBase = {
   sillHeight: NonNegativeMmSchema,
 };
 
-export const DoorSchema = z.strictObject({
-  kind: z.literal("door"),
-  ...openingBase,
-  /** Defaults to { hinge: "start", side: "left" }. */
-  swing: SwingSchema.optional(),
-  /** A doorway: the opening only, with no door leaf, frame or swing. */
-  doorway: z.boolean().optional(),
-}).meta({ id: "Door" });
+export const DoorSchema = z
+  .strictObject({
+    kind: z.literal("door"),
+    ...openingBase,
+    /** Defaults to { hinge: "start", side: "left" }. */
+    swing: SwingSchema.optional(),
+    /** A doorway: the opening only, with no door leaf, frame or swing. */
+    doorway: z.boolean().optional(),
+  })
+  .meta({ id: "Door" });
 
 /**
  * Both jambs splayed `angle` degrees off square, from the middle of the wall to `face` (looking from
  * wall start towards wall end). The head, sill and the other half of the reveal stay square.
  */
-export const RevealSchema = z.strictObject({
-  face: z.enum(["left", "right"]),
-  angle: degBetween(0, 90),
-}).meta({ id: "Reveal" });
+export const RevealSchema = z
+  .strictObject({
+    face: z.enum(["left", "right"]),
+    angle: degBetween(0, 90),
+  })
+  .meta({ id: "Reveal" });
 
-export const WindowSchema = z.strictObject({
-  kind: z.literal("window"),
-  ...openingBase,
-  /** Splayed jambs. `width` stays the width in the middle of the wall, where the frame sits. */
-  reveal: RevealSchema.optional(),
-}).meta({ id: "Window" });
+export const WindowSchema = z
+  .strictObject({
+    kind: z.literal("window"),
+    ...openingBase,
+    /** Splayed jambs. `width` stays the width in the middle of the wall, where the frame sits. */
+    reveal: RevealSchema.optional(),
+  })
+  .meta({ id: "Window" });
 
 export const OpeningSchema = z.discriminatedUnion("kind", [DoorSchema, WindowSchema]);
 
-export const SlabSchema = z.strictObject({
-  id: IdSchema,
-  name: z.string().optional(),
-  outline: PolygonSchema,
-  thickness: PositiveMmSchema,
-  /** Top of slab relative to the storey elevation. The slab extends downwards from here. */
-  elevationOffset: MmSchema,
-  /** Surface presentation only; `ground` renders an external ground slab. Defaults to `concrete`. */
-  material: z.enum(["concrete", "ground"]).optional(),
-}).meta({ id: "Slab" });
+export const SlabSchema = z
+  .strictObject({
+    id: IdSchema,
+    name: z.string().optional(),
+    outline: PolygonSchema,
+    thickness: PositiveMmSchema,
+    /** Top of slab relative to the storey elevation. The slab extends downwards from here. */
+    elevationOffset: MmSchema,
+    /** Surface presentation only; `ground` renders an external ground slab. Defaults to `concrete`. */
+    material: z.enum(["concrete", "ground"]).optional(),
+  })
+  .meta({ id: "Slab" });
 
-export const RoomSchema = z.strictObject({
-  id: IdSchema,
-  name: z.string().min(1),
-  outline: PolygonSchema,
-  /** The part of the room the plan's dimensions measure, when that is not the whole room. Defaults to `outline`. */
-  dimensionOutline: PolygonSchema.optional(),
-}).meta({ id: "Room" });
+export const RoomSchema = z
+  .strictObject({
+    id: IdSchema,
+    name: z.string().min(1),
+    outline: PolygonSchema,
+    /** The part of the room the plan's dimensions measure, when that is not the whole room. Defaults to `outline`. */
+    dimensionOutline: PolygonSchema.optional(),
+  })
+  .meta({ id: "Room" });
 
 /**
  * One straight run of steps. `start` and `end` are plan coordinates; the levels, the riser height
  * and the going are derived from the two storeys and the segment order, never stored.
  */
-export const StairFlightSchema = z.strictObject({
-  kind: z.literal("flight"),
-  id: IdSchema,
-  start: PointSchema,
-  end: PointSchema,
-  width: PositiveMmSchema,
-  /** Risers climbed. The top one lands on the next landing or storey, so treads are risers - 1. */
-  risers: z.number().int().min(2),
-}).meta({ id: "StairFlight" });
+export const StairFlightSchema = z
+  .strictObject({
+    kind: z.literal("flight"),
+    id: IdSchema,
+    start: PointSchema,
+    end: PointSchema,
+    width: PositiveMmSchema,
+    /** Risers climbed. The top one lands on the next landing or storey, so treads are risers - 1. */
+    risers: z.number().int().min(2),
+  })
+  .meta({ id: "StairFlight" });
 
 /** A flat platform between flights. Its level follows from the flights below it. */
-export const StairLandingSchema = z.strictObject({
-  kind: z.literal("landing"),
-  id: IdSchema,
-  outline: PolygonSchema,
-  /** The landing extends downwards from its level. */
-  thickness: PositiveMmSchema,
-}).meta({ id: "StairLanding" });
+export const StairLandingSchema = z
+  .strictObject({
+    kind: z.literal("landing"),
+    id: IdSchema,
+    outline: PolygonSchema,
+    /** The landing extends downwards from its level. */
+    thickness: PositiveMmSchema,
+  })
+  .meta({ id: "StairLanding" });
 
 export const StairSegmentSchema = z.discriminatedUnion("kind", [StairFlightSchema, StairLandingSchema]);
 
@@ -144,12 +163,14 @@ export const StairSegmentSchema = z.discriminatedUnion("kind", [StairFlightSchem
  * flight. The bottom is the containing storey's elevation and the top is `toStoreyId`'s. A stair
  * ends with a flight, or with a top landing one riser below the storey above.
  */
-export const StairSchema = z.strictObject({
-  id: IdSchema,
-  name: z.string().optional(),
-  toStoreyId: IdSchema,
-  segments: z.array(StairSegmentSchema).min(1),
-}).meta({ id: "Stair" });
+export const StairSchema = z
+  .strictObject({
+    id: IdSchema,
+    name: z.string().optional(),
+    toStoreyId: IdSchema,
+    segments: z.array(StairSegmentSchema).min(1),
+  })
+  .meta({ id: "Stair" });
 
 /**
  * A straight guard rail or handrail. `start`→`end` is its plan run. `height` is the height of
@@ -157,30 +178,34 @@ export const StairSchema = z.strictObject({
  * each end, relative to the storey floor, and an omitted base is 0. Equal effective bases make a
  * level guard, different effective bases a sloped handrail.
  */
-export const RailingSchema = z.strictObject({
-  id: IdSchema,
-  name: z.string().optional(),
-  start: PointSchema,
-  end: PointSchema,
-  height: PositiveMmSchema,
-  startBase: NonNegativeMmSchema.optional(),
-  endBase: NonNegativeMmSchema.optional(),
-}).meta({ id: "Railing" });
+export const RailingSchema = z
+  .strictObject({
+    id: IdSchema,
+    name: z.string().optional(),
+    start: PointSchema,
+    end: PointSchema,
+    height: PositiveMmSchema,
+    startBase: NonNegativeMmSchema.optional(),
+    endBase: NonNegativeMmSchema.optional(),
+  })
+  .meta({ id: "Railing" });
 
-export const StoreySchema = z.strictObject({
-  id: IdSchema,
-  name: z.string().min(1),
-  /** Finished floor level relative to the building's zero. */
-  elevation: MmSchema,
-  walls: z.array(WallSchema),
-  openings: z.array(OpeningSchema),
-  slabs: z.array(SlabSchema),
-  rooms: z.array(RoomSchema),
-  /** Stairs climbing from this storey to the next one up. */
-  stairs: z.array(StairSchema).optional(),
-  /** Straight guard rails and handrails on this storey. */
-  railings: z.array(RailingSchema).optional(),
-}).meta({ id: "Storey" });
+export const StoreySchema = z
+  .strictObject({
+    id: IdSchema,
+    name: z.string().min(1),
+    /** Finished floor level relative to the building's zero. */
+    elevation: MmSchema,
+    walls: z.array(WallSchema),
+    openings: z.array(OpeningSchema),
+    slabs: z.array(SlabSchema),
+    rooms: z.array(RoomSchema),
+    /** Stairs climbing from this storey to the next one up. */
+    stairs: z.array(StairSchema).optional(),
+    /** Straight guard rails and handrails on this storey. */
+    railings: z.array(RailingSchema).optional(),
+  })
+  .meta({ id: "Storey" });
 
 /**
  * A door or window design (construction, not size) shared by every opening that uses it, written
@@ -196,45 +221,55 @@ const componentBase = {
 /** A frame around the inside of the opening, the same width all round. */
 export const FrameSchema = z.strictObject({ width: PositiveMmSchema }).meta({ id: "Frame" });
 
-export const DoorComponentSchema = z.strictObject({
-  ...componentBase,
-  /** Frame around the jambs and head; without one the leaf fills the opening. */
-  frame: FrameSchema.optional(),
-}).meta({ id: "DoorComponent" });
+export const DoorComponentSchema = z
+  .strictObject({
+    ...componentBase,
+    /** Frame around the jambs and head; without one the leaf fills the opening. */
+    frame: FrameSchema.optional(),
+  })
+  .meta({ id: "DoorComponent" });
 
 const ratios = z.array(z.number().positive()).min(1);
 
 /** How glazing bars divide a window into panes. Ratios, so one design fits windows of any size. */
-export const GlazingSchema = z.strictObject({
-  /** Widths of the columns of panes, left to right, as ratios: [1, 2, 1] is a wide centre pane. */
-  columns: ratios,
-  /** Heights of the rows of panes, bottom to top, as ratios: [1, 1] puts a bar half way up. */
-  rows: ratios,
-  /** Width of the bars between panes. The ratios share out what is left inside the frame. */
-  barWidth: PositiveMmSchema,
-}).meta({ id: "Glazing" });
+export const GlazingSchema = z
+  .strictObject({
+    /** Widths of the columns of panes, left to right, as ratios: [1, 2, 1] is a wide centre pane. */
+    columns: ratios,
+    /** Heights of the rows of panes, bottom to top, as ratios: [1, 1] puts a bar half way up. */
+    rows: ratios,
+    /** Width of the bars between panes. The ratios share out what is left inside the frame. */
+    barWidth: PositiveMmSchema,
+  })
+  .meta({ id: "Glazing" });
 
-export const WindowComponentSchema = z.strictObject({
-  ...componentBase,
-  /** Frame; without one the glass fills the opening. */
-  frame: FrameSchema.optional(),
-  /** Glazing bars, dividing what is inside the frame; without them the window is a single pane. */
-  glazing: GlazingSchema.optional(),
-}).meta({ id: "WindowComponent" });
+export const WindowComponentSchema = z
+  .strictObject({
+    ...componentBase,
+    /** Frame; without one the glass fills the opening. */
+    frame: FrameSchema.optional(),
+    /** Glazing bars, dividing what is inside the frame; without them the window is a single pane. */
+    glazing: GlazingSchema.optional(),
+  })
+  .meta({ id: "WindowComponent" });
 
-export const ComponentsSchema = z.strictObject({
-  doors: z.array(DoorComponentSchema),
-  windows: z.array(WindowComponentSchema),
-}).meta({ id: "Components" });
+export const ComponentsSchema = z
+  .strictObject({
+    doors: z.array(DoorComponentSchema),
+    windows: z.array(WindowComponentSchema),
+  })
+  .meta({ id: "Components" });
 
 const NamedSchema = z.strictObject({ id: IdSchema, name: z.string().min(1) });
 
-export const SiteSchema = z.strictObject({
-  id: IdSchema,
-  name: z.string().min(1),
-  /** Angle of true north, counter-clockwise from plan +y. Default 0 (north is up). */
-  northAngle: DegSchema.optional(),
-}).meta({ id: "Site" });
+export const SiteSchema = z
+  .strictObject({
+    id: IdSchema,
+    name: z.string().min(1),
+    /** Angle of true north, counter-clockwise from plan +y. Default 0 (north is up). */
+    northAngle: DegSchema.optional(),
+  })
+  .meta({ id: "Site" });
 
 export const BuildingModelSchema = z.strictObject({
   schemaVersion: z.literal(SCHEMA_VERSION),

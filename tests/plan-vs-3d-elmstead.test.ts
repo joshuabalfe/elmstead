@@ -27,7 +27,10 @@ describe("3D Top view against the plan", () => {
     await publish("test-elmstead-centreline", m);
     // Finer tiles than the default: the defect is a door gap, a band only as deep as the wall, which
     // a 500 mm tile dilutes below the comparator's 25%-comparable threshold.
-    const r = comparePlanTo3d(planPixels(m, storey), await topView("test-elmstead-centreline", "storey-ground"), { tile: 250, step: 125 });
+    const r = comparePlanTo3d(planPixels(m, storey), await topView("test-elmstead-centreline", "storey-ground"), {
+      tile: 250,
+      step: 125,
+    });
     expect(r.badTiles.length).toBeGreaterThan(0);
     // Some tile covers the screen, whose wall runs from (4.691, 6.462) to (5.484, 7.129) m.
     const over = r.badTiles.find((t) => t.x[0] < 5.484 && t.x[1] > 4.691 && t.y[0] < 7.165 && t.y[1] > 6.462);

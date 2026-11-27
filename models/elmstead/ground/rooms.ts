@@ -31,7 +31,12 @@ const bedBathLeft = face(bedroomBathroom, "north");
 const rearHallRearX = mm(10000); // rear face of the rear hall, where it meets the extension
 
 // Starts at the front of the chimney breast: the alcoves either side of it are built-ins, not floor space.
-export const living = rectRoom("room-living", "Living room", { west: frontIn, east: partitionX, south: face(breastLiving, "north"), north: hallWallY });
+export const living = rectRoom("room-living", "Living room", {
+  west: frontIn,
+  east: partitionX,
+  south: face(breastLiving, "north"),
+  north: hallWallY,
+});
 
 export const rooms: Room[] = [
   living,
@@ -73,7 +78,12 @@ export const rooms: Room[] = [
   {
     id: "room-bathroom",
     name: "Bathroom",
-    outline: [pt(bathFrontFace, bedBathLeft), pt(rearIn, bedBathLeft), pt(rearIn, bathLeftY), pt(bathFrontFace, bathLeftY)],
+    outline: [
+      pt(bathFrontFace, bedBathLeft),
+      pt(rearIn, bedBathLeft),
+      pt(rearIn, bathLeftY),
+      pt(bathFrontFace, bathLeftY),
+    ],
   },
   {
     id: "room-rear-hall",

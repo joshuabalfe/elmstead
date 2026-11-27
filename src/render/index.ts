@@ -26,7 +26,11 @@ export function renderAll(name: string, model: BuildingModel, outDir: string, op
  * warning (plans still render) with the one-line fix; any other viewer failure is an ERROR.
  */
 /** The 3D snapshots, and for a revision (`diff`) the same views again in Diff mode. */
-export async function render3d(name: string, outDir: string, { diff = false }: { diff?: boolean } = {}): Promise<{ written: string[]; issues: Issue[] }> {
+export async function render3d(
+  name: string,
+  outDir: string,
+  { diff = false }: { diff?: boolean } = {},
+): Promise<{ written: string[]; issues: Issue[] }> {
   try {
     return { written: await snapshot3d(name, outDir, undefined, diff ? [PLAIN, DIFF] : [PLAIN]), issues: [] };
   } catch (e) {
@@ -44,6 +48,9 @@ export async function render3d(name: string, outDir: string, { diff = false }: {
         ],
       };
     }
-    return { written: [], issues: [{ level: "ERROR", id: `${name}.ifc`, message: `3D snapshots failed: ${msg.split("\n")[0]}` }] };
+    return {
+      written: [],
+      issues: [{ level: "ERROR", id: `${name}.ifc`, message: `3D snapshots failed: ${msg.split("\n")[0]}` }],
+    };
   }
 }

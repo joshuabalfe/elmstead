@@ -46,6 +46,7 @@ flowchart LR
   - Fonts are bundled rather than taken from the system.
 
   This is what makes diffs small and meaningful.
+
 - **Stable identity.** Every element has a kebab-case id that is stable across edits. Ids are used
   for GlobalIds, IFC `Tag`s, SVG `data-id`s and every message the tools print.
 - **Integer millimetres.** Lengths are branded `Mm` integers, so a fractional or unit-less number is
@@ -95,13 +96,13 @@ only module that touches the filesystem layout of `out/`.
 
 ## Key technology choices
 
-| Concern | Choice | Why |
-|---|---|---|
-| Schema | zod 4 | one definition gives the TypeScript types, runtime validation and the JSON Schema export |
-| IFC writing | web-ifc (ThatOpen) | typed IFC4 entity classes and a mesher in the same library, so the writer's output can be checked straight away |
-| IFC validation | IfcOpenShell via `uv run` | the reference open-source validator, including EXPRESS rules; uv keeps it to one locked script with no manual Python setup |
-| Plan rendering | hand-written SVG + resvg | deterministic, no browser needed, and the SVG can be read and snapshot-tested |
-| 3D viewing | @thatopen/components + three.js, Playwright for headless snapshots | renders the real IFC; the same page works interactively and headless |
-| Running TS | tsx, with `tsc` used only for type-checking | no build step; models are imported directly |
+| Concern        | Choice                                                             | Why                                                                                                                        |
+| -------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| Schema         | zod 4                                                              | one definition gives the TypeScript types, runtime validation and the JSON Schema export                                   |
+| IFC writing    | web-ifc (ThatOpen)                                                 | typed IFC4 entity classes and a mesher in the same library, so the writer's output can be checked straight away            |
+| IFC validation | IfcOpenShell via `uv run`                                          | the reference open-source validator, including EXPRESS rules; uv keeps it to one locked script with no manual Python setup |
+| Plan rendering | hand-written SVG + resvg                                           | deterministic, no browser needed, and the SVG can be read and snapshot-tested                                              |
+| 3D viewing     | @thatopen/components + three.js, Playwright for headless snapshots | renders the real IFC; the same page works interactively and headless                                                       |
+| Running TS     | tsx, with `tsc` used only for type-checking                        | no build step; models are imported directly                                                                                |
 
 All dependency versions are pinned exactly in `package.json` and `validator/validate.py`.

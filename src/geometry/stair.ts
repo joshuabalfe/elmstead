@@ -50,7 +50,8 @@ export interface StairLevels {
  */
 export function stairLevels(stair: Stair, rise: number): StairLevels {
   const topLanding = stair.segments.at(-1)?.kind === "landing";
-  const totalRisers = stair.segments.reduce((n, s) => (s.kind === "flight" ? n + s.risers : n), 0) + (topLanding ? 1 : 0);
+  const totalRisers =
+    stair.segments.reduce((n, s) => (s.kind === "flight" ? n + s.risers : n), 0) + (topLanding ? 1 : 0);
   const riser = rise / totalRisers;
   const segments: SegmentLevel[] = [];
   let level = 0;
@@ -60,7 +61,14 @@ export function stairLevels(stair: Stair, rise: number): StairLevels {
       continue;
     }
     const run = flightRun(segment);
-    segments.push({ kind: "flight", segment, base: level, top: level + segment.risers * riser, run, going: run / (segment.risers - 1) });
+    segments.push({
+      kind: "flight",
+      segment,
+      base: level,
+      top: level + segment.risers * riser,
+      run,
+      going: run / (segment.risers - 1),
+    });
     level += segment.risers * riser;
   }
   return { rise, riser, totalRisers, segments };
@@ -121,7 +129,8 @@ export function flightProfile(f: StairFlight, going: number, riser: number, wais
 }
 
 /** Profile area in mm², for the round-trip's expected flight volume. */
-export const flightProfileArea = (f: StairFlight, going: number, riser: number, waist = 150): number => area(flightProfile(f, going, riser, waist));
+export const flightProfileArea = (f: StairFlight, going: number, riser: number, waist = 150): number =>
+  area(flightProfile(f, going, riser, waist));
 
 /** The turning angle, in degrees, between two consecutive flights' plan directions. */
 export function turnBetween(a: StairFlight, b: StairFlight): number {

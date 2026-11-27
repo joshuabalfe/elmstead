@@ -9,7 +9,8 @@ import { wallHeight, wallLength } from "../src/geometry/wall.js";
 import { deg, m as metres, mm, pt, wall as makeWall, window as makeWindow, type Reveal } from "../src/model/index.js";
 import { BuildingModelSchema, type BuildingModel } from "../src/schema/schema.js";
 
-const model = (source: unknown = cottage): BuildingModel => BuildingModelSchema.parse(JSON.parse(JSON.stringify(source)));
+const model = (source: unknown = cottage): BuildingModel =>
+  BuildingModelSchema.parse(JSON.parse(JSON.stringify(source)));
 const opening = (m: BuildingModel, id: string) => m.storeys[0]!.openings.find((o) => o.id === id)!;
 const wall = (m: BuildingModel, id: string) => m.storeys[0]!.walls.find((w) => w.id === id)!;
 
@@ -21,13 +22,17 @@ describe("checkComponents", () => {
   it("reports a componentId that is not in components, against the opening", () => {
     const m = model();
     opening(m, "door-living").componentId = "door-type-missing";
-    expect(checkComponents(m)).toEqual([{ level: "ERROR", id: "door-living", message: "componentId door-type-missing is not in components" }]);
+    expect(checkComponents(m)).toEqual([
+      { level: "ERROR", id: "door-living", message: "componentId door-type-missing is not in components" },
+    ]);
   });
 
   it("reports a door that names a window component", () => {
     const m = model();
     opening(m, "door-living").componentId = "window-type-sash";
-    expect(checkComponents(m)).toEqual([{ level: "ERROR", id: "door-living", message: "componentId window-type-sash is a window component" }]);
+    expect(checkComponents(m)).toEqual([
+      { level: "ERROR", id: "door-living", message: "componentId window-type-sash is a window component" },
+    ]);
   });
 
   it("accepts openings without a component, and models without components", () => {
@@ -48,7 +53,9 @@ describe("checkIds", () => {
   it("reports an element and a component that share an id", () => {
     const m = model();
     m.components!.windows[0]!.id = "wall-south";
-    expect(checkIds(m)).toEqual([{ level: "ERROR", id: "wall-south", message: "id is used by a wall and a window component" }]);
+    expect(checkIds(m)).toEqual([
+      { level: "ERROR", id: "wall-south", message: "id is used by a wall and a window component" },
+    ]);
   });
 
   it("keeps the component-specific message for two components with one id", () => {
@@ -61,13 +68,19 @@ describe("checkIds", () => {
 describe("checkRailings", () => {
   it("reports a railing whose start and end are the same", () => {
     const m = model();
-    m.storeys[0]!.railings = [{ id: "railing-a", start: { x: mm(0), y: mm(0) }, end: { x: mm(0), y: mm(0) }, height: mm(900) }];
-    expect(checkRailings(m)).toEqual([{ level: "ERROR", id: "railing-a", message: "zero-length railing cannot be written to IFC" }]);
+    m.storeys[0]!.railings = [
+      { id: "railing-a", start: { x: mm(0), y: mm(0) }, end: { x: mm(0), y: mm(0) }, height: mm(900) },
+    ];
+    expect(checkRailings(m)).toEqual([
+      { level: "ERROR", id: "railing-a", message: "zero-length railing cannot be written to IFC" },
+    ]);
   });
 
   it("joins the unique id space", () => {
     const m = model();
-    m.storeys[0]!.railings = [{ id: "wall-south", start: { x: mm(0), y: mm(0) }, end: { x: mm(1000), y: mm(0) }, height: mm(900) }];
+    m.storeys[0]!.railings = [
+      { id: "wall-south", start: { x: mm(0), y: mm(0) }, end: { x: mm(1000), y: mm(0) }, height: mm(900) },
+    ];
     expect(checkIds(m)).toEqual([{ level: "ERROR", id: "wall-south", message: "id is used by a wall and a railing" }]);
   });
 });
@@ -77,18 +90,38 @@ describe("checkWalls", () => {
     const m = model();
     const w = wall(m, "wall-south");
     w.end = { ...w.start };
-    expect(checkWalls(m)).toEqual([{ level: "ERROR", id: "wall-south", message: "zero-length wall cannot be written to IFC" }]);
+    expect(checkWalls(m)).toEqual([
+      { level: "ERROR", id: "wall-south", message: "zero-length wall cannot be written to IFC" },
+    ]);
   });
 
   it("reports a pitched profile that does not span the wall", () => {
     const m = model();
-    m.storeys[0]!.walls = [makeWall("wall-gable", pt(mm(0), mm(0)), pt(mm(4000), mm(0)), { thickness: mm(200), profile: [{ along: mm(0), up: mm(1200) }, { along: mm(3900), up: mm(1200) }] })];
-    expect(checkWalls(m)).toEqual([{ level: "ERROR", id: "wall-gable", message: "profile must span the wall from along 0 to its length" }]);
+    m.storeys[0]!.walls = [
+      makeWall("wall-gable", pt(mm(0), mm(0)), pt(mm(4000), mm(0)), {
+        thickness: mm(200),
+        profile: [
+          { along: mm(0), up: mm(1200) },
+          { along: mm(3900), up: mm(1200) },
+        ],
+      }),
+    ];
+    expect(checkWalls(m)).toEqual([
+      { level: "ERROR", id: "wall-gable", message: "profile must span the wall from along 0 to its length" },
+    ]);
   });
 
   it("accepts a pitched profile that spans the wall", () => {
     const m = model();
-    m.storeys[0]!.walls = [makeWall("wall-gable", pt(mm(0), mm(0)), pt(mm(4000), mm(0)), { thickness: mm(200), profile: [{ along: mm(0), up: mm(1200) }, { along: mm(4000), up: mm(1200) }] })];
+    m.storeys[0]!.walls = [
+      makeWall("wall-gable", pt(mm(0), mm(0)), pt(mm(4000), mm(0)), {
+        thickness: mm(200),
+        profile: [
+          { along: mm(0), up: mm(1200) },
+          { along: mm(4000), up: mm(1200) },
+        ],
+      }),
+    ];
     expect(checkWalls(m)).toEqual([]);
   });
 });
@@ -97,7 +130,9 @@ describe("checkOpenings", () => {
   it("reports an opening whose wall is not on its storey", () => {
     const m = model();
     opening(m, "door-living").wallId = "wall-missing";
-    expect(checkOpenings(m)).toEqual([{ level: "ERROR", id: "door-living", message: "wallId wall-missing is not a wall on this storey" }]);
+    expect(checkOpenings(m)).toEqual([
+      { level: "ERROR", id: "door-living", message: "wallId wall-missing is not a wall on this storey" },
+    ]);
   });
 
   it("reports an opening past the wall end and one above the wall top", () => {
@@ -105,10 +140,14 @@ describe("checkOpenings", () => {
     const o = opening(m, "door-living");
     const w = wall(m, o.wallId);
     o.offsetAlongWall = mm(wallLength(w));
-    expect(checkOpenings(m)).toEqual([{ level: "ERROR", id: "door-living", message: `opening is ${o.width} mm past the wall end` }]);
+    expect(checkOpenings(m)).toEqual([
+      { level: "ERROR", id: "door-living", message: `opening is ${o.width} mm past the wall end` },
+    ]);
     o.offsetAlongWall = mm(0);
     o.sillHeight = mm(wallHeight(w));
-    expect(checkOpenings(m)).toEqual([{ level: "ERROR", id: "door-living", message: `opening is ${o.height} mm above the wall top` }]);
+    expect(checkOpenings(m)).toEqual([
+      { level: "ERROR", id: "door-living", message: `opening is ${o.height} mm above the wall top` },
+    ]);
   });
 
   it("reports two openings that cut the same wall volume against both", () => {
@@ -178,7 +217,11 @@ describe("checkOpenings", () => {
     // A 4 m gable wall: eaves 1200 at both ends, ridge 2600 at mid-span.
     const w = makeWall("wall-gable", pt(mm(0), mm(0)), pt(mm(4000), mm(0)), {
       thickness: mm(200),
-      profile: [{ along: mm(0), up: mm(1200) }, { along: mm(2000), up: mm(2600) }, { along: mm(4000), up: mm(1200) }],
+      profile: [
+        { along: mm(0), up: mm(1200) },
+        { along: mm(2000), up: mm(2600) },
+        { along: mm(4000), up: mm(1200) },
+      ],
     });
     const withOpenings = (...openings: ReturnType<typeof makeWindow>[]): BuildingModel => {
       const m = model();
@@ -190,7 +233,9 @@ describe("checkOpenings", () => {
     it("reports a window poking above the low eaves end of the slope", () => {
       // Over [100, 1300] the top edge's lowest point is 1270 mm, at the near jamb.
       const o = makeWindow("window-eaves", w, mm(100), { width: mm(1200), height: mm(1400), sillHeight: mm(0) });
-      expect(checkOpenings(withOpenings(o))).toEqual([{ level: "ERROR", id: "window-eaves", message: "opening is 130 mm above the wall top" }]);
+      expect(checkOpenings(withOpenings(o))).toEqual([
+        { level: "ERROR", id: "window-eaves", message: "opening is 130 mm above the wall top" },
+      ]);
     });
 
     it("allows a window that fits under the ridge", () => {
@@ -203,21 +248,37 @@ describe("checkOpenings", () => {
 describe("checkOutlines", () => {
   it("reports a self-intersecting room", () => {
     const m = model();
-    m.storeys[0]!.rooms[0]!.outline = [pt(mm(0), mm(0)), pt(mm(1000), mm(1000)), pt(mm(1000), mm(0)), pt(mm(0), mm(1000))];
+    m.storeys[0]!.rooms[0]!.outline = [
+      pt(mm(0), mm(0)),
+      pt(mm(1000), mm(1000)),
+      pt(mm(1000), mm(0)),
+      pt(mm(0), mm(1000)),
+    ];
     expect(checkOutlines(m)).toContainEqual({ level: "ERROR", id: "room-living", message: "outline crosses itself" });
   });
 
   it("reports a self-intersecting dimension outline", () => {
     const m = model();
-    m.storeys[0]!.rooms[0]!.dimensionOutline = [pt(mm(0), mm(0)), pt(mm(1000), mm(1000)), pt(mm(1000), mm(0)), pt(mm(0), mm(1000))];
-    expect(checkOutlines(m)).toContainEqual({ level: "ERROR", id: "room-living", message: "dimension outline: outline crosses itself" });
+    m.storeys[0]!.rooms[0]!.dimensionOutline = [
+      pt(mm(0), mm(0)),
+      pt(mm(1000), mm(1000)),
+      pt(mm(1000), mm(0)),
+      pt(mm(0), mm(1000)),
+    ];
+    expect(checkOutlines(m)).toContainEqual({
+      level: "ERROR",
+      id: "room-living",
+      message: "dimension outline: outline crosses itself",
+    });
   });
 
   it("reports a slab that repeats its first point", () => {
     const m = model();
     const slab = m.storeys[0]!.slabs[0]!;
     slab.outline = [slab.outline[0]!, slab.outline[1]!, slab.outline[2]!, slab.outline[0]!];
-    expect(checkOutlines(m)).toEqual([{ level: "ERROR", id: "slab-ground", message: "outline repeats its first point at the end" }]);
+    expect(checkOutlines(m)).toEqual([
+      { level: "ERROR", id: "slab-ground", message: "outline repeats its first point at the end" },
+    ]);
   });
 });
 
@@ -240,7 +301,12 @@ describe("checkModel", () => {
 });
 
 describe("schemaIssue", () => {
-  const Doc = z.object({ id: z.string(), storeys: z.array(z.object({ id: z.string(), walls: z.array(z.object({ id: z.string(), thickness: z.number().positive() })) })) });
+  const Doc = z.object({
+    id: z.string(),
+    storeys: z.array(
+      z.object({ id: z.string(), walls: z.array(z.object({ id: z.string(), thickness: z.number().positive() })) }),
+    ),
+  });
   const firstIssue = (schema: z.ZodType, input: unknown) => {
     const r = schema.safeParse(input);
     if (r.success) throw new Error("expected a schema failure");

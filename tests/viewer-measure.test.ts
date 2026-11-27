@@ -69,7 +69,10 @@ beforeAll(async () => {
   try {
     browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
   } catch (e) {
-    if (/Executable doesn't exist|playwright install/i.test(String(e))) throw new Error("Chromium missing — it comes with npm install (@playwright/browser-chromium); if install scripts were skipped, run: npm rebuild @playwright/browser-chromium");
+    if (/Executable doesn't exist|playwright install/i.test(String(e)))
+      throw new Error(
+        "Chromium missing — it comes with npm install (@playwright/browser-chromium); if install scripts were skipped, run: npm rebuild @playwright/browser-chromium",
+      );
     throw e;
   }
   outDir = mkdtempSync(join(tmpdir(), "elmstead-measure-"));

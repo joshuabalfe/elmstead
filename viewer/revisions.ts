@@ -15,7 +15,8 @@ export function splitName(name: string): { model: string; revision: string | nul
   return at < 0 ? { model: name, revision: null } : { model: name.slice(0, at), revision: name.slice(at + 1) };
 }
 
-export const joinName = (model: string, revision: string | null): string => (revision === null ? model : `${model}@${revision}`);
+export const joinName = (model: string, revision: string | null): string =>
+  revision === null ? model : `${model}@${revision}`;
 
 /** The names grouped by model, models in name order. A model with only revisions built is listed too. */
 export function groupModels(names: readonly string[]): Map<string, ModelGroup> {

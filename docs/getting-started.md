@@ -2,15 +2,15 @@
 
 ## Prerequisites
 
-| Tool | Why | Install |
-|---|---|---|
-| Node.js ≥ 22 | runs the TypeScript pipeline (via `tsx`) | your usual Node install |
-| [uv](https://docs.astral.sh/uv/) | runs the Python IFC validator in an isolated, locked environment | `brew install uv` |
-You don't need to install Chromium yourself either. It is a dev dependency
-(`@playwright/browser-chromium`, pinned to the same version as `playwright`), and `npm install`
-downloads the matching build into Playwright's cache (about 150 MB, once). The 3D snapshots and
-the 3D-versus-plan test run in it. If your npm skips install scripts (`ignore-scripts`), run
-`npm rebuild @playwright/browser-chromium`.
+| Tool                                                                                            | Why                                                              | Install                 |
+| ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------- |
+| Node.js ≥ 22                                                                                    | runs the TypeScript pipeline (via `tsx`)                         | your usual Node install |
+| [uv](https://docs.astral.sh/uv/)                                                                | runs the Python IFC validator in an isolated, locked environment | `brew install uv`       |
+| You don't need to install Chromium yourself either. It is a dev dependency                      |
+| (`@playwright/browser-chromium`, pinned to the same version as `playwright`), and `npm install` |
+| downloads the matching build into Playwright's cache (about 150 MB, once). The 3D snapshots and |
+| the 3D-versus-plan test run in it. If your npm skips install scripts (`ignore-scripts`), run    |
+| `npm rebuild @playwright/browser-chromium`.                                                     |
 
 You don't need to install Python packages yourself. `validator/validate.py` declares its
 dependencies inline (PEP 723), and `uv run` installs them from `validator/validate.py.lock` the
@@ -37,10 +37,10 @@ npm run build  models/elmstead              # same as models/elmstead/index.ts
 
 Flags:
 
-| Flag | Command | Effect |
-|---|---|---|
-| `--ids` | `render`, `all` | label every element with its id on the plan (useful when editing) |
-| `--no-3d` | `render`, `all` | skip the headless-browser 3D snapshots |
+| Flag      | Command         | Effect                                                            |
+| --------- | --------------- | ----------------------------------------------------------------- |
+| `--ids`   | `render`, `all` | label every element with its id on the plan (useful when editing) |
+| `--no-3d` | `render`, `all` | skip the headless-browser 3D snapshots                            |
 
 A command exits non-zero if any ERROR was reported.
 
@@ -50,12 +50,12 @@ Everything is written to `out/`, which is git-ignored. Never edit it by hand; it
 every run. Set `ELMSTEAD_OUT_DIR` to write somewhere else; the commands still find the project's
 model files, validator and viewer when run from any directory.
 
-| File | From |
-|---|---|
-| `out/<name>.building.json` | `build`: the validated model, deterministic formatting |
-| `out/<name>.ifc` | `build`: IFC4, written from the validated model |
-| `out/<name>.<storey-id>.plan.svg` / `.png` | `render`: one plan per storey |
-| `out/<name>.3d-{sw,se,ne,nw,top}.png` | `render`: 3D snapshots of the IFC |
+| File                                       | From                                                   |
+| ------------------------------------------ | ------------------------------------------------------ |
+| `out/<name>.building.json`                 | `build`: the validated model, deterministic formatting |
+| `out/<name>.ifc`                           | `build`: IFC4, written from the validated model        |
+| `out/<name>.<storey-id>.plan.svg` / `.png` | `render`: one plan per storey                          |
+| `out/<name>.3d-{sw,se,ne,nw,top}.png`      | `render`: 3D snapshots of the IFC                      |
 
 `<name>` is the model's file name, or its folder name for a multi-file model, e.g.
 `example-cottage` or `elmstead`.

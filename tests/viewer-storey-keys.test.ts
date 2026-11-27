@@ -5,7 +5,15 @@ import { canvasPixels, model, page, publish, samePixels, useViewer, viewOf } fro
 useViewer();
 
 describe("storey keyboard shortcut", () => {
-  const ALL = ["storey-basement", "storey-street", "storey-ground", "storey-main-half-landing", "storey-first-floor", "storey-attic-half-landing", "storey-attic"];
+  const ALL = [
+    "storey-basement",
+    "storey-street",
+    "storey-ground",
+    "storey-main-half-landing",
+    "storey-first-floor",
+    "storey-attic-half-landing",
+    "storey-attic",
+  ];
   // A fixed camera makes a re-frame detectable: every picture must come from the same viewpoint.
   const camera = "16,11,6,5.2,1.5,-4.2";
   const open = (query = "") => viewOf("test-storey-keys", `view=top&labels=0&style=plan&camera=${camera}${query}`);
@@ -99,7 +107,9 @@ describe("storey keyboard shortcut", () => {
 
     // Auto-repeat after the first press is ignored until the key is released.
     await page.keyboard.down("ArrowDown");
-    await page.waitForFunction((n: number) => (window.__elmsteadStoreyChanges ?? 0) > n, before + 1, { timeout: 60_000 });
+    await page.waitForFunction((n: number) => (window.__elmsteadStoreyChanges ?? 0) > n, before + 1, {
+      timeout: 60_000,
+    });
     await page.keyboard.down("ArrowDown");
     await page.keyboard.down("ArrowDown");
     await page.keyboard.up("ArrowDown");

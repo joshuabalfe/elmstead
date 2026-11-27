@@ -1,9 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { POST_SIZE, RAIL_DEPTH, RAIL_WIDTH, railingGeometry, railingPostFractions, railingPostPoints, railingRun } from "../src/geometry/railing.js";
+import {
+  POST_SIZE,
+  RAIL_DEPTH,
+  RAIL_WIDTH,
+  railingGeometry,
+  railingPostFractions,
+  railingPostPoints,
+  railingRun,
+} from "../src/geometry/railing.js";
 import { m, mm, pt, railing } from "../src/model/index.js";
 
 const level = railing("railing-level", pt(mm(0), mm(0)), pt(m(3), mm(0)), { height: mm(900) });
-const sloped = railing("railing-sloped", pt(mm(0), mm(0)), pt(mm(880), mm(0)), { height: mm(900), startBase: mm(150), endBase: mm(600) });
+const sloped = railing("railing-sloped", pt(mm(0), mm(0)), pt(mm(880), mm(0)), {
+  height: mm(900),
+  startBase: mm(150),
+  endBase: mm(600),
+});
 
 describe("railing geometry", () => {
   it("measures the plan run and spaces posts at most 160 mm apart", () => {

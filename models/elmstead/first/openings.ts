@@ -10,7 +10,17 @@ import { wallLength } from "../../../src/geometry/wall.js";
 import { add, divRound, door, doorway, m, mm, sub, window, type Opening } from "../../../src/model/index.js";
 import { bayWindow, crossBarWindow, crossWindow, internalDoor } from "../components/index.js";
 import { frontDoorOffset, frontDoorWidth } from "../ground/openings.js";
-import { bayFront, bayLeft, bayRight, bedroomLeft, diningLeft, rear, ensuiteRight, kitchenRear, frontLeft } from "./walls.js";
+import {
+  bayFront,
+  bayLeft,
+  bayRight,
+  bedroomLeft,
+  diningLeft,
+  rear,
+  ensuiteRight,
+  kitchenRear,
+  frontLeft,
+} from "./walls.js";
 
 const doorH = m(2.1);
 const internal = { width: mm(768), height: doorH };
@@ -43,7 +53,11 @@ export const openings: Opening[] = [
   // Front wall runs plan north→south; "left" is inside. The kitchen window is 1.21 × 2.1 m, centred
   // over the front door and close to the front-left corner. Its 450 mm sill is the owner's. A
   // square reveal keeps the frame and its cut inside the wall this close to the corner.
-  window("window-kitchen-front-first", frontLeft, kitchenWindowOffset, crossWindow, { width: kitchenWindowWidth, height: mm(2100), sillHeight: mm(450) }),
+  window("window-kitchen-front-first", frontLeft, kitchenWindowOffset, crossWindow, {
+    width: kitchenWindowWidth,
+    height: mm(2100),
+    sillHeight: mm(450),
+  }),
 
   // Bay windows on the dining room's canted front side: all three share a 450 mm sill and reach
   // the bay ceiling at 2.55 m. Each fills its wall, so only the frames meet at the corners. The
@@ -59,10 +73,21 @@ export const openings: Opening[] = [
   door("door-bedroom-first", bedroomLeft, bedroomDoorOffset, internalDoor, internal, { hinge: "start", side: "right" }),
   door("door-ensuite-first", ensuiteRight, mm(350), internalDoor, internal, { hinge: "start", side: "left" }),
   // Kitchen door sits 50 mm off the party wall; "left" is the kitchen.
-  door("door-kitchen-first", kitchenRear, kitchenDoorOffset, internalDoor, { width: kitchenDoorWidth, height: doorH }, { hinge: "end", side: "left" }),
+  door(
+    "door-kitchen-first",
+    kitchenRear,
+    kitchenDoorOffset,
+    internalDoor,
+    { width: kitchenDoorWidth, height: doorH },
+    { hinge: "end", side: "left" },
+  ),
 
   // Rear wall runs plan south→north. The rear bedroom window is 1.1 × 1.95 m with a 500 mm sill
   // (owner), a cross-bar frame like the other windows, and its left jamb tight against the
   // ensuite's right wall. A square reveal lets the opening run into the corner.
-  window("window-bedroom-first", rear, bedroomWindowOffset, crossBarWindow, { width: bedroomWindowWidth, height: mm(1950), sillHeight: mm(500) }),
+  window("window-bedroom-first", rear, bedroomWindowOffset, crossBarWindow, {
+    width: bedroomWindowWidth,
+    height: mm(1950),
+    sillHeight: mm(500),
+  }),
 ];

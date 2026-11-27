@@ -39,13 +39,17 @@ export default defineBuilding({
   project: { id: "project-demo", name: "Demo" },
   site: { id: "site-default", name: "Default site" },
   building: { id: "building-demo", name: "Demo" },
-  storeys: [{
-    id: "storey-ground", name: "Ground floor", elevation: mm(0),
-    walls: [walls.south, walls.east, walls.north, walls.west],
-    openings: [door("door-front", walls.south, m(3.5), { width: mm(900), height: m(2.1) })],
-    slabs: [],
-    rooms: [],
-  }],
+  storeys: [
+    {
+      id: "storey-ground",
+      name: "Ground floor",
+      elevation: mm(0),
+      walls: [walls.south, walls.east, walls.north, walls.west],
+      openings: [door("door-front", walls.south, m(3.5), { width: mm(900), height: m(2.1) })],
+      slabs: [],
+      rooms: [],
+    },
+  ],
 });
 ```
 
@@ -53,10 +57,10 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
 
 ## Units
 
-| Quantity | Unit | How to write it |
-|---|---|---|
-| length | integer millimetres, type `Mm` | `mm(200)`, `m(2.4)` (2400 mm) |
-| angle | degrees | `deg(90)` |
+| Quantity | Unit                           | How to write it               |
+| -------- | ------------------------------ | ----------------------------- |
+| length   | integer millimetres, type `Mm` | `mm(200)`, `m(2.4)` (2400 mm) |
+| angle    | degrees                        | `deg(90)`                     |
 
 - A plain `number` is not an `Mm`, so `thickness: 200` is a type error. Use `mm(200)`.
 - `mm()` and `m()` throw if the value isn't a whole number of millimetres. For example,
@@ -95,18 +99,18 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
 
 ## Elements
 
-| Element | Key fields | Notes |
-|---|---|---|
-| **Wall** | `start`, `end`, `thickness`, `height`, `justification` | straight; `justification` is `centre`, `left` or `right` |
-| **Door** | `wallId`, `offsetAlongWall`, `width`, `height`, `sillHeight`, `swing?`, `doorway?` | `kind: "door"`; a doorway has no leaf, component or swing |
-| **Window** | `wallId`, `offsetAlongWall`, `width`, `height`, `sillHeight`, `reveal?` | `kind: "window"` |
-| **Slab** | `outline`, `thickness`, `elevationOffset`, `material?` | top of slab is at storey elevation + `elevationOffset`; the slab extends downwards from there; `material: "ground"` renders an external ground slab (default `concrete`) |
-| **Room** | `name`, `outline`, `dimensionOutline?` | 2D outline only, for now; `dimensionOutline` optionally gives the part the plan measures, while the label, area and IFC space keep `outline` |
-| **Stair** | `toStoreyId`, `segments` | a storey element climbing to the next storey up; `segments` run bottom to top |
-| **Stair flight** | `start`, `end`, `width`, `risers` | `kind: "flight"`; a straight run, centred on its start→end line, of at least 2 risers |
-| **Stair landing** | `outline`, `thickness` | `kind: "landing"`; a flat platform between flights or at the top of the stair, its level derived from the flights below it |
-| **Railing** | `start`, `end`, `height`, `startBase?`, `endBase?` | a straight guard or handrail; `height` is to the top of the rail above the walking surface; an omitted base is 0, equal effective bases are level and different bases slope |
-| **Door / window component** | `id`, `name` | a design (not a size) shared by openings, in the building's `components: { doors, windows }`; written to IFC as `IfcDoorType` / `IfcWindowType` |
+| Element                     | Key fields                                                                         | Notes                                                                                                                                                                       |
+| --------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Wall**                    | `start`, `end`, `thickness`, `height`, `justification`                             | straight; `justification` is `centre`, `left` or `right`                                                                                                                    |
+| **Door**                    | `wallId`, `offsetAlongWall`, `width`, `height`, `sillHeight`, `swing?`, `doorway?` | `kind: "door"`; a doorway has no leaf, component or swing                                                                                                                   |
+| **Window**                  | `wallId`, `offsetAlongWall`, `width`, `height`, `sillHeight`, `reveal?`            | `kind: "window"`                                                                                                                                                            |
+| **Slab**                    | `outline`, `thickness`, `elevationOffset`, `material?`                             | top of slab is at storey elevation + `elevationOffset`; the slab extends downwards from there; `material: "ground"` renders an external ground slab (default `concrete`)    |
+| **Room**                    | `name`, `outline`, `dimensionOutline?`                                             | 2D outline only, for now; `dimensionOutline` optionally gives the part the plan measures, while the label, area and IFC space keep `outline`                                |
+| **Stair**                   | `toStoreyId`, `segments`                                                           | a storey element climbing to the next storey up; `segments` run bottom to top                                                                                               |
+| **Stair flight**            | `start`, `end`, `width`, `risers`                                                  | `kind: "flight"`; a straight run, centred on its start→end line, of at least 2 risers                                                                                       |
+| **Stair landing**           | `outline`, `thickness`                                                             | `kind: "landing"`; a flat platform between flights or at the top of the stair, its level derived from the flights below it                                                  |
+| **Railing**                 | `start`, `end`, `height`, `startBase?`, `endBase?`                                 | a straight guard or handrail; `height` is to the top of the rail above the walking surface; an omitted base is 0, equal effective bases are level and different bases slope |
+| **Door / window component** | `id`, `name`                                                                       | a design (not a size) shared by openings, in the building's `components: { doors, windows }`; written to IFC as `IfcDoorType` / `IfcWindowType`                             |
 
 - Outlines are open polygons: at least three distinct points, no repeated adjacent points, the
   first point is not repeated at the end, the area is non-zero and the outline does not cross
@@ -286,7 +290,11 @@ sloped handrail. Posts are derived at both ends and at centres no more than 160 
 
 ```ts
 const levelGuard = railing("railing-front", pt(mm(0), mm(0)), pt(m(3), mm(0)), { height: mm(900) });
-const handrail = railing("railing-steps", pt(mm(0), mm(0)), pt(mm(900), mm(0)), { height: mm(900), startBase: mm(150), endBase: mm(600) });
+const handrail = railing("railing-steps", pt(mm(0), mm(0)), pt(mm(900), mm(0)), {
+  height: mm(900),
+  startBase: mm(150),
+  endBase: mm(600),
+});
 ```
 
 Nothing else vertical is stored: the rail follows the two bases and the writer, round-trip and
@@ -306,9 +314,20 @@ const streetLevel: Storey = {
   elevation: mm(-450),
   walls: [],
   openings: [],
-  slabs: [{ id: "slab-ground-external", name: "External ground", outline, thickness: mm(50), elevationOffset: mm(0), material: "ground" }],
+  slabs: [
+    {
+      id: "slab-ground-external",
+      name: "External ground",
+      outline,
+      thickness: mm(50),
+      elevationOffset: mm(0),
+      material: "ground",
+    },
+  ],
   rooms: [],
-  stairs: [stair("stair-front", ground, [stairFlight("stair-flight-front", bottom, top, { width: m(1.2), risers: 3 })])],
+  stairs: [
+    stair("stair-front", ground, [stairFlight("stair-flight-front", bottom, top, { width: m(1.2), risers: 3 })]),
+  ],
 };
 ```
 
@@ -340,9 +359,23 @@ const halfLanding: Storey = {
   id: "storey-half-landing",
   name: "Half landing",
   elevation: add(ground.elevation, mm(Math.round((rise * 9) / 17))), // 1641 mm
-  walls: [wall("wall-extension-east-half", pt(m(10.425), m(5.9)), pt(m(10.425), m(8.075)), { thickness: mm(175), height: mm(2909), justification: "left" })],
+  walls: [
+    wall("wall-extension-east-half", pt(m(10.425), m(5.9)), pt(m(10.425), m(8.075)), {
+      thickness: mm(175),
+      height: mm(2909),
+      justification: "left",
+    }),
+  ],
   openings: [],
-  slabs: [{ id: "slab-half-landing", name: "Half landing", outline: landingOutline, thickness: mm(150), elevationOffset: mm(0) }],
+  slabs: [
+    {
+      id: "slab-half-landing",
+      name: "Half landing",
+      outline: landingOutline,
+      thickness: mm(150),
+      elevationOffset: mm(0),
+    },
+  ],
   rooms: [],
   stairs: [stair("stair-upper", firstFloor, [upperFlight])], // 8 risers
 };
@@ -365,24 +398,24 @@ extension's walls in `extension.ts`.
 All of these are in `src/model/helpers.ts` and exported from `src/model/index.ts`. They only
 build plain values, so a model can always write the JSON shape out directly instead.
 
-| Helper | What it does |
-|---|---|
-| `defineBuilding(b)` | fills in `schemaVersion` and type-checks the whole model |
-| `pt(x, y)` | a plan point |
-| `wall(id, start, end, { thickness, height, justification?, name? })` | a wall, `centre`-justified by default |
-| `rectWalls(prefix, origin, width, depth, { thickness, height })` | four external walls `<prefix>-south/east/north/west` whose outer faces form the rectangle |
-| `face(wall, "north" \| "south" \| "east" \| "west")` | the coordinate of one face of an axis-aligned wall |
-| `rectRoom(id, name, { west, east, south, north })` | a rectangular room outline |
-| `centredOn(wall, at, width)` | the `offsetAlongWall` that centres an opening of `width` on plan coordinate `at` |
-| `doorComponent(id, name, { frame? })`, `windowComponent(id, name, { frame?, glazing? })` | a door or window design for `components` |
-| `door(id, wall, offset, component?, { width, height }, swing?)` | a door, with `sillHeight` 0, linked to the component if given one |
-| `doorway(id, wall, offset, { width, height })` | a plain doorway: no leaf, frame or swing |
-| `window(id, wall, offset, component?, { width, height, sillHeight }, reveal?)` | a window, linked to the component if given one, with splayed jambs if given a reveal |
-| `faceCrossing(wall, "left" \| "right", "x" \| "y", at)` | where a face of a wall at any angle crosses the line x = `at` or y = `at`: room corners against diagonal walls |
-| `stairFlight(id, start, end, { width, risers })` | a straight flight of steps, for `stair()` |
-| `stairLanding(id, outline, { thickness })` | a flat platform between flights, for `stair()` |
-| `stair(id, toStorey, segments)` | a stair to `toStorey`, recording its id as `toStoreyId`; segments run bottom to top |
-| `railing(id, start, end, { height, startBase?, endBase? })` | a straight guard or handrail; bases are recorded as given and an omitted base means 0 |
+| Helper                                                                                   | What it does                                                                                                   |
+| ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `defineBuilding(b)`                                                                      | fills in `schemaVersion` and type-checks the whole model                                                       |
+| `pt(x, y)`                                                                               | a plan point                                                                                                   |
+| `wall(id, start, end, { thickness, height, justification?, name? })`                     | a wall, `centre`-justified by default                                                                          |
+| `rectWalls(prefix, origin, width, depth, { thickness, height })`                         | four external walls `<prefix>-south/east/north/west` whose outer faces form the rectangle                      |
+| `face(wall, "north" \| "south" \| "east" \| "west")`                                     | the coordinate of one face of an axis-aligned wall                                                             |
+| `rectRoom(id, name, { west, east, south, north })`                                       | a rectangular room outline                                                                                     |
+| `centredOn(wall, at, width)`                                                             | the `offsetAlongWall` that centres an opening of `width` on plan coordinate `at`                               |
+| `doorComponent(id, name, { frame? })`, `windowComponent(id, name, { frame?, glazing? })` | a door or window design for `components`                                                                       |
+| `door(id, wall, offset, component?, { width, height }, swing?)`                          | a door, with `sillHeight` 0, linked to the component if given one                                              |
+| `doorway(id, wall, offset, { width, height })`                                           | a plain doorway: no leaf, frame or swing                                                                       |
+| `window(id, wall, offset, component?, { width, height, sillHeight }, reveal?)`           | a window, linked to the component if given one, with splayed jambs if given a reveal                           |
+| `faceCrossing(wall, "left" \| "right", "x" \| "y", at)`                                  | where a face of a wall at any angle crosses the line x = `at` or y = `at`: room corners against diagonal walls |
+| `stairFlight(id, start, end, { width, risers })`                                         | a straight flight of steps, for `stair()`                                                                      |
+| `stairLanding(id, outline, { thickness })`                                               | a flat platform between flights, for `stair()`                                                                 |
+| `stair(id, toStorey, segments)`                                                          | a stair to `toStorey`, recording its id as `toStoreyId`; segments run bottom to top                            |
+| `railing(id, start, end, { height, startBase?, endBase? })`                              | a straight guard or handrail; bases are recorded as given and an omitted base means 0                          |
 
 ### Make dimensions follow each other
 
@@ -442,7 +475,13 @@ export default defineConstraints([
       measure: { along: "wall-south" },
       distance: mm(1175),
     },
-    { id: "living-width", from: roomCorner("south-west"), to: roomCorner("north-east"), measure: "x", distance: mm(3550) },
+    {
+      id: "living-width",
+      from: roomCorner("south-west"),
+      to: roomCorner("north-east"),
+      measure: "x",
+      distance: mm(3550),
+    },
   ]),
 ]);
 ```
@@ -455,12 +494,12 @@ kind of point and measure.
 Points are named from model ids, never coordinates, so they move with the model. A point that
 names an id the model no longer has is an ERROR, so renaming an element shows up straight away.
 
-| Helper | The point |
-|---|---|
-| `corner({ wall, face }, { wall, face })` | where the lines of two wall faces cross: an inside or outside corner |
-| `wallEnd(wall, "start" \| "end", face?)` | one end of a wall, on its start→end line or on `face` |
-| `jamb(opening, "start" \| "end" \| "centre", face?)` | an opening's jamb nearest the wall start, its far jamb, or half way between, on the wall line or on `face` |
-| `roomCorner(room?, "south-west" \| … \| n)` | the room outline vertex furthest in that direction, or vertex `n` from 0. Inside `inRoom` the room can be left out |
+| Helper                                               | The point                                                                                                          |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `corner({ wall, face }, { wall, face })`             | where the lines of two wall faces cross: an inside or outside corner                                               |
+| `wallEnd(wall, "start" \| "end", face?)`             | one end of a wall, on its start→end line or on `face`                                                              |
+| `jamb(opening, "start" \| "end" \| "centre", face?)` | an opening's jamb nearest the wall start, its far jamb, or half way between, on the wall line or on `face`         |
+| `roomCorner(room?, "south-west" \| … \| n)`          | the room outline vertex furthest in that direction, or vertex `n` from 0. Inside `inRoom` the room can be left out |
 
 Each helper takes an id or the model object (e.g. a `Wall` imported from the model's modules).
 
@@ -478,10 +517,10 @@ drawn from wall faces, and a vertex number changes when an outline gains a point
 
 ### Measures and tolerance
 
-| `measure` | The distance |
-|---|---|
-| `"straight"` | straight-line distance |
-| `"x"`, `"y"` | difference in plan x or y |
+| `measure`           | The distance                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| `"straight"`        | straight-line distance                                                               |
+| `"x"`, `"y"`        | difference in plan x or y                                                            |
 | `{ along: wallId }` | the distance projected onto that wall's direction, as a tape along the wall reads it |
 
 Distances are unsigned and measured in plan only; heights can't be constrained yet. The measured
@@ -529,18 +568,25 @@ export default revise(base, [
   remove("window-kitchen", "wall-living-kitchen"),
   replace({ ...north, name: "North wall, now inside the lean-to" }),
   addTo("storey-ground", {
-    walls: [wall("wall-lean-to-north", { x: mm(0), y: mm(8000) }, { x: mm(8000), y: mm(8000) }, { thickness: mm(200), height: mm(2400) })],
+    walls: [
+      wall(
+        "wall-lean-to-north",
+        { x: mm(0), y: mm(8000) },
+        { x: mm(8000), y: mm(8000) },
+        { thickness: mm(200), height: mm(2400) },
+      ),
+    ],
     openings: [door("doorway-lean-to", north, mm(1500), { width: mm(900), height: mm(2100) })],
   }),
 ]);
 ```
 
-| Edit | Does |
-|---|---|
-| `remove(...ids)` | removes elements or components, by id or by the element itself |
-| `replace(...elements)` | puts each element or component in the place of the one with its id |
-| `addTo(storey, { walls, openings, slabs, rooms, stairs, railings })` | adds elements to a storey, by collection |
-| `addComponents({ doors, windows })` | adds door and window designs |
+| Edit                                                                 | Does                                                               |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `remove(...ids)`                                                     | removes elements or components, by id or by the element itself     |
+| `replace(...elements)`                                               | puts each element or component in the place of the one with its id |
+| `addTo(storey, { walls, openings, slabs, rooms, stairs, railings })` | adds elements to a storey, by collection                           |
+| `addComponents({ doors, windows })`                                  | adds door and window designs                                       |
 
 An edit that names an id the model doesn't have, adds an id it already has, adds to a storey it
 doesn't have, touches a storey, or puts a value its collection doesn't accept (a railing in place
@@ -563,20 +609,46 @@ revision. It normally edits the base's groups:
 ```ts
 // models/elmstead/revisions/rear-extension/constraints.ts
 import base from "../../constraints.js";
-import { addGroups, inRoom, mm, removeConstraint, replaceConstraint, reviseConstraints, roomCorner } from "../../../../src/constraints/index.js";
+import {
+  addGroups,
+  inRoom,
+  mm,
+  removeConstraint,
+  replaceConstraint,
+  reviseConstraints,
+  roomCorner,
+} from "../../../../src/constraints/index.js";
 
 export default reviseConstraints(base, [
   removeConstraint("kitchen-rear-wall-length", "rear wall demolished for the extension"),
-  replaceConstraint({ id: "living-width", note: "architect's drawing A-102 rev C", from: roomCorner("south-west"), to: roomCorner("north-east"), measure: "x", distance: mm(4200) }),
-  addGroups(inRoom("room-extension", [{ id: "extension-width", note: "architect's drawing A-102 rev C", from: roomCorner("south-west"), to: roomCorner("south-east"), measure: "x", distance: mm(3600) }])),
+  replaceConstraint({
+    id: "living-width",
+    note: "architect's drawing A-102 rev C",
+    from: roomCorner("south-west"),
+    to: roomCorner("north-east"),
+    measure: "x",
+    distance: mm(4200),
+  }),
+  addGroups(
+    inRoom("room-extension", [
+      {
+        id: "extension-width",
+        note: "architect's drawing A-102 rev C",
+        from: roomCorner("south-west"),
+        to: roomCorner("south-east"),
+        measure: "x",
+        distance: mm(3600),
+      },
+    ]),
+  ),
 ]);
 ```
 
-| Edit | Does |
-|---|---|
-| `removeConstraint(id, note)` | stops checking a base constraint on this revision; the note, which is required, says why |
-| `replaceConstraint(constraint)` | puts a constraint in the place of the base's with the same id |
-| `addGroups(...groups)` | adds groups, by storey or room, for dimensions the proposal must meet |
+| Edit                            | Does                                                                                     |
+| ------------------------------- | ---------------------------------------------------------------------------------------- |
+| `removeConstraint(id, note)`    | stops checking a base constraint on this revision; the note, which is required, says why |
+| `replaceConstraint(constraint)` | puts a constraint in the place of the base's with the same id                            |
+| `addGroups(...groups)`          | adds groups, by storey or room, for dimensions the proposal must meet                    |
 
 Nothing is skipped for you. A base constraint the revision breaks is an ERROR that names the file to
 revise it in:

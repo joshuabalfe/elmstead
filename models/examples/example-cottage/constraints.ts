@@ -4,7 +4,17 @@
  *
  * When one fails, fix the model, not the constraint.
  */
-import { corner, defineConstraints, inRoom, inStorey, jamb, m, mm, roomCorner, wallEnd } from "../../../src/constraints/index.js";
+import {
+  corner,
+  defineConstraints,
+  inRoom,
+  inStorey,
+  jamb,
+  m,
+  mm,
+  roomCorner,
+  wallEnd,
+} from "../../../src/constraints/index.js";
 
 const livingSouthWest = corner({ wall: "wall-west", face: "east" }, { wall: "wall-south", face: "north" });
 
@@ -18,8 +28,21 @@ export default defineConstraints([
       measure: { along: "wall-south" },
       distance: mm(1175),
     },
-    { id: "living-window-width", from: jamb("window-living", "start"), to: jamb("window-living", "end"), measure: { along: "wall-south" }, distance: m(1.2), tolerance: mm(0) },
-    { id: "living-width", from: roomCorner("south-west"), to: roomCorner("north-east"), measure: "x", distance: mm(3550) },
+    {
+      id: "living-window-width",
+      from: jamb("window-living", "start"),
+      to: jamb("window-living", "end"),
+      measure: { along: "wall-south" },
+      distance: m(1.2),
+      tolerance: mm(0),
+    },
+    {
+      id: "living-width",
+      from: roomCorner("south-west"),
+      to: roomCorner("north-east"),
+      measure: "x",
+      distance: mm(3550),
+    },
   ]),
   inRoom("room-hall", [
     {
@@ -39,5 +62,13 @@ export default defineConstraints([
       distance: mm(975),
     },
   ]),
-  inStorey("storey-ground", [{ id: "front-length", from: wallEnd("wall-south", "start"), to: wallEnd("wall-south", "end"), measure: "straight", distance: m(8) }]),
+  inStorey("storey-ground", [
+    {
+      id: "front-length",
+      from: wallEnd("wall-south", "start"),
+      to: wallEnd("wall-south", "end"),
+      measure: "straight",
+      distance: m(8),
+    },
+  ]),
 ]);

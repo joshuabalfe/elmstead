@@ -27,7 +27,10 @@ export interface WindowDivision {
  * them; inside it, vertical bars run the full height and horizontal bars only between them. So
  * their areas add up to the opening's, and volumes can be checked exactly.
  */
-export function windowDivision(win: Pick<Window, "width" | "height">, design?: Pick<WindowComponent, "glazing" | "frame">): WindowDivision {
+export function windowDivision(
+  win: Pick<Window, "width" | "height">,
+  design?: Pick<WindowComponent, "glazing" | "frame">,
+): WindowDivision {
   const f = design?.frame?.width ?? 0;
   const frame: Rect[] = f
     ? [

@@ -17,7 +17,19 @@
  * Both storeys share one wall layout, so the viewer's top view shows the same charcoal wall tops as
  * the ground-floor plan and the plan-versus-3D comparison still lines up.
  */
-import { defineBuilding, m, mm, pt, rectRoom, rectWalls, stair, stairFlight, stairLanding, sub, type Storey } from "../../../src/model/index.js";
+import {
+  defineBuilding,
+  m,
+  mm,
+  pt,
+  rectRoom,
+  rectWalls,
+  stair,
+  stairFlight,
+  stairLanding,
+  sub,
+  type Storey,
+} from "../../../src/model/index.js";
 
 const outerW = m(6);
 const outerD = m(4);
@@ -29,7 +41,8 @@ const inner = { west: extT, south: extT, east: sub(outerW, extT), north: sub(out
 const void_ = { west: mm(2600), south: mm(900), east: inner.east, north: mm(2700) };
 
 /** Both storeys: the same four external walls, so their tops coincide in the viewer's top view. */
-const shell = (prefix: string, height: typeof rise) => Object.values(rectWalls(prefix, pt(mm(0), mm(0)), outerW, outerD, { thickness: extT, height }));
+const shell = (prefix: string, height: typeof rise) =>
+  Object.values(rectWalls(prefix, pt(mm(0), mm(0)), outerW, outerD, { thickness: extT, height }));
 
 // ── Stair ────────────────────────────────────────────────────────────────────
 // Two flights of 8 risers, 800 wide, either side of a 180° turn at the east end.
@@ -39,8 +52,14 @@ const lowerY = mm(1400); // centreline of the lower flight, which climbs east
 const upperY = mm(2200); // centreline of the upper flight, which climbs west
 const stairWidth = mm(800);
 
-const lowerFlight = stairFlight("stair-flight-lower", pt(flightWest, lowerY), pt(flightEast, lowerY), { width: stairWidth, risers: 8 });
-const upperFlight = stairFlight("stair-flight-upper", pt(flightEast, upperY), pt(flightWest, upperY), { width: stairWidth, risers: 8 });
+const lowerFlight = stairFlight("stair-flight-lower", pt(flightWest, lowerY), pt(flightEast, lowerY), {
+  width: stairWidth,
+  risers: 8,
+});
+const upperFlight = stairFlight("stair-flight-upper", pt(flightEast, upperY), pt(flightWest, upperY), {
+  width: stairWidth,
+  risers: 8,
+});
 // Its west edge carries both flights' ends, so each meets the landing's boundary exactly.
 const halfLanding = stairLanding(
   "stair-landing-half",
@@ -72,7 +91,14 @@ const firstFloor: Storey = {
       elevationOffset: mm(0),
     },
   ],
-  rooms: [rectRoom("room-first", "First floor", { west: inner.west, east: void_.west, south: inner.south, north: inner.north })],
+  rooms: [
+    rectRoom("room-first", "First floor", {
+      west: inner.west,
+      east: void_.west,
+      south: inner.south,
+      north: inner.north,
+    }),
+  ],
 };
 
 const ground: Storey = {
@@ -81,7 +107,15 @@ const ground: Storey = {
   elevation: mm(0),
   walls: shell("wall", rise),
   openings: [],
-  slabs: [{ id: "slab-ground", name: "Ground floor slab", outline: [pt(mm(0), mm(0)), pt(outerW, mm(0)), pt(outerW, outerD), pt(mm(0), outerD)], thickness: mm(150), elevationOffset: mm(0) }],
+  slabs: [
+    {
+      id: "slab-ground",
+      name: "Ground floor slab",
+      outline: [pt(mm(0), mm(0)), pt(outerW, mm(0)), pt(outerW, outerD), pt(mm(0), outerD)],
+      thickness: mm(150),
+      elevationOffset: mm(0),
+    },
+  ],
   rooms: [rectRoom("room-hall", "Hall", inner)],
   stairs: [stair("stair-main", firstFloor, [lowerFlight, halfLanding, upperFlight])],
 };

@@ -5,7 +5,18 @@ import { POST_SIZE, railingPostPoints } from "../geometry/railing.js";
 import { flightFootprint, flightTreads, stairLevels } from "../geometry/stair.js";
 import { GLAZING_BAR_DEPTH, windowDivision } from "../geometry/window.js";
 import { dot, perpLeft, toVec, unit, v, vadd, vscale, vsub, type Vec } from "../geometry/vec.js";
-import type { BuildingModel, Components, Door, Opening, Stair, StairFlight, Storey, Wall, Window, WindowComponent } from "../schema/schema.js";
+import type {
+  BuildingModel,
+  Components,
+  Door,
+  Opening,
+  Stair,
+  StairFlight,
+  Storey,
+  Wall,
+  Window,
+  WindowComponent,
+} from "../schema/schema.js";
 import { C, CUT_HEIGHT, FONT, MARGIN, PX_PER_MM, ROOM_LABEL } from "./style.js";
 import { el, group, line, num, polygon, polyline, serialise, text, type Attrs, type Node } from "./svg.js";
 
@@ -48,12 +59,14 @@ function makeView(storey: Storey, { railings = false, turn = 0 }: { railings?: b
   const unrot = (p: Vec) => (turn === 0 ? p : v(p.x * cos - p.y * sin, p.x * sin + p.y * cos));
   // The sheet holds the turned drawing and the corners of its plan extent, where the overall dimensions run.
   const { minX, minY, maxX, maxY } = extent;
-  const sheet = turn === 0 ? extent : bounds([...pts, v(minX, minY), v(maxX, minY), v(maxX, maxY), v(minX, maxY)].map(rot));
+  const sheet =
+    turn === 0 ? extent : bounds([...pts, v(minX, minY), v(maxX, minY), v(maxX, maxY), v(minX, maxY)].map(rot));
   const toPx = (p: Vec) => {
     const q = rot(p);
     return v(MARGIN.left + (q.x - sheet.minX) * PX_PER_MM, MARGIN.top + (sheet.maxY - q.y) * PX_PER_MM);
   };
-  const toMm = (p: Vec) => unrot(v(sheet.minX + (p.x - MARGIN.left) / PX_PER_MM, sheet.maxY - (p.y - MARGIN.top) / PX_PER_MM));
+  const toMm = (p: Vec) =>
+    unrot(v(sheet.minX + (p.x - MARGIN.left) / PX_PER_MM, sheet.maxY - (p.y - MARGIN.top) / PX_PER_MM));
   return {
     toPx,
     toMm,
@@ -81,7 +94,9 @@ function jambEdge(w: Wall, o: Opening, jamb: "near" | "far", L: number): Vec[] {
 function wallPieces(w: Wall, openings: readonly Opening[]): Vec[][] {
   const L = wallLength(w);
   const { left, right } = faceOffsets(w);
-  const cuts = openings.filter((o) => o.wallId === w.id && isCut(o)).sort((a, b) => a.offsetAlongWall - b.offsetAlongWall);
+  const cuts = openings
+    .filter((o) => o.wallId === w.id && isCut(o))
+    .sort((a, b) => a.offsetAlongWall - b.offsetAlongWall);
   const pieces: Vec[][] = [];
   // A stretch runs from one edge to the next, each listed right face to left face, so its outline
   // is the start edge's first point, the end edge, then the rest of the start edge backwards. It is
@@ -147,7 +162,10 @@ function drawDoor(w: Wall, d: Door, view: View, frameWidth = 0): Node {
 /** A door's opening through the wall, in the paper colour: for the 3D wall tops, which aren't cut. */
 function drawDoorGap(w: Wall, d: Door, view: View): Node {
   return group({ class: "door-gap", "data-id": d.id }, [
-    polygon(wallSegmentFootprint(w, d.offsetAlongWall, d.offsetAlongWall + d.width).map(view.toPx), { fill: C.paper, stroke: "none" }),
+    polygon(wallSegmentFootprint(w, d.offsetAlongWall, d.offsetAlongWall + d.width).map(view.toPx), {
+      fill: C.paper,
+      stroke: "none",
+    }),
   ]);
 }
 
@@ -166,11 +184,22 @@ function drawWindow(w: Wall, win: Window, view: View, design?: WindowComponent):
   const barHalf = Math.min(GLAZING_BAR_DEPTH, left - right) / 2;
   return group({ class: "window", "data-id": win.id }, [
     polygon(frame, { fill: C.paper, stroke: C.opening, "stroke-width": 0.8 }),
-    line(view.toPx(wallPoint(w, a, mid + glassGap)), view.toPx(wallPoint(w, b, mid + glassGap)), { stroke: C.glass, "stroke-width": 1 }),
-    line(view.toPx(wallPoint(w, a, mid - glassGap)), view.toPx(wallPoint(w, b, mid - glassGap)), { stroke: C.glass, "stroke-width": 1 }),
+    line(view.toPx(wallPoint(w, a, mid + glassGap)), view.toPx(wallPoint(w, b, mid + glassGap)), {
+      stroke: C.glass,
+      "stroke-width": 1,
+    }),
+    line(view.toPx(wallPoint(w, a, mid - glassGap)), view.toPx(wallPoint(w, b, mid - glassGap)), {
+      stroke: C.glass,
+      "stroke-width": 1,
+    }),
     ...bars.map((r) =>
       polygon(
-        [wallPoint(w, a + r.x, mid - barHalf), wallPoint(w, a + r.x + r.w, mid - barHalf), wallPoint(w, a + r.x + r.w, mid + barHalf), wallPoint(w, a + r.x, mid + barHalf)].map(view.toPx),
+        [
+          wallPoint(w, a + r.x, mid - barHalf),
+          wallPoint(w, a + r.x + r.w, mid - barHalf),
+          wallPoint(w, a + r.x + r.w, mid + barHalf),
+          wallPoint(w, a + r.x, mid + barHalf),
+        ].map(view.toPx),
         { class: "glazing-bar", fill: C.opening, stroke: "none" },
       ),
     ),
@@ -181,7 +210,12 @@ function drawWindow(w: Wall, win: Window, view: View, design?: WindowComponent):
 function drawUncut(w: Wall, o: Opening, view: View): Node {
   const outline = openingOutline(w, o).map(view.toPx);
   return group({ class: o.kind, "data-id": o.id, "data-cut": "false" }, [
-    polygon(outline, { fill: "none", stroke: o.kind === "window" ? C.glass : C.dim, "stroke-width": 1, "stroke-dasharray": "4 2" }),
+    polygon(outline, {
+      fill: "none",
+      stroke: o.kind === "window" ? C.glass : C.dim,
+      "stroke-width": 1,
+      "stroke-dasharray": "4 2",
+    }),
   ]);
 }
 
@@ -212,14 +246,22 @@ function dimension(p: Vec, q: Vec, label: string, offsetPx: number, view: View, 
   const n = v(u.y, -u.x);
   const P2 = vadd(P, vscale(n, offsetPx));
   const Q2 = vadd(Q, vscale(n, offsetPx));
-  const tick = (c: Vec) => line(vadd(c, vscale(vadd(u, n), -4)), vadd(c, vscale(vadd(u, n), 4)), { stroke: C.dim, "stroke-width": 1, ...look.line });
+  const tick = (c: Vec) =>
+    line(vadd(c, vscale(vadd(u, n), -4)), vadd(c, vscale(vadd(u, n), 4)), {
+      stroke: C.dim,
+      "stroke-width": 1,
+      ...look.line,
+    });
   const midPt = vadd(vscale(vadd(P2, Q2), 0.5), vscale(n, 6));
   const angle = (Math.atan2(u.y, u.x) * 180) / Math.PI;
   const upright = angle >= 90 || angle < -90 ? angle + 180 : angle;
-  const extensions = offsetPx === 0 ? [] : [
-    line(vadd(P, vscale(n, 4)), vadd(P2, vscale(n, 4)), { stroke: C.dim, "stroke-width": 0.5, ...look.line }),
-    line(vadd(Q, vscale(n, 4)), vadd(Q2, vscale(n, 4)), { stroke: C.dim, "stroke-width": 0.5, ...look.line }),
-  ];
+  const extensions =
+    offsetPx === 0
+      ? []
+      : [
+          line(vadd(P, vscale(n, 4)), vadd(P2, vscale(n, 4)), { stroke: C.dim, "stroke-width": 0.5, ...look.line }),
+          line(vadd(Q, vscale(n, 4)), vadd(Q2, vscale(n, 4)), { stroke: C.dim, "stroke-width": 0.5, ...look.line }),
+        ];
   return [
     ...extensions,
     line(P2, Q2, { stroke: C.dim, "stroke-width": 0.8, ...look.line }),
@@ -251,7 +293,11 @@ function roomDimensions(id: string, pts: readonly Vec[], label: Bounds, view: Vi
   // Label box in plan mm, widened by the clearance. On a turned sheet its corners map to a turned
   // box, so take the plan bounds of all four.
   const pad = ROOM_DIM_CLEAR / PX_PER_MM;
-  const box = bounds([v(label.minX, label.minY), v(label.maxX, label.minY), v(label.maxX, label.maxY), v(label.minX, label.maxY)].map(view.toMm));
+  const box = bounds(
+    [v(label.minX, label.minY), v(label.maxX, label.minY), v(label.maxX, label.maxY), v(label.minX, label.maxY)].map(
+      view.toMm,
+    ),
+  );
   const lo = vsub(v(box.minX, box.minY), v(pad, pad));
   const hi = vadd(v(box.maxX, box.maxY), v(pad, pad));
   const c = vscale(vadd(lo, hi), 0.5);
@@ -276,7 +322,9 @@ function roomDimensions(id: string, pts: readonly Vec[], label: Bounds, view: Vi
     // clear of the label, otherwise on the wall side so it doesn't overwrite the label.
     const [P, Q] = [view.toPx(p), view.toPx(q)];
     const left = v(Q.y - P.y, P.x - Q.x);
-    return dot(vsub(view.toPx(c), P), left) >= 0 === towardLabel ? dimension(p, q, `${len}`, 0, view, look) : dimension(q, p, `${len}`, 0, view, look);
+    return dot(vsub(view.toPx(c), P), left) >= 0 === towardLabel
+      ? dimension(p, q, `${len}`, 0, view, look)
+      : dimension(q, p, `${len}`, 0, view, look);
   };
   const out: Node[] = [];
   const ew = longest("y");
@@ -306,7 +354,17 @@ function scaleBar(at: Vec): Node {
   const segPx = segMm * PX_PER_MM;
   const parts: Node[] = [];
   for (let i = 0; i < n; i++) {
-    parts.push(el("rect", { x: at.x + i * segPx, y: at.y, width: segPx, height: 6, fill: i % 2 ? C.paper : C.ink, stroke: C.ink, "stroke-width": 0.8 }));
+    parts.push(
+      el("rect", {
+        x: at.x + i * segPx,
+        y: at.y,
+        width: segPx,
+        height: 6,
+        fill: i % 2 ? C.paper : C.ink,
+        stroke: C.ink,
+        "stroke-width": 0.8,
+      }),
+    );
     parts.push(text(v(at.x + i * segPx, at.y + 20), `${i}`, { "font-size": 10, "text-anchor": "middle", fill: C.ink }));
   }
   parts.push(text(v(at.x + n * segPx, at.y + 20), `${n} m`, { "font-size": 10, "text-anchor": "middle", fill: C.ink }));
@@ -319,7 +377,10 @@ function overallDimensions(view: View, look: Look = {}): Node[] {
   const sw = v(extent.minX, extent.minY);
   const se = v(extent.maxX, extent.minY);
   const ne = v(extent.maxX, extent.maxY);
-  return [...dimension(sw, se, `${extent.maxX - extent.minX}`, -40, view, look), ...dimension(se, ne, `${extent.maxY - extent.minY}`, -40, view, look)];
+  return [
+    ...dimension(sw, se, `${extent.maxX - extent.minX}`, -40, view, look),
+    ...dimension(se, ne, `${extent.maxY - extent.minY}`, -40, view, look),
+  ];
 }
 
 /** Where each room's label goes (its centroid, mm) and what it says. */
@@ -338,14 +399,37 @@ function roomLabels(storey: Storey, view: View, opts: PlanOptions, names = true,
     const c = view.toPx(centroid(pts));
     const { name, area: areaFont } = ROOM_LABEL;
     if (names) {
-      out.push(text(v(c.x, c.y + name.dy), r.name, { "font-size": name.size, "font-weight": "bold", "text-anchor": "middle", fill: C.ink, ...look.text }));
-      out.push(text(v(c.x, c.y + areaFont.dy), m2(area(pts)), { "font-size": areaFont.size, "text-anchor": "middle", fill: C.ink, ...look.text }));
+      out.push(
+        text(v(c.x, c.y + name.dy), r.name, {
+          "font-size": name.size,
+          "font-weight": "bold",
+          "text-anchor": "middle",
+          fill: C.ink,
+          ...look.text,
+        }),
+      );
+      out.push(
+        text(v(c.x, c.y + areaFont.dy), m2(area(pts)), {
+          "font-size": areaFont.size,
+          "text-anchor": "middle",
+          fill: C.ink,
+          ...look.text,
+        }),
+      );
     }
     // Rough label extent (px) from character counts; DejaVu Sans averages about 0.6 em per character.
     // Dimensions keep clear of it even when the label is drawn elsewhere (the 3D viewer's billboards).
     const halfW = Math.max(r.name.length * name.size * 0.62, 7 * areaFont.size * 0.6) / 2;
     const dims = (r.dimensionOutline ?? r.outline).map(toVec);
-    out.push(...roomDimensions(r.id, dims, { minX: c.x - halfW, maxX: c.x + halfW, minY: c.y - 17, maxY: c.y + (opts.ids ? 29 : 16) }, view, look));
+    out.push(
+      ...roomDimensions(
+        r.id,
+        dims,
+        { minX: c.x - halfW, maxX: c.x + halfW, minY: c.y - 17, maxY: c.y + (opts.ids ? 29 : 16) },
+        view,
+        look,
+      ),
+    );
     if (opts.ids) out.push(text(v(c.x, c.y + 26), r.id, { "font-size": 8, "text-anchor": "middle", fill: C.id }));
   }
   return out;
@@ -383,7 +467,10 @@ function overlay(storey: Storey, body: (view: View) => Node[]): Overlay {
  * model.
  */
 export function renderPlanAnnotations(storey: Storey, { names = true }: { names?: boolean } = {}): Overlay {
-  return overlay(storey, (view) => [...roomLabels(storey, view, { ids: false }, names, ANNOTATION_LOOK), ...overallDimensions(view, ANNOTATION_LOOK)]);
+  return overlay(storey, (view) => [
+    ...roomLabels(storey, view, { ids: false }, names, ANNOTATION_LOOK),
+    ...overallDimensions(view, ANNOTATION_LOOK),
+  ]);
 }
 
 /**
@@ -391,10 +478,15 @@ export function renderPlanAnnotations(storey: Storey, { names = true }: { names?
  * `doors` picks what a cut door draws: its swing (the plan), its gap in the paper colour (the 3D
  * wall tops, which aren't cut), or nothing.
  */
-function wallsAndOpenings(storey: Storey, view: View, components: Components | undefined, doors: "swing" | "gap" = "swing"): Node[] {
+function wallsAndOpenings(
+  storey: Storey,
+  view: View,
+  components: Components | undefined,
+  doors: "swing" | "gap" = "swing",
+): Node[] {
   const windowDesigns = new Map((components?.windows ?? []).map((c) => [c.id, c]));
   const doorDesigns = new Map((components?.doors ?? []).map((c) => [c.id, c]));
-  const frameWidth = (o: Door) => (o.componentId ? doorDesigns.get(o.componentId)?.frame?.width ?? 0 : 0);
+  const frameWidth = (o: Door) => (o.componentId ? (doorDesigns.get(o.componentId)?.frame?.width ?? 0) : 0);
   const walls = storey.walls.filter((w) => wallLength(w) > 0);
   const wallById = new Map(walls.map((w) => [w.id, w]));
   const out: Node[] = [];
@@ -409,7 +501,8 @@ function wallsAndOpenings(storey: Storey, view: View, components: Components | u
     const w = wallById.get(o.wallId);
     if (!w) continue; // reported by checks
     if (!isCut(o)) out.push(drawUncut(w, o, view));
-    else if (o.kind === "window") out.push(drawWindow(w, o, view, o.componentId ? windowDesigns.get(o.componentId) : undefined));
+    else if (o.kind === "window")
+      out.push(drawWindow(w, o, view, o.componentId ? windowDesigns.get(o.componentId) : undefined));
     else if (o.doorway) {
       if (doors === "gap") out.push(drawDoorGap(w, o, view));
     } else out.push(doors === "swing" ? drawDoor(w, o, view, frameWidth(o)) : drawDoorGap(w, o, view));
@@ -423,7 +516,7 @@ function doorSwings(storey: Storey, view: View, components: Components | undefin
   const doorDesigns = new Map((components?.doors ?? []).map((c) => [c.id, c]));
   return storey.openings.flatMap((o) => {
     const w = wallById.get(o.wallId);
-    const frame = o.kind === "door" && o.componentId ? doorDesigns.get(o.componentId)?.frame?.width ?? 0 : 0;
+    const frame = o.kind === "door" && o.componentId ? (doorDesigns.get(o.componentId)?.frame?.width ?? 0) : 0;
     return w && o.kind === "door" && !o.doorway && isCut(o) && wallLength(w) > 0 ? [drawDoor(w, o, view, frame)] : [];
   });
 }
@@ -444,15 +537,27 @@ export function renderWallTops(storey: Storey, components?: Components): Overlay
  */
 export function renderFloor(storey: Storey, components?: Components): Overlay {
   return overlay(storey, (view) => [
-    ...storey.slabs.map((s) => polygon(s.outline.map((p) => view.toPx(toVec(p))), { "data-id": s.id, fill: s.material === "ground" ? C.ground : C.room, stroke: "none" })),
-    ...storey.rooms.map((r) => polygon(r.outline.map((p) => view.toPx(toVec(p))), { "data-id": r.id, fill: C.room, stroke: "none" })),
+    ...storey.slabs.map((s) =>
+      polygon(
+        s.outline.map((p) => view.toPx(toVec(p))),
+        { "data-id": s.id, fill: s.material === "ground" ? C.ground : C.room, stroke: "none" },
+      ),
+    ),
+    ...storey.rooms.map((r) =>
+      polygon(
+        r.outline.map((p) => view.toPx(toVec(p))),
+        { "data-id": r.id, fill: C.room, stroke: "none" },
+      ),
+    ),
     ...doorSwings(storey, view, components),
   ]);
 }
 
 /** Every plan point a stair occupies, so the drawing extent includes one outside the rooms. */
 function stairPoints(storey: Storey): Vec[] {
-  return (storey.stairs ?? []).flatMap((s) => s.segments.flatMap((seg) => (seg.kind === "landing" ? seg.outline.map(toVec) : flightFootprint(seg))));
+  return (storey.stairs ?? []).flatMap((s) =>
+    s.segments.flatMap((seg) => (seg.kind === "landing" ? seg.outline.map(toVec) : flightFootprint(seg))),
+  );
 }
 
 /** The rise a stair climbs, or null when its target storey is missing, which the checks report. */
@@ -470,13 +575,24 @@ function flightArrow(f: StairFlight, view: View): Node[] {
   const tail = at(0.68);
   const along = unit(vsub(tip, tail));
   const across = perpLeft(along);
-  const head = polygon([tip, vadd(tail, vscale(across, 3.5)), vsub(tail, vscale(across, 3.5))], { fill: C.stair, stroke: "none" });
+  const head = polygon([tip, vadd(tail, vscale(across, 3.5)), vsub(tail, vscale(across, 3.5))], {
+    fill: C.stair,
+    stroke: "none",
+  });
   return [line(at(0.18), tail, { stroke: C.stair, "stroke-width": 1.2 }), head];
 }
 
 /** An element id label, in the same style as the wall and opening ones. */
 const idLabel = (p: Vec, id: string): Node =>
-  text(v(p.x, p.y + 3), id, { "font-size": 8, "text-anchor": "middle", fill: C.id, stroke: C.paper, "stroke-width": 2.5, "stroke-linejoin": "round", "paint-order": "stroke" });
+  text(v(p.x, p.y + 3), id, {
+    "font-size": 8,
+    "text-anchor": "middle",
+    fill: C.id,
+    stroke: C.paper,
+    "stroke-width": 2.5,
+    "stroke-linejoin": "round",
+    "paint-order": "stroke",
+  });
 
 /**
  * Stairs, drawn in full as the last geometry layer: each flight's footprint, its tread lines and an
@@ -493,7 +609,9 @@ function drawRailings(storey: Storey, view: View, opts: PlanOptions): Node[] {
   for (const r of storey.railings ?? []) {
     const d = unit(vsub(toVec(r.end), toVec(r.start)));
     const across = v(d.y, -d.x);
-    const parts: Node[] = [line(view.toPx(toVec(r.start)), view.toPx(toVec(r.end)), { stroke: C.railing, "stroke-width": 1.2 })];
+    const parts: Node[] = [
+      line(view.toPx(toVec(r.start)), view.toPx(toVec(r.end)), { stroke: C.railing, "stroke-width": 1.2 }),
+    ];
     for (const p of railingPostPoints(r)) {
       const half = vscale(across, POST_SIZE / 2);
       parts.push(line(view.toPx(vadd(p, half)), view.toPx(vsub(p, half)), { stroke: C.railing, "stroke-width": 1.2 }));
@@ -522,10 +640,15 @@ function drawStairs(model: BuildingModel, storey: Storey, view: View, opts: Plan
       const going = level?.kind === "flight" ? level.going : 0;
       const body = [
         polygon(flightFootprint(seg).map(view.toPx), { fill: "none", stroke: C.stair, "stroke-width": 1 }),
-        ...flightTreads(seg, going).map((t) => line(view.toPx(t.from), view.toPx(t.to), { stroke: C.stair, "stroke-width": 0.7 })),
+        ...flightTreads(seg, going).map((t) =>
+          line(view.toPx(t.from), view.toPx(t.to), { stroke: C.stair, "stroke-width": 0.7 }),
+        ),
         ...flightArrow(seg, view),
       ];
-      if (opts.ids) body.push(idLabel(view.toPx(vadd(toVec(seg.start), vscale(vsub(toVec(seg.end), toVec(seg.start)), 0.4))), seg.id));
+      if (opts.ids)
+        body.push(
+          idLabel(view.toPx(vadd(toVec(seg.start), vscale(vsub(toVec(seg.end), toVec(seg.start)), 0.4))), seg.id),
+        );
       parts.push(group({ class: "stair-flight", "data-id": seg.id }, body));
     });
     if (opts.ids) {
@@ -546,11 +669,23 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
 
   // Slabs: fill the floor, with a dashed outline beneath everything. Room fills sit on top.
   for (const s of storey.slabs) {
-    out.push(polygon(s.outline.map((p) => view.toPx(toVec(p))), { class: "slab", "data-id": s.id, fill: s.material === "ground" ? C.ground : C.room, stroke: C.slab, "stroke-width": 0.8, "stroke-dasharray": "6 3" }));
+    out.push(
+      polygon(
+        s.outline.map((p) => view.toPx(toVec(p))),
+        {
+          class: "slab",
+          "data-id": s.id,
+          fill: s.material === "ground" ? C.ground : C.room,
+          stroke: C.slab,
+          "stroke-width": 0.8,
+          "stroke-dasharray": "6 3",
+        },
+      ),
+    );
   }
 
   // Cut door openings show paper over the slab fill, as the viewer's wall tops do. Drawn before the
-// rooms so a room outline that runs into an opening still covers it, as the plan-vs-3D test checks.
+  // rooms so a room outline that runs into an opening still covers it, as the plan-vs-3D test checks.
   for (const o of storey.openings) {
     const w = wallById.get(o.wallId);
     if (w && o.kind === "door" && isCut(o) && wallLength(w) > 0) out.push(drawDoorGap(w, o, view));
@@ -558,7 +693,12 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
 
   // Rooms: tinted fill; labels are drawn later so walls never cover them.
   for (const r of storey.rooms) {
-    out.push(polygon(r.outline.map((p) => view.toPx(toVec(p))), { class: "room", "data-id": r.id, fill: C.room, stroke: "none" }));
+    out.push(
+      polygon(
+        r.outline.map((p) => view.toPx(toVec(p))),
+        { class: "room", "data-id": r.id, fill: C.room, stroke: "none" },
+      ),
+    );
   }
 
   out.push(...wallsAndOpenings(storey, view, model.components));
@@ -572,14 +712,34 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
   if (opts.ids) {
     for (const w of walls) {
       const p = view.toPx(wallPoint(w, wallLength(w) * 0.25, (faceOffsets(w).left + faceOffsets(w).right) / 2));
-      out.push(text(v(p.x, p.y + 3), w.id, { "font-size": 8, "text-anchor": "middle", fill: C.id, stroke: C.paper, "stroke-width": 2.5, "stroke-linejoin": "round", "paint-order": "stroke" }));
+      out.push(
+        text(v(p.x, p.y + 3), w.id, {
+          "font-size": 8,
+          "text-anchor": "middle",
+          fill: C.id,
+          stroke: C.paper,
+          "stroke-width": 2.5,
+          "stroke-linejoin": "round",
+          "paint-order": "stroke",
+        }),
+      );
     }
     for (const o of storey.openings) {
       const w = wallById.get(o.wallId);
       if (!w) continue;
       const { left, right } = faceOffsets(w);
       const p = view.toPx(wallPoint(w, o.offsetAlongWall + o.width / 2, (left + right) / 2));
-      out.push(text(v(p.x, p.y + 3), o.id, { "font-size": 8, "text-anchor": "middle", fill: C.id, stroke: C.paper, "stroke-width": 2.5, "stroke-linejoin": "round", "paint-order": "stroke" }));
+      out.push(
+        text(v(p.x, p.y + 3), o.id, {
+          "font-size": 8,
+          "text-anchor": "middle",
+          fill: C.id,
+          stroke: C.paper,
+          "stroke-width": 2.5,
+          "stroke-linejoin": "round",
+          "paint-order": "stroke",
+        }),
+      );
     }
   }
 

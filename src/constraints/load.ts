@@ -19,7 +19,8 @@ export interface LoadedConstraints {
 }
 
 /** `undefined` when the model has no constraints file. */
-export type ConstraintsResult = { ok: true; value: LoadedConstraints | undefined } | { ok: false; path: string; issues: Issue[] };
+export type ConstraintsResult =
+  { ok: true; value: LoadedConstraints | undefined } | { ok: false; path: string; issues: Issue[] };
 
 /**
  * A model's constraints: its constraints file, evaluated, round-tripped through JSON and validated
@@ -49,8 +50,9 @@ async function loadConstraintsFile(path: string): Promise<FileResult> {
     exported = mod.default;
   } catch (e) {
     // A revision edit names the constraint it could not apply; report it there.
-    if (e instanceof RevisionError) return { ok: false, path, issues: [{ level: "ERROR", id: e.id, message: `revision: ${e.message}` }] };
-    return fail(`constraints threw while evaluating: ${e instanceof Error ? e.stack ?? e.message : e}`);
+    if (e instanceof RevisionError)
+      return { ok: false, path, issues: [{ level: "ERROR", id: e.id, message: `revision: ${e.message}` }] };
+    return fail(`constraints threw while evaluating: ${e instanceof Error ? (e.stack ?? e.message) : e}`);
   }
   if (exported === undefined) return fail("constraints file has no default export");
   const edits = (exported as { [CONSTRAINT_EDITS]?: ConstraintEdits })[CONSTRAINT_EDITS];

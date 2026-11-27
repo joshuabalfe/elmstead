@@ -70,7 +70,11 @@ export function measurementSummary(id: number, values: MeasurementValues): strin
  * The snap candidate under the pointer: the nearest in screen space, a corner winning an exact
  * tie, and no candidate beyond `maxPx`.
  */
-export function nearestSnap<T>(candidates: readonly SnapCandidate<T>[], pointer: { x: number; y: number }, maxPx = SNAP_MAX_PX): SnapCandidate<T> | undefined {
+export function nearestSnap<T>(
+  candidates: readonly SnapCandidate<T>[],
+  pointer: { x: number; y: number },
+  maxPx = SNAP_MAX_PX,
+): SnapCandidate<T> | undefined {
   let best: SnapCandidate<T> | undefined;
   let bestDistance = Number.POSITIVE_INFINITY;
   for (const candidate of candidates) {
@@ -84,6 +88,10 @@ export function nearestSnap<T>(candidates: readonly SnapCandidate<T>[], pointer:
 }
 
 /** Whether a press and release at these positions is a click/tap rather than a drag. */
-export function isMeasureGesture(start: { x: number; y: number }, end: { x: number; y: number }, maxPx = CLICK_SLOP_PX): boolean {
+export function isMeasureGesture(
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+  maxPx = CLICK_SLOP_PX,
+): boolean {
   return Math.hypot(end.x - start.x, end.y - start.y) <= maxPx;
 }

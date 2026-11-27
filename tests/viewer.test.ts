@@ -11,7 +11,16 @@ import type { ResolvedConstraint } from "../src/constraints/check.js";
 import { constraintLabels } from "../viewer/constraints.js";
 import { disposeTree } from "../viewer/dispose.js";
 import { elementLabel } from "../viewer/identify.js";
-import { CLICK_SLOP_PX, SNAP_MAX_PX, axisAlignedPoint, isMeasureGesture, measurementLines, measurementSummary, measurementValues, nearestSnap } from "../viewer/measure.js";
+import {
+  CLICK_SLOP_PX,
+  SNAP_MAX_PX,
+  axisAlignedPoint,
+  isMeasureGesture,
+  measurementLines,
+  measurementSummary,
+  measurementValues,
+  nearestSnap,
+} from "../viewer/measure.js";
 import { M_PER_PX, dashOf, overlayGroup, placeText, toRuns, toScene } from "../viewer/overlay.js";
 import { confinedPath } from "../viewer/serve.js";
 import { cameraForView, cornerLabel, labelHeading, parseOrient, parseView, turnedTopFit } from "../viewer/view.js";
@@ -65,7 +74,8 @@ describe("cameraForView", () => {
 describe("true north views", () => {
   it("keeps the corner cameras on the plan corners whatever the north angle", () => {
     for (const view of ["sw", "se", "ne", "nw"] as const) {
-      for (const snapshot of [false, true]) expect(cameraForView(view, snapshot, 153)).toEqual(cameraForView(view, snapshot));
+      for (const snapshot of [false, true])
+        expect(cameraForView(view, snapshot, 153)).toEqual(cameraForView(view, snapshot));
     }
   });
 
@@ -132,7 +142,14 @@ describe("labelHeading", () => {
 
 type Pt = [number, number];
 const point = ([x, y]: Pt) => ({ x, y });
-const constraint = (id: string, from: Pt, to: Pt, distance: number, storey = "storey-ground", span: { from: Pt; to: Pt } = { from, to }): ResolvedConstraint => ({
+const constraint = (
+  id: string,
+  from: Pt,
+  to: Pt,
+  distance: number,
+  storey = "storey-ground",
+  span: { from: Pt; to: Pt } = { from, to },
+): ResolvedConstraint => ({
   id,
   scope: "room-living",
   storey,
@@ -147,12 +164,22 @@ describe("constraintLabels", () => {
     expect(constraintLabels([constraint("living-width", [200, 200], [3750, 3350], 3550)], "storey-ground")).toEqual([
       { at: { x: 1975, y: 1775 }, lines: ["living-width 3550"] },
     ]);
-    expect(constraintLabels([constraint("first-floor", [0, 0], [1000, 1000], 1000, "storey-first")], "storey-ground")).toEqual([]);
+    expect(
+      constraintLabels([constraint("first-floor", [0, 0], [1000, 1000], 1000, "storey-first")], "storey-ground"),
+    ).toEqual([]);
   });
 
   it("uses the measured span's midpoint for an x or y constraint", () => {
     expect(
-      constraintLabels([constraint("living-width", [200, 200], [3750, 3350], 3550, "storey-ground", { from: [200, 200], to: [3750, 200] })], "storey-ground"),
+      constraintLabels(
+        [
+          constraint("living-width", [200, 200], [3750, 3350], 3550, "storey-ground", {
+            from: [200, 200],
+            to: [3750, 200],
+          }),
+        ],
+        "storey-ground",
+      ),
     ).toEqual([{ at: { x: 1975, y: 200 }, lines: ["living-width 3550"] }]);
   });
 
@@ -175,8 +202,16 @@ describe("constraintLabels", () => {
 
 describe("measurementValues", () => {
   it("computes straight, horizontal and vertical distances in millimetres", () => {
-    expect(measurementValues({ x: 0, y: 0, z: 0 }, { x: 3, y: 0, z: 4 })).toEqual({ straightMm: 5000, horizontalMm: 5000, verticalMm: 0 });
-    expect(measurementValues({ x: 1, y: 2, z: 3 }, { x: 1, y: 4.5, z: 3 })).toEqual({ straightMm: 2500, horizontalMm: 0, verticalMm: 2500 });
+    expect(measurementValues({ x: 0, y: 0, z: 0 }, { x: 3, y: 0, z: 4 })).toEqual({
+      straightMm: 5000,
+      horizontalMm: 5000,
+      verticalMm: 0,
+    });
+    expect(measurementValues({ x: 1, y: 2, z: 3 }, { x: 1, y: 4.5, z: 3 })).toEqual({
+      straightMm: 2500,
+      horizontalMm: 0,
+      verticalMm: 2500,
+    });
     const mixed = measurementValues({ x: 0, y: 0, z: 0 }, { x: 3, y: 4, z: 4 });
     expect(mixed.straightMm).toBeCloseTo(Math.sqrt(41) * 1000);
     expect(mixed.horizontalMm).toBeCloseTo(5000);
@@ -244,16 +279,27 @@ describe("isMeasureGesture", () => {
 
 describe("elementLabel", () => {
   it("takes the id from Tag and keeps a distinct Name", () => {
-    expect(elementLabel({ Tag: { value: "wall-south" }, Name: { value: "South wall" } })).toEqual({ id: "wall-south", name: "South wall" });
+    expect(elementLabel({ Tag: { value: "wall-south" }, Name: { value: "South wall" } })).toEqual({
+      id: "wall-south",
+      name: "South wall",
+    });
   });
 
   it("shows only the id when Name falls back to it", () => {
-    expect(elementLabel({ Tag: { value: "wall-south" }, Name: { value: "wall-south" } })).toEqual({ id: "wall-south", name: null });
+    expect(elementLabel({ Tag: { value: "wall-south" }, Name: { value: "wall-south" } })).toEqual({
+      id: "wall-south",
+      name: null,
+    });
   });
 
   it("takes a space's id from Name and its name from LongName", () => {
-    expect(elementLabel({ Name: { value: "room-living" }, LongName: { value: "Living room" } })).toEqual({ id: "room-living", name: "Living room" });
-    expect(elementLabel({ Tag: { value: "" }, Name: { value: "room-living" }, LongName: { value: "Living room" } })).toEqual({ id: "room-living", name: "Living room" });
+    expect(elementLabel({ Name: { value: "room-living" }, LongName: { value: "Living room" } })).toEqual({
+      id: "room-living",
+      name: "Living room",
+    });
+    expect(
+      elementLabel({ Tag: { value: "" }, Name: { value: "room-living" }, LongName: { value: "Living room" } }),
+    ).toEqual({ id: "room-living", name: "Living room" });
   });
 
   it("returns null when the item names no model element", () => {
@@ -293,7 +339,15 @@ describe("plan overlay geometry", () => {
       polygon(square(44), { fill: C.wall, stroke: "none" }),
       polyline([p(0, 0), p(5, 5), p(9, 0)], { stroke: C.opening, "stroke-width": 0.7, "stroke-dasharray": "3 2" }),
     ]);
-    expect(runs.map((r) => (r.kind === "fill" ? `fill ${r.colour} ×${r.polygons.length}` : r.kind === "stroke" ? `stroke ${r.colour} ×${r.segments.length}` : "text"))).toEqual([
+    expect(
+      runs.map((r) =>
+        r.kind === "fill"
+          ? `fill ${r.colour} ×${r.polygons.length}`
+          : r.kind === "stroke"
+            ? `stroke ${r.colour} ×${r.segments.length}`
+            : "text",
+      ),
+    ).toEqual([
       `fill ${C.wall} ×2`,
       `fill ${C.paper} ×1`,
       `stroke ${C.opening} ×4`, // the outline, closed back to its start
@@ -317,17 +371,26 @@ describe("plan overlay geometry", () => {
   });
 
   it("orders a floor's runs and offsets them towards the camera, and keeps an overlay out of the depth buffer", () => {
-    const nodes = [polygon(square(0), { fill: C.room, stroke: "none" }), polygon(square(0), { fill: C.paper, stroke: "none" }), line(p(0, 0), p(9, 9), { stroke: C.opening, "stroke-width": 1.6 })];
+    const nodes = [
+      polygon(square(0), { fill: C.room, stroke: "none" }),
+      polygon(square(0), { fill: C.paper, stroke: "none" }),
+      line(p(0, 0), p(9, 9), { stroke: C.opening, "stroke-width": 1.6 }),
+    ];
     const floor = overlayGroup(nodes, bounds, 0.02, { kind: "floor", renderOrder: -1 });
     expect(floor.children.map((c) => c.renderOrder)).toEqual([-1, -1 + 0.5 / 3, -1 + 1 / 3]);
     const materials = floor.children.map((c) => (c as THREE.Mesh).material as THREE.Material);
-    expect(materials.map((m) => [m.depthWrite, m.transparent, m.polygonOffsetUnits])).toEqual([[true, false, -0], [true, false, -1], [true, false, -2]]);
+    expect(materials.map((m) => [m.depthWrite, m.transparent, m.polygonOffsetUnits])).toEqual([
+      [true, false, -0],
+      [true, false, -1],
+      [true, false, -2],
+    ]);
     expect(floor.children[2]).toBeInstanceOf(LineSegments2);
     const mesh = floor.children[0] as THREE.Mesh;
     expect(mesh.geometry.getAttribute("position").count).toBe(6); // a square as two triangles
     expect(mesh.geometry.getAttribute("position").getY(0)).toBeCloseTo(0.02);
     const over = overlayGroup(nodes, bounds, 3, { kind: "overlay", renderOrder: 1 });
-    for (const c of over.children) expect((c as THREE.Mesh).material).toMatchObject({ depthWrite: false, transparent: true, polygonOffset: false });
+    for (const c of over.children)
+      expect((c as THREE.Mesh).material).toMatchObject({ depthWrite: false, transparent: true, polygonOffset: false });
   });
 
   it("refuses plan-sheet furniture an overlay never draws", () => {
@@ -340,7 +403,11 @@ describe("disposeTree", () => {
     const sharedMaterial = new LineMaterial();
     const sharedGeometry = new THREE.SphereGeometry();
     const ownMaterial = new LineMaterial();
-    const lines = [new Line2(new LineGeometry(), sharedMaterial), new Line2(new LineGeometry(), sharedMaterial), new Line2(new LineGeometry(), ownMaterial)];
+    const lines = [
+      new Line2(new LineGeometry(), sharedMaterial),
+      new Line2(new LineGeometry(), sharedMaterial),
+      new Line2(new LineGeometry(), ownMaterial),
+    ];
     const marker = new THREE.Mesh(sharedGeometry, new THREE.MeshBasicMaterial());
     const texture = new THREE.Texture();
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture }));

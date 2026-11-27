@@ -74,7 +74,8 @@ export async function viewOf(name: string, query: string): Promise<Raster> {
   return canvasPixels();
 }
 
-export const samePixels = (a: Raster, b: Raster) => a.width === b.width && a.height === b.height && Buffer.from(a.data).equals(Buffer.from(b.data));
+export const samePixels = (a: Raster, b: Raster) =>
+  a.width === b.width && a.height === b.height && Buffer.from(a.data).equals(Buffer.from(b.data));
 
 /** Choose a floor in the bar and wait until the viewer has applied and drawn it. */
 export async function selectStorey(id: string) {
@@ -96,7 +97,12 @@ export async function topView(name: string, storeyId?: string): Promise<Raster> 
 export const near = (r: Raster, rgb: [number, number, number], tol: number): number => {
   let n = 0;
   for (let i = 0; i < r.data.length; i += 4) {
-    if (Math.abs(r.data[i]! - rgb[0]) <= tol && Math.abs(r.data[i + 1]! - rgb[1]) <= tol && Math.abs(r.data[i + 2]! - rgb[2]) <= tol) n++;
+    if (
+      Math.abs(r.data[i]! - rgb[0]) <= tol &&
+      Math.abs(r.data[i + 1]! - rgb[1]) <= tol &&
+      Math.abs(r.data[i + 2]! - rgb[2]) <= tol
+    )
+      n++;
   }
   return n;
 };
@@ -107,7 +113,10 @@ export function useViewer() {
     try {
       browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
     } catch (e) {
-      if (/Executable doesn't exist|playwright install/i.test(String(e))) throw new Error("Chromium missing — it comes with npm install (@playwright/browser-chromium); if install scripts were skipped, run: npm rebuild @playwright/browser-chromium");
+      if (/Executable doesn't exist|playwright install/i.test(String(e)))
+        throw new Error(
+          "Chromium missing — it comes with npm install (@playwright/browser-chromium); if install scripts were skipped, run: npm rebuild @playwright/browser-chromium",
+        );
       throw e;
     }
     outDir = mkdtempSync(join(tmpdir(), "elmstead-plan-vs-3d-"));

@@ -6,7 +6,26 @@
  * tests/support/diff-mode-page.ts and run as separate CI jobs.
  */
 import { describe, expect, it } from "vitest";
-import { COTTAGE, REV, TWO, addedFloor, changedFloor, chooseRevision, count, darkGreen, diffParam, drawn, greenish, open, page, picturesDuring, pixels, same, viewChange, useDiffMode } from "./support/diff-mode-page.js";
+import {
+  COTTAGE,
+  REV,
+  TWO,
+  addedFloor,
+  changedFloor,
+  chooseRevision,
+  count,
+  darkGreen,
+  diffParam,
+  drawn,
+  greenish,
+  open,
+  page,
+  picturesDuring,
+  pixels,
+  same,
+  viewChange,
+  useDiffMode,
+} from "./support/diff-mode-page.js";
 
 useDiffMode();
 
@@ -128,7 +147,9 @@ describe("Changes panel", () => {
     expect(all).toContain("wall-shed");
     expect(all.length).toBe(2);
     await open(`model=${encodeURIComponent(`${TWO}@both-floors`)}&view=se&diff=1&storeys=storey-ground`);
-    expect(await page.$$eval("#changes li button", (bs) => bs.map((b) => b.getAttribute("data-id")))).toEqual(["wall-shed"]);
+    expect(await page.$$eval("#changes li button", (bs) => bs.map((b) => b.getAttribute("data-id")))).toEqual([
+      "wall-shed",
+    ]);
     // The removed wall is upstairs, hidden: its ghost draws nothing, so hiding the category changes nothing.
     const withGhost = await pixels();
     await viewChange(() => page.uncheck('#changes input[data-status="removed"]'));

@@ -24,5 +24,9 @@ export function schemaIssue(root: unknown, issue: z.core.$ZodIssue): Issue {
       if (typeof maybeId === "string") id = maybeId;
     }
   }
-  return { level: "ERROR", ...(id ? { id } : {}), message: `schema: ${issue.path.join(".") || "(root)"}: ${issue.message}` };
+  return {
+    level: "ERROR",
+    ...(id ? { id } : {}),
+    message: `schema: ${issue.path.join(".") || "(root)"}: ${issue.message}`,
+  };
 }

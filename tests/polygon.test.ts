@@ -14,8 +14,20 @@ describe("spans", () => {
   });
 
   it("gives two spans where a concave outline is crossed twice", () => {
-    const u = [P(0, 0), P(3000, 0), P(3000, 2000), P(2000, 2000), P(2000, 1000), P(1000, 1000), P(1000, 2000), P(0, 2000)];
-    expect(spans(u, "y", 1500)).toEqual([[0, 1000], [2000, 3000]]);
+    const u = [
+      P(0, 0),
+      P(3000, 0),
+      P(3000, 2000),
+      P(2000, 2000),
+      P(2000, 1000),
+      P(1000, 1000),
+      P(1000, 2000),
+      P(0, 2000),
+    ];
+    expect(spans(u, "y", 1500)).toEqual([
+      [0, 1000],
+      [2000, 3000],
+    ]);
   });
 
   it("is empty outside the outline and handles sloping edges", () => {
@@ -31,11 +43,15 @@ describe("polygonProblems", () => {
   });
 
   it("reports an outline that repeats its first point", () => {
-    expect(polygonProblems([P(0, 0), P(1000, 0), P(1000, 1000), P(0, 0)])).toContain("outline repeats its first point at the end");
+    expect(polygonProblems([P(0, 0), P(1000, 0), P(1000, 1000), P(0, 0)])).toContain(
+      "outline repeats its first point at the end",
+    );
   });
 
   it("reports repeated adjacent and too few distinct points", () => {
-    expect(polygonProblems([P(0, 0), P(1000, 0), P(1000, 1000), P(1000, 1000)])).toContain("outline repeats adjacent points");
+    expect(polygonProblems([P(0, 0), P(1000, 0), P(1000, 1000), P(1000, 1000)])).toContain(
+      "outline repeats adjacent points",
+    );
     expect(polygonProblems([P(0, 0), P(1000, 0), P(0, 0)])).toContain("outline needs at least 3 distinct points");
   });
 
@@ -48,15 +64,21 @@ describe("polygonProblems", () => {
   });
 
   it("reports a point repeated at a non-adjacent position", () => {
-    expect(polygonProblems([P(0, 0), P(1000, 0), P(1000, 1000), P(0, 0), P(-1000, 1000)])).toContain("outline repeats a point");
+    expect(polygonProblems([P(0, 0), P(1000, 0), P(1000, 1000), P(0, 0), P(-1000, 1000)])).toContain(
+      "outline repeats a point",
+    );
   });
 
   it("reports a vertex that lies on a non-adjacent edge", () => {
-    expect(polygonProblems([P(0, 0), P(1000, 0), P(1000, 1000), P(500, 0), P(0, 1000)])).toContain("outline crosses itself");
+    expect(polygonProblems([P(0, 0), P(1000, 0), P(1000, 1000), P(500, 0), P(0, 1000)])).toContain(
+      "outline crosses itself",
+    );
   });
 
   it("reports collinear non-adjacent edges that overlap", () => {
-    expect(polygonProblems([P(0, 0), P(1000, 0), P(1000, 1000), P(800, 0), P(200, 0), P(0, 1000)])).toContain("outline crosses itself");
+    expect(polygonProblems([P(0, 0), P(1000, 0), P(1000, 1000), P(800, 0), P(200, 0), P(0, 1000)])).toContain(
+      "outline crosses itself",
+    );
   });
 
   it("reports adjacent edges that double back", () => {

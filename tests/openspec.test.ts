@@ -22,7 +22,8 @@ const number = (name: string): number | undefined => {
 
 describe("OpenSpec change numbers", () => {
   it("every change is named elm-<N>-<name>", () => {
-    for (const { folder, name } of changes()) expect(number(name), `${folder} should be named elm-<N>-<name>`).toBeDefined();
+    for (const { folder, name } of changes())
+      expect(number(name), `${folder} should be named elm-<N>-<name>`).toBeDefined();
   });
 
   it("no two changes share a number", () => {

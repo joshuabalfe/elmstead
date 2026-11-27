@@ -2,10 +2,10 @@
 
 `npm run render <model>` produces two kinds of image:
 
-| Output | Drawn from | Code |
-|---|---|---|
-| `out/<name>.<storey>.plan.svg` / `.png` | the model (JSON) | `src/render/plan.ts`, `png.ts` |
-| `out/<name>.3d-{sw,se,ne,nw,top}.png` | the IFC file | `src/render/snapshot3d.ts`, `viewer/` |
+| Output                                  | Drawn from       | Code                                  |
+| --------------------------------------- | ---------------- | ------------------------------------- |
+| `out/<name>.<storey>.plan.svg` / `.png` | the model (JSON) | `src/render/plan.ts`, `png.ts`        |
+| `out/<name>.3d-{sw,se,ne,nw,top}.png`   | the IFC file     | `src/render/snapshot3d.ts`, `viewer/` |
 
 Look at the PNGs after every change. They are the quickest way to catch something the checks
 don't, such as a door swinging the wrong way.
@@ -175,6 +175,7 @@ openings cut, doors and glazing in place, colours applied.
   at any zoom, and the only textures are small text labels, so texture memory follows the amount
   of text, not a storey's footprint. A browser test holds every uploaded texture to 1024 × 1024
   texels at most.
+
 - Plan colouring, the same in every view (`applyStyle` in `main.ts`):
   - Floors are the plan's own floor fills and door swings (`renderFloor` in `src/render/plan.ts`),
     slab fills (cream, or the ground colour for a ground slab) and room fills, one layer per shown
@@ -214,12 +215,11 @@ openings cut, doors and glazing in place, colours applied.
 - **Diff** (shown only for a revision; `D`, or `?diff=1`) colours what the revision changes against
   Existing, in GitHub's diff colours, a pale fill with a dark outline of the same hue:
 
-  | | Fill | Outline | Floor |
-  |---|---|---|---|
-  | added | `#aceebb` | `#1a7f37` | `#e6ffec` |
+  |         | Fill      | Outline   | Floor     |
+  | ------- | --------- | --------- | --------- |
+  | added   | `#aceebb` | `#1a7f37` | `#e6ffec` |
   | changed | `#fae17d` | `#9a6700` | `#fff8c5` |
-  | removed | `#ffcecb` | `#cf222e` | — |
-
+  | removed | `#ffcecb` | `#cf222e` | —         |
   - **In 3D:** added and changed elements take the fill, with outlines along their edges. Glazing
     stays see-through. Removed elements are drawn from the base model as see-through ghosts where
     they stood. Unchanged elements keep their normal colours.
@@ -241,6 +241,7 @@ openings cut, doors and glazing in place, colours applied.
 
   Diff stays on across revisions of a model, is inactive on Existing, and never moves the camera.
   What counts as a change is in [the diff](modelling.md#what-a-revision-changes-the-diff).
+
 - **Transparency** (`?xray=1`) draws elements see-through, on any model, Existing included: an X-ray
   of the building. With Diff on, it fades only the unchanged elements, so the changes stay solid. In
   plan style it fades the plan drawing too, so it also works from the top. It stays on across model

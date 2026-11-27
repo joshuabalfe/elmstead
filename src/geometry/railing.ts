@@ -37,7 +37,8 @@ export const railingStartBase = (r: Railing): number => r.startBase ?? 0;
 export const railingEndBase = (r: Railing): number => r.endBase ?? 0;
 
 /** Walking-surface level at `t` from start (0) to end (1), relative to the storey floor. */
-export const railingBaseAt = (r: Railing, t: number): number => railingStartBase(r) + (railingEndBase(r) - railingStartBase(r)) * t;
+export const railingBaseAt = (r: Railing, t: number): number =>
+  railingStartBase(r) + (railingEndBase(r) - railingStartBase(r)) * t;
 
 /** Post centres as fractions from start (0) to end (1), both ends included. */
 export function railingPostFractions(r: Railing): number[] {
@@ -108,7 +109,11 @@ export function railingGeometry(r: Railing): RailingGeometry {
   const end = v3sub(topEnd, v3scale(up, RAIL_DEPTH / 2));
   const posts = railingPostFractions(r).map((t) => {
     const base = railingBaseAt(r, t);
-    return { at: v(r.start.x + (r.end.x - r.start.x) * t, r.start.y + (r.end.y - r.start.y) * t), base, top: base + r.height };
+    return {
+      at: v(r.start.x + (r.end.x - r.start.x) * t, r.start.y + (r.end.y - r.start.y) * t),
+      base,
+      top: base + r.height,
+    };
   });
   const volume = length * RAIL_WIDTH * RAIL_DEPTH + posts.length * POST_SIZE * POST_SIZE * r.height;
   return { run, startBase, endBase, rail: { start, end, length, direction, across, up }, posts, volume };

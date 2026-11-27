@@ -19,24 +19,56 @@ const gardenDoor = { width: mm(750), height: doorH };
 export const openings: Opening[] = [
   // Front wall runs plan north→south; "start" is its party-wall end and "left" is inside.
   door("door-hallway-basement", front, mm(150), { width: mm(900), height: doorH }, { hinge: "start", side: "left" }),
-  window("window-guest-left-basement", front, centredOn(front, mm(5650), windowW), standardWindow, { ...standard, width: windowW }),
+  window("window-guest-left-basement", front, centredOn(front, mm(5650), windowW), standardWindow, {
+    ...standard,
+    width: windowW,
+  }),
   // Bedroom 2's window is 1650 wide (owner), set close to the divide wall it shares with Bedroom 1.
-  window("window-guest-right-basement", front, centredOn(front, mm(3300), mm(1650)), standardWindow, { ...standard, width: mm(1650) }),
+  window("window-guest-right-basement", front, centredOn(front, mm(3300), mm(1650)), standardWindow, {
+    ...standard,
+    width: mm(1650),
+  }),
 
   // Central partition runs plan north→south; "left" is the garden room. Centred at the same height
   // as Bedroom 2's door so the two face each other directly across the corridor.
-  door("door-garden-basement", central, centredOn(central, mm(3700), internal.width), internalDoor, internal, { hinge: "start", side: "left" }),
+  door("door-garden-basement", central, centredOn(central, mm(3700), internal.width), internalDoor, internal, {
+    hinge: "start",
+    side: "left",
+  }),
   // Both bedrooms open off the hallway through the corridor's front edge wall (leftBedRear), which
   // runs plan north→south; "right" is towards the front, into the bedroom. Bedroom 2's door is in
   // its rear-left leg.
-  door("door-guest-left-basement", leftBedRear, centredOn(leftBedRear, mm(5500), internal.width), internalDoor, internal, { hinge: "end", side: "right" }),
-  door("door-guest-right-basement", leftBedRear, centredOn(leftBedRear, mm(3700), internal.width), internalDoor, internal, { hinge: "end", side: "right" }),
+  door(
+    "door-guest-left-basement",
+    leftBedRear,
+    centredOn(leftBedRear, mm(5500), internal.width),
+    internalDoor,
+    internal,
+    { hinge: "end", side: "right" },
+  ),
+  door(
+    "door-guest-right-basement",
+    leftBedRear,
+    centredOn(leftBedRear, mm(3700), internal.width),
+    internalDoor,
+    internal,
+    { hinge: "end", side: "right" },
+  ),
   // Shower left wall runs plan west→east; "right" is the shower room.
-  door("door-shower-basement", showerLeft, centredOn(showerLeft, mm(4100), internal.width), internalDoor, internal, { hinge: "start", side: "right" }),
+  door("door-shower-basement", showerLeft, centredOn(showerLeft, mm(4100), internal.width), internalDoor, internal, {
+    hinge: "start",
+    side: "right",
+  }),
 
   // Garden room rear wall runs plan south→north; "left" is inside. A pair of doors to the outside.
-  door("door-garden-right-basement", rear, centredOn(rear, mm(2725), gardenDoor.width), gardenDoor, { hinge: "start", side: "left" }),
-  door("door-garden-left-basement", rear, centredOn(rear, mm(3475), gardenDoor.width), gardenDoor, { hinge: "end", side: "left" }),
+  door("door-garden-right-basement", rear, centredOn(rear, mm(2725), gardenDoor.width), gardenDoor, {
+    hinge: "start",
+    side: "left",
+  }),
+  door("door-garden-left-basement", rear, centredOn(rear, mm(3475), gardenDoor.width), gardenDoor, {
+    hinge: "end",
+    side: "left",
+  }),
 
   // Extension rear wall runs plan south→north; "left" is inside. The reduced-height back door.
   door("door-back-basement", extRear, mm(300), { width: mm(800), height: mm(1800) }, { hinge: "start", side: "left" }),

@@ -11,7 +11,8 @@ const files = (text: string | undefined) => [...new Set(text?.match(TEST_FILE) ?
 
 const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
 const groups = new Map<string, string>();
-for (const m of workflow.matchAll(/- group: (\S+)\n\s+args: ([\s\S]*?)(?=\n\s+- group:|\n    steps:)/g)) groups.set(m[1]!, m[2]!);
+for (const m of workflow.matchAll(/- group: (\S+)\n\s+args: ([\s\S]*?)(?=\n\s+- group:|\n    steps:)/g))
+  groups.set(m[1]!, m[2]!);
 
 const fast = JSON.parse(readFileSync("package.json", "utf8")).scripts["test:fast"] as string;
 
@@ -19,7 +20,10 @@ const fast = JSON.parse(readFileSync("package.json", "utf8")).scripts["test:fast
 const NEED_UV_OR_CHROMIUM = ["tests/ifc.test.ts", "tests/snapshot.test.ts", "tests/toolchain.test.ts"];
 
 describe("CI test groups", () => {
-  const named = [...groups].filter(([g]) => g !== "rest").flatMap(([, args]) => files(args)).sort();
+  const named = [...groups]
+    .filter(([g]) => g !== "rest")
+    .flatMap(([, args]) => files(args))
+    .sort();
 
   it("has a rest group, and no file in two groups", () => {
     expect(groups.has("rest")).toBe(true);

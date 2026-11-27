@@ -36,9 +36,14 @@ const tag = (name: string, a: Attrs, children?: string): string =>
 
 export const pointsAttr = (pts: readonly Vec[]): string => pts.map((p) => `${num(p.x)},${num(p.y)}`).join(" ");
 
-export const el = (name: "rect" | "circle" | "style", a: Attrs, content?: string): Node => (content === undefined ? { tag: name, attrs: a } : { tag: name, attrs: a, content });
+export const el = (name: "rect" | "circle" | "style", a: Attrs, content?: string): Node =>
+  content === undefined ? { tag: name, attrs: a } : { tag: name, attrs: a, content };
 export const polygon = (points: readonly Vec[], a: Attrs): Node => ({ tag: "polygon", points, attrs: a });
-export const polyline = (points: readonly Vec[], a: Attrs): Node => ({ tag: "polyline", points, attrs: { fill: "none", ...a } });
+export const polyline = (points: readonly Vec[], a: Attrs): Node => ({
+  tag: "polyline",
+  points,
+  attrs: { fill: "none", ...a },
+});
 export const line = (from: Vec, to: Vec, a: Attrs): Node => ({ tag: "line", from, to, attrs: a });
 export const text = (at: Vec, s: string, a: Attrs): Node => ({ tag: "text", at, text: s, attrs: a });
 export const group = (a: Attrs, children: Node[]): Node => ({ tag: "g", attrs: a, children });

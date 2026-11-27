@@ -29,7 +29,14 @@ describe("loadModel", () => {
   it("rejects a revision name that is not kebab-case", async () => {
     const r = await loadModel("tests/fixtures/revised/revisions/Lean_To.ts");
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.issues).toEqual([{ level: "ERROR", id: "tests/fixtures/revised/revisions/Lean_To.ts", message: expect.stringContaining("kebab-case") }]);
+    if (!r.ok)
+      expect(r.issues).toEqual([
+        {
+          level: "ERROR",
+          id: "tests/fixtures/revised/revisions/Lean_To.ts",
+          message: expect.stringContaining("kebab-case"),
+        },
+      ]);
   });
 
   it("reports schema failures with the offending element id", async () => {

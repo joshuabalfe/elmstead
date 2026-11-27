@@ -68,13 +68,26 @@ function views(m: BuildingModel): { name: string; query: string }[] {
   const xs = storey.walls.flatMap((w) => [w.start.x, w.end.x]);
   const ys = storey.walls.flatMap((w) => [w.start.y, w.end.y]);
   const ceiling = Math.max(0, ...storey.walls.map((w) => wallHeight(w)));
-  if (xs.length) look("close-dimension", scene({ x: (Math.min(...xs) + Math.max(...xs)) / 2, y: Math.min(...ys) - 400 }, storey.elevation + ceiling), 2.2);
+  if (xs.length)
+    look(
+      "close-dimension",
+      scene({ x: (Math.min(...xs) + Math.max(...xs)) / 2, y: Math.min(...ys) - 400 }, storey.elevation + ceiling),
+      2.2,
+    );
   return list;
 }
 
 /** Captures every view from one checkout's viewer as PNG buffers. */
-async function capture(browser: Browser, root: string, list: { name: string; query: string }[]): Promise<Map<string, Buffer>> {
-  const server = await createServer({ configFile: join(root, "viewer/vite.config.ts"), server: { port: 0 }, logLevel: "error" });
+async function capture(
+  browser: Browser,
+  root: string,
+  list: { name: string; query: string }[],
+): Promise<Map<string, Buffer>> {
+  const server = await createServer({
+    configFile: join(root, "viewer/vite.config.ts"),
+    server: { port: 0 },
+    logLevel: "error",
+  });
   const shots = new Map<string, Buffer>();
   try {
     await server.listen();
@@ -132,7 +145,9 @@ try {
   const rows: { name: string; ratio: number }[] = [];
   for (const v of list) {
     const dataUrl = (buf: Buffer) => `data:image/png;base64,${buf.toString("base64")}`;
-    const { ratio, strip } = (await page.evaluate(`(${DIFF})(${JSON.stringify([dataUrl(a.get(v.name)!), dataUrl(b.get(v.name)!)])})`)) as { ratio: number; strip: string };
+    const { ratio, strip } = (await page.evaluate(
+      `(${DIFF})(${JSON.stringify([dataUrl(a.get(v.name)!), dataUrl(b.get(v.name)!)])})`,
+    )) as { ratio: number; strip: string };
     writeFileSync(join(outDir, `${v.name}.png`), Buffer.from(strip.split(",")[1]!, "base64"));
     rows.push({ name: v.name, ratio });
   }
@@ -143,7 +158,19 @@ try {
     ...rows.map((r) => `<h2>${r.name}: ${(r.ratio * 100).toFixed(2)}% of pixels differ</h2><img src="${r.name}.png">`),
   ].join("\n");
   writeFileSync(join(outDir, "index.html"), html);
-  console.log(JSON.stringify({ model, before: roots.before, after: roots.after, out: outDir, mismatch: Object.fromEntries(rows.map((r) => [r.name, Number(r.ratio.toFixed(4))])) }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        model,
+        before: roots.before,
+        after: roots.after,
+        out: outDir,
+        mismatch: Object.fromEntries(rows.map((r) => [r.name, Number(r.ratio.toFixed(4))])),
+      },
+      null,
+      2,
+    ),
+  );
 } finally {
   await browser.close();
 }

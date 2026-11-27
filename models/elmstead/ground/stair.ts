@@ -11,7 +11,18 @@
  * climbs from the ground floor to the half landing, and the upper flight from the half landing to
  * the first floor. No elevations are stored here: measuring the levels later re-derives the riser.
  */
-import { centredOn, face, m, mid, mm, pt, stairFlight, window, type Stair, type Storey } from "../../../src/model/index.js";
+import {
+  centredOn,
+  face,
+  m,
+  mid,
+  mm,
+  pt,
+  stairFlight,
+  window,
+  type Stair,
+  type Storey,
+} from "../../../src/model/index.js";
 import { crossBarWindow } from "../components/index.js";
 import { stairwellOutline } from "../first/index.js";
 import { stairArrivalX } from "../first/walls.js";
@@ -37,11 +48,22 @@ const width = mm(910); // both flights, from the owner
 // Bottom-to-top: enter from the hallway, climb towards the rear on the left of the spine, turn over
 // the half landing in the extension, then climb towards the front on its right to the first-floor
 // landing. Each flight's run is its going × (risers − 1): 320 mm steps below, 280 mm above.
-const lower = stairFlight("stair-flight-lower", pt(front, leftY), pt(landingFront, leftY), { width, risers: mainStairRisers.lower });
-const upper = stairFlight("stair-flight-upper", pt(landingFront, rightY), pt(stairArrivalX, rightY), { width, risers: mainStairRisers.upper });
+const lower = stairFlight("stair-flight-lower", pt(front, leftY), pt(landingFront, leftY), {
+  width,
+  risers: mainStairRisers.lower,
+});
+const upper = stairFlight("stair-flight-upper", pt(landingFront, rightY), pt(stairArrivalX, rightY), {
+  width,
+  risers: mainStairRisers.upper,
+});
 
 export const stairs: Stair[] = [
-  { id: "stair-main-lower", name: "Main stair, lower flight", toStoreyId: "storey-main-half-landing", segments: [lower] },
+  {
+    id: "stair-main-lower",
+    name: "Main stair, lower flight",
+    toStoreyId: "storey-main-half-landing",
+    segments: [lower],
+  },
 ];
 
 // The half landing's window in the extension's rear wall, centred on the landing and so above the
@@ -64,22 +86,26 @@ export const mainHalfLandingStorey: Storey = {
   openings: [landingWindow],
   // The half landing wraps around the spine's traced rear end: the spine strip is notched out of
   // its front part so the wall keeps its full length without passing through the landing.
-  slabs: [{
-    id: "slab-main-half-landing",
-    name: "Main half landing",
-    outline: [
-      pt(landingFront, right),
-      pt(rear, right),
-      pt(rear, left),
-      pt(landingFront, left),
-      pt(landingFront, spineLeft),
-      pt(spineRearX, spineLeft),
-      pt(spineRearX, spineY),
-      pt(landingFront, spineY),
-    ],
-    thickness: mm(150),
-    elevationOffset: mm(0),
-  }],
+  slabs: [
+    {
+      id: "slab-main-half-landing",
+      name: "Main half landing",
+      outline: [
+        pt(landingFront, right),
+        pt(rear, right),
+        pt(rear, left),
+        pt(landingFront, left),
+        pt(landingFront, spineLeft),
+        pt(spineRearX, spineLeft),
+        pt(spineRearX, spineY),
+        pt(landingFront, spineY),
+      ],
+      thickness: mm(150),
+      elevationOffset: mm(0),
+    },
+  ],
   rooms: [],
-  stairs: [{ id: "stair-main-upper", name: "Main stair, upper flight", toStoreyId: "storey-first-floor", segments: [upper] }],
+  stairs: [
+    { id: "stair-main-upper", name: "Main stair, upper flight", toStoreyId: "storey-first-floor", segments: [upper] },
+  ],
 };

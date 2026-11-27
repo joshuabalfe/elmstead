@@ -25,7 +25,11 @@ describe("idNodes places", () => {
   it("gives each element and component the place it can be edited at", () => {
     const m = model(cottage);
     const door = idNodes(m).find((n) => n.element.id === "door-living")!;
-    expect(door).toMatchObject({ kind: "door", storey: "storey-ground", place: { storey: "storey-ground", collection: "openings" } });
+    expect(door).toMatchObject({
+      kind: "door",
+      storey: "storey-ground",
+      place: { storey: "storey-ground", collection: "openings" },
+    });
     if (!("place" in door) || !("storey" in door.place)) throw new Error("door has no storey place");
     expect(m.storeys[0]!.openings[door.place.index]!.id).toBe("door-living");
     const component = idNodes(m).find((n) => n.kind === "window component")!;
@@ -36,7 +40,17 @@ describe("idNodes places", () => {
     const nodes = [...idNodes(model(twoStorey)), ...idNodes(model(elmstead)), ...idNodes(model(cottage))];
     const placed = new Set(nodes.filter((n) => "place" in n).map((n) => n.kind));
     const unplaced = new Set(nodes.filter((n) => !("place" in n)).map((n) => n.kind));
-    expect([...placed].sort()).toEqual(["door", "door component", "railing", "room", "slab", "stair", "wall", "window", "window component"]);
+    expect([...placed].sort()).toEqual([
+      "door",
+      "door component",
+      "railing",
+      "room",
+      "slab",
+      "stair",
+      "wall",
+      "window",
+      "window component",
+    ]);
     expect([...unplaced].sort()).toEqual(["building", "project", "site", "stair flight", "stair landing", "storey"]);
   });
 });

@@ -1,7 +1,15 @@
 import type { Vec } from "../geometry/vec.js";
 import type { Issue } from "../checks/issue.js";
 import type { BuildingModel } from "../schema/schema.js";
-import { ConstraintError, indexModel, lookup, measureConstraintPoints, type ConstraintMeasurement, type ModelIndex, type Scope } from "./resolve.js";
+import {
+  ConstraintError,
+  indexModel,
+  lookup,
+  measureConstraintPoints,
+  type ConstraintMeasurement,
+  type ModelIndex,
+  type Scope,
+} from "./resolve.js";
 import { DEFAULT_TOLERANCE, type ConstraintGroup } from "./schema.js";
 
 /** A constraint that measured, with the plan geometry the viewer draws. */
@@ -29,7 +37,8 @@ export interface ConstraintsReport {
 
 /** The group's scope, or an ERROR against the scope id when the model has no such storey or room. */
 function scopeOf(ix: ModelIndex, group: ConstraintGroup): Scope | Issue {
-  const [kind, id] = group.storey !== undefined ? (["storey", group.storey] as const) : (["room", group.room!] as const);
+  const [kind, id] =
+    group.storey !== undefined ? (["storey", group.storey] as const) : (["room", group.room!] as const);
   try {
     return { kind, id, storey: lookup(ix, id, [kind], kind).storey };
   } catch (e) {
@@ -75,7 +84,12 @@ export function checkConstraints(model: BuildingModel, groups: readonly Constrai
         distance: c.distance,
       });
       if (Math.abs(measurement.distance - c.distance) <= tolerance) met++;
-      else issues.push({ level: "ERROR", id: c.id, message: `is ${measurement.distance} mm, should be ${c.distance} ±${tolerance} mm (${scope.id})` });
+      else
+        issues.push({
+          level: "ERROR",
+          id: c.id,
+          message: `is ${measurement.distance} mm, should be ${c.distance} ±${tolerance} mm (${scope.id})`,
+        });
     }
   }
   return { issues, met, total, resolved };

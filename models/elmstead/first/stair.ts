@@ -26,11 +26,22 @@ const width = mm(910);
 const front = stairArrivalX;
 const landingFront = spineEndX;
 
-const lower = stairFlight("stair-flight-attic-lower", pt(front, leftY), pt(landingFront, leftY), { width, risers: atticStairRisers.lower });
-const upper = stairFlight("stair-flight-attic-upper", pt(landingFront, rightY), pt(front, rightY), { width, risers: atticStairRisers.upper });
+const lower = stairFlight("stair-flight-attic-lower", pt(front, leftY), pt(landingFront, leftY), {
+  width,
+  risers: atticStairRisers.lower,
+});
+const upper = stairFlight("stair-flight-attic-upper", pt(landingFront, rightY), pt(front, rightY), {
+  width,
+  risers: atticStairRisers.upper,
+});
 
 export const stairs: Stair[] = [
-  { id: "stair-attic-lower", name: "Attic stair, lower flight", toStoreyId: "storey-attic-half-landing", segments: [lower] },
+  {
+    id: "stair-attic-lower",
+    name: "Attic stair, lower flight",
+    toStoreyId: "storey-attic-half-landing",
+    segments: [lower],
+  },
 ];
 
 // The back wall runs across the landing's rear edge, just outside it, up to the attic floor level
@@ -49,21 +60,31 @@ export const atticHalfLandingStorey: Storey = {
   walls: [backWall, ...atticHalfLandingWalls],
   openings: [],
   // The attic well stops at the core's rear edge, so this half landing stays out of the extension.
-  slabs: [{
-    id: "slab-attic-half-landing",
-    name: "Attic half landing",
-    outline: [pt(landingFront, stairRightY), pt(coreW, stairRightY), pt(coreW, stairLeftY), pt(landingFront, stairLeftY)],
-    thickness: mm(150),
-    elevationOffset: mm(0),
-  }, {
-    // The reduced-height space behind the back wall, under the extension roof, floored at the
-    // landing's level out to the extension walls' inner faces; the back wall stands on it.
-    id: "slab-attic-half-landing-behind",
-    name: "Attic half landing, behind the wall",
-    outline: [pt(coreW, stairRightY), pt(stairRearX, stairRightY), pt(stairRearX, stairLeftY), pt(coreW, stairLeftY)],
-    thickness: mm(150),
-    elevationOffset: mm(0),
-  }],
+  slabs: [
+    {
+      id: "slab-attic-half-landing",
+      name: "Attic half landing",
+      outline: [
+        pt(landingFront, stairRightY),
+        pt(coreW, stairRightY),
+        pt(coreW, stairLeftY),
+        pt(landingFront, stairLeftY),
+      ],
+      thickness: mm(150),
+      elevationOffset: mm(0),
+    },
+    {
+      // The reduced-height space behind the back wall, under the extension roof, floored at the
+      // landing's level out to the extension walls' inner faces; the back wall stands on it.
+      id: "slab-attic-half-landing-behind",
+      name: "Attic half landing, behind the wall",
+      outline: [pt(coreW, stairRightY), pt(stairRearX, stairRightY), pt(stairRearX, stairLeftY), pt(coreW, stairLeftY)],
+      thickness: mm(150),
+      elevationOffset: mm(0),
+    },
+  ],
   rooms: [],
-  stairs: [{ id: "stair-attic-upper", name: "Attic stair, upper flight", toStoreyId: "storey-attic", segments: [upper] }],
+  stairs: [
+    { id: "stair-attic-upper", name: "Attic stair, upper flight", toStoreyId: "storey-attic", segments: [upper] },
+  ],
 };

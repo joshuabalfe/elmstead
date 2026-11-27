@@ -4,7 +4,17 @@
  *
  * When one fails, fix the model, not the constraint. Change a constraint only for a new measurement.
  */
-import { corner, defineConstraints, inRoom, inStorey, jamb, m, mm, roomCorner, wallEnd } from "../../src/constraints/index.js";
+import {
+  corner,
+  defineConstraints,
+  inRoom,
+  inStorey,
+  jamb,
+  m,
+  mm,
+  roomCorner,
+  wallEnd,
+} from "../../src/constraints/index.js";
 
 export default defineConstraints([
   inRoom("room-living", [
@@ -179,15 +189,24 @@ export default defineConstraints([
     {
       id: "kitchen-protrusion",
       note: "Kitchen's lower rear wall protrudes into the kitchen 1.25 m from the dining wall (owner)",
-      from: corner({ wall: "wall-kitchen-rear-lower-first", face: "west" }, { wall: "wall-dining-left-first", face: "north" }),
-      to: corner({ wall: "wall-kitchen-rear-lower-first", face: "west" }, { wall: "wall-kitchen-step-first", face: "north" }),
+      from: corner(
+        { wall: "wall-kitchen-rear-lower-first", face: "west" },
+        { wall: "wall-dining-left-first", face: "north" },
+      ),
+      to: corner(
+        { wall: "wall-kitchen-rear-lower-first", face: "west" },
+        { wall: "wall-kitchen-step-first", face: "north" },
+      ),
       measure: "y",
       distance: mm(1250),
     },
     {
       id: "kitchen-return",
       note: "Kitchen's return wall towards the landing from the owner (1.1 m internal; the whole wall adds its thickness)",
-      from: corner({ wall: "wall-kitchen-rear-lower-first", face: "east" }, { wall: "wall-kitchen-step-first", face: "south" }),
+      from: corner(
+        { wall: "wall-kitchen-rear-lower-first", face: "east" },
+        { wall: "wall-kitchen-step-first", face: "south" },
+      ),
       to: wallEnd("wall-kitchen-step-first", "end"),
       measure: "x",
       distance: mm(1100),

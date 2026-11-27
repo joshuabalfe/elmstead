@@ -21,7 +21,11 @@ export interface BillboardLine {
  * their `dy` from the anchor, and the texture's centre sits `centreDy` below the anchor (SVG y
  * down), so a plane centred there puts each baseline exactly at its `dy`.
  */
-export function labelTexture(lines: BillboardLine[], fill: string, halo = 3): { map: THREE.CanvasTexture; width: number; height: number; centreDy: number } {
+export function labelTexture(
+  lines: BillboardLine[],
+  fill: string,
+  halo = 3,
+): { map: THREE.CanvasTexture; width: number; height: number; centreDy: number } {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d")!;
   const font = (l: BillboardLine) => `${l.bold ? "bold " : ""}${l.size}px "${FONT}", sans-serif`;

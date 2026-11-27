@@ -33,7 +33,12 @@ export const rooms: Room[] = [
       pt(frontIn, face(hallRight, "north")),
     ],
   },
-  rectRoom("room-guest-left-basement", "Guest Bedroom 1", { west: frontIn, east: face(leftBedRear, "west"), south: face(bedroomDivide, "north"), north: face(hallRight, "south") }),
+  rectRoom("room-guest-left-basement", "Guest Bedroom 1", {
+    west: frontIn,
+    east: face(leftBedRear, "west"),
+    south: face(bedroomDivide, "north"),
+    north: face(hallRight, "south"),
+  }),
   // Bedroom 2 is L-shaped: its front leg runs beside the shower room, and its rear-left leg reaches
   // the corridor's front edge wall so the door opens flush with the corridor.
   {
@@ -48,8 +53,18 @@ export const rooms: Room[] = [
       pt(frontIn, face(bedroomDivide, "south")),
     ],
   },
-  rectRoom("room-shower-basement", "Shower Room", { west: face(showerFront, "east"), east: face(central, "west"), south: face(breastRight, "north"), north: face(showerLeft, "south") }),
-  rectRoom("room-garden-basement", "Garden Room", { west: face(central, "east"), east: rearIn, south: face(breastRight, "north"), north: partyIn }),
+  rectRoom("room-shower-basement", "Shower Room", {
+    west: face(showerFront, "east"),
+    east: face(central, "west"),
+    south: face(breastRight, "north"),
+    north: face(showerLeft, "south"),
+  }),
+  rectRoom("room-garden-basement", "Garden Room", {
+    west: face(central, "east"),
+    east: rearIn,
+    south: face(breastRight, "north"),
+    north: partyIn,
+  }),
   // The extension: the stair flight and the reduced-height back door. The flight is a later pass.
   rectRoom("room-rear-hall-basement", "Rear hall", { west: coreW, east: extRearIn, south: extRightY, north: partyIn }),
 ];

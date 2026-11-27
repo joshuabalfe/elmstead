@@ -6,10 +6,41 @@
  * (about 440 mm) uses the owner's 768 mm internal-door width. The front window, fanlight, front
  * door opening and frame, and the bedroom window's sill and head, are the owner's.
  */
-import { add, centredOn, deg, div, divRound, door, doorway, face, m, mid, mm, scale, sub, window, type Opening } from "../../../src/model/index.js";
+import {
+  add,
+  centredOn,
+  deg,
+  div,
+  divRound,
+  door,
+  doorway,
+  face,
+  m,
+  mid,
+  mm,
+  scale,
+  sub,
+  window,
+  type Opening,
+} from "../../../src/model/index.js";
 import { fanlight, framedWindow, frontDoor, frontWindow, internalDoor, smallPaneWindow } from "../components/index.js";
 import { living } from "./rooms.js";
-import { bathFrontX, bedroomBathroom, bedroomWallY, rear, extRear, livingBedroom, lobbyBathroom, lobbyScreen, lobbyScreenLobbyStart, lobbyScreenLobbyVisibleLength, partyIn, partitionRear, endIn, front } from "./walls.js";
+import {
+  bathFrontX,
+  bedroomBathroom,
+  bedroomWallY,
+  rear,
+  extRear,
+  livingBedroom,
+  lobbyBathroom,
+  lobbyScreen,
+  lobbyScreenLobbyStart,
+  lobbyScreenLobbyVisibleLength,
+  partyIn,
+  partitionRear,
+  endIn,
+  front,
+} from "./walls.js";
 
 const doorH = m(2.1);
 const internal = { width: mm(768), height: doorH };
@@ -46,18 +77,43 @@ const bedroomWindowOffset = sub(sub(bedroomWallY, bedroomWindowGap), add(endIn, 
 // The bedroom window's sill is 500 mm off the floor and its head is at 2650 mm (owner).
 const bedroomWindowSill = mm(500);
 const bedroomWindowHead = mm(2650);
-const bedroomWindowSize = { width: bedroomWindowWidth, height: sub(bedroomWindowHead, bedroomWindowSill), sillHeight: bedroomWindowSill };
+const bedroomWindowSize = {
+  width: bedroomWindowWidth,
+  height: sub(bedroomWindowHead, bedroomWindowSill),
+  sillHeight: bedroomWindowSill,
+};
 
 export const openings: Opening[] = [
   // Front wall runs plan north→south, so "start" is its party-wall end and "left" is inside.
   door("door-front", front, frontDoorOffset, frontDoor, frontDoorSize, { hinge: "start", side: "left" }),
-  window("window-front-fanlight", front, fanlightOffset, fanlight, { width: fanlightWidth, height: sub(frontHead, fanlightSill), sillHeight: fanlightSill }),
-  window("window-living", front, centredOn(front, frontWindowCentreY, frontWindowSize.width), frontWindow, frontWindowSize, insideReveal),
+  window("window-front-fanlight", front, fanlightOffset, fanlight, {
+    width: fanlightWidth,
+    height: sub(frontHead, fanlightSill),
+    sillHeight: fanlightSill,
+  }),
+  window(
+    "window-living",
+    front,
+    centredOn(front, frontWindowCentreY, frontWindowSize.width),
+    frontWindow,
+    frontWindowSize,
+    insideReveal,
+  ),
 
   // Partition runs plan south→north; "left" is the living room.
-  door("door-living", livingBedroom, sub(bathroomDoorY, endIn), internalDoor, internal, { hinge: "start", side: "left" }),
+  door("door-living", livingBedroom, sub(bathroomDoorY, endIn), internalDoor, internal, {
+    hinge: "start",
+    side: "left",
+  }),
   // Bedroom/bathroom wall runs plan west→east; "right" is the bedroom. Centred on the lobby.
-  door("door-bedroom", bedroomBathroom, centredOn(bedroomBathroom, lobbyCentreX, internal.width), internalDoor, internal, { hinge: "start", side: "right" }),
+  door(
+    "door-bedroom",
+    bedroomBathroom,
+    centredOn(bedroomBathroom, lobbyCentreX, internal.width),
+    internalDoor,
+    internal,
+    { hinge: "start", side: "right" },
+  ),
   // Lobby/bathroom wall runs plan south→north; "right" is the bathroom.
   door("door-bathroom", lobbyBathroom, bathroomDoorOffset, internalDoor, internal, { hinge: "start", side: "right" }),
   // Screen runs from the hall corner (plan south-west) to the spine (plan north-east); "right" is the lobby.

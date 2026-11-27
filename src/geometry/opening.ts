@@ -9,7 +9,8 @@ import { faceOffsets, wallPoint } from "./wall.js";
  */
 
 /** Whether the opening's jambs splay. Only windows have reveals. */
-export const isSplayed = (o: Opening): o is Window & { reveal: Reveal } => o.kind === "window" && o.reveal !== undefined;
+export const isSplayed = (o: Opening): o is Window & { reveal: Reveal } =>
+  o.kind === "window" && o.reveal !== undefined;
 
 /** How far each splayed jamb moves out along the wall at the splayed face; 0 without a reveal. */
 export function revealSplay(w: Wall, o: Opening): number {
@@ -56,4 +57,5 @@ export function jambEdges(profile: readonly Vec[]): { near: Vec[]; far: Vec[] } 
 }
 
 /** The opening's plan outline in plan coordinates. */
-export const openingOutline = (w: Wall, o: Opening, clearance = 0): Vec[] => openingProfile(w, o, clearance).map((p) => wallPoint(w, p.x, p.y));
+export const openingOutline = (w: Wall, o: Opening, clearance = 0): Vec[] =>
+  openingProfile(w, o, clearance).map((p) => wallPoint(w, p.x, p.y));
