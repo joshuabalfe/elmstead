@@ -20,6 +20,7 @@ to these docs for the detail. A person can read them as checklists.
 
 | Skill                                                                                             | Use it to                                                                                 |
 | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| [start-a-new-building-model](../.agents/skills/start-a-new-building-model/SKILL.md)               | start a model of a building that has none: what to ask, from material or from memory      |
 | [edit-an-existing-building-model](../.agents/skills/edit-an-existing-building-model/SKILL.md)     | change the base model, the building as it is: the check, build, render loop and its traps |
 | [record-model-constraints](../.agents/skills/record-model-constraints/SKILL.md)                   | record a measurement, or handle a failing constraint                                      |
 | [propose-a-model-revision](../.agents/skills/propose-a-model-revision/SKILL.md)                   | write and review a proposed alternative (a revision), leaving the base model untouched    |
