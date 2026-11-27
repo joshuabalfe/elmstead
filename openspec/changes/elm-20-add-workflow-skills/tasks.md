@@ -13,8 +13,8 @@
 
 ## 3. `add-support-for-new-element-types`
 
-- [ ] 3.1 Write `.agents/skills/add-support-for-new-element-types/SKILL.md`: why-not-an-existing-type first, the treatment sheet agreed with the user, the order of work by link to the `docs/development.md` checklist, geometry variants and storey patterns, and the three-step verification linking `inspect-the-rendered-output`. Verify `name` equals the directory and every relative link resolves with `test -e`.
-- [ ] 3.2 Walk the skill against railings (ELM-12) and against pitched walls (ELM-11) as if they did not exist. Verify the treatment-sheet answers match what was built, and fix the skill or checklist for any mismatch.
+- [x] 3.1 Write `.agents/skills/add-support-for-new-element-types/SKILL.md`: why-not-an-existing-type first, the treatment sheet agreed with the user, the order of work by link to the `docs/development.md` checklist, geometry variants and storey patterns, and the three-step verification linking `inspect-the-rendered-output`. Verify `name` equals the directory and every relative link resolves with `test -e`.
+- [x] 3.2 Walk the skill against railings (ELM-12) and against pitched walls (ELM-11) as if they did not exist. Verify the treatment-sheet answers match what was built, and fix the skill or checklist for any mismatch.
 
 ## 4. `edit-a-building-model` and `record-model-constraints`
 
