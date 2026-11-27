@@ -264,15 +264,16 @@ file name containing markup is displayed literally.
 
 ### Requirement: Walk-mode entry
 
-The viewer SHALL enter first-person walk mode from a Walk button or `?walk=1`. It SHALL use a
-perspective camera at 1.6 m above the lowest shown storey's floor, at the shown geometry's footprint
-centre, facing plan north. When the URL enters the mode without a click, the viewer SHALL show a
-click-to-look prompt and request pointer lock on the next click.
+The viewer SHALL enter first-person walk mode from a First Person switch, which SHALL start off, or
+from `?walk=1`. Turning the switch on SHALL keep the camera's position and direction. Opening the
+viewer with `?walk=1` SHALL use a perspective camera at 1.6 m above the lowest shown storey's floor,
+at the shown geometry's footprint centre, facing plan north. When the URL enters the mode without a
+click, the viewer SHALL show a click-to-look prompt and request pointer lock on the next click.
 
-#### Scenario: Walk button
+#### Scenario: First Person switch
 
-- **WHEN** the user chooses Walk
-- **THEN** the viewer switches to the entry pose and requests pointer lock
+- **WHEN** the user turns First Person on
+- **THEN** the camera stays where it is, switches to perspective and requests pointer lock
 
 #### Scenario: URL entry
 
@@ -281,17 +282,20 @@ click-to-look prompt and request pointer lock on the next click.
 
 #### Scenario: Missing building JSON
 
-- **WHEN** no building JSON is available
+- **WHEN** `?walk=1` is opened with no building JSON
 - **THEN** the entry pose is 1.6 m above the IFC's lowest point at its footprint centre
 
 #### Scenario: Lowest storey hidden
 
-- **WHEN** the ground storey is hidden and walk mode is entered
+- **WHEN** the ground storey is hidden and `?walk=1` is opened
 - **THEN** the entry pose stands 1.6 m above the lowest storey still shown
 
 ### Requirement: Walk controls
 
-In walk mode, pointer-lock mouse movement SHALL look around. W/A/S/D and the arrow keys SHALL move horizontally relative to the current heading. The camera SHALL stay at its fixed eye height, and movement SHALL NOT be blocked by walls, floors or other geometry.
+In first-person mode, pointer-lock mouse movement SHALL look around. W/S and the up/down arrow keys
+SHALL move along the full look direction, including pitch; A/D and the left/right arrow keys SHALL
+strafe across it; Q/E SHALL move down and up in world space. Movement SHALL NOT be blocked by walls,
+floors or other geometry, and the camera SHALL NOT be held at a fixed eye height.
 
 #### Scenario: Mouse look
 
@@ -300,13 +304,23 @@ In walk mode, pointer-lock mouse movement SHALL look around. W/A/S/D and the arr
 
 #### Scenario: Keyboard movement
 
-- **WHEN** W, A, S, D or an arrow key is held
-- **THEN** the camera moves in the corresponding direction at walking speed and its height stays unchanged
+- **WHEN** W, S, A, D, an arrow key, Q or E is held
+- **THEN** the camera moves in the corresponding direction at its fixed movement speed
 
-#### Scenario: Walking through a wall
+#### Scenario: Looking up and moving forward
+
+- **WHEN** the camera is pitched upwards and W is held
+- **THEN** the camera rises as it moves forward
+
+#### Scenario: Vertical movement
+
+- **WHEN** Q or E is held
+- **THEN** the camera moves down or up in world space
+
+#### Scenario: Moving through geometry
 
 - **WHEN** the camera moves into a wall or floor
-- **THEN** it passes through and keeps its height
+- **THEN** it passes through without stopping
 
 #### Scenario: Pointer lock refused
 
@@ -315,17 +329,24 @@ In walk mode, pointer-lock mouse movement SHALL look around. W/A/S/D and the arr
 
 ### Requirement: Leaving walk mode
 
-Walk mode SHALL end on Escape, on pointer-lock release, when another view is chosen, or when the model changes. Ending it SHALL restore the camera projection, pose and framing that were active before entry.
+Walk mode SHALL end on Escape, on pointer-lock release, when another view is chosen, when the First
+Person switch is turned off, or when the model changes. Ending it SHALL keep the camera's position
+and direction and hand it back to orbit navigation.
 
 #### Scenario: Escape
 
 - **WHEN** the user presses Escape in walk mode
-- **THEN** pointer lock is released and the previous view and camera pose return
+- **THEN** pointer lock is released and the camera stays where it is under orbit navigation
 
 #### Scenario: View change
 
 - **WHEN** the user chooses a view or another model while walking
 - **THEN** walk mode ends before the new view loads
+
+#### Scenario: First Person switched off
+
+- **WHEN** the user turns the First Person switch off
+- **THEN** walk mode ends and the camera stays where it is
 
 ### Requirement: Snapshots ignore walk mode
 
@@ -783,12 +804,12 @@ Arrow Up SHALL show the next storey above the highest storey now shown, and Arro
 
 ### Requirement: Storey shortcut scope
 
-The storey shortcut SHALL be ignored in walk mode, where the arrows keep walking, with Ctrl, Alt, Meta or Shift held, for a single-storey model, in snapshot mode, and while a text field, a select or a textarea has focus. While the storey selector has focus the shortcut SHALL still step it, and the browser's own arrow-key handling for it SHALL NOT also act. The selector's tooltip SHALL name the keys.
+The storey shortcut SHALL be ignored in first-person mode, where the arrows move the camera, with Ctrl, Alt, Meta or Shift held, for a single-storey model, in snapshot mode, and while a text field, a select or a textarea has focus. While the storey selector has focus the shortcut SHALL still step it, and the browser's own arrow-key handling for it SHALL NOT also act. The selector's tooltip SHALL name the keys.
 
 #### Scenario: Walk mode
 
-- **WHEN** walk mode is active and the user presses Arrow Up or Arrow Down
-- **THEN** the camera walks and the storey selection does not change
+- **WHEN** first-person mode is active and the user presses Arrow Up or Arrow Down
+- **THEN** the camera moves and the storey selection does not change
 
 #### Scenario: Single storey
 
@@ -956,7 +977,7 @@ storey's elements lie SHALL identify the visible element under the pointer, or n
 
 ### Requirement: Hover inactive in walk mode
 
-While walking, the viewer SHALL show no hover tooltip. Leaving walk mode SHALL restore hover
+In first-person mode, the viewer SHALL show no hover tooltip. Leaving it SHALL restore hover
 identification when it is on.
 
 #### Scenario: Walking
@@ -1640,17 +1661,22 @@ The viewer SHALL group its controls into Model, Camera and Tools sections in a l
 rail. Each row SHALL keep its label on the left and its control on the right. Persistent settings
 SHALL use switches labelled with the setting they change, and each switch's track SHALL read the
 current state, Off or On. Unavailable controls SHALL stay visible and disabled, and enabled controls
-SHALL have a visible affordance.
+SHALL have a visible affordance. While first-person mode is on, the camera snaps SHALL be disabled.
 
 #### Scenario: Grouped controls
 
 - **WHEN** the viewer opens
-- **THEN** the model and revision pickers and Levels controls are under Model, the camera snaps and Walk under Camera, and the constraints, ids, Measure and Clear controls under Tools
+- **THEN** the model and revision pickers and Levels controls are under Model, the camera snaps and the First Person switch under Camera, and the constraints, ids, Measure and Clear controls under Tools
 
 #### Scenario: Unavailable controls stay visible
 
 - **WHEN** the shown model has no revisions
 - **THEN** the Revision picker and Revision Diff switch are visible and disabled
+
+#### Scenario: First-person mode
+
+- **WHEN** the First Person switch is on
+- **THEN** the camera snaps stay visible and disabled
 
 #### Scenario: Switch state
 

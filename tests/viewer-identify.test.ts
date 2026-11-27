@@ -197,7 +197,7 @@ describe("viewer hover identification", () => {
 
   it("shows no label while walking, even with the mouse moving, and restores after", async () => {
     await open(page, MODEL_A, "&ids=1&walk=1");
-    expect(await page.locator("#walk").getAttribute("aria-pressed")).toBe("true");
+    expect(await page.locator("#walk").isChecked()).toBe(true);
     for (const fx of [0.4, 0.5, 0.6]) {
       await page.mouse.move(VIEWPORT.width * fx, VIEWPORT.height * 0.5);
       await page.waitForTimeout(200);
@@ -206,7 +206,8 @@ describe("viewer hover identification", () => {
     }
     await page.keyboard.press("Escape");
     await page.waitForFunction(() => window.__elmsteadReady === true, null, { timeout: 10_000 });
-    expect(await hoverAt(page, centre.x, centre.y)).toEqual({ id: "slab-ground", name: "Ground floor slab" });
+    // Leaving first-person mode keeps the camera pose, so hover resumes on whatever is under it.
+    expect(await hoverAt(page, centre.x, centre.y)).not.toBeNull();
   }, 120_000);
 
   it("hides the label on a model change and keeps the toggle on", async () => {

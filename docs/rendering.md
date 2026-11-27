@@ -302,7 +302,7 @@ routes.
 - **Arrow Up** and **Arrow Down** step that selector one floor: up shows the next storey above the
   highest one shown, down hides the highest one shown. They stop at the first and last floor rather
   than wrapping, and from a custom set they step from its highest storey. Holding either key keeps
-  stepping at the auto-repeat rate. They are ignored in walk mode (where the arrows walk), in
+  stepping at the auto-repeat rate. They are ignored in first-person mode (where the arrows move the camera), in
   snapshots, with a modifier held, and while a text field, a select or a textarea has focus.
 - `?storeys=a,b` shows only those storeys: everything the IFC contains or aggregates in the others is
   hidden, with their labels and floor planes. An id that names no storey is noted in the status line
@@ -316,18 +316,21 @@ routes.
   - The middle or right button, or three fingers, orbits.
   - Drags follow the pointer without easing, so a fast pinch is not lost to the camera's lag.
 - The That Open Company logo overlay is hidden (`showLogo = false`).
-- Walk mode: the **Walk** button, or `?walk=1`, enters a first-person walkthrough.
-  - The camera starts at the footprint centre of the shown storeys on the lowest shown storey, at a
-    fixed 1.6 m eye height, facing plan north. With no building JSON it starts 1.6 m above the IFC's
-    lowest point.
-  - The mouse looks around through pointer lock; W/A/S/D and the arrow keys move at 3 m/s
-    relative to the heading you face. `?walk=1` shows a click-to-look prompt — browsers only
-    grant pointer lock after a user gesture — and the first click on the canvas locks.
-  - There is no collision, gravity or vertical movement: the camera passes through walls and
-    floors and stays at eye height, so upper storeys are out of reach.
-  - Escape, releasing pointer lock, choosing another view or changing the model ends walk mode
-    and returns the previous view exactly, including the Top view's framing. If the browser
-    refuses pointer lock, walk mode stays: the prompt remains and the keys still move.
+- First-person mode: the **First Person** switch, which starts off, or `?walk=1`, enters a
+  free-fly first-person camera. The camera snaps are disabled while it is on.
+  - Turning the switch on keeps the camera where it is. `?walk=1` starts at the footprint centre of
+    the shown storeys on the lowest shown storey, 1.6 m above its floor, facing plan north. With no
+    building JSON it starts 1.6 m above the IFC's lowest point.
+  - The mouse looks around through pointer lock. W/S and the up/down arrow keys move at 3 m/s along
+    the full look direction, including pitch; A/D and the left/right arrow keys strafe; Q/E move
+    down and up in world space. `?walk=1` shows a click-to-look prompt — browsers only grant
+    pointer lock after a user gesture — and the first click on the canvas locks.
+  - There is no collision, gravity or fixed height: the camera passes through walls and floors, so
+    you can rise through storeys and leave the building.
+  - Escape, releasing pointer lock, turning **First Person** off or changing the model ends
+    first-person mode, leaves the camera where it is and hands it back to orbit navigation in the
+    perspective view you flew to. If the browser refuses pointer lock, the mode stays: the prompt
+    remains and the keys still move.
   - Snapshots ignore walk mode: with `?snapshot=1&walk=1` the requested snapshot camera renders
     as usual, with no prompt and no walk input, so the 3D PNGs stay deterministic.
 - Snapshots (`?snapshot=1`) show the IFC's own colours apart from the stair readability presentation,

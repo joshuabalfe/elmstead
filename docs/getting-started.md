@@ -101,7 +101,7 @@ switch, or `?ids=1`, shows the model id of the element under the cursor (and its
 has one) as a haloed label at the hovered point, in the constraint label's style and drawn above
 everything like the measurements — the id to name when asking for an edit, such as
 `wall-hall-living`. Room labels carry the room id under the name and area, since rooms have no
-solid geometry to hover. Hover identification is off while walking and in snapshots. The **Measure**
+solid geometry to hover. Hover identification is off in first-person mode and in snapshots. The **Measure**
 button, or `?measure=1`, starts a click-to-measure tool: click or tap two points on the model,
 snapping to corners and edges. The second point is projected onto the nearest axis through the
 first, so measurements run along X, Y or Z rather than diagonally. Each pair adds a numbered
