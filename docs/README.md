@@ -20,7 +20,7 @@ to these docs for the detail. A person can read them as checklists.
 
 | Skill | Use it to |
 |---|---|
-| [edit-a-building-model](../.agents/skills/edit-a-building-model/SKILL.md) | change a model: the check, build, render loop and its traps |
+| [edit-an-existing-building-model](../.agents/skills/edit-an-existing-building-model/SKILL.md) | change a model: the check, build, render loop and its traps |
 | [record-model-constraints](../.agents/skills/record-model-constraints/SKILL.md) | record a measurement, or handle a failing constraint |
 | [propose-a-model-revision](../.agents/skills/propose-a-model-revision/SKILL.md) | write and review a named alteration of a model |
 | [add-support-for-new-element-types](../.agents/skills/add-support-for-new-element-types/SKILL.md) | add an element type or geometry variant, correct in the IFC, plan and viewer |

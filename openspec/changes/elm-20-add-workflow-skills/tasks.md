@@ -16,11 +16,11 @@
 - [x] 3.1 Write `.agents/skills/add-support-for-new-element-types/SKILL.md`: why-not-an-existing-type first, the treatment sheet agreed with the user, the order of work by link to the `docs/development.md` checklist, geometry variants and storey patterns, and the three-step verification linking `inspect-the-rendered-output`. Verify `name` equals the directory and every relative link resolves with `test -e`.
 - [x] 3.2 Walk the skill against railings (ELM-12) and against pitched walls (ELM-11) as if they did not exist. Verify the treatment-sheet answers match what was built, and fix the skill or checklist for any mismatch.
 
-## 4. `edit-a-building-model` and `record-model-constraints`
+## 4. `edit-an-existing-building-model` and `record-model-constraints`
 
-- [x] 4.1 Write `.agents/skills/edit-a-building-model/SKILL.md`: the loop, outlines on wall faces, the hand-off to `add-support-for-new-element-types`, and links to `docs/modelling.md`. Verify the front matter and links as in 3.1.
+- [x] 4.1 Write `.agents/skills/edit-an-existing-building-model/SKILL.md`: the loop, outlines on wall faces, the hand-off to `add-support-for-new-element-types`, and links to `docs/modelling.md`. Verify the front matter and links as in 3.1.
 - [x] 4.2 Write `.agents/skills/record-model-constraints/SKILL.md`: the measurement-and-note rule, where constraints live, reading a failure line, the revision case. Verify each example failure line against the output of `npm run check` on a fixture in `tests/`.
-- [x] 4.3 Replay one past model-only pull request (#39 or #47) through `edit-a-building-model`, and a constraint failure through `record-model-constraints`. Verify the skills lead to the same fix and correct any gap.
+- [x] 4.3 Replay one past model-only pull request (#39 or #47) through `edit-an-existing-building-model`, and a constraint failure through `record-model-constraints`. Verify the skills lead to the same fix and correct any gap.
 
 ## 5. `propose-a-model-revision`
 
@@ -28,7 +28,7 @@
 
 ## 6. `diagnose-a-failing-check`
 
-- [x] 6.1 List the distinct failure modes from the messages in `src/checks`, `src/constraints`, the round-trip and validator output, the plan-versus-3D failure output and the CLI failure fixtures, with the cause and fix of each. Verify each message string exists with `git grep`. If fewer than about five distinct modes are found, add a short "when a check fails" section to `edit-a-building-model` instead of a skill and record the decision.
+- [x] 6.1 List the distinct failure modes from the messages in `src/checks`, `src/constraints`, the round-trip and validator output, the plan-versus-3D failure output and the CLI failure fixtures, with the cause and fix of each. Verify each message string exists with `git grep`. If fewer than about five distinct modes are found, add a short "when a check fails" section to `edit-an-existing-building-model` instead of a skill and record the decision.
 - [x] 6.2 Otherwise write `.agents/skills/diagnose-a-failing-check/SKILL.md` from that list. Verify front matter and links as in 3.1, and that each failure fixture in `tests/fixtures` leads to the listed cause.
 
 ## 7. Register and check

@@ -1,6 +1,6 @@
 ---
 name: add-support-for-new-element-types
-description: Add a new kind of building element to elmstead, or a new geometry variant of an existing one, so that it is correct in the model, the IFC, the plan drawings and the 3D viewer, including colour. Use when a model needs something the schema cannot express (a chimney, a ramp, a beam, a sloped or curved variant of a wall), when asked to "add support for", "add an element type", "add a field to wall/window/slab", or when edit-a-building-model hits something the schema cannot say. Not for editing a model with the types that exist.
+description: Add a new kind of building element to elmstead, or a new geometry variant of an existing one, so that it is correct in the model, the IFC, the plan drawings and the 3D viewer, including colour. Use when a model needs something the schema cannot express (a chimney, a ramp, a beam, a sloped or curved variant of a wall), when asked to "add support for", "add an element type", "add a field to wall/window/slab", or when edit-an-existing-building-model hits something the schema cannot say. Not for editing a model with the types that exist.
 ---
 
 # Add support for new element types
@@ -102,5 +102,5 @@ Then update [modelling.md](../../../docs/modelling.md), [ifc.md](../../../docs/i
 
 ## Related skills
 
-- Using the types that exist: [edit-a-building-model](../edit-a-building-model/SKILL.md).
+- Using the types that exist: [edit-an-existing-building-model](../edit-an-existing-building-model/SKILL.md).
 - Real measurements: [record-model-constraints](../record-model-constraints/SKILL.md).

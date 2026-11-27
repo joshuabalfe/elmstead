@@ -62,7 +62,7 @@ rendered output through `inspect-the-rendered-output`. The first two passing doe
 third. It also covers geometry variants and storey patterns, and says to prefer a pattern or a
 variant over a new type when one can express the thing.
 
-**`edit-a-building-model` is the entry point for model work and hands off at its edge.** It
+**`edit-an-existing-building-model` is the entry point for model work and hands off at its edge.** It
 carries the loop (edit, `check`, `build`, `render`, look), the face-not-centreline rule for room
 outlines that the plan-versus-3D test catches, where an owner measurement goes (constraints), and a
 stop rule: when the schema cannot express what the model needs, stop and use
@@ -72,7 +72,7 @@ stop rule: when the schema cannot express what the model needs, stop and use
 **`record-model-constraints` keeps one rule sharp.** A constraint is a real measurement the user
 gave, with its source in `note`; a failure means fix the model. It covers where constraints live
 (folder, single file, revision), how points and tolerances are written, and reading the failure
-line. Alternative: fold it into `edit-a-building-model`. It stays separate because it fires on a
+line. Alternative: fold it into `edit-an-existing-building-model`. It stays separate because it fires on a
 different trigger (the user gives a measurement, or a constraint fails) and the rule is one agents
 tend to break.
 
@@ -84,7 +84,7 @@ and when to make the base parametric instead.
 there being distinct, recurring failures with non-obvious causes. Apply starts by listing the
 failure modes from the check messages in `src/checks`, the CLI failure fixtures and the
 plan-versus-3D failure output. If it finds too few distinct ones to justify a skill, it folds a
-short section into `edit-a-building-model` and says so in the pull request.
+short section into `edit-an-existing-building-model` and says so in the pull request.
 
 **`inspect-the-rendered-output` is shared so the verification is written once.** It states how to
 produce and look at the plan PNG, the 3D PNGs and each viewer URL state headlessly, and what each

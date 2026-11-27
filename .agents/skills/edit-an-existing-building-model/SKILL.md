@@ -1,5 +1,5 @@
 ---
-name: edit-a-building-model
+name: edit-an-existing-building-model
 description: Change a building model in `models/` (Elmstead, the example cottage or another): move, add or resize walls, doors, windows, rooms, slabs, stairs or railings, add a storey, change a dimension, or fix a failed check. Use for any request about what the building contains or how big it is, such as "make the kitchen wider", "add a window", "move the stair", "trace the first floor". Not for changing the pipeline, schema or viewer.
 ---
 

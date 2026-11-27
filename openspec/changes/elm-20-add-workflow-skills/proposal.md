@@ -20,7 +20,7 @@ plan-versus-3D skip rules for that reason.
 Add six skills under `.agents/skills/`, each a short procedure that links to the docs for detail and
 restates none of them:
 
-1. `edit-a-building-model`: the edit, check, build, render loop for changing a model in `models/`,
+1. `edit-an-existing-building-model`: the edit, check, build, render loop for changing a model in `models/`,
    including outlines on wall faces, and when the work has outgrown the model and needs a new
    element type.
 2. `record-model-constraints`: recording a real measurement as a constraint, reading a failing

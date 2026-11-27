@@ -8,7 +8,7 @@ description: Write, check, build and review a revision of a model, meaning a nam
 A revision is a named variant of a **folder model**, written as edits on the base. A correction to
 the existing building made in the base reaches every revision without being made twice, so keep
 the two apart: "the window is actually 1.1 m" is a base edit
-([edit-a-building-model](../edit-a-building-model/SKILL.md)); "widen the window to 1.8 m" is a
+([edit-an-existing-building-model](../edit-an-existing-building-model/SKILL.md)); "widen the window to 1.8 m" is a
 revision.
 
 ## Where it goes and what it is called
