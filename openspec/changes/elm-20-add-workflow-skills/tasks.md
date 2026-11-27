@@ -2,9 +2,9 @@
 
 ## 1. Trace the touch points and correct the docs
 
-- [ ] 1.1 Trace every place an element type touches with `git grep -il railing -- src viewer tests docs scripts`, `git show --stat` on the ELM-12 commits, and the handling of stairs, doors and windows for kinds with parts. Verify each file the ELM-12 commits changed outside `models/` and `openspec/` is in the list or recorded as not needed for a new kind.
-- [ ] 1.2 Rewrite "Adding a new element type" in `docs/development.md` as a complete, ordered list (schema and ids, revisions, diff, helpers, checks, IFC writer and colour, round-trip, plan and colour, viewer, plan-versus-3D, tests, example, docs). Verify every path and symbol it names with `git grep`.
-- [ ] 1.3 Add the IFC and plan colour rules to `docs/ifc.md` and `docs/rendering.md`, and add railings to `docs/ifc.md`'s list of elements with surface colours. Verify the rules against `src/ifc/styles.ts`, `src/render/style.ts`, `viewer/style-of.ts` and `tests/support/plan-vs-3d.ts`.
+- [x] 1.1 Trace every place an element type touches with `git grep -il railing -- src viewer tests docs scripts`, `git show --stat` on the ELM-12 commits, and the handling of stairs, doors and windows for kinds with parts. Verify each file the ELM-12 commits changed outside `models/` and `openspec/` is in the list or recorded as not needed for a new kind.
+- [x] 1.2 Rewrite "Adding a new element type" in `docs/development.md` as a complete, ordered list (schema and ids, revisions, diff, helpers, checks, IFC writer and colour, round-trip, plan and colour, viewer, plan-versus-3D, tests, example, docs). Verify every path and symbol it names with `git grep`.
+- [x] 1.3 Add the IFC and plan colour rules to `docs/ifc.md` and `docs/rendering.md`, and add railings to `docs/ifc.md`'s list of elements with surface colours. Verify the rules against `src/ifc/styles.ts`, `src/render/style.ts`, `viewer/style-of.ts` and `tests/support/plan-vs-3d.ts`.
 
 ## 2. `inspect-the-rendered-output`
 
