@@ -28,8 +28,10 @@ north angle draws with plan +y up. The plan is drawn in this order:
    misses, follow its reveal. A doorway has no leaf or swing: its wall pieces leave the opening.
 5. railings: a line from start to end with a tick at each derived post, in the railing colour
 6. stairs, drawn in full rather than cut: each flight's footprint, a tread line per tread and a
-   walking-direction arrow, and each landing's outline. The cut height only decides which openings
-   are cut, so a half landing above it is drawn like any other geometry
+   walking-direction arrow, each landing's outline, and each winder's outline with a line on every
+   interior fan line and a walking arrow that curves round the pivot to where the next flight starts.
+   The cut height only decides which openings are cut, so a half landing above it is drawn like any
+   other geometry
 7. room labels (name and area in m²) and room dimensions: the longest clear wall-to-wall span
    along plan x and along plan y of the room's `dimensionOutline` when it has one (otherwise its
    `outline`), in mm, drawn as dimension lines inside the room and kept clear of the label where
@@ -39,9 +41,9 @@ north angle draws with plan +y up. The plan is drawn in this order:
 10. title, north arrow and a 5 m scale bar
 
 Every element is an SVG group with `class` (`wall`, `door`, `window`, `room`, `room-dimensions`,
-`slab`, `railing`, `stair`, `stair-flight`, `stair-landing`) and `data-id` set to its model id, so
-the SVG can be inspected or queried. A stair's flights and landings are groups nested inside the
-stair's.
+`slab`, `railing`, `stair`, `stair-flight`, `stair-landing`, `stair-winder`) and `data-id` set to its
+model id, so the SVG can be inspected or queried. A stair's flights, landings and winders are groups
+nested inside the stair's.
 
 Railings and stairs are drawn by `renderPlan` alone. `renderFloor`, `renderWallTops` and
 `renderPlanAnnotations`, which the viewer composites into its plan-style overlay, draw neither, and

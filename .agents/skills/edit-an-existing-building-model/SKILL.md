@@ -59,7 +59,8 @@ npm run all models/<model>       # build, then render if the build passed
 ## When the model needs something the schema cannot say
 
 Stop. Do not approximate it with an existing type. These are not in the schema: room heights, wall
-types (external or internal), roofs, curved walls, winder and spiral stairs. Neither is anything
+types (external or internal), roofs, curved walls, spiral stairs, and winders anywhere but at the start
+of a stair. Neither is anything
 else that would make a wall, slab or room misdescribe the building in IFC or on the plan.
 
 Use [add-support-for-new-element-types](../add-support-for-new-element-types/SKILL.md): agree the

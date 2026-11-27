@@ -40,9 +40,9 @@ placeholder. No existing model has a winder, so no placeholder can run.
 
 ## 6. Docs, skills and finish
 
-- [ ] 6.1 Update the docs that list stair parts or what is unsupported: `docs/modelling.md` (the element table's stair rows, the helper table, the Stairs section with a worked winder example, "Not modelled yet", and "Things the schema does not have yet"), `docs/ifc.md`, `docs/rendering.md`, `docs/development.md` (the unique-id kinds and the stair checks) and `docs/architecture.md` ("Stair (flights and landings)"). Verify `git grep -n -i "flights and landings\|stair landings" docs` shows nothing out of date, each documented snippet type-checks, and `npm run format:check` passes.
-- [ ] 6.2 Take winders out of the lists of unsupported things in `.agents/skills/start-a-new-building-model/SKILL.md` and `.agents/skills/edit-an-existing-building-model/SKILL.md`, keeping spiral stairs. Verify with `git grep -i winder -- .agents docs`, which should show only supported uses.
-- [ ] 6.3 Run `npx openspec validate --all`, `npm run typecheck`, `npm run format` and `npm test`. Verify all pass.
+- [x] 6.1 Update the docs that list stair parts or what is unsupported: `docs/modelling.md` (the element table's stair rows, the helper table, the Stairs section with a worked winder example, "Not modelled yet", and "Things the schema does not have yet"), `docs/ifc.md`, `docs/rendering.md`, `docs/development.md` (the unique-id kinds and the stair checks) and `docs/architecture.md` ("Stair (flights and landings)"). Verify `git grep -n -i "flights and landings\|stair landings" docs` shows nothing out of date, each documented snippet type-checks, and `npm run format:check` passes.
+- [x] 6.2 Take winders out of the lists of unsupported things in `.agents/skills/start-a-new-building-model/SKILL.md` and `.agents/skills/edit-an-existing-building-model/SKILL.md`, keeping spiral stairs. Verify with `git grep -i winder -- .agents docs`, which should show only supported uses.
+- [x] 6.3 Run `npx openspec validate --all`, `npm run typecheck`, `npm run format` and `npm test`. Verify all pass.
 
 ## Workflow follow-up
 

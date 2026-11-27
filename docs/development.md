@@ -48,17 +48,20 @@ output is written and the command exits 1. The rules are:
 - component ids are unique, each `componentId` names a component of its own kind, a door's frame
   leaves room for a leaf, and a window's frame and glazing bars leave room for glass
 - every id-bearing node has a model-unique id (project, site, building, storeys, walls, openings,
-  slabs, rooms, stairs, stair flights, stair landings and components)
+  slabs, rooms, stairs, stair flights, stair landings, stair winders, railings and components)
 - walls have non-zero length
 - openings name a wall on their storey, fit within its length and height, and do not overlap
   another opening on the same wall in both directions
 - a doorway has no component or swing
-- room, slab and stair landing outlines, and a room's optional dimension outline, are simple
+- room, slab, stair landing and stair winder outlines, and a room's optional dimension outline, are simple
   polygons: at least three distinct points, no repeated first or adjacent points, non-zero area
   and no self-intersection
 - a stair names the next storey up, alternates flight and landing starting with a flight, runs
   somewhere on every flight, and each landing meets the flight before it and, when present, the
   flight after it within 1 mm; a stair may end with a top landing one riser below its target storey
+- a winder is the first segment of its stair and is followed by a flight; its outline is strictly
+  convex with its pivot and entry beside each other on it; and the flight after it starts on its exit
+  edge, no wider than the edge, running away from it
 
 Add new rules to the matching `check*` function, keep them pure (no writes or exits), and report
 them as an `Issue` against the element id. Add a fixture test to the matching test file (see the
