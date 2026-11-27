@@ -156,7 +156,29 @@ export const StairLandingSchema = z
   })
   .meta({ id: "StairLanding" });
 
-export const StairSegmentSchema = z.discriminatedUnion("kind", [StairFlightSchema, StairLandingSchema]);
+/**
+ * A fan of winder treads turning about a newel. `outline` is its plan block, a convex polygon, and
+ * `pivot` one of its points: the treads fan out from it in equal angles. `entry` is the outline point
+ * beside the pivot where the walker steps on, and the other point beside the pivot is the exit. Fan
+ * lines, treads and levels are derived, never stored.
+ */
+export const StairWinderSchema = z
+  .strictObject({
+    kind: z.literal("winder"),
+    id: IdSchema,
+    outline: PolygonSchema,
+    pivot: PointSchema,
+    entry: PointSchema,
+    /** Risers climbed, which is also the number of treads: one in each sector of the fan. */
+    risers: z.number().int().min(2),
+  })
+  .meta({ id: "StairWinder" });
+
+export const StairSegmentSchema = z.discriminatedUnion("kind", [
+  StairFlightSchema,
+  StairLandingSchema,
+  StairWinderSchema,
+]);
 
 /**
  * A storey element climbing to another storey: segments in bottom-to-top order, starting with a
@@ -299,6 +321,7 @@ export type Slab = z.infer<typeof SlabSchema>;
 export type Room = z.infer<typeof RoomSchema>;
 export type StairFlight = z.infer<typeof StairFlightSchema>;
 export type StairLanding = z.infer<typeof StairLandingSchema>;
+export type StairWinder = z.infer<typeof StairWinderSchema>;
 export type StairSegment = z.infer<typeof StairSegmentSchema>;
 export type Stair = z.infer<typeof StairSchema>;
 export type Railing = z.infer<typeof RailingSchema>;

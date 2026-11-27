@@ -448,7 +448,7 @@ describe("Elmstead's stair", () => {
       const rise = f.to.elevation - f.from.elevation;
       const levels = stairLevels(f.stair, rise);
       const top = levels.segments.at(-1)!;
-      expect(top.kind === "flight" ? top.top : top.level).toBe(rise);
+      expect(top.kind === "landing" ? top.level : top.top).toBe(rise);
       expect(levels.totalRisers).toBe(f.risers); // owner: 17 in all
       expect(levels.riser).toBeGreaterThan(170); // ~180 mm, owner
       expect(levels.riser).toBeLessThan(190);

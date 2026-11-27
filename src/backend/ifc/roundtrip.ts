@@ -143,6 +143,7 @@ function stairVolumes(model: BuildingModel, s: Storey): ExpectedVolume[] {
     if (!to) continue; // a missing target is a check error, which gates the build
     const levels = stairLevels(stair, to.elevation - s.elevation);
     for (const l of levels.segments) {
+      if (l.kind === "winder") throw new Error(`${l.segment.id}: winder volume is not implemented yet`); // ELM-29 task 3.3
       if (l.kind === "flight")
         out.push({
           id: l.segment.id,

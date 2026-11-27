@@ -10,6 +10,7 @@ import type {
   Stair,
   StairFlight,
   StairLanding,
+  StairWinder,
   Storey,
   Wall,
   Window,
@@ -53,6 +54,7 @@ export type IdNode =
   | (OnStorey<"stair", Stair> & Placed)
   | OnStorey<"stair flight", StairFlight>
   | OnStorey<"stair landing", StairLanding>
+  | OnStorey<"stair winder", StairWinder>
   | (OnStorey<"railing", Railing> & Placed);
 
 /** The kinds of node that live on a storey. */
@@ -85,7 +87,9 @@ export function idNodes(model: BuildingModel): IdNode[] {
         nodes.push(
           seg.kind === "flight"
             ? { kind: "stair flight", element: seg, storey }
-            : { kind: "stair landing", element: seg, storey },
+            : seg.kind === "landing"
+              ? { kind: "stair landing", element: seg, storey }
+              : { kind: "stair winder", element: seg, storey },
         );
     });
     (s.railings ?? []).forEach((r, i) => nodes.push({ kind: "railing", element: r, storey, place: at("railings", i) }));

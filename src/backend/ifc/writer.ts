@@ -642,11 +642,12 @@ class Writer {
       ),
     );
     const levels = stairLevels(s, rise);
-    const parts = levels.segments.map((l) =>
-      l.kind === "flight"
+    const parts = levels.segments.map((l) => {
+      if (l.kind === "winder") throw new Error(`${l.segment.id}: winders are not written to IFC yet`); // ELM-29 task 3.1
+      return l.kind === "flight"
         ? this.stairFlight(l.segment, l, levels.riser, placement)
-        : this.stairLanding(l.segment, l.level, placement),
-    );
+        : this.stairLanding(l.segment, l.level, placement);
+    });
     this.write(new IFC4.IfcRelAggregates(guid(`${s.id}#aggregates`), null, null, null, stair, parts));
     return stair;
   }

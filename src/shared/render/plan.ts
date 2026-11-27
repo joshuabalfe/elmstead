@@ -556,7 +556,7 @@ export function renderFloor(storey: Storey, components?: Components): Overlay {
 /** Every plan point a stair occupies, so the drawing extent includes one outside the rooms. */
 function stairPoints(storey: Storey): Vec[] {
   return (storey.stairs ?? []).flatMap((s) =>
-    s.segments.flatMap((seg) => (seg.kind === "landing" ? seg.outline.map(toVec) : flightFootprint(seg))),
+    s.segments.flatMap((seg) => (seg.kind === "flight" ? flightFootprint(seg) : seg.outline.map(toVec))),
   );
 }
 
@@ -636,6 +636,7 @@ function drawStairs(model: BuildingModel, storey: Storey, view: View, opts: Plan
         parts.push(group({ class: "stair-landing", "data-id": seg.id }, body));
         return;
       }
+      if (seg.kind === "winder") throw new Error(`${seg.id}: winders are not drawn yet`); // ELM-29 task 4.1
       const level = levels?.[i];
       const going = level?.kind === "flight" ? level.going : 0;
       const body = [
