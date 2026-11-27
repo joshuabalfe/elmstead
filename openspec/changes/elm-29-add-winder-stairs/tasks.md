@@ -34,9 +34,9 @@ placeholder. No existing model has a winder, so no placeholder can run.
 
 ## 5. Viewer
 
-- [ ] 5.1 In `src/frontend/scene/engine.ts`, move the riser-height sum out of the async model loader into a small pure function, count a winder's risers in it, and leave the top-landing sum as it is (see the design's Open Questions). Verify in `tests/viewer-presentation.test.ts` that 2200 mm over a winder of 3 risers and a flight of 8 gives 200 mm, and that a stair of flights and a top landing gives what it gave before.
-- [ ] 5.2 Look at the result with the `inspect-the-rendered-output` skill: plan PNG, 3D PNGs, the winder's storey alone, plan style and `style=ifc`. Verify the winder treads read as steps in plan style, and compare the plan's treads with the 3D top view.
-- [ ] 5.3 Check the plan-versus-3D comparison: stair pixels stay ignored and the storey is not skipped. Verify `tests/plan-vs-3d*.test.ts` pass with the fixture, and write the reason in `docs/rendering.md` if it needed a rule.
+- [x] 5.1 In `src/frontend/scene/engine.ts`, move the riser-height sum out of the async model loader into a small pure function, count a winder's risers in it, and leave the top-landing sum as it is (see the design's Open Questions). Verify in `tests/viewer-presentation.test.ts` that 2200 mm over a winder of 3 risers and a flight of 8 gives 200 mm, and that a stair of flights and a top landing gives what it gave before.
+- [x] 5.2 Look at the result with the `inspect-the-rendered-output` skill: plan PNG, 3D PNGs, the winder's storey alone, plan style and `style=ifc`. Verify the winder treads read as steps in plan style, and compare the plan's treads with the 3D top view.
+- [x] 5.3 Check the plan-versus-3D comparison: stair pixels stay ignored and the storey is not skipped. Verify `tests/plan-vs-3d*.test.ts` pass with the fixture, and write the reason in `docs/rendering.md` if it needed a rule.
 
 ## 6. Docs, skills and finish
 

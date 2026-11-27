@@ -4,6 +4,10 @@
  */
 import { describe, expect, it } from "vitest";
 import winderStair from "./fixtures/winder-stair/index.js";
+import twoStorey from "./fixtures/two-storey/index.js";
+import elmstead from "../models/elmstead/index.js";
+import cottage from "../models/examples/example-cottage/index.js";
+import { stairBandRiser } from "../src/frontend/scene/stair-bands.js";
 import { stairLevels, winderFan, winderFrame } from "../src/shared/geometry/stair.js";
 import { area } from "../src/shared/geometry/polygon.js";
 import { toVec } from "../src/shared/geometry/vec.js";
@@ -383,5 +387,42 @@ describe("winder plan symbols", () => {
   it("draws the same plan every time, and matches the committed reference drawing", async () => {
     expect(plan()).toBe(plan());
     await expect(plan()).toMatchFileSnapshot("__snapshots__/winder-stair.storey-ground.plan.svg");
+  });
+});
+
+describe("the viewer's stair band riser", () => {
+  /** What the engine computed before winders: the rise over the flights' risers alone. */
+  const before = (m: BuildingModel): number => {
+    let riser = 0;
+    for (const s of m.storeys)
+      for (const st of s.stairs ?? []) {
+        const to = m.storeys.find((x) => x.id === st.toStoreyId);
+        const total = st.segments.reduce((n, g) => (g.kind === "flight" ? n + g.risers : n), 0);
+        if (to && total > 0) riser = Math.max(riser, (to.elevation - s.elevation) / total / 1000);
+      }
+    return riser;
+  };
+
+  it("counts a winder's risers with the flight's: 250 mm over 3 + 8 risers, not 344 mm over 8", () => {
+    expect(stairBandRiser(model())).toBe(0.25);
+  });
+
+  it("gives 200 mm for 2200 mm over a winder of 3 and a flight of 8", () => {
+    const m = model();
+    m.storeys[1]!.elevation = mm(2200);
+    expect(stairBandRiser(m)).toBe(0.2);
+  });
+
+  it("is what it was for stairs of flights and landings, including a top landing", () => {
+    for (const source of [twoStorey, elmstead]) {
+      const m = model(source);
+      expect(stairBandRiser(m)).toBeGreaterThan(0);
+      expect(stairBandRiser(m)).toBe(before(m));
+    }
+  });
+
+  it("is zero with no stairs or no model", () => {
+    expect(stairBandRiser(null)).toBe(0);
+    expect(stairBandRiser(model(cottage))).toBe(0);
   });
 });
