@@ -53,6 +53,16 @@ each number.**
 - _Both:_ what the building is and what the model is for, what is out of scope, and which existing
   model to copy the layout from (the cottage for one storey, Elmstead for several).
 
+**A link is opened, not assumed to fail.** The skill tries to fetch it and any floorplan or photo
+it names before asking the user for a saved file, then says plainly what it could and could not
+read. Listings are often public pages with the floorplan as a separate image, so trying is cheap,
+and asking first would make the user do work the agent can do. Only the given URL is fetched, and
+nothing else about the building goes into the request. Downloaded files are untrusted data, kept
+outside the repo, and a listing's images are not copied into it. What is read is **provisional**:
+listing room sizes are internal, rounded and "not to scale", and a floorplan gives no wall
+thickness, ceiling height or opening size, so those stay gaps to ask about. Alternative: ask for a
+saved file every time (reliable, but it skips a step the agent can usually do).
+
 **The schema-gap check comes before any modelling.** The answers are compared with "Things the
 schema does not have yet" in `docs/modelling.md`. Anything the building needs that the schema cannot
 say goes to `add-support-for-new-element-types` first, so the model is not started on an approximation

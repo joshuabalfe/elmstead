@@ -22,7 +22,9 @@ memory, there is nothing to trace and every number is an estimate. The skill ask
 - Add the skill `start-a-new-building-model` in `.agents/skills/`. It:
   1. asks the user where they are starting from, before anything else: **material** (a plan,
      sketches, photos, measurements, an old model or IFC) or **memory** (no source documents);
-  2. runs intake for that track, a few questions at a time and not as a form;
+  2. runs intake for that track, a few questions at a time and not as a form, and tries to open
+     any link the user gives (such as an estate agent listing and its floorplan) before asking for
+     anything else;
   3. checks the answers against the schema's gaps and hands off to
      `add-support-for-new-element-types` before modelling starts, never approximating;
   4. builds in order (shared dimensions, walls, openings, rooms), checking and looking at each
