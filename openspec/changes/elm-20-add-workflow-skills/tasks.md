@@ -18,9 +18,9 @@
 
 ## 4. `edit-a-building-model` and `record-model-constraints`
 
-- [ ] 4.1 Write `.agents/skills/edit-a-building-model/SKILL.md`: the loop, outlines on wall faces, the hand-off to `add-support-for-new-element-types`, and links to `docs/modelling.md`. Verify the front matter and links as in 3.1.
-- [ ] 4.2 Write `.agents/skills/record-model-constraints/SKILL.md`: the measurement-and-note rule, where constraints live, reading a failure line, the revision case. Verify each example failure line against the output of `npm run check` on a fixture in `tests/`.
-- [ ] 4.3 Replay one past model-only pull request (#39 or #47) through `edit-a-building-model`, and a constraint failure through `record-model-constraints`. Verify the skills lead to the same fix and correct any gap.
+- [x] 4.1 Write `.agents/skills/edit-a-building-model/SKILL.md`: the loop, outlines on wall faces, the hand-off to `add-support-for-new-element-types`, and links to `docs/modelling.md`. Verify the front matter and links as in 3.1.
+- [x] 4.2 Write `.agents/skills/record-model-constraints/SKILL.md`: the measurement-and-note rule, where constraints live, reading a failure line, the revision case. Verify each example failure line against the output of `npm run check` on a fixture in `tests/`.
+- [x] 4.3 Replay one past model-only pull request (#39 or #47) through `edit-a-building-model`, and a constraint failure through `record-model-constraints`. Verify the skills lead to the same fix and correct any gap.
 
 ## 5. `propose-a-model-revision`
 
