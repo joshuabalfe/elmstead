@@ -48,4 +48,5 @@
 - [x] 9.3 State what a constraint is for (an immovable, real measurement that edits to other dimensions must not break) in `AGENTS.md`, `docs/modelling.md` and `record-model-constraints`. Verify each says so.
 - [x] 9.4 Require asking the user before changing, loosening, replacing or removing an existing constraint, in `AGENTS.md`, `docs/modelling.md` and the four skills that touch constraints. Verify each of those files says so.
 - [x] 9.5 Run `npm test`, `npm run typecheck` and `npx openspec validate --all`. Verify all pass and `git status` shows no generated-file change.
+- [x] 9.6 Self-review the PR against the code: fix the three factual errors it found (ELM-17 listed as needing a schema type, a backwards parenthetical in the checklist intro, an overclaim about which walls the plan-versus-3D comparison skips) and a harness-specific phrase in `inspect-the-rendered-output`. Verify every path and identifier the changed files name exists, and `npm run test:fast` and `npx openspec validate --all` pass.
 

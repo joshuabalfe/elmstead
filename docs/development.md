@@ -176,8 +176,8 @@ The actions are pinned by commit SHA, matching the repo's exact-version rule.
 ## Adding a new element type
 
 Keep the schema small. Add a type only when a real model needs it, and agree the shape first. An
-existing type, a new optional field on one, or a modelling pattern (the external and half-landing
-storeys use none of these) often does the job.
+existing type, a new optional field on one, or a modelling pattern (as the external and half-landing
+storeys are) often does the job.
 
 The plan SVG, the IFC and the viewer are three separate renderings of one model. A type that is
 right in two and wrong in the third passes every unit test, so decide how it looks in each, and its

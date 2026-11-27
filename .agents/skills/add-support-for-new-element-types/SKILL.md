@@ -78,8 +78,9 @@ Traps that have each cost a change:
   plan style.
 - **A plan colour near wall, room or paper** is wrongly counted by the plan-versus-3D comparison;
   one that is far from all three is silently skipped by it.
-- **A geometry variant on a wall** makes the plan-versus-3D comparison skip the whole storey (ELM-11
-  pitched walls); say so in the docs.
+- **A pitched wall** (one with a `profile`, ELM-11), or a storey whose walls span under 2 m either
+  way (ELM-17), makes the plan-versus-3D comparison skip the whole storey (`comparable` in
+  `tests/support/plan-compare.ts`). If your variant needs the same, say so in the docs.
 - **Generated files.** `npm run schema` regenerates the JSON Schema; the plan snapshot is updated
   with `npx vitest run -u` after you review the diff. Never edit either by hand.
 - **Determinism.** No timestamps, random numbers or unordered iteration in anything written to

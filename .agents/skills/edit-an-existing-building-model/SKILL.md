@@ -63,8 +63,8 @@ types (external or internal), roofs, curved walls, winder and spiral stairs. Nei
 else that would make a wall, slab or room misdescribe the building in IFC or on the plan.
 
 Use [add-support-for-new-element-types](../add-support-for-new-element-types/SKILL.md): agree the
-shape with the user, then build it through the pipeline. Models that have needed this: ELM-11 (pitched
-walls), ELM-12 (railings), ELM-17 (half-landing storeys).
+shape with the user, then build it through the pipeline. Changes that needed this: ELM-5 (splayed
+window reveals), ELM-11 (pitched walls) and ELM-12 (railings).
 
 ## Related
 

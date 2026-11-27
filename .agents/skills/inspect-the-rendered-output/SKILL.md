@@ -6,8 +6,8 @@ description: Look at what the pipeline produced for a model, or for any change t
 # Inspect the rendered output
 
 Passing checks and tests does not mean the model looks right. The plan, the IFC and the viewer are
-three renderings of one model, and each can be wrong alone. Look at them. You can read PNGs with the
-Read tool.
+three renderings of one model, and each can be wrong alone. Look at them: open each PNG with
+whatever image viewing your harness gives you.
 
 ## 1. Produce the outputs
 
