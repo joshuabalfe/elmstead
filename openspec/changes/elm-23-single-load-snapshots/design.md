@@ -84,6 +84,13 @@ server stay as they are. A failed view switch surfaces as a page error or a time
 `__elmsteadViews`, throwing out of the loop into the same cleanup. Missing Chromium remains a
 WARNING upstream in `render3d`.
 
+### D6: An observable load count
+
+The driver prints one line per variant, in the repo's log style:
+`snap    <name>: 5 views, 1 page load` (Diff: `5 diff views, 1 page load`). The count is not a
+literal: the driver counts the page's own requests for the model's IFC (one per page load), so a
+regression back to per-view `goto`s logs 5 or 10 and fails the CLI test.
+
 ### D7: The ortho frustum must not depend on the previous view
 
 Found during acceptance: switching perspective→orthographic in-page produced a top PNG that differed
@@ -99,12 +106,6 @@ perspective→orthographic switch, restores that pose with `setLookAt(…, false
 `controls.update(0)` (setLookAt only queues the pose; OBC reads the camera itself), so the frustum —
 and every zoom float derived from it — is the same as a fresh load's. Perspective→perspective
 switches are untouched. After the fix all 20 acceptance PNGs are byte-identical.
-
-### D6: An observable load count
-
-The driver prints one line per variant, in the repo's log style:
-`snap    <name>: 5 views, 1 page load` (Diff: `5 diff views, 1 page load`). The CLI tests assert
-it, which is how the "one page load per variant" scenario is verified from outside the browser.
 
 ## Risks / Trade-offs
 

@@ -38,8 +38,8 @@ dominant cost of a render, paid five to ten times over. This is the slowest part
 
 - `src/backend/render/snapshot3d.ts` — the capture loop.
 - `src/frontend/scene/engine.ts` — `chooseView` announces the settled view; a new test hook.
-- `tests/cli-diff-snapshots.test.ts`, `tests/snapshot.test.ts` — unchanged assertions still hold;
-  a new assertion counts page loads per variant.
+- `tests/cli-diff-snapshots.test.ts`, `tests/snapshot.test.ts` — the CLI test asserts the measured
+  page-load count per variant, and a new viewer test proves an in-page switch matches a fresh load.
 - `docs/rendering.md` — how snapshots are produced.
 - No new dependencies. Residual coupling: ELM-25 (engine decomposition) will move `chooseView`;
   whichever lands second re-cuts the hook's placement. ELM-22's watch/reload path is untouched —

@@ -12,7 +12,7 @@
 ## 3. Snapshot driver
 
 - [x] 3.1 Rewrite the `snapshot3d` loop: one `page.goto` per variant with the first camera's `?view=`, capture on `__elmsteadReady`, then `__elmsteadChooseView` + wait on `__elmsteadViews` for each later camera; keep the error collection and the browser/server cleanup.
-- [x] 3.2 Print `snap    <name>: <n> views, 1 page load` per variant; assert the line and the unchanged PNG set in `tests/cli-diff-snapshots.test.ts` / `tests/snapshot.test.ts`.
+- [x] 3.2 Print `snap    <name>: <n> views, <m> page load(s)` per variant, counting the page's own requests for the model's IFC; assert the line and the unchanged PNG set in `tests/cli-diff-snapshots.test.ts`.
 
 ## 4. Acceptance
 

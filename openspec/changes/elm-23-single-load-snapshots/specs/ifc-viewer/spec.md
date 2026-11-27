@@ -33,7 +33,7 @@ and failure path.
 For each camera after the first, `render` SHALL switch the view in the loaded page and wait for
 `window.__elmsteadViews` to count the settled choice before saving its PNG. The viewer SHALL
 increment `window.__elmsteadViews` after a view choice has been applied and drawn, and SHALL expose
-the view choice to the snapshot driver.
+the view choice to the snapshot driver as `window.__elmsteadChooseView`.
 
 #### Scenario: View settled before capture
 

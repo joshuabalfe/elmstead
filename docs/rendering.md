@@ -155,7 +155,9 @@ routes.
   - `?camera=px,py,pz,tx,ty,tz` places a perspective camera at p looking at t, in the scene's
     metres (Y up, IFC +Y along −Z), for close-ups such as one window.
   - With `?snapshot=1` in the URL it hides the navigation and sets `window.__elmsteadReady` once the
-    frame is drawn, which is what the snapshot driver waits for.
+    first camera's frame is drawn. The driver then switches the remaining snapshot cameras through
+    `window.__elmsteadChooseView` and waits on `window.__elmsteadViews`, so one page load serves
+    every camera of a snapshot set.
 - Hover identification: the **Show IDs on Hover** switch or `?ids=1` (off by default, ignored in snapshots)
   shows a constraint-style haloed label at the hovered point with the model id and name of the
   element under it, drawn above everything like the measurement readout. `src/frontend/scene/identify.ts` maps each fragments item's `Tag`/`Name`/`LongName` to

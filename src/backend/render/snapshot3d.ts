@@ -51,12 +51,19 @@ export async function snapshot3d(
     const page = await browser.newPage({ viewport: { width: 1200, height: 900 }, deviceScaleFactor: 1 });
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
+    // A page load fetches the model's IFC once, so counting those requests measures real reloads.
+    let ifcLoads = 0;
+    page.on("request", (request) => {
+      if (new URL(request.url()).pathname === `/out/${name}.ifc`) ifcLoads++;
+    });
     for (const variant of variants) {
       const [first, ...rest] = views;
       if (!first) continue;
+      const where = (view: View) => `${name} ${variant.suffix}${view}`;
+      const loadsBefore = ifcLoads;
       const capture = async (view: View) => {
         const failed = await page.evaluate(() => window.__elmsteadError);
-        if (failed || errors.length) throw new Error(`viewer failed: ${failed ?? errors.join("; ")}`);
+        if (failed || errors.length) throw new Error(`viewer failed on ${where(view)}: ${failed ?? errors.join("; ")}`);
         const path = join(outDir, `${name}.3d-${variant.suffix}${view}.png`);
         writeFileAtomic(path, await page.screenshot());
         written.push(path);
@@ -67,12 +74,22 @@ export async function snapshot3d(
       await capture(first);
       let settled = await page.evaluate(() => window.__elmsteadViews ?? 0);
       for (const view of rest) {
-        await page.evaluate((v) => window.__elmsteadChooseView!(v), view);
-        await page.waitForFunction((n) => (window.__elmsteadViews ?? 0) > n, settled, { timeout: 60_000 });
+        // Not awaited: a wedged setView must not hang the driver; the bounded wait below surfaces it.
+        await page.evaluate((v) => void window.__elmsteadChooseView!(v), view);
+        try {
+          await page.waitForFunction((n) => (window.__elmsteadViews ?? 0) > n, settled, { timeout: 60_000 });
+        } catch {
+          throw new Error(
+            `viewer failed switching ${where(view)}: ${errors.join("; ") || "the view did not settle in time"}`,
+          );
+        }
         settled = await page.evaluate(() => window.__elmsteadViews ?? 0);
         await capture(view);
       }
-      console.log(`snap    ${name}: ${views.length} ${variant.suffix ? "diff views" : "views"}, 1 page load`);
+      const loads = ifcLoads - loadsBefore;
+      console.log(
+        `snap    ${name}: ${views.length} ${variant.suffix ? "diff views" : "views"}, ${loads} page load${loads === 1 ? "" : "s"}`,
+      );
     }
   } finally {
     await browser?.close();
