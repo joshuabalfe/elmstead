@@ -89,6 +89,8 @@ declare global {
     __elmsteadStoreyChanges?: number;
     /** Increments after a revision choice has been loaded and drawn; tests wait on it. */
     __elmsteadRevisionChanges?: number;
+    /** Increments after a rebuilt IFC has replaced the shown scene; tests wait on it. */
+    __elmsteadReloads?: number;
     /** Increments after a Diff, Transparency or changes-panel choice has been applied and drawn. */
     __elmsteadViewChanges?: number;
     /** The shown diff's ids by status while Diff mode is on, for tests; null otherwise. */
@@ -109,6 +111,7 @@ declare global {
 export interface ViewerApi {
   start(): Promise<void>;
   show(name: string, opts?: { keepView?: boolean }): Promise<void>;
+  reloadModel(name: string): Promise<void>;
   chooseModel(model: string): Promise<void>;
   applyRevisionChoice(rev: string | null): Promise<void>;
   applyStoreyChoice(topId: string): Promise<void>;
@@ -1499,8 +1502,8 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   /**
    * The shown model's loaded revisions, Existing included, by name. Loading a model into Fragments is
    * most of a switch, so each one stays loaded once shown and a switch only swaps which one is in
-   * the scene. Choosing another model disposes them; a rebuild reloads the page (see vite.config.ts),
-   * so nothing goes stale.
+   * the scene. Choosing another model disposes them; a rebuilt IFC is released and fetched again
+   * (see reloadModel), so nothing goes stale.
    */
   const resident = new Map<string, Resident>();
   /** The model group the latest load is for, so a load overtaken by a model change can clean up. */
@@ -2054,6 +2057,18 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
 
   /** Revision switches in flight; the renderer draws only when there are none. */
   let holdingFrame = 0;
+
+  /** Keep the old drawing buffer while `work` replaces the scene, then draw the finished result. */
+  async function withHeldFrame(work: () => Promise<void>): Promise<void> {
+    holdingFrame++;
+    world.renderer!.enabled = false;
+    try {
+      await work();
+    } finally {
+      world.renderer!.enabled = --holdingFrame === 0;
+    }
+  }
+
   /** True while a revision step is loading, so a key press in that time is dropped rather than queued. */
   let switching = false;
 
@@ -2065,13 +2080,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
    */
   async function applyRevisionChoice(rev: string | null): Promise<void> {
     await exitWalk(); // as a model change does; the view it restores is the one kept
-    holdingFrame++;
-    world.renderer!.enabled = false;
-    try {
-      await show(joinName(currentBaseModel, rev), { keepView: true });
-    } finally {
-      world.renderer!.enabled = --holdingFrame === 0;
-    }
+    await withHeldFrame(() => show(joinName(currentBaseModel, rev), { keepView: true }));
     requestAnimationFrame(() =>
       requestAnimationFrame(() => (window.__elmsteadRevisionChanges = (window.__elmsteadRevisionChanges ?? 0) + 1)),
     );
@@ -2089,6 +2098,65 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     } finally {
       switching = false;
     }
+  }
+
+  /** Tell tests a rebuilt model has been drawn. */
+  function announceReload(): void {
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => (window.__elmsteadReloads = (window.__elmsteadReloads ?? 0) + 1)),
+    );
+  }
+
+  /** Remove the ghost base from the scene before its resident is disposed. */
+  function clearGhost(): void {
+    if (ghostModel) ghostModel.object.removeFromParent();
+    ghostModel = null;
+    ghostItems = new Map();
+    ghostLabels.clear();
+    window.__elmsteadGhosts = [];
+  }
+
+  /**
+   * A rebuilt IFC: refresh the pickers, release the stale copy and, when it is the shown model or the
+   * base behind its Diff, swap the new model into the same view.
+   */
+  async function reloadModel(name: string): Promise<void> {
+    const turn = viewChain.then(async () => {
+      try {
+        const names: string[] = await (await fetch("/models.json")).json();
+        groups = groupModels(names);
+        populateRevisionSelector(currentBaseModel, groups.get(currentBaseModel) ?? { base: true, revisions: [] });
+      } catch {
+        // Keep the current pickers; the scene reload below still matters.
+      }
+      baseJson.delete(name);
+      const shown = currentName;
+      if (name !== shown) {
+        if (viewState.diff && revision !== null && name === currentBaseModel) {
+          await withHeldFrame(async () => {
+            clearGhost();
+            await disposeResident(name);
+            await show(shown, { keepView: true });
+          });
+          if (currentName === shown) announceReload();
+        } else {
+          await disposeResident(name);
+        }
+        return;
+      }
+      await exitWalk();
+      await withHeldFrame(async () => {
+        await disposeResident(name);
+        await show(name, { keepView: true });
+      });
+      if (currentName === name) announceReload();
+    });
+    viewChain = turn.catch((error: unknown) => {
+      const message = `could not reload ${name}.ifc: ${error instanceof Error ? error.message : String(error)}`;
+      console.error(message);
+      setStatus(message);
+    });
+    return viewChain;
   }
 
   async function chooseView(view: View): Promise<void> {
@@ -2163,6 +2231,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   return {
     start,
     show,
+    reloadModel,
     chooseModel,
     applyRevisionChoice,
     applyStoreyChoice,

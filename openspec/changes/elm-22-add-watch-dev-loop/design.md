@@ -18,8 +18,9 @@ IfcOpenShell. A load or check failure writes nothing; a verification failure exi
 leaves the written IFC in `out/`. On the example two-storey model a build takes about 6 s; the model
 import and checks are about 3 s of that. The change does not move verification before the writes.
 
-Vite 8.3.8 types a custom dev event as `server.ws.send(event, payload)` on the server and
-`import.meta.hot.on(event, cb)` in the browser; `import.meta.hot` is absent from a production build.
+Vite 8.3.8 types a custom dev event as `server.hot.send(event, payload)` on the server (the
+`server.ws` alias accepts the same) and `import.meta.hot.on(event, cb)` in the browser;
+`import.meta.hot` is absent from a production build.
 
 ## Goals / Non-Goals
 
@@ -53,8 +54,9 @@ watches one entry point's import graph, restarts that process on every change, h
 
 The mapping lives in a pure module, `scripts/watch-targets.ts`, so it can be tested without a live
 watcher. The script handles `change` and `rename` events (an atomic save replaces the file), ignores
-events with a null filename after logging once, and keeps running when the watcher emits `error`.
-On SIGINT/SIGTERM it closes the watcher and kills a running child.
+events with a null filename after logging once, and on `error` logs, re-creates the watch and keeps
+running; if re-creating fails it exits non-zero. On SIGINT/SIGTERM it closes the watcher and kills a
+running child.
 
 Builds run as a child process:
 `node --import tsx src/backend/cli/index.ts build <target>`. This reuses the pinned `tsx` and the
@@ -64,7 +66,8 @@ prints when a build starts and whether it passed; the CLI's own issue lines foll
 `npm run watch` takes no paths or one or more model/revision paths. Each path is resolved through
 the target rules at startup; a path that maps to nothing prints the usage and exits 2. Watching a
 model watches its root; watching a file revision watches the `revisions/` folder and filters events
-to that revision, because an atomic save replaces the file's inode.
+to that revision, and a single-file model is watched through its directory, because an atomic save
+replaces the file's inode.
 
 ### Mapping a changed path to a target
 
@@ -99,11 +102,12 @@ processes never race on `out/`. A non-zero exit is logged and the queue continue
 
 ### A typed custom dev event instead of a full reload
 
-The plugin keeps its watcher registration but replaces `full-reload` with
-`server.ws.send("elmstead:ifc", { name })`, where `name` is the IFC's basename without `.ifc` —
-exactly the model or `<model>@<revision>` output name. A `CustomEventMap` augmentation in the
-frontend types both ends. The event is dev-only: the production/preview route handler is unchanged,
-and `import.meta.hot` is undefined in the built bundle.
+The plugin watches the output directory itself — Vite's chokidar disables globbing, so the old
+`*.ifc` glob silently watched nothing — and replaces `full-reload` with a typed `elmstead:ifc`
+custom event via `server.hot.send(event, payload)`, where `name` is the IFC's basename without
+`.ifc` — exactly the model or `<model>@<revision>` output name. A `CustomEventMap` augmentation in
+the frontend types both ends. The event is dev-only: the production/preview route handler is
+unchanged, and `import.meta.hot` is undefined in the built bundle.
 
 The plugin decides membership with a path relative to the output directory, not `startsWith`, so a
 sibling such as `out-old/` cannot match. `/models.json` gains `cache-control: no-store` so the
@@ -131,7 +135,9 @@ The handler:
    later toggle.
 3. If `name` is the shown model or revision: leave walk mode, hold the frame (disable the renderer
    so the old drawing buffer stays), release the named resident, then `show(name, { keepView: true })`.
-   Releasing after the hold, not before, is what makes the no-flicker guarantee hold.
+   `show` re-reads the building and constraints JSON, so labels, dimensions, constraints and the
+   changes panel refresh. Releasing after the hold, not before, is what makes the no-flicker
+   guarantee hold.
 4. If the shown model is a revision in Diff mode and the rebuilt name is its base: hold the frame,
    clear the ghost state (`ghostModel`, `ghostItems`, `ghostLabels`, its object), release the base
    resident, and re-run `show(shown, { keepView: true })`, which recomputes the diff and redraws the
@@ -163,12 +169,13 @@ rebuild reloads the page.
   (`tests/support/diff-mode-page.ts`), because one test file cannot host both `useViewer()` and the
   Diff harness. It publishes IFCs with a temp file plus rename, exercising the atomic-add path. It
   opens a model, moves the camera away from the URL pose (a view button), republishes the identical
-  IFC, and asserts the before/after pixels are equal: that is what proves the camera was not reset
-  by `?camera=`. It also sets a page sentinel to prove there was no navigation, republishes a
-  changed IFC and waits for `__elmsteadReloads`, checks that another model's rebuild leaves the
-  shown scene alone, that a new revision appears in the picker, that walk mode ends, that a rebuilt
-  base refreshes the diff and ghosts, and that an unreadable IFC reports an error and a later valid
-  publish recovers.
+  IFC, waits for `__elmsteadReloads` and asserts the before/after pixels are equal: that is what
+  proves the camera was not reset by `?camera=`. It also sets a page sentinel to prove there was no
+  navigation, republishes a changed IFC, checks that sidecar JSON changes refresh labels and
+  constraints, checks that another model's rebuild leaves the shown scene alone, that a new revision
+  appears in the picker, that walk mode ends, that a rebuilt base refreshes the diff and ghosts
+  (including after turning Diff on when it was off during the rebuild), and that an unreadable IFC
+  reports an error and a later valid publish recovers.
 - The spawned process itself is not automated; the mapping and queue tests carry the contract, and
   the live watcher is exercised in the manual smoke test on macOS.
 

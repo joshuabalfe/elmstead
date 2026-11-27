@@ -16,7 +16,7 @@ offered to open viewers as described in "Viewer reloads on rebuild".
 
 ### Requirement: Viewer reloads on rebuild
 
-The viewer dev server SHALL notify open viewers when an IFC in the output directory is added or changed, including an atomic rename. An on-screen notified model SHALL be fetched, converted and swapped in without navigating, holding the previous picture until complete and keeping the camera, projection and framing. A notified model not on screen SHALL leave the scene alone and refresh the model and revision pickers. A failed reload SHALL report the error and keep the viewer running.
+The viewer dev server SHALL notify open viewers of the rebuilt IFC's model name when an IFC in the output directory is added or changed, including by atomic rename. An on-screen model SHALL be fetched with its building and constraints JSON, converted and swapped in without navigating, holding the previous picture until complete and keeping the camera, projection and framing; in walk mode it SHALL end walk first. Measurements SHALL be cleared.
 
 #### Scenario: Rebuilt IFC renamed into place
 
@@ -25,8 +25,18 @@ The viewer dev server SHALL notify open viewers when an IFC in the output direct
 
 #### Scenario: Camera stays put
 
-- **WHEN** the user has moved the camera away from its URL pose and the shown model is rebuilt
-- **THEN** the camera position, target and projection are exactly as they were, and the shown storeys are unchanged
+- **WHEN** the user has moved the camera away from its URL pose, is not walking, and the shown model is rebuilt
+- **THEN** the camera position, target and projection are exactly as they were
+
+#### Scenario: Storeys carry over
+
+- **WHEN** only the ground storey is shown and the shown model is rebuilt
+- **THEN** only the ground storey is drawn and `?storeys=` is unchanged, as on a revision switch
+
+#### Scenario: Sidecars refresh
+
+- **WHEN** a rebuilt model's building or constraints JSON has changed
+- **THEN** labels, dimensions, constraint labels and the changes panel use the new JSON
 
 #### Scenario: No flicker
 
@@ -41,27 +51,7 @@ The viewer dev server SHALL notify open viewers when an IFC in the output direct
 #### Scenario: Walk mode ends
 
 - **WHEN** walk mode is active and the shown model is rebuilt
-- **THEN** walk mode ends and the rebuilt model is drawn
-
-#### Scenario: Rebuilt base in Diff mode
-
-- **WHEN** a revision is shown in Diff mode and its base model is rebuilt
-- **THEN** the diff and the removed elements' ghosts are redrawn from the new base
-
-#### Scenario: Another model rebuilt
-
-- **WHEN** an IFC that is not on screen is rebuilt
-- **THEN** the scene does not change
-
-#### Scenario: New revision appears
-
-- **WHEN** a build writes an IFC for a revision that did not exist when the viewer opened
-- **THEN** the revision picker lists it without a page navigation
-
-#### Scenario: Reload failure
-
-- **WHEN** the rebuilt IFC cannot be fetched or converted
-- **THEN** the error is reported in the status and the viewer keeps running, and the next successful rebuild shows a model
+- **THEN** walk mode ends, restoring the pre-walk view, and the rebuilt model is drawn
 
 ### Requirement: Revisions stay loaded
 
@@ -122,3 +112,60 @@ status line SHALL say that removed elements need the base built.
 
 - **WHEN** the base model's IFC is rebuilt after "Existing" was shown
 - **THEN** turning Diff mode on for a revision fetches the rebuilt base IFC, and the ghosts follow it
+
+### Requirement: Diff follows the view
+
+Diff colours, ghosts, the plan drawing and the panel's list SHALL follow storey visibility. Diff
+mode SHALL stay on when switching between revisions of the same model, and SHALL be inactive while
+"Existing" is shown, returning when a revision is chosen again. The comparison SHALL use the base
+model's current building JSON, so a rebuilt base changes the diff.
+
+#### Scenario: One storey shown
+
+- **WHEN** Diff mode is on and only the ground storey is shown
+- **THEN** only the ground storey's elements, ghosts and plan changes are drawn, and the list shows only ground-storey changes
+
+#### Scenario: Switching revision
+
+- **WHEN** Diff mode is on and the user switches to another revision
+- **THEN** that revision is drawn in Diff mode against the base, and the camera has not moved
+
+#### Scenario: Flicking to Existing
+
+- **WHEN** Diff mode is on and the user switches to "Existing" and back
+- **THEN** the base is drawn in normal colours, and the revision is drawn in Diff mode again
+
+#### Scenario: Rebuilt base after Diff was off
+
+- **WHEN** the base model is rebuilt while Diff is off and the user then turns Diff on
+- **THEN** the revision is diffed against the rebuilt base, and the ghosts follow its rebuilt IFC
+
+## ADDED Requirements
+
+### Requirement: Unshown rebuilds refresh the pickers
+
+The viewer SHALL leave the scene alone and refresh both pickers by re-reading `/models.json`, keeping the current selection, when a model is rebuilt that is neither on screen nor the base of a revision shown in Diff mode. A rebuilt base of a shown Diff revision SHALL instead redraw the diff and ghosts from the rebuilt IFC.
+
+#### Scenario: Another model rebuilt
+
+- **WHEN** an IFC that is neither on screen nor the shown revision's Diff base is rebuilt
+- **THEN** the scene does not change
+
+#### Scenario: New revision appears
+
+- **WHEN** a build writes an IFC for a revision that did not exist when the viewer opened
+- **THEN** the revision picker lists it without a page navigation, and the current selection stays
+
+#### Scenario: Rebuilt Diff base
+
+- **WHEN** the shown revision's base is rebuilt while Diff mode is on
+- **THEN** the diff and the removed elements' ghosts are redrawn from the new base
+
+### Requirement: Failed reload
+
+A reload that fails SHALL report the error in the status line, keep the viewer running and draw no model until a later load succeeds. It SHALL NOT navigate or move the camera.
+
+#### Scenario: Unreadable rebuilt IFC
+
+- **WHEN** the rebuilt IFC cannot be fetched or converted
+- **THEN** the error is reported in the status, no model is drawn, and a later successful rebuild shows a model

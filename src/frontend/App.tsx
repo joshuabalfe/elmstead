@@ -5,6 +5,7 @@ import { Hints } from "./components/Hints.js";
 import { MeasurementList } from "./components/MeasurementList.js";
 import { Toolbar } from "./components/Toolbar.js";
 import { useViewerShortcuts } from "./hooks/useViewerShortcuts.js";
+import { IFC_EVENT, type IfcEventPayload } from "./lib/ifc-event.js";
 import { createViewer, type ViewerApi } from "./scene/engine.js";
 import type { ViewerStore } from "./state/store.js";
 
@@ -21,11 +22,18 @@ export function App({ store }: AppProps) {
   useEffect(() => {
     if (!container.current) return;
     let cancelled = false;
+    let off: (() => void) | undefined;
     createViewer(container.current, store)
       .then(async (api) => {
         if (cancelled) return;
         setEngine(api);
         await api.start();
+        if (cancelled) return;
+        if (import.meta.hot) {
+          const onIfc = (payload: IfcEventPayload) => void api.reloadModel(payload.name);
+          import.meta.hot.on(IFC_EVENT, onIfc);
+          off = () => import.meta.hot?.off(IFC_EVENT, onIfc);
+        }
       })
       .catch((error: unknown) => {
         const message = String(error);
@@ -33,6 +41,7 @@ export function App({ store }: AppProps) {
       });
     return () => {
       cancelled = true;
+      off?.();
     };
   }, [store]);
 

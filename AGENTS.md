@@ -36,6 +36,7 @@ npm run build  models/<model>.ts   # model → JSON → IFC, with round-trip and
 npm run check  models/<model>.ts   # model checks only; writes nothing
 npm run render models/<model>.ts   # plan SVG/PNG and 3D PNGs
 npm run all    models/<model>.ts   # build, then render if the build passed
+npm run watch  models/<model>.ts   # rebuild on save, beside npm run view
 npm run view                       # local viewer
 npm run schema                     # regenerate schema/building.schema.json after a schema change
 ```

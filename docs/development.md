@@ -13,12 +13,29 @@ npm run viewer:build   # production viewer bundle in dist/
 npm run viewer:preview # serve the built viewer
 npm run check         # model checks only, writing nothing
 npm run all           # build, then render if the build succeeded
+npm run watch         # rebuild a model on save, beside npm run view
 npm run schema        # regenerate schema/building.schema.json from the zod schema
 ```
 
 The IFC tests call the real validator, so `uv` must be installed. The first run downloads
 IfcOpenShell into uv's cache. The 3D-versus-plan test runs the viewer in Chromium,
 which `npm install` downloads (see [Getting started](getting-started.md#prerequisites)).
+
+## Watching models
+
+Run `npm run view` and `npm run watch` in two terminals. With no path the watcher rebuilds any
+model or revision under `models/` whose TypeScript sources change; give paths to watch only those:
+
+```sh
+npm run watch models/elmstead
+npm run watch models/examples/example-cottage/revisions/rear-extension.ts
+```
+
+Each save runs `build` for its model, with the checks, JSON, IFC, round-trip and IfcOpenShell
+validation, debounced and one build at a time. It writes no plan or 3D snapshot. A model that fails
+to load or check writes nothing, so the previous outputs stay; a model that fails IFC verification
+leaves the files it wrote, and the watcher reports the failure and keeps running. The viewer reloads
+the rebuilt model in place. Stop the watcher with Ctrl-C.
 
 ## Model checks
 
@@ -56,6 +73,8 @@ tests table below).
 | `tests/roundtrip.test.ts`               | the volumes the round-trip check expects for every element                                                                                                                                                                                  |
 | `tests/load.test.ts`                    | loading a model file; schema errors attributed to element ids; JSON formatting                                                                                                                                                              |
 | `tests/paths.test.ts`                   | a model's entry point, output name and constraints file                                                                                                                                                                                     |
+| `tests/watch-targets.test.ts`           | the watcher's source-to-target mapping: model roots, revisions, constraints, single-file models and ignored paths                                                                                                                           |
+| `tests/watch-queue.test.ts`             | the watcher's debounce and single-build queue: bursts, saves during a build, failed builds and stop                                                                                                                                         |
 | `tests/render.test.ts`                  | plan determinism, SVG snapshot, wall splitting, door and window symbols, labels, PNG size, door geometry, drawing primitives and their SVG                                                                                                  |
 | `tests/door.test.ts`                    | door frames; doorways: no component/swing, plan gap without leaf/swing, opening-only IFC                                                                                                                                                    |
 | `tests/guid.test.ts`                    | UUIDv5 and IFC GUID compression against reference vectors; fixed GlobalIds for known ids                                                                                                                                                    |
@@ -73,6 +92,7 @@ tests table below).
 | `tests/cli-diff-snapshots.test.ts`      | a revision's Diff snapshots: drawn with a warning until the base is built, in full after (the slowest CLI tests: each render writes ten 3D pictures)                                                                                        |
 | `tests/viewer-diff-mode.test.ts`        | Diff mode in the viewer: the toggles, colours and outlines, the plan drawing and the changes panel                                                                                                                                          |
 | `tests/viewer-diff-ghosts.test.ts`      | Diff mode's removed elements (ghosts), Transparency and hover status                                                                                                                                                                        |
+| `tests/viewer-hot-reload.test.ts`       | a rebuilt IFC in place: camera, page, sidecar JSON, measurements, walk mode, pickers, Diff base and recovery                                                                                                                                |
 | `tests/ci-config.test.ts`               | the CI matrix's groups, its `rest` excludes and `test:fast`'s excludes name the same heavy files                                                                                                                                            |
 | `tests/validate.test.ts`                | validator bridge: non-JSON output, truncated JSON, wrong-shaped lines, summary defaults, crash status and exit 1 with findings (fake `uv`)                                                                                                  |
 | `tests/viewer.test.ts`                  | layer disposal keeping shared materials, path confinement, malformed encoding and `?view=` fallback; measurement maths, snap choice and click slop; element id/name labels; plan-overlay geometry (scale, run order, depth, text placement) |

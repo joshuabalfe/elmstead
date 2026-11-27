@@ -15,16 +15,17 @@ should be: save a model file, see the rebuilt IFC in the same view.
   time. A build that fails to load or check the model writes nothing and keeps the previous outputs;
   a build that fails IFC verification has already written its IFC, and the watcher reports the error
   and keeps watching. A failed build never stops the watcher. With no path it watches every model;
-  with paths it validates them and watches only those. Targets follow the model layout: a folder
-  model's files, a single-file model, or a revision under `revisions/`; a shared helper folder under
-  `revisions/` is left to its revisions. It writes no plans or 3D snapshots: that stays
-  `render`/`all`.
+  each path must resolve to a model or revision, or the command exits with the usage. Targets follow
+  the model layout: a folder model's files, a single-file model, or a revision under `revisions/`; a
+  shared helper folder under `revisions/` is left to its revisions. It writes no plans or 3D
+  snapshots: that stays `render`/`all`.
 - **Reload the rebuilt model in place.** Instead of `full-reload`, the viewer's dev plugin sends a
   custom HMR event naming the rebuilt IFC. When that model is on screen the viewer holds the old
-  picture, disposes and re-fetches just it, re-applies storeys, labels, constraints, diff and the
-  rest, then swaps it in, keeping the camera, projection and framing. The revision-switch path
-  already has this behaviour. A rebuilt model is released from the revision cache even when it is
-  not on screen, and a rebuilt base model's cached JSON is always dropped.
+  picture, re-reads its building and constraints JSON, re-fetches just it, re-applies storeys,
+  labels, constraints, diff and the rest, then swaps it in, keeping the camera, projection and
+  framing. The revision-switch path already has this behaviour. A rebuild counts as a model change,
+  so measurements are cleared and walk mode ends. A rebuilt model is released from the revision
+  cache even when it is not on screen, and a rebuilt base model's JSON is always dropped.
 - **Refresh what depends on the rebuilt file.** Rebuilding a base model drops its cached building
   JSON even with Diff off, so a later Diff is computed against the new base; when a revision is
   shown in Diff mode the ghost model is dropped and the diff is redrawn at once. An event for a
@@ -47,8 +48,9 @@ its files, so a verification-failed build still leaves its IFC in `out/` (report
 
 ### Modified Capabilities
 
-- `ifc-viewer`: a rebuilt IFC reloads only that model in place rather than reloading the page, and
-  the "revisions stay loaded" cache is invalidated for the rebuilt IFC.
+- `ifc-viewer`: a rebuilt IFC reloads only that model in place rather than reloading the page, its
+  JSON is re-read, the revision cache is invalidated for the rebuilt IFC, unshown rebuilds refresh
+  the pickers, and Diff compares against the rebuilt base.
 
 ## Impact
 
