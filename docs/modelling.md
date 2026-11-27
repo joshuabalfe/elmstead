@@ -88,6 +88,10 @@ After every change, run `npm run build` and `npm run render`, and look at the pl
   it out if north is straight up the plan. It doesn't change the model's coordinates. `render`
   turns each plan sheet by it, so true north points up the sheet as on a site location plan, and
   the viewer's Top view turns to match.
+- `site.frontAngle` (optional) is the angle of the front's outward direction, counter-clockwise
+  from plan +y. Leave it out if the front faces plan south. It doesn't change coordinates; the
+  viewer's Front/Back/Left/Right elevations align to it. Elmstead sets 90 because its front wall
+  is plan west.
 
 ## Ids
 
@@ -456,7 +460,7 @@ which one and why; that includes a new measurement that disagrees with a recorde
 constraint only for a measurement the user gives, and say where it came from in its `note`. Don't
 record positions traced from a drawing as constraints.
 
-The **Constraints** button (off by default) shows each constraint in red at the midpoint of its
+The **Show Constraints** switch (off by default) shows each constraint in red at the midpoint of its
 measured span, labelled with its id and required distance, with a thick red dotted line along the
 span. `build` resolves the points into `out/<name>.constraints.json` for the viewer; that file is
 generated, so don't edit it.

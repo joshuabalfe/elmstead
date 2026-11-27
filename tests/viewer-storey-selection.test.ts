@@ -46,6 +46,24 @@ describe("storey selection", () => {
     expect(Buffer.from(hidden.data).equals(Buffer.from(absent.data))).toBe(true);
   }, 120_000);
 
+  it("is a vertical slider with a notch per storey, highest at the top", async () => {
+    const m = await model("models/elmstead");
+    await publish("test-storey-slider", m);
+    await viewOf("test-storey-slider", "view=top&labels=0&style=plan");
+    const lowestFirst = [...m.storeys].sort((a, b) => a.elevation - b.elevation);
+    const notches = await page.evaluate(() =>
+      [...document.querySelectorAll("#bar .storey-option")].map((el) => ({
+        id: el.getAttribute("data-storey"),
+        top: el.getBoundingClientRect().top,
+      })),
+    );
+    expect(notches.map((notch) => notch.id)).toEqual(lowestFirst.map((storey) => storey.id));
+    expect(notches.every((notch, i) => i === 0 || notch.top < notches[i - 1]!.top)).toBe(true);
+    expect(await page.getAttribute("#storeys", "aria-orientation")).toBe("vertical");
+    expect(await page.getAttribute("#storeys", "aria-label")).toBe("Levels");
+    expect(await page.locator('#storeys svg[data-icon="eye-open"]').count()).toBe(1);
+  }, 120_000);
+
   it("shows the chosen floor and every storey below it, without moving the camera", async () => {
     const m = await model("models/elmstead");
     await publish("test-storey-selector", m);
@@ -71,11 +89,8 @@ describe("storey selection", () => {
 
     // A URL subset no single floor describes reads as custom rather than as some floor.
     await viewOf("test-storey-selector", `view=top&labels=0&style=plan&camera=${camera}&storeys=storey-first-floor`);
-    const picker = await page.evaluate(() => {
-      const s = document.getElementById("storeys") as HTMLSelectElement;
-      return { value: s.value, text: s.selectedOptions[0]?.textContent };
-    });
-    expect(picker).toEqual({ value: "", text: "Custom" });
+    expect(await page.getAttribute("#storeys", "data-storey")).toBe("");
+    expect(await page.textContent(".storey-custom")).toBe("Custom");
   }, 120_000);
 
   it("retargets when another floor is chosen before the change finishes", async () => {
@@ -87,7 +102,7 @@ describe("storey selection", () => {
     const before = await page.evaluate(() => window.__elmsteadStoreyChanges ?? 0);
     // No waiting between choices: each retargets the sweep already in flight.
     const targets = ["storey-ground", "storey-first-floor", "storey-street", "storey-basement"];
-    for (const id of targets) await page.selectOption("#storeys", id);
+    for (const id of targets) await page.click(`#bar .storey-option[data-storey="${id}"]`);
     await page.waitForFunction((n: number) => (window.__elmsteadStoreyChanges ?? 0) >= n, before + targets.length, {
       timeout: 60_000,
     });

@@ -19,7 +19,7 @@ describe("storey keyboard shortcut", () => {
   const open = (query = "") => viewOf("test-storey-keys", `view=top&labels=0&style=plan&camera=${camera}${query}`);
   const changes = () => page.evaluate(() => window.__elmsteadStoreyChanges ?? 0);
   const storeysParam = () => new URL(page.url()).searchParams.get("storeys");
-  const selected = () => page.inputValue("#storeys");
+  const selected = () => page.getAttribute("#storeys", "data-storey");
 
   beforeAll(async () => {
     await publish("test-storey-keys", structuredClone(await model("models/elmstead")));
@@ -91,12 +91,12 @@ describe("storey keyboard shortcut", () => {
   it("steps the selector exactly once while it has focus, and keeps stepping while held", async () => {
     await open();
     await page.focus("#storeys");
-    // Registered after the viewer's own handler, so it sees whether that handler took the key: a
-    // focused select would otherwise also move itself, and the opposite way round.
+    // Registered after the viewer's own capture handler, so it sees whether that handler took the
+    // key before stopping the event from reaching the slider.
     await page.evaluate(() => {
       const seen: boolean[] = [];
       (window as unknown as { __prevented: boolean[] }).__prevented = seen;
-      window.addEventListener("keydown", (e) => seen.push(e.defaultPrevented));
+      window.addEventListener("keydown", (e) => seen.push(e.defaultPrevented), true);
     });
     const before = await changes();
     await step("ArrowDown");
@@ -116,6 +116,12 @@ describe("storey keyboard shortcut", () => {
     await page.waitForFunction((n: number) => (window.__elmsteadStoreyChanges ?? 0) >= n, before + 4, {
       timeout: 60_000,
     });
+    expect(await selected()).toBe("storey-ground");
+    expect(await changes()).toBe(before + 4);
+
+    // A modifier is ignored with the slider focused too, rather than moving the slider itself.
+    await page.keyboard.press("Shift+ArrowDown");
+    await page.waitForTimeout(500);
     expect(await selected()).toBe("storey-ground");
     expect(await changes()).toBe(before + 4);
   }, 120_000);
@@ -142,7 +148,8 @@ describe("storey keyboard shortcut", () => {
   it("does nothing for a single-storey model, in snapshots and in walk mode", async () => {
     await publish("test-storey-keys-single", await model("models/examples/example-cottage"));
     await viewOf("test-storey-keys-single", "view=top&labels=0&style=plan");
-    expect(await page.isHidden("#storeys")).toBe(true);
+    expect(await page.isDisabled("#storeys")).toBe(true);
+    expect(await page.isVisible("#storeys")).toBe(true);
     await ignored("ArrowDown");
     await ignored("ArrowUp");
 

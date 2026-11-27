@@ -77,10 +77,10 @@ export async function viewOf(name: string, query: string): Promise<Raster> {
 export const samePixels = (a: Raster, b: Raster) =>
   a.width === b.width && a.height === b.height && Buffer.from(a.data).equals(Buffer.from(b.data));
 
-/** Choose a floor in the bar and wait until the viewer has applied and drawn it. */
+/** Choose a floor by its notch label and wait until the viewer has applied and drawn it. */
 export async function selectStorey(id: string) {
   const before = await page.evaluate(() => window.__elmsteadStoreyChanges ?? 0);
-  await page.selectOption("#storeys", id);
+  await page.click(`#bar .storey-option[data-storey="${id}"]`);
   await page.waitForFunction((n: number) => (window.__elmsteadStoreyChanges ?? 0) > n, before, { timeout: 60_000 });
 }
 
