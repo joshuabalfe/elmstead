@@ -22,6 +22,8 @@ describe("CLI Diff snapshots", () => {
     const alone = run(["render", rev], env);
     expect(alone.status, output(alone)).toBe(0);
     expect(output(alone)).toContain("Diff snapshots drawn without removed elements: no example-cottage.ifc yet");
+    expect(output(alone)).toContain("snap    example-cottage@rear-extension: 5 views, 1 page load");
+    expect(output(alone)).toContain("snap    example-cottage@rear-extension: 5 diff views, 1 page load");
   }, 600_000);
 
   it("snapshots a revision in Diff mode too, once its base is built", () => {
@@ -33,6 +35,8 @@ describe("CLI Diff snapshots", () => {
     const both = run(["render", rev], env);
     expect(both.status, output(both)).toBe(0);
     expect(output(both)).not.toContain("WARNING");
+    expect(output(both)).toContain("snap    example-cottage@rear-extension: 5 views, 1 page load");
+    expect(output(both)).toContain("snap    example-cottage@rear-extension: 5 diff views, 1 page load");
     const files = readdirSync(out);
     for (const view of ["sw", "se", "ne", "nw", "top"]) {
       expect(files).toContain(`example-cottage@rear-extension.3d-${view}.png`);

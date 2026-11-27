@@ -43,6 +43,12 @@ const contains = (poly: Pt[], p: Pt): boolean => {
 
 const wallTop = (s: Storey): number => s.elevation + Math.max(0, ...s.walls.map((w) => wallHeight(w)));
 
+describe("Elmstead's orientation", () => {
+  it("declares a plan-west front for the flat elevations", () => {
+    expect(elmstead.site.frontAngle).toBe(90);
+  });
+});
+
 describe("Elmstead's floor structure", () => {
   const storeys = [...elmstead.storeys].sort((a, b) => a.elevation - b.elevation);
 

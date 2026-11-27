@@ -110,26 +110,26 @@ afterAll(async () => {
 }, 60_000);
 
 describe("viewer hover identification", () => {
-  it("starts off, toggles with the Ids button and names the hovered element", async () => {
+  it("starts off, toggles with the Ids switch and names the hovered element", async () => {
     await open(page);
-    expect(await page.locator("#ids").getAttribute("aria-pressed")).toBe("false");
+    expect(await page.locator("#ids").isChecked()).toBe(false);
     await page.mouse.move(centre.x, centre.y);
     await page.waitForTimeout(400);
     expect(await hover(page)).toBeNull();
-    await page.click("#ids");
-    expect(await page.locator("#ids").getAttribute("aria-pressed")).toBe("true");
+    await page.click("label:has(#ids)");
+    expect(await page.locator("#ids").isChecked()).toBe(true);
     const h = await hoverAt(page, centre.x, centre.y);
     expect(h).toEqual({ id: "slab-ground", name: "Ground floor slab" });
     expect(await tipVisible(page)).toBe(true);
-    await page.click("#ids");
-    expect(await page.locator("#ids").getAttribute("aria-pressed")).toBe("false");
+    await page.click("label:has(#ids)");
+    expect(await page.locator("#ids").isChecked()).toBe(false);
     expect(await tipVisible(page)).toBe(false);
     expect(await hover(page)).toBeNull();
   }, 120_000);
 
   it("starts on with ?ids=1 and hides off the model", async () => {
     await open(page, MODEL_A, "&ids=1");
-    expect(await page.locator("#ids").getAttribute("aria-pressed")).toBe("true");
+    expect(await page.locator("#ids").isChecked()).toBe(true);
     expect(await hoverAt(page, centre.x, centre.y)).toEqual({ id: "slab-ground", name: "Ground floor slab" });
     await hoverOff(page);
     expect(await tipVisible(page)).toBe(false);
@@ -163,7 +163,7 @@ describe("viewer hover identification", () => {
   it("hides the label while the view changes and re-identifies once it settles", async () => {
     await open(page, MODEL_A, "&ids=1");
     await hoverAt(page, centre.x, centre.y);
-    await page.click('[data-view="ne"]');
+    await page.click('[data-view="n"]');
     await page.waitForFunction(() => window.__elmsteadHover === null, null, { timeout: 5000 });
     expect(await tipVisible(page)).toBe(false);
     await page.waitForFunction(() => window.__elmsteadHover !== null, null, { timeout: 10_000 });
@@ -185,7 +185,7 @@ describe("viewer hover identification", () => {
       ...upper.slabs.map((s) => s.id),
       ...upper.rooms.map((r) => r.id),
     ]);
-    await page.selectOption("#storeys", twoModel.storeys[0]!.id);
+    await page.click(`#bar .storey-option[data-storey="${twoModel.storeys[0]!.id}"]`);
     await page.waitForFunction(() => (window.__elmsteadStoreyChanges ?? 0) >= 1, null, { timeout: 10_000 });
     for (const fy of [0.4, 0.5, 0.6]) {
       for (const fx of [0.4, 0.5, 0.6]) {
@@ -216,16 +216,16 @@ describe("viewer hover identification", () => {
     await waitReady(page);
     expect(await hover(page)).toBeNull();
     expect(await tipVisible(page)).toBe(false);
-    expect(await page.locator("#ids").getAttribute("aria-pressed")).toBe("true");
+    expect(await page.locator("#ids").isChecked()).toBe(true);
     expect(await hoverAt(page, centre.x, centre.y)).toEqual({ id: "slab-ground", name: "Ground floor slab" });
   }, 120_000);
 
   it("does not re-apply ?ids=1 after a model change", async () => {
     await open(page, MODEL_A, "&ids=1");
-    await page.click("#ids");
+    await page.click("label:has(#ids)");
     await page.selectOption("#model", MODEL_B);
     await waitReady(page);
-    expect(await page.locator("#ids").getAttribute("aria-pressed")).toBe("false");
+    expect(await page.locator("#ids").isChecked()).toBe(false);
     await page.mouse.move(centre.x, centre.y);
     await page.waitForTimeout(400);
     expect(await hover(page)).toBeNull();

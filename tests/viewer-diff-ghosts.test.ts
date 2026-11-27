@@ -88,10 +88,10 @@ describe("Transparency", () => {
     for (const view of ["se", "top"]) {
       await open(`model=${COTTAGE}&view=${view}`);
       const plain = await pixels();
-      await viewChange(() => page.click("#xray"));
+      await viewChange(() => page.click("label:has(#xray)"));
       expect(xrayParam()).toBe("1");
       expect(same(await pixels(), plain), view).toBe(false);
-      await viewChange(() => page.click("#xray"));
+      await viewChange(() => page.click("label:has(#xray)"));
       expect(same(await pixels(), plain), view).toBe(true);
     }
   }, 180_000);
@@ -105,10 +105,10 @@ describe("Transparency", () => {
   it("keeps the changes solid with Diff on, and stays on across switches", async () => {
     await open(`${REV}&view=se&diff=1`);
     const solid = count(await pixels(), greenish).n;
-    await viewChange(() => page.click("#xray"));
+    await viewChange(() => page.click("label:has(#xray)"));
     expect(count(await pixels(), greenish).n).toBeGreaterThan(solid * 0.8);
     await chooseRevision("");
-    expect(await page.getAttribute("#xray", "aria-pressed")).toBe("true");
+    expect(await page.isChecked("#xray")).toBe(true);
     expect(xrayParam()).toBe("1");
   }, 180_000);
 });

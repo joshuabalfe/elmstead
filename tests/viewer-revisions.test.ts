@@ -204,7 +204,7 @@ describe("revision picker", () => {
     expect(await page.textContent("#status")).toContain(`${COTTAGE}@rear-extension.ifc`);
   }, 120_000);
 
-  it("is hidden for a model without revisions, and shown again for one with them", async () => {
+  it("is disabled for a model without revisions, and enabled again for one with them", async () => {
     await open(`model=${COTTAGE}&view=top&labels=0`);
     await page.selectOption("#model", PLAIN);
     await page.waitForFunction(
@@ -212,7 +212,8 @@ describe("revision picker", () => {
       PLAIN,
       { timeout: 60_000 },
     );
-    expect(await page.isHidden("#revision")).toBe(true);
+    expect(await page.isDisabled("#revision")).toBe(true);
+    expect(await page.isVisible("#revision")).toBe(true);
     expect(modelParam()).toBe(PLAIN);
     await ignored("ArrowRight");
     await page.selectOption("#model", COTTAGE);
@@ -221,7 +222,7 @@ describe("revision picker", () => {
       COTTAGE,
       { timeout: 60_000 },
     );
-    expect(await page.isHidden("#revision")).toBe(false);
+    expect(await page.isDisabled("#revision")).toBe(false);
     expect(await page.inputValue("#revision")).toBe("");
   }, 120_000);
 
@@ -289,7 +290,7 @@ describe("switching revisions keeps the view", () => {
   it("does not re-apply ?camera= after the camera has moved", async () => {
     await open(`model=${COTTAGE}&view=top&labels=0&camera=16,11,6,5.2,1.5,-4.2`);
     const fromUrl = await canvasPixels();
-    await view("nw");
+    await view("w");
     const moved = await canvasPixels();
     expect(samePixels(moved, fromUrl)).toBe(false);
     await choose("rear-extension");
@@ -308,11 +309,11 @@ describe("switching revisions keeps the view", () => {
 
   it("carries the shown storeys and the Ids toggle over", async () => {
     await open(`model=${TWO}&view=top&labels=0&storeys=storey-ground`);
-    await page.click("#ids");
+    await page.click("label:has(#ids)");
     await choose("moved");
     expect(new URL(page.url()).searchParams.get("storeys")).toBe("storey-ground");
-    expect(await page.inputValue("#storeys")).toBe("storey-ground");
-    expect(await page.getAttribute("#ids", "aria-pressed")).toBe("true");
+    expect(await page.getAttribute("#storeys", "data-storey")).toBe("storey-ground");
+    expect(await page.isChecked("#ids")).toBe(true);
   }, 120_000);
 
   it("clears measurements, which belong to the old geometry", async () => {
@@ -418,7 +419,7 @@ describe("revision keyboard shortcut", () => {
     await page.focus("#storeys");
     await step("ArrowRight");
     expect(modelParam()).toBe(`${TWO}@moved`);
-    expect(await page.inputValue("#storeys")).toBe("storey-ground");
+    expect(await page.getAttribute("#storeys", "data-storey")).toBe("storey-ground");
     expect(new URL(page.url()).searchParams.get("storeys")).toBe("storey-ground");
   }, 120_000);
 

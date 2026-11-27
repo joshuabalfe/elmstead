@@ -65,7 +65,7 @@ models/              building models (the only files you normally edit)
 schema/              generated JSON Schema (committed; a test fails if it is stale)
 src/
   shared/            browser-safe code, imported by the pipeline and the viewer
-    schema/          units (Mm, mm(), m(), deg()), the zod schema, and the id walk (ids.ts)
+    schema/          units (Mm, mm(), m(), deg()), the zod schema, the element-kind table (kinds.ts), and the id walk (ids.ts)
     geometry/        2D vector, wall, opening and polygon maths
     render/          plan drawing primitives and SVG, style, and view names
     diff/            model diff computation
@@ -139,7 +139,7 @@ touches the filesystem layout of `out/`.
 | IFC validation | IfcOpenShell via `uv run`                                          | the reference open-source validator, including EXPRESS rules; uv keeps it to one locked script with no manual Python setup |
 | Plan rendering | hand-written SVG + resvg                                           | deterministic, no browser needed, and the SVG can be read and snapshot-tested                                              |
 | 3D viewing     | @thatopen/components + three.js, Playwright for headless snapshots | renders the real IFC; the same page works interactively and headless                                                       |
-| Viewer UI      | React 19 + Vite                                                    | component state for the controls; the scene stays imperative on ThatOpen                                                   |
+| Viewer UI      | React 19 + Vite + Blueprint                                        | component state for the controls; the scene stays imperative on ThatOpen                                                   |
 | Running TS     | tsx, with `tsc` used only for type-checking                        | no build step; models are imported directly                                                                                |
 
 All dependency versions are pinned exactly in `package.json` and `validator/validate.py`.

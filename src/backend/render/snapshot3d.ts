@@ -1,6 +1,7 @@
 /**
- * 3D snapshots of the IFC itself (not the model): starts the viewer (viewer/) with Vite, opens it in
- * headless Chromium via Playwright and saves one PNG per view. Software WebGL, so no GPU needed.
+ * 3D snapshots of the IFC itself (not the model): starts the viewer with Vite, opens it in
+ * headless Chromium via Playwright once per variant, and switches views in the same page for the
+ * later cameras, saving one PNG per view. Software WebGL, so no GPU needed.
  */
 import { join } from "node:path";
 import { chromium, type Browser } from "playwright";
@@ -9,11 +10,13 @@ import { writeFileAtomic } from "../io.js";
 import { PROJECT_ROOT } from "../root.js";
 import { VIEWS, type View } from "../../shared/render/views.js";
 
-// Set by viewer/main.ts.
+// Set by the viewer (src/frontend/scene/engine.ts).
 declare global {
   interface Window {
     __elmsteadReady?: boolean;
     __elmsteadError?: string;
+    __elmsteadViews?: number;
+    __elmsteadChooseView?: (view: string) => Promise<void>;
   }
 }
 
@@ -48,16 +51,46 @@ export async function snapshot3d(
     const page = await browser.newPage({ viewport: { width: 1200, height: 900 }, deviceScaleFactor: 1 });
     const errors: string[] = [];
     page.on("pageerror", (e) => errors.push(e.message));
-    for (const variant of variants)
-      for (const view of views) {
-        await page.goto(`${url}?model=${encodeURIComponent(name)}&view=${view}&snapshot=1${variant.query}`);
-        await page.waitForFunction(() => window.__elmsteadReady || window.__elmsteadError, null, { timeout: 60_000 });
+    // A page load fetches the model's IFC once, so counting those requests measures real reloads.
+    let ifcLoads = 0;
+    page.on("request", (request) => {
+      if (new URL(request.url()).pathname === `/out/${name}.ifc`) ifcLoads++;
+    });
+    for (const variant of variants) {
+      const [first, ...rest] = views;
+      if (!first) continue;
+      const where = (view: View) => `${name} ${variant.suffix}${view}`;
+      const loadsBefore = ifcLoads;
+      const capture = async (view: View) => {
         const failed = await page.evaluate(() => window.__elmsteadError);
-        if (failed || errors.length) throw new Error(`viewer failed: ${failed ?? errors.join("; ")}`);
+        if (failed || errors.length) throw new Error(`viewer failed on ${where(view)}: ${failed ?? errors.join("; ")}`);
         const path = join(outDir, `${name}.3d-${variant.suffix}${view}.png`);
         writeFileAtomic(path, await page.screenshot());
         written.push(path);
+      };
+      // One page load per variant: the first camera rides the URL, the rest switch in place.
+      await page.goto(`${url}?model=${encodeURIComponent(name)}&view=${first}&snapshot=1${variant.query}`);
+      await page.waitForFunction(() => window.__elmsteadReady || window.__elmsteadError, null, { timeout: 60_000 });
+      await capture(first);
+      let settled = await page.evaluate(() => window.__elmsteadViews ?? 0);
+      for (const view of rest) {
+        // Not awaited: a wedged setView must not hang the driver; the bounded wait below surfaces it.
+        await page.evaluate((v) => void window.__elmsteadChooseView!(v), view);
+        try {
+          await page.waitForFunction((n) => (window.__elmsteadViews ?? 0) > n, settled, { timeout: 60_000 });
+        } catch {
+          throw new Error(
+            `viewer failed switching ${where(view)}: ${errors.join("; ") || "the view did not settle in time"}`,
+          );
+        }
+        settled = await page.evaluate(() => window.__elmsteadViews ?? 0);
+        await capture(view);
       }
+      const loads = ifcLoads - loadsBefore;
+      console.log(
+        `snap    ${name}: ${views.length} ${variant.suffix ? "diff views" : "views"}, ${loads} page load${loads === 1 ? "" : "s"}`,
+      );
+    }
   } finally {
     await browser?.close();
     await server.close();

@@ -1,5 +1,5 @@
 import type { DiffStatus } from "../../shared/diff/index.js";
-import type { View } from "../../shared/render/views.js";
+import type { CameraView } from "../../shared/render/views.js";
 
 export interface ModelOption {
   value: string;
@@ -18,7 +18,7 @@ export interface MeasurementRow {
 }
 
 export interface ViewLabel {
-  view: View;
+  view: CameraView;
   label: string;
   title: string;
 }
@@ -60,17 +60,17 @@ export interface ViewerState {
   revisions: ModelOption[];
   /** The shown revision, or null for Existing. */
   revision: string | null;
-  /** True when the model has no revisions, so the revision picker is hidden. */
-  revisionHidden: boolean;
+  /** True when the model has no revisions, so the revision picker is disabled. */
+  revisionDisabled: boolean;
   /** The model's storeys, lowest first. */
   storeys: StoreyOption[];
-  /** True for a single-storey model, where the storey selector is hidden. */
-  storeyLabelHidden: boolean;
-  /** The floor the cumulative storey selection reaches, or "" for a custom selection. */
-  storeyValue: string;
+  /** True for a single-storey model, where the storey selector is disabled. */
+  storeyDisabled: boolean;
+  /** The highest storey shown, as an index into `storeys` (lowest first). */
+  storeyIndex: number;
   /** True when `?storeys=` names a set no single floor describes. */
   storeyCustom: boolean;
-  /** The corner buttons' labels and tooltips, with Top. */
+  /** The camera snaps' labels and tooltips, with Top. */
   viewLabels: ViewLabel[];
   labels: boolean;
   constraints: boolean;
@@ -100,10 +100,10 @@ export const initialState: ViewerState = {
   model: "",
   revisions: [],
   revision: null,
-  revisionHidden: true,
+  revisionDisabled: true,
   storeys: [],
-  storeyLabelHidden: true,
-  storeyValue: "",
+  storeyDisabled: true,
+  storeyIndex: 0,
   storeyCustom: false,
   viewLabels: [],
   labels: true,

@@ -478,7 +478,7 @@ describe("IfcOpenShell validator", () => {
   it("passes the cottage with no errors or warnings", async () => {
     const path = join(dir, "ok.ifc");
     writeFileSync(path, await writeIfc(model, { fileName: "ok.ifc" }));
-    const v = validateIfc(path);
+    const v = await validateIfc(path);
     expect(v.issues).toEqual([]);
     expect([v.errors, v.warnings]).toEqual([0, 0]);
   }, 60_000);
@@ -486,7 +486,7 @@ describe("IfcOpenShell validator", () => {
   it("passes a splayed reveal with no errors or warnings", async () => {
     const path = join(dir, "splayed.ifc");
     writeFileSync(path, await writeIfc(splayedCottage(), { fileName: "splayed.ifc" }));
-    const v = validateIfc(path);
+    const v = await validateIfc(path);
     expect(v.issues).toEqual([]);
     expect([v.errors, v.warnings]).toEqual([0, 0]);
   }, 60_000);
@@ -495,7 +495,7 @@ describe("IfcOpenShell validator", () => {
     const withRailings = structuredClone(elmstead);
     const path = join(dir, "railings.ifc");
     writeFileSync(path, await writeIfc(withRailings, { fileName: "railings.ifc" }));
-    const v = validateIfc(path);
+    const v = await validateIfc(path);
     expect(v.issues).toEqual([]);
     expect([v.errors, v.warnings]).toEqual([0, 0]);
   }, 60_000);
@@ -506,7 +506,7 @@ describe("IfcOpenShell validator", () => {
       path,
       await writeIfc(BuildingModelSchema.parse(JSON.parse(JSON.stringify(twoStorey))), { fileName: "stair.ifc" }),
     );
-    const v = validateIfc(path);
+    const v = await validateIfc(path);
     expect(v.issues).toEqual([]);
     expect([v.errors, v.warnings]).toEqual([0, 0]);
   }, 60_000);
@@ -518,7 +518,7 @@ describe("IfcOpenShell validator", () => {
       .replace(/(IFCEXTRUDEDAREASOLID\(#\d+,\$,#\d+,)2400\./, "$1-2400.");
     const path = join(dir, "bad.ifc");
     writeFileSync(path, bad);
-    const v = validateIfc(path);
+    const v = await validateIfc(path);
     expect(v.errors).toBe(2);
     expect(v.issues.map((i) => i.id).sort()).toEqual(["door-front", "wall-south"]);
     expect(v.issues.find((i) => i.id === "wall-south")!.message).toMatch(/WR1/);

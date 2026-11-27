@@ -12,6 +12,7 @@
 import {
   centredOn,
   defineBuilding,
+  deg,
   door,
   doorComponent,
   face,
@@ -150,7 +151,7 @@ const openings: Opening[] = [
 
 export default defineBuilding({
   project: { id: "project-elmstead", name: "Elmstead" },
-  site: { id: "site-default", name: "Default site" },
+  site: { id: "site-default", name: "Default site", frontAngle: deg(180) },
   building: { id: "building-cottage", name: "Example cottage" },
   components: { doors: [externalDoor, internalDoor], windows: [sash] },
   storeys: [
