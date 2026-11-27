@@ -221,48 +221,44 @@ and every file that mentions `railing`) is the most recent example.
 1. **Schema:** add a strict zod object with `.meta({ id })` in `src/shared/schema/schema.ts`, put it on
    the storey (or wherever it belongs), and export its inferred type. Use `Mm` for every length
    and give it an `id`.
-2. **Ids:** add its collection to `STOREY_COLLECTIONS` and its kind to the `IdNode` union and
-   `idNodes` in `src/shared/schema/ids.ts`. Id uniqueness, GlobalIds, constraints and the diff all find
-   elements through it.
+2. **Element-kind table:** add its collection and schema to `STOREY_KINDS` (or `COMPONENT_KINDS`) in
+   `src/shared/schema/kinds.ts`, give it a `kind` (and `children`, for nested elements such as a
+   stair's segments), and add its kind to the `IdNode` union in `src/shared/schema/ids.ts`. The table
+   drives the id walk, revisions, the diff and the viewer's storey ownership; a storey array without
+   an entry fails typecheck.
 3. **JSON Schema:** run `npm run schema` and commit `schema/building.schema.json`.
-4. **Revisions:** add its schema to `SCHEMAS` in `src/backend/model/revise.ts`, so a revision can add,
-   replace and remove it.
-5. **Diff:** add its kind to `COMPARED` in `src/shared/diff/index.ts`, and its collection to the ones
-   `signature` leaves out of a storey. A kind missing here never shows up in a revision's diff.
-6. **Helpers** (optional): add authoring helpers to `src/backend/model/helpers.ts`.
-7. **Checks:** add model-level rules for it to `src/backend/checks/`. Constraints can point at a kind
+4. **Helpers** (optional): add authoring helpers to `src/backend/model/helpers.ts`.
+5. **Checks:** add model-level rules for it to `src/backend/checks/`. Constraints can point at a kind
    only if `src/backend/constraints/` looks it up; add it there only when a measurement needs it.
-8. **Geometry** (when the IFC, the round-trip and the plan share it): put it in
+6. **Geometry** (when the IFC, the round-trip and the plan share it): put it in
    `src/shared/geometry/<kind>.ts`, as the railing and stair do, so the three cannot disagree.
 
 **The IFC**
 
-9. **Writer:** map it to an IFC4 entity in `src/backend/ifc/writer.ts`:
+7. **Writer:** map it to an IFC4 entity in `src/backend/ifc/writer.ts`:
    - GlobalId from `ifcGuid(id)`, and `Tag` set to the id (the viewer finds elements by `Tag`)
    - spatial containment
    - geometry and a style
-10. **IFC colour:** add its entry to `STYLES` in `src/shared/ifc/styles.ts`. It must be far from every
-    other entry (see [IFC output](ifc.md#colours)).
-11. **Round-trip:** add a volume (or other geometric) check to `src/backend/ifc/roundtrip.ts`.
+8. **IFC colour:** add its entry to `STYLES` in `src/shared/ifc/styles.ts`. It must be far from every
+   other entry (see [IFC output](ifc.md#colours)).
+9. **Round-trip:** add a volume (or other geometric) check to `src/backend/ifc/roundtrip.ts`.
 
 **The plan**
 
-12. **Draw it** in `src/shared/render/plan.ts` with `class` and `data-id` attributes. Say whether it
+10. **Draw it** in `src/shared/render/plan.ts` with `class` and `data-id` attributes. Say whether it
     widens the drawing's extent (`makeView`) and where it falls in the draw order.
-13. **Plan colour:** add it to `C` in `src/shared/render/style.ts`. It must stay clear of wall, room and
+11. **Plan colour:** add it to `C` in `src/shared/render/style.ts`. It must stay clear of wall, room and
     paper unless the element should take part in the plan-versus-3D comparison (see
     [Rendering](rendering.md#colours)).
 
 **The viewer**
 
-14. **Storey ownership:** add it to the owner map in `applyStoreyVisibility` in `src/frontend/scene/engine.ts`,
-    so the storey picker hides it with its storey.
-15. **Bounds:** add its points to `shownBox`, and its height to `setView`'s vertical extent, if
+12. **Bounds:** add its points to `shownBox`, and its height to `setView`'s vertical extent, if
     either can reach beyond the walls, slabs and rooms.
-16. **Presentation:** if it needs a recolour in plan style or a shader patch, add it to
-    `patchMaterial`. The viewer recognises it by its IFC colour (`src/frontend/scene/style-of.ts`), so step 10
+13. **Presentation:** if it needs a recolour in plan style or a shader patch, add it to
+    `patchMaterial`. The viewer recognises it by its IFC colour (`src/frontend/scene/style-of.ts`), so step 8
     decides whether this is possible.
-17. **Plan-versus-3D:** the comparison either compares the element or ignores it. A plan colour
+14. **Plan-versus-3D:** the comparison either compares the element or ignores it. A plan colour
     that matches none of wall, room or paper is ignored (`isIgnoredColour` in
     `tests/support/plan-vs-3d.ts`); a storey with pitched walls or walls under 2 m across is
     skipped (`comparable` in `tests/support/plan-compare.ts`). Make that a decision, and write
@@ -270,12 +266,12 @@ and every file that mentions `railing`) is the most recent example.
 
 **Tests, example and docs**
 
-18. **Tests:** cover the schema, the ids (`tests/ids.test.ts`), the revision and the diff
+15. **Tests:** cover the schema, the ids (`tests/ids.test.ts`), the revision and the diff
     (`tests/revise.test.ts`, `tests/diff.test.ts`), the checks, the writer (GlobalIds and
     validation), the round-trip, the renderer with its SVG snapshot, and the viewer's
     presentation (`tests/viewer-presentation.test.ts`). `tests/railing.test.ts` is a model for a
     geometry module's own test.
-19. **Example:** use it in a model, then run the pipeline and look at the plan PNG, the 3D PNGs
+16. **Example:** use it in a model, then run the pipeline and look at the plan PNG, the 3D PNGs
     and the viewer, with the element's storey shown alone and in a Diff view of a revision that
     adds it.
-20. **Docs:** update [modelling.md](modelling.md), [ifc.md](ifc.md) and [rendering.md](rendering.md).
+17. **Docs:** update [modelling.md](modelling.md), [ifc.md](ifc.md) and [rendering.md](rendering.md).

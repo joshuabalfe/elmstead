@@ -3,27 +3,16 @@
  * changes `base`. Every edit names ids, so a revision fails loudly when its base changes under it.
  */
 import type { z } from "zod";
+import { idNodes, RevisionError, type IdNode, type IdPlace } from "../../shared/schema/ids.js";
 import {
-  idNodes,
-  RevisionError,
+  COMPONENT_COLLECTIONS,
+  COMPONENT_KINDS,
+  STOREY_COLLECTIONS,
+  STOREY_KINDS,
   type ComponentCollection,
-  type IdNode,
-  type IdPlace,
   type StoreyCollection,
-} from "../../shared/schema/ids.js";
-import {
-  DoorComponentSchema,
-  OpeningSchema,
-  RailingSchema,
-  RoomSchema,
-  SlabSchema,
-  StairSchema,
-  WallSchema,
-  WindowComponentSchema,
-  type BuildingModel,
-  type Components,
-  type Storey,
-} from "../../shared/schema/schema.js";
+} from "../../shared/schema/kinds.js";
+import type { BuildingModel, Components, Storey } from "../../shared/schema/schema.js";
 
 /** What `addTo` puts on a storey, by collection. */
 export type StoreyAdditions = { [K in StoreyCollection]?: NonNullable<Storey[K]> };
@@ -52,16 +41,10 @@ export const addTo = (storey: Ref, elements: StoreyAdditions): Edit => ({
 /** Add door and window components. */
 export const addComponents = (components: Partial<Components>): Edit => ({ op: "addComponents", components });
 
-const SCHEMAS: Record<StoreyCollection | ComponentCollection, z.ZodType> = {
-  walls: WallSchema,
-  openings: OpeningSchema,
-  slabs: SlabSchema,
-  rooms: RoomSchema,
-  stairs: StairSchema,
-  railings: RailingSchema,
-  doors: DoorComponentSchema,
-  windows: WindowComponentSchema,
-};
+const SCHEMAS: Record<StoreyCollection | ComponentCollection, z.ZodType> = Object.fromEntries([
+  ...STOREY_COLLECTIONS.map((collection) => [collection, STOREY_KINDS[collection].schema] as const),
+  ...COMPONENT_COLLECTIONS.map((collection) => [collection, COMPONENT_KINDS[collection].schema] as const),
+]);
 
 /** The value, checked against what its collection holds; `verb` says what was being done with it. */
 function accepted(
