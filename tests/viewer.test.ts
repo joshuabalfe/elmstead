@@ -23,14 +23,7 @@ import {
 } from "../src/frontend/lib/measure.js";
 import { M_PER_PX, dashOf, overlayGroup, placeText, toRuns, toScene } from "../src/frontend/scene/overlay.js";
 import { confinedPath } from "../src/frontend/vite/serve.js";
-import {
-  cameraForView,
-  cornerLabel,
-  labelHeading,
-  parseOrient,
-  parseView,
-  turnedTopFit,
-} from "../src/frontend/lib/view.js";
+import { cameraForView, labelHeading, parseOrient, parseView, turnedTopFit } from "../src/frontend/lib/view.js";
 
 const dir = "/tmp/elmstead-out";
 
@@ -52,8 +45,9 @@ describe("confinedPath", () => {
 });
 
 describe("parseView", () => {
-  it("accepts the five camera views and falls back to top", () => {
-    for (const view of ["sw", "se", "ne", "nw", "top"] as const) expect(parseView(view)).toBe(view);
+  it("accepts the corner, cardinal and elevation camera views and falls back to top", () => {
+    for (const view of ["sw", "se", "ne", "nw", "n", "e", "s", "w", "front", "back", "left", "right", "top"] as const)
+      expect(parseView(view)).toBe(view);
     expect(parseView("sideways")).toBe("top");
     expect(parseView(null)).toBe("top");
   });
@@ -71,8 +65,43 @@ describe("cameraForView", () => {
     expect(cameraForView("ne", false).direction).toEqual([1, 1, -1]);
   });
 
+  it("stands the cardinal snaps on the plan axes at the same isometric elevation", () => {
+    const axes = [
+      ["n", 0, -Math.SQRT2],
+      ["e", Math.SQRT2, 0],
+      ["s", 0, Math.SQRT2],
+      ["w", -Math.SQRT2, 0],
+    ] as const;
+    for (const [view, x, z] of axes) {
+      const { direction, projection } = cameraForView(view, false);
+      expect(projection).toBe("Orthographic");
+      expect(direction[1]).toBe(1);
+      expect(direction[0]).toBeCloseTo(x);
+      expect(direction[2]).toBeCloseTo(z);
+    }
+  });
+
+  it("looks level from the model's front for the flat elevations", () => {
+    expect(cameraForView("front", false)).toEqual({ direction: [0, 0, 1], projection: "Orthographic" });
+    expect(cameraForView("back", false)).toEqual({ direction: [0, 0, -1], projection: "Orthographic" });
+    expect(cameraForView("left", false)).toEqual({ direction: [-1, 0, 0], projection: "Orthographic" });
+    expect(cameraForView("right", false)).toEqual({ direction: [1, 0, 0], projection: "Orthographic" });
+
+    // Elmstead's front wall is plan west: Front looks from plan west, Left from plan north.
+    const elmstead = { front: [-1, 0, 0], back: [1, 0, 0], left: [0, 0, -1], right: [0, 0, 1] } as const;
+    for (const view of ["front", "back", "left", "right"] as const)
+      expect(cameraForView(view, false, 0, 90)).toEqual({
+        direction: elmstead[view],
+        projection: "Orthographic",
+      });
+
+    // A flat elevation stays level in snapshots and does not turn with true north.
+    expect(cameraForView("front", true, 153)).toEqual(cameraForView("front", false));
+  });
+
   it("keeps the snapshot corner cameras perspective and the top view orthographic", () => {
     expect(cameraForView("sw", true)).toEqual({ direction: [-1, 0.7, 1], projection: "Perspective" });
+    expect(cameraForView("n", true)).toEqual({ direction: [0, 0.7, -Math.SQRT2], projection: "Perspective" });
     expect(cameraForView("top", true)).toEqual({ direction: [0, 1, 0.0001], projection: "Orthographic" });
     expect(cameraForView("top", false)).toEqual({ direction: [0, 1, 0.0001], projection: "Orthographic" });
   });
@@ -95,17 +124,18 @@ describe("true north views", () => {
     expect(cameraForView("top", false, 0)).toEqual(cameraForView("top", false));
   });
 
-  it("labels each corner with the true direction it looks from", () => {
-    const labels = (angle?: number) => (["sw", "se", "ne", "nw"] as const).map((v) => cornerLabel(v, angle));
-    expect(labels()).toEqual(["SW", "SE", "NE", "NW"]);
-    expect(labels(153)).toEqual(["N", "W", "S", "E"]); // elmstead: plan SW stands at true 018°
-    expect(labels(135)).toEqual(["N", "W", "S", "E"]);
-    expect(labels(90)).toEqual(["NW", "SW", "SE", "NE"]); // true north is plan −x
-  });
-
-  it("breaks a tie between compass points clockwise", () => {
-    // At 22.5° plan SW stands at 247.5°, halfway between SW and W.
-    expect(cornerLabel("sw", 22.5)).toBe("W");
+  it("turns the cardinal snaps with true north", () => {
+    const a = (153 * Math.PI) / 180;
+    const close = (view: "n" | "e" | "s" | "w", planX: number, planY: number) => {
+      const [x, y, z] = cameraForView(view, false, 153).direction;
+      expect(y).toBe(1);
+      expect(x).toBeCloseTo(Math.SQRT2 * planX);
+      expect(z).toBeCloseTo(-Math.SQRT2 * planY);
+    };
+    close("n", -Math.sin(a), Math.cos(a));
+    close("e", Math.cos(a), Math.sin(a));
+    close("s", Math.sin(a), -Math.cos(a));
+    close("w", -Math.cos(a), -Math.sin(a));
   });
 
   it("widens the Top view's framing to fit the turned plan box", () => {

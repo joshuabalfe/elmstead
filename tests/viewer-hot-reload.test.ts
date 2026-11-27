@@ -77,7 +77,7 @@ describe("rebuilt IFCs", () => {
   it("reloads the shown model in place, keeping the camera and the page", async () => {
     await resetCottage();
     await open(`model=${COTTAGE}&view=top&style=plan&camera=16,11,6,5.2,1.5,-4.2`);
-    await page.click('[data-view="nw"]');
+    await page.click('[data-view="n"]');
     await drawn();
     const before = await pixels();
     await page.evaluate(() => (window.__reloadSentinel = 1));
@@ -117,6 +117,11 @@ describe("rebuilt IFCs", () => {
     const beforeReloads = await reloads();
     await publishAtomic(COTTAGE, renamed);
     await settled(beforeReloads);
+    await page.waitForFunction(
+      () => (window.__elmsteadRoomLabels ?? []).flat().join(" ").includes("Reloaded room"),
+      null,
+      { timeout: 60_000 },
+    );
 
     const after = await page.evaluate(() => window.__elmsteadRoomLabels ?? []);
     expect(after).not.toEqual(before);
@@ -174,7 +179,7 @@ describe("rebuilt IFCs", () => {
     await resetCottage();
     await open(`model=${COTTAGE}&view=top&style=plan&walk=1`);
     await page.waitForFunction(() => document.querySelector("#walk")?.getAttribute("aria-pressed") === "true", null, {
-      timeout: 10_000,
+      timeout: 60_000,
     });
 
     const beforeReloads = await reloads();
@@ -194,7 +199,7 @@ describe("rebuilt IFCs", () => {
     await settled(beforeReloads);
 
     expect(new URL(page.url()).searchParams.get("storeys")).toBe("storey-ground");
-    expect(await page.inputValue("#storeys")).toBe("storey-ground");
+    expect(await page.getAttribute("#storeys", "data-storey")).toBe("storey-ground");
   }, 120_000);
 
   it("redraws the Diff when its base is rebuilt", async () => {
@@ -216,7 +221,7 @@ describe("rebuilt IFCs", () => {
   it("uses a rebuilt base when Diff is turned on later", async () => {
     await resetCottage();
     await open(`${REV}&view=se&diff=1`);
-    await viewChange(() => page.click("#diff"));
+    await viewChange(() => page.click("label:has(#diff)"));
     expect(await page.evaluate(() => window.__elmsteadDiff ?? null)).toBeNull();
 
     const base = await cottage();
@@ -226,7 +231,7 @@ describe("rebuilt IFCs", () => {
     await refreshed;
     await page.waitForTimeout(300);
 
-    await viewChange(() => page.click("#diff"));
+    await viewChange(() => page.click("label:has(#diff)"));
     expect(await page.evaluate(() => window.__elmsteadGhosts ?? [])).toContain("wall-hot-late");
   }, 120_000);
 

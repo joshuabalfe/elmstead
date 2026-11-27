@@ -3,7 +3,7 @@
  * browser and shows it, with each storey's room names, areas and dimensions lying at its ceiling,
  * the model's constraints as red labels and dotted spans, a distance measurement tool, and a
  * compass pointing to true north (all from out/<model>.building.json and
- * out/<model>.constraints.json). A storey selector in the bar shows every storey up to the chosen
+ * out/<model>.constraints.json). A storey slider in the bar shows every storey up to the chosen
  * floor, and `?storeys=` shows an exact subset. A revision picker beside the model picker switches
  * between a model and its revisions (`?model=<model>@<revision>`) without moving the camera. Every view uses the plan's colours, with the plan's
  * walls, doors and windows laid on the wall tops, so the Top view reads like the plan. Query params:
@@ -35,7 +35,7 @@ import {
   type Overlay,
 } from "../../shared/render/plan.js";
 import { C, PX_PER_MM, ROOM_LABEL } from "../../shared/render/style.js";
-import type { View } from "../../shared/render/views.js";
+import { CARDINAL_NAMES, ELEVATION_NAMES, type CameraView } from "../../shared/render/views.js";
 import { idNodes } from "../../shared/schema/ids.js";
 import type { BuildingModel, Storey } from "../../shared/schema/schema.js";
 import type { ResolvedConstraint } from "../../shared/constraints/types.js";
@@ -78,7 +78,7 @@ import {
   stepRevision as nextRevision,
   type ModelGroup,
 } from "../lib/revisions.js";
-import { cameraForView, cornerLabel, labelHeading, parseOrient, parseView, turnedTopFit } from "../lib/view.js";
+import { cameraForView, labelHeading, parseOrient, parseView, turnedTopFit } from "../lib/view.js";
 import { WALK_AXES, entryPosition, headingBasis, movementOffset, walkRequested, walkStep } from "../lib/walk.js";
 import type { ChangeCategory, ChangeGroup, ViewerStore } from "../state/store.js";
 declare global {
@@ -121,7 +121,7 @@ export interface ViewerApi {
   applyStoreyChoice(topId: string): Promise<void>;
   stepStorey(direction: 1 | -1): Promise<void>;
   stepRevision(direction: 1 | -1): Promise<void>;
-  chooseView(view: View): Promise<void>;
+  chooseView(view: CameraView): Promise<void>;
   setLabels(on: boolean): void;
   toggleLabels(): void;
   setConstraints(on: boolean): void;
@@ -288,6 +288,8 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
 
   /** True north, degrees counter-clockwise from plan +y (site.northAngle); null when there is no model JSON. */
   let northAngle: number | null = null;
+  /** The front's outward direction, degrees counter-clockwise from plan +y; plan south by default. */
+  let frontAngle = 180;
   /** The lowest storey's elevation in scene metres, from the model JSON; null when there is none. */
   let lowestElevation: number | null = null;
   /** The model JSON beside the IFC; null when there is none. */
@@ -356,6 +358,8 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   const FLAT_LABEL_BASE = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
   const labelYaw = new THREE.Quaternion();
   const WORLD_UP = new THREE.Vector3(0, 1, 0);
+  /** Every flat label, so orienting them on a camera update need not traverse the whole label tree. */
+  const flatLabels: THREE.Mesh[] = [];
 
   /**
    * A label lying flat on a ceiling, at the plan's text scale, so an upper storey's floor can hide
@@ -371,7 +375,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     );
     mesh.quaternion.copy(FLAT_LABEL_BASE);
     mesh.renderOrder = renderOrder;
-    mesh.userData.flatLabel = true; // updateLabelOrientation rotates these
+    flatLabels.push(mesh);
     return mesh;
   }
 
@@ -379,9 +383,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   function updateLabelOrientation() {
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(world.camera.three.quaternion);
     labelYaw.setFromAxisAngle(WORLD_UP, labelHeading(right));
-    labels.traverse((obj) => {
-      if (obj.userData.flatLabel) obj.quaternion.copy(labelYaw).multiply(FLAT_LABEL_BASE);
-    });
+    for (const label of flatLabels) label.quaternion.copy(labelYaw).multiply(FLAT_LABEL_BASE);
   }
 
   /** Constraint labels draw above everything, including their dotted spans. */
@@ -458,11 +460,13 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     if (epoch !== loadEpoch) return;
     clearLabelLayers();
     northAngle = null;
+    frontAngle = 180;
     lowestElevation = null;
     modelJson = model;
     window.__elmsteadRoomLabels = [];
     if (!model) return publishViewLabels(); // no JSON next to the IFC: show the IFC without labels
     northAngle = model.site.northAngle ?? 0;
+    frontAngle = model.site.frontAngle ?? 180;
     publishViewLabels();
     const constraintsRes = await fetch(`/out/${name}.constraints.json`);
     if (epoch !== loadEpoch) return;
@@ -486,6 +490,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     constraints.clear();
     planLayers.clear();
     storeyLayers.clear();
+    flatLabels.length = 0;
   }
 
   /**
@@ -662,25 +667,22 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     return ordered.every((s, i) => selected.has(s.id) === i < ids.length);
   }
 
-  /** Fill the selector's store state, showing the floor the selection reaches or a custom value. */
+  /** Fill the selector's store state, pointing at the floor the selection reaches. */
   function populateStoreySelector(model: BuildingModel | null) {
     const ordered = model ? storeysLowestFirst(model) : [];
-    const show = ordered.length > 1;
-    if (!show) {
-      store.set({ storeys: [], storeyLabelHidden: true, storeyValue: "", storeyCustom: false });
+    const options = ordered.map((s) => ({ value: s.id, text: s.name }));
+    const shown = new Set(shownStoreys ?? ordered.map((s) => s.id));
+    const storeyIndex = Math.max(
+      ordered.reduce((found, s, i) => (shown.has(s.id) ? i : found), -1),
+      0,
+    );
+    if (ordered.length < 2) {
+      store.set({ storeys: options, storeyDisabled: true, storeyIndex, storeyCustom: false });
       return;
     }
-    const options = ordered.map((s) => ({ value: s.id, text: s.name }));
-    let top = "";
-    let custom = false;
-    if (shownStoreys !== null && !isStoreyPrefix(shownStoreys, ordered)) {
-      // The URL asked for a set no single floor describes; say so until a floor is chosen.
-      custom = true;
-    } else {
-      const shown = new Set(shownStoreys ?? ordered.map((s) => s.id));
-      top = ([...ordered].reverse().find((s) => shown.has(s.id)) ?? ordered[ordered.length - 1]!).id;
-    }
-    store.set({ storeys: options, storeyLabelHidden: false, storeyValue: top, storeyCustom: custom });
+    // The URL asked for a set no single floor describes; say so until a floor is chosen.
+    const storeyCustom = shownStoreys !== null && !isStoreyPrefix(shownStoreys, ordered);
+    store.set({ storeys: options, storeyDisabled: false, storeyIndex, storeyCustom });
   }
 
   /** Apply the selector: show `topId` and every storey below it, hiding everything above. */
@@ -1076,8 +1078,23 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     await storeyMotionSettled();
   }
 
-  /** Bounding box of the shown storeys' plan geometry, so the walk pose centres on what is visible. */
+  /** Bounding box of the shown storeys' plan geometry, so the walk pose centres on what is visible.
+   * The compass asks for it on every camera update, so it is cached until the model, the selection
+   * or the fallback box changes. Callers only read it (getCenter/clone). */
+  let shownBoxCache: {
+    model: BuildingModel | null;
+    storeys: string[] | null;
+    fallback: THREE.Box3;
+    result: THREE.Box3;
+  } | null = null;
   function shownBox(): THREE.Box3 {
+    const c = shownBoxCache;
+    if (c && c.model === modelJson && c.storeys === shownStoreys && c.fallback === box) return c.result;
+    const result = computeShownBox();
+    shownBoxCache = { model: modelJson, storeys: shownStoreys, fallback: box, result };
+    return result;
+  }
+  function computeShownBox(): THREE.Box3 {
     if (!modelJson) return box;
     const pts = modelJson.storeys
       .filter((s) => isShown(s.id))
@@ -1266,7 +1283,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   /**
    * Three.js is Y-up with plan north along −Z (IFC +Y).
    */
-  async function setView(view: View) {
+  async function setView(view: CameraView) {
     const frame = shownBox().clone();
     // The plan box is only 1 m tall; interactive views frame the shown storeys' real height so the
     // whole building fits. Snapshots keep the plan box and the framing their PNGs were rendered with.
@@ -1288,7 +1305,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     }
     const centre = frame.getCenter(new THREE.Vector3());
     const angle = orient === "project" ? 0 : (northAngle ?? 0);
-    const { direction, projection } = cameraForView(view, snapshot, angle);
+    const { direction, projection } = cameraForView(view, snapshot, angle, frontAngle);
     await world.camera.projection.set(projection);
     // Start well outside the model, then fit to its bounding sphere: fitToSphere keeps the viewing
     // direction (fitToBox would snap to the nearest face).
@@ -1304,7 +1321,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
       false,
     );
     // Top looks straight down the height, so its sphere is loose and takes a tighter factor; the
-    // corner views fit the whole sphere plus a little air, so no corner of the building is cropped.
+    // other views fit the whole sphere plus a little air, so no corner of the building is cropped.
     // Interactive views sit a touch looser than the snapshots the PNGs were rendered with.
     // A turned Top view widens the plan box on screen, so the snapshot's tight factor widens with it.
     const { clientWidth, clientHeight } = world.renderer!.three.domElement;
@@ -2364,23 +2381,20 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     setConstraints(!constraints.visible);
   }
 
-  /**
-   * Name each corner button for the true direction its camera looks from (the cameras stay on the
-   * plan corners), or for its plan corner without a north angle or with ?orient=project.
-   */
+  /** Name the compass snaps, the flat elevations and Top. */
   function publishViewLabels() {
-    const angle = orient === "project" ? 0 : (northAngle ?? 0);
-    const views: View[] = ["sw", "se", "ne", "nw", "top"];
+    const views = ["n", "w", "e", "s", "front", "back", "left", "right", "top"] as const;
     store.set({
-      viewLabels: views.map((view) =>
-        view === "top"
-          ? { view, label: "Top", title: "Top view" }
-          : {
-              view,
-              label: cornerLabel(view, angle),
-              title: `Plan ${view.toUpperCase()} corner, seen from true ${cornerLabel(view, northAngle ?? 0)}`,
-            },
-      ),
+      viewLabels: views.map((view) => {
+        if (view === "top") return { view, label: "Top", title: "Top view" };
+        if (view === "front" || view === "back" || view === "left" || view === "right")
+          return {
+            view,
+            label: ELEVATION_NAMES[view],
+            title: `Flat ${ELEVATION_NAMES[view].toLowerCase()} elevation`,
+          };
+        return { view, label: view.toUpperCase(), title: `Isometric view from true ${CARDINAL_NAMES[view]}` };
+      }),
     });
   }
 
@@ -2401,7 +2415,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   }
 
   async function stepStorey(direction: 1 | -1): Promise<void> {
-    if (snapshot || savedView || store.getSnapshot().storeyLabelHidden) return;
+    if (snapshot || savedView || store.getSnapshot().storeyDisabled) return;
     const next = neighbourStorey(direction);
     if (!next) return;
     await applyStoreyChoice(next);
@@ -2411,7 +2425,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   /** The revision shown, or null for the existing building (the base). */
   let revision: string | null = null;
 
-  /** Reflect the shown model's revisions in the store, Existing first; hidden for a model with none. */
+  /** Reflect the shown model's revisions in the store, Existing first; disabled for a model with none. */
   function populateRevisionSelector(modelName: string, group: ModelGroup) {
     store.set({
       models: [...groups.keys()],
@@ -2421,7 +2435,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
         ...group.revisions.map((r) => ({ value: r, text: r })),
       ],
       revision,
-      revisionHidden: group.revisions.length === 0,
+      revisionDisabled: group.revisions.length === 0,
     });
   }
 
@@ -2476,7 +2490,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   }
 
   async function stepRevision(direction: 1 | -1): Promise<void> {
-    if (snapshot || savedView || store.getSnapshot().revisionHidden || switching) return;
+    if (snapshot || savedView || store.getSnapshot().revisionDisabled || switching) return;
     const group = groups.get(currentBaseModel);
     if (!group) return;
     const next = nextRevision(group, revision, direction);
@@ -2557,7 +2571,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     return viewChain;
   }
 
-  async function chooseView(view: View): Promise<void> {
+  async function chooseView(view: CameraView): Promise<void> {
     await exitWalk(); // choosing a view leaves walk mode before the view changes
     await setView(view);
   }

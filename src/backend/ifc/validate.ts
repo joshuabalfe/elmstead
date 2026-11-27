@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { z } from "zod";
 import type { Issue } from "../checks/issue.js";
@@ -34,20 +34,12 @@ function parseValidatorLine(raw: string): { line: ValidatorLine } | { malformed:
   return result.success ? { line: result.data } : { malformed: `validator line has an unexpected shape: ${raw}` };
 }
 
-/** Runs validator/validate.py (IfcOpenShell) through uv and maps its JSON lines to Issues. */
-export function validateIfc(ifcPath: string): IfcValidation {
-  const r = spawnSync("uv", ["run", "--quiet", join(PROJECT_ROOT, "validator/validate.py"), ifcPath], {
-    encoding: "utf8",
-    cwd: PROJECT_ROOT,
-  });
-  if (r.error) {
-    const hint = (r.error as NodeJS.ErrnoException).code === "ENOENT" ? " — install it with: brew install uv" : "";
-    return { issues: [{ level: "ERROR", id: ifcPath, message: `could not run uv${hint}` }], errors: 1, warnings: 0 };
-  }
+/** The collected output as issues against `ifcPath`; `status` is null when a signal killed the validator. */
+function parseOutput(ifcPath: string, stdout: string, stderr: string, status: number | null): IfcValidation {
   const issues: Issue[] = [];
   let summary: { errors: number; warnings: number } | undefined;
   let malformed = 0;
-  for (const raw of r.stdout.split("\n")) {
+  for (const raw of stdout.split("\n")) {
     if (!raw.trim()) continue;
     const parsed = parseValidatorLine(raw);
     if ("malformed" in parsed) {
@@ -67,19 +59,45 @@ export function validateIfc(ifcPath: string): IfcValidation {
       message: `ifc: ${where}${line.message ?? ""}`,
     });
   }
-  const stderr = stderrTail(r.stderr);
+  const tail = stderrTail(stderr);
   if (!summary) {
-    const issue: Issue = { level: "ERROR", id: ifcPath, message: `validator crashed (exit ${r.status}): ${stderr}` };
+    const issue: Issue = { level: "ERROR", id: ifcPath, message: `validator crashed (exit ${status}): ${tail}` };
     return {
       issues: [...issues, issue],
       errors: issues.filter((i) => i.level === "ERROR").length + 1,
       warnings: issues.filter((i) => i.level === "WARNING").length,
     };
   }
-  if (r.status !== 0 && r.status !== 1) {
-    issues.push({ level: "ERROR", id: ifcPath, message: `validator exited with status ${r.status}: ${stderr}` });
+  if (status !== 0 && status !== 1) {
+    issues.push({ level: "ERROR", id: ifcPath, message: `validator exited with status ${status}: ${tail}` });
     return { issues, errors: summary.errors + malformed + 1, warnings: summary.warnings };
   }
   // Exit 1 with a summary is normal: the summary already counts the findings.
   return { issues, errors: summary.errors + malformed, warnings: summary.warnings };
+}
+
+/** Runs validator/validate.py (IfcOpenShell) through uv and maps its JSON lines to Issues. */
+export function validateIfc(ifcPath: string): Promise<IfcValidation> {
+  return new Promise((resolve) => {
+    const child = spawn("uv", ["run", "--quiet", join(PROJECT_ROOT, "validator/validate.py"), ifcPath], {
+      cwd: PROJECT_ROOT,
+    });
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+    const done = (v: IfcValidation) => {
+      if (settled) return;
+      settled = true;
+      resolve(v);
+    };
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (d: string) => (stdout += d));
+    child.stderr.on("data", (d: string) => (stderr += d));
+    child.on("error", (e) => {
+      const hint = (e as NodeJS.ErrnoException).code === "ENOENT" ? " — install it with: brew install uv" : "";
+      done({ issues: [{ level: "ERROR", id: ifcPath, message: `could not run uv${hint}` }], errors: 1, warnings: 0 });
+    });
+    child.on("close", (status) => done(parseOutput(ifcPath, stdout, stderr, status)));
+  });
 }

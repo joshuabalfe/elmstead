@@ -107,8 +107,9 @@ To see a viewer state from a script, headless, use the
 [inspect-the-rendered-output](../.agents/skills/inspect-the-rendered-output/SKILL.md) skill: it has a
 recipe and a table of the URL parameters below.
 
-`src/frontend/` is a React 19 app built by Vite. React renders the toolbar, pickers, hints,
-measurement list, changes panel and compass from `src/frontend/state/store.ts`; the imperative
+`src/frontend/` is a React 19 app built by Vite. React renders the vertical navigation on the
+left, built from Palantir Blueprint controls, plus the hints, measurement list, changes panel and
+compass from `src/frontend/state/store.ts`; the imperative
 engine in `src/frontend/scene/engine.ts` owns the three.js/ThatOpen scene and publishes discrete
 state to the store. `npm run view` serves the dev build, `npm run viewer:build` writes `dist/`, and
 `npm run viewer:preview` serves that build with the same `/models.json`, `/out/*` and `/wasm/*`
@@ -122,31 +123,37 @@ routes.
   page does not reload; the preview build is unchanged.
 - `scene/engine.ts` loads the IFC through ThatOpen's IFC loader and sets up the camera views.
   - In the scene Y is up and plan north is −Z.
-  - The four corner buttons show true isometric views: an orthographic camera from a plan corner,
-    45° round and 35.26° above the ground, so parallel edges stay parallel and the building reads
-    like a video-game diorama. Each button is labelled with the nearest of the eight compass points
-    to the true direction it looks from (`site.northAngle`), and its tooltip names the plan corner:
-    elmstead's `sw`, `se`, `ne` and `nw` read N, W, S and E. With no north angle they read SW, SE,
-    NE and NW. The Top view is orthographic straight down, turned so true north is up the screen,
-    like the plan sheets. Snapshots keep the perspective corner cameras (see
-    [3D snapshots](#3d-snapshots)).
+  - The N, W, E and S camera snaps show true isometric views from true north, west, east and south:
+    an orthographic camera 35.26° above the ground, so parallel edges stay parallel and the building
+    reads like a video-game diorama. They turn with `site.northAngle`, so the N snap always looks
+    from true north, and their labels stay N, W, E and S. The Top view is orthographic straight down,
+    turned so true north is up the screen, like the plan sheets.
+  - Above the compass is a cross of flat orthographic elevations aligned to the model's front,
+    with Top in its centre.
+    `site.frontAngle` gives the front's outward direction, counter-clockwise from plan +y (default
+    180°, plan south); Back is opposite, and Left and Right are the sides seen when facing the
+    front. They do not turn with `site.northAngle`.
+  - The older plan-corner views (`sw`, `se`, `ne`, `nw`) remain for `?view=` links and snapshots;
+    the 3D snapshot PNGs keep their perspective corner cameras (see [3D snapshots](#3d-snapshots)).
   - The loader keeps IFC coordinates as they are (`COORDINATE_TO_ORIGIN: false`), so anything
     drawn from the model lines up with the IFC.
   - Every model is drawn as full geometry (`setLodMode(LodMode.ALL_VISIBLE)`). By default
     Fragments draws items it judges small on screen as lines, and thin parts such as glazing bars
     and window frames qualify even close up.
-  - `?view=` accepts only `sw`, `se`, `ne`, `nw` and `top`; any other value falls back to `top`.
-    The corner values are plan corners, whatever their buttons read.
+  - `?view=` accepts `sw`, `se`, `ne`, `nw`, `n`, `e`, `s`, `w`, `front`, `back`, `left`, `right`
+    and `top`; any other value falls back to `top`. The corner values are plan corners, the cardinal
+    values are true directions, and the elevations follow the model's front.
   - `?orient=project` ignores `site.northAngle` when orienting the views: the Top view keeps plan +y
-    up and the corner buttons keep their plan names. The compass still points to true north. The
-    plan-versus-3D test uses it, because its comparison aligns walls with pixel rows and columns.
+    up, the cardinal snaps align with the plan axes, and the corner views keep their plan corners.
+    The compass still points to true north. The plan-versus-3D test uses it, because its comparison
+    aligns walls with pixel rows and columns.
     The model picker is built with `textContent`, so a file name containing markup is shown
     literally.
   - `?camera=px,py,pz,tx,ty,tz` places a perspective camera at p looking at t, in the scene's
     metres (Y up, IFC +Y along −Z), for close-ups such as one window.
-  - With `?snapshot=1` in the URL it hides the toolbar and sets `window.__elmsteadReady` once the
+  - With `?snapshot=1` in the URL it hides the navigation and sets `window.__elmsteadReady` once the
     frame is drawn, which is what the snapshot driver waits for.
-- Hover identification: the **Ids** button or `?ids=1` (off by default, ignored in snapshots)
+- Hover identification: the **Show IDs on Hover** switch or `?ids=1` (off by default, ignored in snapshots)
   shows a constraint-style haloed label at the hovered point with the model id and name of the
   element under it, drawn above everything like the measurement readout. `src/frontend/scene/identify.ts` maps each fragments item's `Tag`/`Name`/`LongName` to
   that label — the same ids the model code and checks use — and `scene/engine.ts` raycasts on
@@ -169,12 +176,12 @@ routes.
     screen. It projects a north-pointing line on the ground, so it is right in perspective views
     too, and it turns as the camera moves.
   - They come from the model JSON, not the IFC, because the IFC has no room dimensions.
-  - The **Labels** button toggles them. `?labels=0` or `?labels=1` in the URL sets them.
+  - The **Show Labels** switch toggles them. `?labels=0` or `?labels=1` in the URL sets them.
   - They are on by default, but off in snapshots (`?snapshot=1`), so the 3D PNGs show only the IFC.
 - Constraint labels: when `build` has written `out/<name>.constraints.json`, each measured
   constraint is a red billboard at the midpoint of the span its measurement covers on its storey,
   reading `<id> <distance>` in millimetres, with a thick red dotted line along that span. They
-  start hidden; the **Constraints** button or `?constraints=1` turns them on, independently of the
+  start hidden; the **Show Constraints** switch or `?constraints=1` turns them on, independently of the
   room labels, and snapshots leave them off. They sit at their storey's ceiling and are occluded
   like everything else there: a storey above hides them, and hiding their storey hides them.
 - Measurement tool: the **Measure** button or `?measure=1` starts it. A click or tap picks the
@@ -187,7 +194,7 @@ routes.
   - Measurements are viewer-only: they are cleared on a model change or when walk mode starts,
     survive camera and view changes, and are ignored in snapshots. Escape cancels a pending point;
     **Clear** removes all measurements.
-  - The measure layer is independent of **Labels** and **Constraints**; completed measurements
+  - The measure layer is independent of **Show Labels** and **Show Constraints**; completed measurements
     stay visible when measure mode is off.
 - The plan overlays (floors, wall tops and dimensions) are drawn as scene geometry, not as images
   of the plan (`src/frontend/scene/overlay.ts`). `renderFloor`, `renderWallTops` and `renderPlanAnnotations`
@@ -222,10 +229,10 @@ routes.
     plan without cutting the model.
   - White background, no grid.
 - The model picker lists each model in `out/` once. A revision's outputs are named
-  `<model>@<revision>` (see [Revisions](modelling.md#revisions)), and the **revision picker** beside
+  `<model>@<revision>` (see [Revisions](modelling.md#revisions)), and the **revision picker** below
   the model picker lists **Existing** (the base model) and then the model's built revisions by name.
-  It is hidden for a model with no revisions. **Existing** is disabled when only revisions have been
-  built, and choosing such a model opens its first revision.
+  It is shown but disabled for a model with no revisions. **Existing** is disabled when only
+  revisions have been built, and choosing such a model opens its first revision.
   - The choice is written to `?model=`, as `<model>@<revision>` or just `<model>` for Existing, so
     `?model=elmstead@rear-extension` opens a revision directly with both pickers set.
   - Switching revision loads it in place and keeps the view: the camera, projection, shown storeys
@@ -236,10 +243,10 @@ routes.
     shown, so flicking back to one is close to instant; choosing another model releases them. Measurements are cleared and walk
     mode ends, as for a model change.
   - **Arrow Right** and **Arrow Left** step the revision picker, skipping a disabled Existing and
-    stopping at either end. They work while any of the bar's pickers has focus, in place of the
+    stopping at either end. They work while any of the navigation's pickers has focus, in place of the
     browser's own arrow keys for that picker, and are ignored where the storey shortcut is, and
     for a model with no revisions.
-- **Diff** (shown only for a revision; `D`, or `?diff=1`) colours what the revision changes against
+- **Revision Diff** (always shown, disabled until a revision is shown; `D`, or `?diff=1`) colours what the revision changes against
   Existing, in GitHub's diff colours, a pale fill with a dark outline of the same hue:
 
   |         | Fill      | Outline   | Floor     |
@@ -262,7 +269,7 @@ routes.
     - removed walls and openings are drawn from the base in pale red with a dashed red outline.
   - **The changes panel** gives each category's count, with a checkbox to hide it, and lists the shown
     storeys' changes. Clicking one frames it.
-  - **Hovering** with **Ids** on adds the status to the label, for example `wall-lean-to-north · added`.
+  - **Hovering** with **Show IDs on Hover** enabled adds the status to the label, for example `wall-lean-to-north · added`.
   - **Missing base:** if the base model's IFC hasn't been built, there are no ghosts, and the status
     line says so. Without its JSON there is no diff at all.
 
@@ -277,21 +284,21 @@ routes.
   the colours, outlines, fading and plan drawing arrive together rather than half-applied. The
   crossfade is skipped when the user prefers reduced motion. A changes-panel checkbox lands in one
   picture.
-- The **Up to:** selector lists the model's storeys lowest first; choosing one shows that storey and
-  every storey below it, hiding those above, and the topmost choice shows everything. A choice
-  updates the loaded model in place without moving the camera, so floors compare from one viewpoint;
-  the compass follows the shown footprint, and the view buttons re-frame on request. The choice is
-  written to `?storeys=` so the URL shares it. A choice eases to the new floor with a short section
-  sweep, with Transparency on too: the entering and leaving storeys fade to and from the see-through
-  opacity, and choosing again while it runs retargets the sweep from where it is. Diff and reduced
-  motion apply the choice at once. A `?storeys=` set that is not one floor's prefix shows a disabled
-  **Custom** value until a floor is chosen. The selector is hidden for a single-storey model.
+- The **Levels:** vertical slider lists the model's storeys lowest first, with one notch per storey
+  and the highest at the top; choosing a notch or dragging the handle shows that storey and every
+  storey below it, hiding those above, and the topmost notch shows everything. A choice updates the
+  loaded model in place without moving the camera, so floors compare from one viewpoint; the compass
+  follows the shown footprint, and the view buttons re-frame on request. The choice is written to
+  `?storeys=` so the URL shares it. A choice eases to the new floor with a short section sweep, with
+  Transparency on too: the entering and leaving storeys fade to and from the see-through opacity,
+  and choosing again while it runs retargets the sweep from where it is. Diff and reduced motion
+  apply the choice at once. A `?storeys=` set that is not one floor's prefix shows **Custom** until a
+  floor is chosen. It is shown but disabled for a single-storey model.
 - **Arrow Up** and **Arrow Down** step that selector one floor: up shows the next storey above the
   highest one shown, down hides the highest one shown. They stop at the first and last floor rather
   than wrapping, and from a custom set they step from its highest storey. Holding either key keeps
   stepping at the auto-repeat rate. They are ignored in walk mode (where the arrows walk), in
-  snapshots, with a modifier held, and while a form control other than the storey selector has
-  focus.
+  snapshots, with a modifier held, and while a text field, a select or a textarea has focus.
 - `?storeys=a,b` shows only those storeys: everything the IFC contains or aggregates in the others is
   hidden, with their labels and floor planes. An id that names no storey is noted in the status line
   and ignored; omitting the parameter shows every storey. With one storey shown, the Top view is
