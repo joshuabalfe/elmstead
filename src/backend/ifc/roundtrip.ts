@@ -9,7 +9,7 @@ import { doorDivision } from "../../shared/geometry/door.js";
 import { revealSplay } from "../../shared/geometry/opening.js";
 import { area as polygonArea } from "../../shared/geometry/polygon.js";
 import { railingGeometry } from "../../shared/geometry/railing.js";
-import { flightProfileArea, stairLevels } from "../../shared/geometry/stair.js";
+import { flightProfileArea, stairLevels, winderFan } from "../../shared/geometry/stair.js";
 import { wallSideArea } from "../../shared/geometry/wall.js";
 import { GLAZING_BAR_DEPTH, PANEL_THICKNESS, windowDivision, type Rect } from "../../shared/geometry/window.js";
 import type { BuildingModel, Storey } from "../../shared/schema/schema.js";
@@ -143,7 +143,16 @@ function stairVolumes(model: BuildingModel, s: Storey): ExpectedVolume[] {
     if (!to) continue; // a missing target is a check error, which gates the build
     const levels = stairLevels(stair, to.elevation - s.elevation);
     for (const l of levels.segments) {
-      if (l.kind === "winder") throw new Error(`${l.segment.id}: winder volume is not implemented yet`); // ELM-29 task 3.3
+      if (l.kind === "winder") {
+        // One solid per tread, from the winder's base up to that tread's level.
+        const treads = winderFan(l.segment).treads;
+        out.push({
+          id: l.segment.id,
+          volume: treads.reduce((n, t, k) => n + polygonArea(t) * (k + 1) * levels.riser, 0),
+          what: "stair winder",
+        });
+        continue;
+      }
       if (l.kind === "flight")
         out.push({
           id: l.segment.id,

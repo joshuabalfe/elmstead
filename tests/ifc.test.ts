@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import cottage from "../models/examples/example-cottage/index.js";
 import elmstead from "../models/elmstead/index.js";
 import twoStorey from "./fixtures/two-storey/index.js";
+import winderStair from "./fixtures/winder-stair/index.js";
 import { m, mm, pt, railing, wall as makeWall } from "../src/backend/model/index.js";
 import { ifcGuid } from "../src/backend/ifc/guid.js";
 import { STYLES } from "../src/shared/ifc/styles.js";
@@ -396,6 +397,122 @@ describe("a stair in IFC", () => {
   });
 });
 
+describe("a winding stair in IFC", () => {
+  const winding = BuildingModelSchema.parse(JSON.parse(JSON.stringify(winderStair)));
+  const write = (m: BuildingModel) => writeIfc(m, { fileName: "winder.ifc" });
+  const enumValue = (v: unknown) => (typeof v === "string" ? v : ((v as { value?: string } | null)?.value ?? null));
+  const num = (v: any) => v?.value ?? v;
+
+  async function lines(ifc: Uint8Array, type: number) {
+    const api = new WebIFC.IfcAPI();
+    await api.Init();
+    const id = api.OpenModel(ifc);
+    try {
+      return ids(api, id, type).map((e) => api.GetLine(id, e));
+    } finally {
+      api.CloseModel(id);
+    }
+  }
+
+  /** The extrusion depths of a flight's solids, read from the written file. */
+  const solidDepths = (ifc: string, tag: string): number[] => {
+    const flight = new RegExp(`^#\\d+=IFCSTAIRFLIGHT\\([^\n]*,#\\d+,#(\\d+),'${tag}',`, "m");
+    const shape = new RegExp(`^#${flight.exec(ifc)![1]}=IFCPRODUCTDEFINITIONSHAPE\\(\\$,\\$,\\(#(\\d+)\\)\\)`, "m");
+    const rep = new RegExp(`^#${shape.exec(ifc)![1]}=IFCSHAPEREPRESENTATION\\([^\n]*,\\(([^)]*)\\)\\);`, "m");
+    return rep
+      .exec(ifc)![1]!
+      .split(",")
+      .map((ref) => Number(new RegExp(`^${ref}=IFCEXTRUDEDAREASOLID\\([^\n]*,([\\d.]+)\\);`, "m").exec(ifc)![1]));
+  };
+
+  it("types the stair a quarter winding stair, bodyless like any stair", async () => {
+    const [container] = await lines(await write(winding), WebIFC.IFCSTAIR);
+    expect(container!.Tag.value).toBe("stair-main");
+    expect(enumValue(container!.PredefinedType)).toBe("QUARTER_WINDING_STAIR");
+    expect(container!.Representation).toBeNull();
+  });
+
+  it("types a winder turning through another angle, or going on to turn again, NOTDEFINED", async () => {
+    const wide = structuredClone(winding);
+    const w = wide.storeys[0]!.stairs![0]!.segments[0]!;
+    if (w.kind === "winder") w.outline = [w.pivot, { x: 3879, y: 3450 }, { x: 3879, y: 4800 }, w.entry] as never; // about 120°
+    expect(enumValue((await lines(await write(wide), WebIFC.IFCSTAIR))[0]!.PredefinedType)).toBe("NOTDEFINED");
+
+    const longer = structuredClone(winding);
+    const segs = longer.storeys[0]!.stairs![0]!.segments;
+    segs.push({ kind: "landing", id: "stair-landing-x", outline: (segs[0] as any).outline, thickness: 150 } as never);
+    segs.push({ ...(segs[1] as any), id: "stair-flight-x" });
+    expect(enumValue((await lines(await write(longer), WebIFC.IFCSTAIR))[0]!.PredefinedType)).toBe("NOTDEFINED");
+  });
+
+  it("still calls a winder a quarter turn when its points put it a fraction of a degree off", async () => {
+    const off = structuredClone(winding);
+    const w = off.storeys[0]!.stairs![0]!.segments[0]!;
+    if (w.kind === "winder") w.outline = [w.pivot, { x: 4000, y: 3908 }, { x: 4000, y: 4800 }, w.entry] as never; // 89.5°
+    expect(enumValue((await lines(await write(off), WebIFC.IFCSTAIR))[0]!.PredefinedType)).toBe(
+      "QUARTER_WINDING_STAIR",
+    );
+  });
+
+  it("writes the winder as a WINDER flight whose treads are its risers, with no tread length", async () => {
+    const flights = await lines(await write(winding), WebIFC.IFCSTAIRFLIGHT);
+    const winder = flights.find((f) => f.Tag.value === "stair-winder-turn")!;
+    expect(num(winder.NumberOfRisers)).toBe(3);
+    expect(num(winder.NumberOfTreads)).toBe(3);
+    expect(num(winder.RiserHeight)).toBe(250);
+    expect(winder.TreadLength).toBeNull();
+    expect(enumValue(winder.PredefinedType)).toBe("WINDER");
+    const straight = flights.find((f) => f.Tag.value === "stair-flight-main")!;
+    expect([num(straight.NumberOfRisers), num(straight.NumberOfTreads), enumValue(straight.PredefinedType)]).toEqual([
+      8,
+      7,
+      "STRAIGHT",
+    ]);
+  });
+
+  it("gives the winder one solid per tread, the k-th rising k risers", async () => {
+    const ifc = new TextDecoder().decode(await write(winding));
+    expect(solidDepths(ifc, "stair-winder-turn")).toEqual([250, 500, 750]);
+    expect(solidDepths(ifc, "stair-flight-main")).toHaveLength(1);
+  });
+
+  it("aggregates the winder and the flight under the stair, with GlobalIds from their ids", async () => {
+    const ifc = new TextDecoder().decode(await write(winding));
+    for (const id of ["stair-main", "stair-winder-turn", "stair-flight-main", "stair-main#aggregates"])
+      expect(ifc).toContain(`('${ifcGuid(id)}'`);
+    const rel = /IFCRELAGGREGATES\('[^']+',\$,\$,\$,#(\d+),\(([^)]*)\)\)/.exec(
+      ifc.split("\n").find((l) => l.includes(ifcGuid("stair-main#aggregates")))!,
+    )!;
+    expect(rel[2]!.split(",")).toHaveLength(2);
+  });
+
+  it("gives the winder's solids the stair colour, the same as the flight's", async () => {
+    const ifc = new TextDecoder().decode(await write(winding));
+    const style = /#(\d+)=IFCSURFACESTYLE\('stair'/.exec(ifc)![1];
+    const styled = ifc.match(new RegExp(`IFCSTYLEDITEM\\(#\\d+,\\(#${style}\\)`, "g")) ?? [];
+    expect(styled).toHaveLength(4); // three treads and one flight
+  });
+
+  it("matches the winder's volume in the round-trip", async () => {
+    const ifc = await write(winding);
+    expect(await roundTripChecks(winding, ifc)).toEqual([]);
+    const geom = await ifcGeometry(ifc);
+    // Treads of a 900 mm square at 250, 500 and 750 mm: the two triangles and the quadrilateral sum
+    // to 810000 mm², and the heights are symmetric, so the volume is 810000 × 500.
+    expect(Math.abs(geom.get("stair-winder-turn")!.volume - 405_000_000) / 405_000_000).toBeLessThan(1e-6);
+  });
+
+  it("reports a winder whose riser count the IFC does not match", async () => {
+    const ifc = await write(winding);
+    const wrong = structuredClone(winding);
+    const w = wrong.storeys[0]!.stairs![0]!.segments[0]!;
+    if (w.kind === "winder") w.risers = 4;
+    const issues = await roundTripChecks(wrong, ifc);
+    expect(issues.map((i) => i.id)).toContain("stair-winder-turn");
+    expect(issues.find((i) => i.id === "stair-winder-turn")!.message).toMatch(/stair winder volume/);
+  });
+});
+
 describe("a railing in IFC", () => {
   const railingModel = (() => {
     const base = BuildingModelSchema.parse(JSON.parse(JSON.stringify(cottage)));
@@ -495,6 +612,17 @@ describe("IfcOpenShell validator", () => {
     const withRailings = structuredClone(elmstead);
     const path = join(dir, "railings.ifc");
     writeFileSync(path, await writeIfc(withRailings, { fileName: "railings.ifc" }));
+    const v = await validateIfc(path);
+    expect(v.issues).toEqual([]);
+    expect([v.errors, v.warnings]).toEqual([0, 0]);
+  }, 60_000);
+
+  it("passes a winder and its flight with no errors or warnings", async () => {
+    const path = join(dir, "winder.ifc");
+    writeFileSync(
+      path,
+      await writeIfc(BuildingModelSchema.parse(JSON.parse(JSON.stringify(winderStair))), { fileName: "winder.ifc" }),
+    );
     const v = await validateIfc(path);
     expect(v.issues).toEqual([]);
     expect([v.errors, v.warnings]).toEqual([0, 0]);
