@@ -102,9 +102,10 @@ point on an edge not touching the pivot. Tread k is the polygon of the pivot, th
 line k−1 ends, any outline points between that and the end of fan line k (the outline's far corner
 for a square), and the end of fan line k. The entry and exit edges are fan lines 0 and N.
 
-Equal angles are what a drawn plan shows and need no design input from the user. A winder with
-unequal fan angles, or a fixed walking-line tread depth, is a different shape that this schema does
-not say; it is a non-goal.
+Equal angles are the simplest rule that needs no further input, and they come close to the
+floorplan that prompted this change (fan lines read by eye at about 27° and 64° from the entry edge,
+against 30° and 60°). A winder with unequal fan angles, or a fixed walking-line tread depth, is a
+different shape that this schema does not say; it is a non-goal.
 
 The treads partition the outline exactly, which the checks and the round-trip rely on.
 
@@ -124,9 +125,16 @@ The treads partition the outline exactly, which the checks and the round-trip re
 ### 6. Checks
 
 Segment order (winder first, then a flight), the outline (three distinct points, convex, not
-self-intersecting, like landings), the pivot and entry (outline points, adjacent), and the next
-flight's start on the exit edge within 1 mm, as the landing check measures a flight meeting a
-landing. A winder id joins the unique-id kinds.
+self-intersecting), the pivot and entry (outline points, adjacent), and the flight after the winder.
+A winder joins `outlined()` in `src/backend/checks/model.ts`, so it gets the same distinct-point and
+self-intersection checks as a landing; convexity and the pivot rules are new.
+
+The flight is checked more tightly than a landing's flights are. Both ends of its start edge must lie
+on the exit edge within 1 mm, and it must run away from the outline. A landing's check is only that
+a flight's start or end point lies on its boundary, which would let a flight overhang the exit edge or
+run back into the winder with no error, leaving overlapping solids. A flight narrower than the exit
+edge is allowed. The id kind is `"stair winder"`, so a revision's refusal to edit a segment on its
+own keeps its "replace its stair" hint, which tests for the `"stair "` prefix.
 
 ### 7. Plan
 
@@ -145,6 +153,10 @@ riser height is computed in the viewer by dividing the rise by the sum of the **
 (`src/frontend/scene/engine.ts`), which for a stair with a winder would give bands too tall. It must
 count winders' risers as the schema's levels do, and the check for it is looking at the viewer, as
 the add-support skill requires.
+
+The same sum also leaves out the extra riser that `stairLevels` adds for a top landing. That is an
+existing discrepancy, found by reading the code and not yet seen on screen, and this change does not
+touch it.
 
 ### 9. No new colour, revision change or diff change
 
@@ -176,3 +188,6 @@ Rollback is reverting the change; no model uses a winder until the `williamson` 
 
 - Should a later change relax Decision 3 for a winder after a landing, or at the top of a stair?
   It does not change this change's specs or tasks.
+- Is the viewer's band height wrong for a stair with a top landing (Decision 8)? Deriving it from
+  `stairLevels` would fix that and the winder case together, but would change the banding of existing
+  models, so it is left for its own change unless the user wants it folded in.

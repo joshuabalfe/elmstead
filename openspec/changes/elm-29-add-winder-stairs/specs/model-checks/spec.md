@@ -117,14 +117,30 @@ point beside the pivot is its exit. A violation SHALL be an ERROR against the wi
 ### Requirement: Winders meet their flight
 
 The flight after a winder SHALL start on the winder's exit edge, the outline's edge from its pivot to
-its exit point, within 1 mm. A flight that does not SHALL be an ERROR against the winder.
+its exit point: both ends of its start edge SHALL lie on that edge within 1 mm, and the flight SHALL
+run away from the outline. A flight that does not SHALL be an ERROR against the winder.
 
 #### Scenario: Flight misses the exit edge
 
 - **WHEN** the flight after a winder starts 100 mm from the winder's exit edge
 - **THEN** the checks report an ERROR against the winder
 
-#### Scenario: Flight starts on the exit edge
+#### Scenario: Flight overhangs the exit edge
 
-- **WHEN** the flight after a winder starts at the middle of the winder's exit edge
+- **WHEN** the flight after a winder is wider than the exit edge, so its start edge runs past the edge's end
+- **THEN** the checks report an ERROR against the winder
+
+#### Scenario: Flight runs back into the winder
+
+- **WHEN** the flight after a winder starts on the exit edge but heads into the winder's outline
+- **THEN** the checks report an ERROR against the winder
+
+#### Scenario: Flight fits the exit edge
+
+- **WHEN** the flight after a winder starts at the middle of the exit edge, is as wide as the edge and heads away from the outline
+- **THEN** the checks report no ERROR for the winder
+
+#### Scenario: Narrower flight
+
+- **WHEN** the flight after a winder is narrower than the exit edge and starts on it
 - **THEN** the checks report no ERROR for the winder
