@@ -85,7 +85,7 @@ ceiling (10 mm above its tallest wall):
 - room names and areas as camera-facing sprites;
 - a compass pointing to true north.
 
-Labels SHALL be on by default and off in snapshots. The **Labels** button or `?labels=0|1` SHALL
+Labels SHALL be on by default and off in snapshots. The **Show Labels** switch or `?labels=0|1` SHALL
 toggle them.
 
 #### Scenario: Snapshot labels
@@ -186,13 +186,20 @@ the web-ifc package directory. A request that resolves outside them SHALL be rej
 
 ### Requirement: Requested view is validated
 
-The viewer SHALL accept only `sw`, `se`, `ne`, `nw` and `top` for `?view=`. Any other value SHALL
-fall back to `top` instead of failing to render.
+The viewer SHALL accept only the camera views it offers for `?view=`: the plan corners `sw`, `se`,
+`ne` and `nw`, the true-north snaps `n`, `e`, `s` and `w`, the flat elevations `front`, `back`,
+`left` and `right`, and `top`. Any other value SHALL fall back to `top` instead of failing to
+render.
 
 #### Scenario: Unknown view
 
 - **WHEN** the viewer is opened with `?view=sideways`
 - **THEN** it shows the top view
+
+#### Scenario: Every offered view
+
+- **WHEN** the viewer is opened with any of the offered views in `?view=`
+- **THEN** it shows that view
 
 ### Requirement: Viewer reloads on rebuild
 
@@ -608,9 +615,9 @@ height as its label. Lines SHALL be drawn over the model and SHALL follow the co
 
 ### Requirement: Constraint visibility
 
-Constraint labels and lines SHALL follow the **Constraints** button and `?constraints=0|1`,
-independently of the **Labels** button and `?labels=0|1`. They SHALL be hidden by default,
-interactively and in rendered snapshots, and SHALL show only when the button is pressed or
+Constraint labels and lines SHALL follow the **Show Constraints** switch and `?constraints=0|1`,
+independently of the **Show Labels** switch and `?labels=0|1`. They SHALL be hidden by default,
+interactively and in rendered snapshots, and SHALL show only when the switch is on or
 `?constraints=1` is given.
 
 #### Scenario: Default
@@ -620,12 +627,12 @@ interactively and in rendered snapshots, and SHALL show only when the button is 
 
 #### Scenario: Constraints toggle
 
-- **WHEN** the user presses **Constraints**, or opens the viewer with `?constraints=1`
+- **WHEN** the user turns **Show Constraints** on, or opens the viewer with `?constraints=1`
 - **THEN** the constraint labels and lines appear
 
 #### Scenario: Constraints off
 
-- **WHEN** the user presses **Constraints** again, or opens the viewer with `?constraints=0`
+- **WHEN** the user turns **Show Constraints** off, or opens the viewer with `?constraints=0`
 - **THEN** no constraint labels or lines are drawn
 
 #### Scenario: Labels toggle leaves constraints alone
@@ -687,12 +694,11 @@ or aggregates in it, and the drawings and labels made for it.
 
 ### Requirement: Storey selector
 
-The viewer SHALL offer a selector listing the model's storeys from lowest to highest. Choosing a
-storey SHALL show that storey and every storey below it, hiding every storey above, without moving
-the camera. The selection SHALL be written to `?storeys=` as the ids it shows, and the topmost
-storey SHALL clear the parameter. A `?storeys=` set that is not some floor's prefix SHALL show a
-disabled custom value until a floor is chosen. The selector SHALL be hidden for a single-storey
-model.
+The viewer SHALL offer a vertical slider of the storeys, lowest first, one notch each and the highest
+at the top. Choosing one SHALL show it and every storey below, hiding those above, without moving the
+camera. The selection SHALL be written to `?storeys=` as the ids it shows, and the topmost storey
+SHALL clear the parameter. A `?storeys=` set that is not a floor's prefix SHALL show a custom value
+until a floor is chosen. The slider SHALL be shown for every model, disabled with one storey.
 
 #### Scenario: Choosing a floor
 
@@ -727,7 +733,12 @@ model.
 #### Scenario: Upper storey alone
 
 - **WHEN** the viewer is opened with `?storeys=` naming only an upper storey
-- **THEN** that storey alone is drawn and the selector shows a disabled custom value
+- **THEN** that storey alone is drawn and the selector shows a custom value
+
+#### Scenario: Single storey
+
+- **WHEN** the shown model has a single storey
+- **THEN** the selector shows that storey and is disabled
 
 ### Requirement: Storey keyboard shortcut
 
@@ -760,7 +771,7 @@ Arrow Up SHALL show the next storey above the highest storey now shown, and Arro
 
 ### Requirement: Storey shortcut scope
 
-The storey shortcut SHALL be ignored in walk mode, where the arrows keep walking, with Ctrl, Alt, Meta or Shift held, for a single-storey model, in snapshot mode, and while a form control other than the storey selector has focus. While the storey selector has focus the shortcut SHALL still step it, and the browser's own arrow-key handling for it SHALL NOT also act. The selector's tooltip SHALL name the keys.
+The storey shortcut SHALL be ignored in walk mode, where the arrows keep walking, with Ctrl, Alt, Meta or Shift held, for a single-storey model, in snapshot mode, and while a text field, a select or a textarea has focus. While the storey selector has focus the shortcut SHALL still step it, and the browser's own arrow-key handling for it SHALL NOT also act. The selector's tooltip SHALL name the keys.
 
 #### Scenario: Walk mode
 
@@ -827,18 +838,18 @@ the slab sits on them and its edge forms the floor-structure band at the facade.
 
 ### Requirement: Ids toggle
 
-The viewer SHALL provide an **Ids** button that toggles hover identification, and `?ids=0|1` SHALL
-set it at load. Hover identification SHALL start off. Snapshots SHALL ignore the button and the
+The viewer SHALL provide a **Show IDs on Hover** switch that toggles hover identification, and `?ids=0|1` SHALL
+set it at load. Hover identification SHALL start off. Snapshots SHALL ignore the switch and the
 parameter.
 
 #### Scenario: Ids button on
 
-- **WHEN** the user presses **Ids**
-- **THEN** hover identification turns on and the button shows it is active
+- **WHEN** the user turns **Show IDs on Hover** on
+- **THEN** hover identification turns on and the switch shows it is on
 
 #### Scenario: Ids button off
 
-- **WHEN** the user presses **Ids** while hover identification is on
+- **WHEN** the user turns **Show IDs on Hover** off while hover identification is on
 - **THEN** hover identification turns off and any tooltip is hidden
 
 #### Scenario: URL entry
@@ -1085,9 +1096,9 @@ for which only revisions have been built.
 
 ### Requirement: Revision picker
 
-The viewer SHALL show a revision picker beside the model picker. It SHALL list "Existing" for the
-base model, then each built revision by name, and SHALL be hidden for a model with no revisions.
-"Existing" SHALL be disabled when the base is not built. The choice SHALL be written to `?model=` as
+The viewer SHALL show a revision picker below the model picker. It SHALL list "Existing" for the
+base model, then each built revision by name, and SHALL be shown but disabled for a model with no
+revisions. "Existing" SHALL be disabled when the base is not built. The choice SHALL be written to `?model=` as
 `<model>@<revision>`, or `<model>` for "Existing". `?model=<model>@<revision>` SHALL open that
 revision with the picker showing it. Revision names SHALL be rendered as text.
 
@@ -1109,7 +1120,7 @@ revision with the picker showing it. Revision names SHALL be rendered as text.
 #### Scenario: No revisions
 
 - **WHEN** the shown model has no revisions in `out/`
-- **THEN** the revision picker is hidden
+- **THEN** the revision picker shows "Existing" and is disabled
 
 #### Scenario: Base not built
 
@@ -1237,19 +1248,20 @@ browser's own Arrow Left and Arrow Right handling for those pickers SHALL NOT al
 
 ### Requirement: Diff mode
 
-The viewer SHALL offer a **Diff** button, shown only while a revision is shown, that toggles Diff
-mode. `?diff=1` SHALL turn it on at load, and turning it off SHALL remove the parameter. The `D` key
-SHALL toggle it, ignored where the storey shortcut is ignored, or when no revision is shown.
+The viewer SHALL offer a **Revision Diff** switch, shown for every model and disabled while no
+revision is shown, that toggles Diff mode. `?diff=1` SHALL turn it on at load, and turning it off
+SHALL remove the parameter. The `D` key SHALL toggle it, ignored where the storey shortcut is
+ignored, or when no revision is shown.
 
 #### Scenario: Turning Diff on
 
-- **WHEN** the viewer shows `elmstead@rear-extension` and the user presses **Diff**
-- **THEN** Diff mode turns on, the button shows it is active, and the URL has `diff=1`
+- **WHEN** the viewer shows `elmstead@rear-extension` and the user turns **Revision Diff** on
+- **THEN** Diff mode turns on, the switch shows it is on, and the URL has `diff=1`
 
 #### Scenario: Existing building
 
 - **WHEN** the viewer shows a base model
-- **THEN** the **Diff** button is hidden and `D` does nothing
+- **THEN** the **Revision Diff** switch is disabled and `D` does nothing
 
 #### Scenario: Shared link
 
@@ -1378,13 +1390,13 @@ status line SHALL say that removed elements need the base built.
 
 ### Requirement: Transparency
 
-The viewer SHALL offer a **Transparency** button, for any model, that draws elements see-through.
+The viewer SHALL offer a **Transparency** switch, for any model, that draws elements see-through.
 In Diff mode it SHALL fade only the unchanged elements, so the changes stay solid. In plan style it
 SHALL fade the plan drawing too, so it shows in the top view. `?xray=1` SHALL turn it on at load.
 
 #### Scenario: Existing building
 
-- **WHEN** the viewer shows a base model and the user presses **Transparency**
+- **WHEN** the viewer shows a base model and the user turns **Transparency** on
 - **THEN** every element is drawn see-through, and the URL has `xray=1`
 
 #### Scenario: With Diff
@@ -1549,38 +1561,22 @@ compass SHALL point straight up. A model with no `northAngle` SHALL look as befo
 - **WHEN** the viewer shows the Top view of a model with no `northAngle`
 - **THEN** plan +y points up the screen, as before
 
-### Requirement: Corner buttons name their true direction
-
-The `sw`, `se`, `ne` and `nw` views SHALL keep looking at the model's plan corners. Each corner
-button SHALL be labelled with the nearest of the eight compass points to its true viewing direction,
-from the model's `northAngle`, with ties going clockwise. `?view=` values and snapshot names SHALL
-keep the plan-corner ids. A model with no `northAngle` SHALL keep the labels SW, SE, NE and NW.
-
-#### Scenario: Corner buttons of a turned model
-
-- **WHEN** the viewer loads a model whose `northAngle` is 153°
-- **THEN** the `sw`, `se`, `ne` and `nw` buttons read N, W, S and E, and each view looks from the same plan corner as before
-
-#### Scenario: Corner buttons without a north angle
-
-- **WHEN** the viewer loads a model with no `northAngle`
-- **THEN** the corner buttons read SW, SE, NE and NW
-
-#### Scenario: Links keep their meaning
-
-- **WHEN** the viewer is opened with `?view=ne` on a turned model
-- **THEN** it shows the same plan corner as before this change, under the button labelled with its true direction
-
 ### Requirement: Project orientation override
 
 `?orient=project` SHALL make the viewer ignore `northAngle` when it orients its views. The Top view
-SHALL keep plan +y up and the corner buttons SHALL keep their plan-corner labels. The compass SHALL
-still point to true north. Any other value, or none, SHALL mean true north orientation.
+SHALL keep plan +y up, and the N, W, E and S snaps SHALL align with the plan axes while keeping
+their labels. The compass SHALL still point to true north. Any other value, or none, SHALL mean true
+north orientation.
 
 #### Scenario: Project-oriented Top view
 
 - **WHEN** the viewer is opened with `?view=top&orient=project` on a model whose `northAngle` is 135°
 - **THEN** plan +y points up the screen and the compass points 135° counter-clockwise from up
+
+#### Scenario: Project-oriented camera snaps
+
+- **WHEN** the viewer is opened with `?orient=project` on a model whose `northAngle` is 135°
+- **THEN** the N snap stands on plan +y and the W snap on plan −x, and their labels stay N and W
 
 #### Scenario: Unknown orientation
 
@@ -1625,3 +1621,67 @@ A reload that fails SHALL report the error in the status line, keep the viewer r
 
 - **WHEN** the rebuilt IFC cannot be fetched or converted
 - **THEN** the error is reported in the status, no model is drawn, and a later successful rebuild shows a model
+
+### Requirement: Viewer navigation
+
+The viewer SHALL group its controls into Model, Camera and Tools sections in a left-hand navigation
+rail. Each row SHALL keep its label on the left and its control on the right. Persistent settings
+SHALL use switches labelled with the setting they change, and each switch's track SHALL read the
+current state, Off or On. Unavailable controls SHALL stay visible and disabled, and enabled controls
+SHALL have a visible affordance.
+
+#### Scenario: Grouped controls
+
+- **WHEN** the viewer opens
+- **THEN** the model and revision pickers and Levels controls are under Model, the camera snaps and Walk under Camera, and the constraints, ids, Measure and Clear controls under Tools
+
+#### Scenario: Unavailable controls stay visible
+
+- **WHEN** the shown model has no revisions
+- **THEN** the Revision picker and Revision Diff switch are visible and disabled
+
+#### Scenario: Switch state
+
+- **WHEN** a persistent setting is off, then turned on
+- **THEN** its switch track reads Off, then On
+
+### Requirement: Camera snaps follow true north
+
+The viewer SHALL offer isometric camera snaps for true north, west, east and south, plus Top. Each
+snap SHALL look from its named true direction, using the model's `northAngle`, at the same isometric
+elevation as the plan-corner views. Its label SHALL be N, W, E or S and SHALL NOT turn with the
+model. The `?view=` values `n`, `e`, `s` and `w` SHALL select these snaps; `sw`, `se`, `ne` and `nw`
+SHALL keep their plan-corner views and snapshot names as before.
+
+#### Scenario: Turned model
+
+- **WHEN** the viewer loads a model whose `northAngle` is 153°
+- **THEN** the N, W, E and S snaps look from true north, west, east and south, and their labels stay N, W, E and S
+
+#### Scenario: No north angle
+
+- **WHEN** the viewer loads a model with no `northAngle`
+- **THEN** the cardinal snaps look from plan north, west, east and south
+
+#### Scenario: Plan-corner links
+
+- **WHEN** the viewer is opened with `?view=ne` on a turned model
+- **THEN** it still shows the plan's north-east corner view
+
+### Requirement: Flat elevations
+
+The viewer SHALL offer flat orthographic elevations Front, Back, Left and Right around the model's
+front. Front SHALL look from `site.frontAngle`, the front's outward direction counter-clockwise
+from plan +y and defaulting to 180 (plan south). Back SHALL be opposite; Left and Right SHALL be the
+sides seen when facing the front. The elevations SHALL NOT turn with `northAngle`, and
+`?view=front|back|left|right` SHALL select them.
+
+#### Scenario: A set front angle
+
+- **WHEN** the model's `frontAngle` is 90, so the front faces plan west
+- **THEN** Front looks from plan west, Back from plan east, Left from plan north and Right from plan south
+
+#### Scenario: Front angle omitted
+
+- **WHEN** the model has no `frontAngle`
+- **THEN** Front looks from plan south
