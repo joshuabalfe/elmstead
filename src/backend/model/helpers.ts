@@ -7,6 +7,8 @@ import {
   type BuildingModel,
   type Door,
   type DoorComponent,
+  type Furnishing,
+  type FurnishingKind,
   type Point,
   type Polygon,
   type Railing,
@@ -325,4 +327,20 @@ export const railing = (id: string, start: Point, end: Point, opts: RailingOpts)
   height: opts.height,
   ...(opts.startBase === undefined ? {} : { startBase: opts.startBase }),
   ...(opts.endBase === undefined ? {} : { endBase: opts.endBase }),
+});
+
+export type FurnishingOpts = Partial<
+  Pick<Furnishing, "name" | "rotation" | "elevationOffset" | "width" | "depth" | "height">
+>;
+
+/**
+ * A piece of furniture or a sanitary fitting, centred on `at`. Options are recorded exactly as
+ * given and the rest omitted; an omitted size is the kind's default, an omitted rotation is 0 and an
+ * omitted `elevationOffset` stands the base on the floor (see the schema).
+ */
+export const furnishing = (id: string, kind: FurnishingKind, at: Point, opts: FurnishingOpts = {}): Furnishing => ({
+  id,
+  kind,
+  at,
+  ...Object.fromEntries(Object.entries(opts).filter(([, value]) => value !== undefined)),
 });

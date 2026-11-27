@@ -260,6 +260,12 @@
           "items": {
             "$ref": "#/$defs/Railing"
           }
+        },
+        "furnishings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Furnishing"
+          }
         }
       },
       "required": [
@@ -786,6 +792,67 @@
         "start",
         "end",
         "height"
+      ],
+      "additionalProperties": false
+    },
+    "Furnishing": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "bed",
+            "chair",
+            "desk",
+            "file-cabinet",
+            "shelf",
+            "sofa",
+            "table",
+            "bath",
+            "shower",
+            "sink",
+            "toilet",
+            "wash-basin"
+          ]
+        },
+        "at": {
+          "$ref": "#/$defs/Point"
+        },
+        "rotation": {
+          "type": "number"
+        },
+        "elevationOffset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "width": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "depth": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        },
+        "height": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "at"
       ],
       "additionalProperties": false
     }

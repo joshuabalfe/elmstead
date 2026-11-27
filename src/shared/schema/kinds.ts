@@ -7,6 +7,7 @@ import type { z } from "zod";
 import type { IdNode } from "./ids.js";
 import {
   DoorComponentSchema,
+  FurnishingSchema,
   OpeningSchema,
   RailingSchema,
   RoomSchema,
@@ -62,6 +63,7 @@ export const STOREY_KINDS = {
       })),
   },
   railings: { schema: RailingSchema, kind: () => "railing" },
+  furnishings: { schema: FurnishingSchema, kind: () => "furnishing" },
 } satisfies { [K in StoreyArrayKey]: StoreyKindEntry<K> };
 
 /** The component collections, after the storeys. */

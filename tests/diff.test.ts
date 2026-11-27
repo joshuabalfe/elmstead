@@ -8,6 +8,7 @@ import {
   addComponents,
   addTo,
   door,
+  furnishing,
   mm,
   pt,
   remove,
@@ -189,6 +190,41 @@ describe("diffModels: openings follow their wall and component", () => {
       removed: ["wall-north", "window-kitchen"],
       changed: ["door-back"],
     });
+  });
+});
+
+describe("diffModels furnishings", () => {
+  const sofa = furnishing("sofa-living", "sofa", pt(mm(2000), mm(2000)));
+  const bed = furnishing("bed-main", "bed", pt(mm(6000), mm(2000)));
+  const furnished = () => model(revise(base(), [addTo("storey-ground", { furnishings: [sofa, bed] })]));
+
+  it("lists an added furnishing, with its kind and storey", () => {
+    const d = diffModels(base(), furnished());
+    expect(d.added.map((e) => [e.id, e.kind, e.storey])).toEqual([
+      ["sofa-living", "furnishing", "storey-ground"],
+      ["bed-main", "furnishing", "storey-ground"],
+    ]);
+    expect(d.removed).toEqual([]);
+    expect(d.changed).toEqual([]);
+  });
+
+  it("lists a removed and a moved furnishing", () => {
+    const f = furnished();
+    const revised = model(revise(f, [remove("bed-main"), replace({ ...sofa, at: pt(mm(2500), mm(2000)) })]));
+    expect(ids(diffModels(f, revised))).toEqual({ added: [], removed: ["bed-main"], changed: ["sofa-living"] });
+  });
+
+  it("lists a furnishing moved to another storey as changed", () => {
+    const two = model(twoStorey);
+    two.storeys[0]!.furnishings = [
+      sofa as unknown as NonNullable<BuildingModel["storeys"][number]["furnishings"]>[number],
+    ];
+    const moved = structuredClone(two);
+    moved.storeys[1]!.furnishings = moved.storeys[0]!.furnishings;
+    delete moved.storeys[0]!.furnishings;
+    expect(diffModels(two, moved).changed.map((e) => [e.id, e.storey])).toEqual([
+      ["sofa-living", moved.storeys[1]!.id],
+    ]);
   });
 });
 

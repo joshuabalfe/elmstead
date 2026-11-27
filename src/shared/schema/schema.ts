@@ -212,6 +212,47 @@ export const RailingSchema = z
   })
   .meta({ id: "Railing" });
 
+/**
+ * The kinds of furniture and sanitary fitting a storey can hold, named for the IFC4 predefined
+ * types they export as: `IfcFurnitureTypeEnum` for the first seven, `IfcSanitaryTerminalTypeEnum`
+ * (`BATH`, `SHOWER`, `SINK`, `TOILETPAN`, `WASHHANDBASIN`) for the rest.
+ */
+export const FURNISHING_KINDS = [
+  "bed",
+  "chair",
+  "desk",
+  "file-cabinet",
+  "shelf",
+  "sofa",
+  "table",
+  "bath",
+  "shower",
+  "sink",
+  "toilet",
+  "wash-basin",
+] as const;
+export const FurnishingKindSchema = z.enum(FURNISHING_KINDS);
+
+/**
+ * A piece of furniture or a sanitary fitting. `at` is the centre of its footprint; `rotation` turns
+ * it counter-clockwise about `at`, seen from above with plan +y up, from facing plan -y. An omitted
+ * size is the kind's default (src/shared/geometry/furnishing.ts), and `elevationOffset` lifts its
+ * base above the storey floor.
+ */
+export const FurnishingSchema = z
+  .strictObject({
+    id: IdSchema,
+    name: z.string().optional(),
+    kind: FurnishingKindSchema,
+    at: PointSchema,
+    rotation: DegSchema.optional(),
+    elevationOffset: NonNegativeMmSchema.optional(),
+    width: PositiveMmSchema.optional(),
+    depth: PositiveMmSchema.optional(),
+    height: PositiveMmSchema.optional(),
+  })
+  .meta({ id: "Furnishing" });
+
 export const StoreySchema = z
   .strictObject({
     id: IdSchema,
@@ -226,6 +267,8 @@ export const StoreySchema = z
     stairs: z.array(StairSchema).optional(),
     /** Straight guard rails and handrails on this storey. */
     railings: z.array(RailingSchema).optional(),
+    /** Furniture and sanitary fittings standing on this storey. */
+    furnishings: z.array(FurnishingSchema).optional(),
   })
   .meta({ id: "Storey" });
 
@@ -325,6 +368,8 @@ export type StairWinder = z.infer<typeof StairWinderSchema>;
 export type StairSegment = z.infer<typeof StairSegmentSchema>;
 export type Stair = z.infer<typeof StairSchema>;
 export type Railing = z.infer<typeof RailingSchema>;
+export type FurnishingKind = (typeof FURNISHING_KINDS)[number];
+export type Furnishing = z.infer<typeof FurnishingSchema>;
 export type Storey = z.infer<typeof StoreySchema>;
 export type Site = z.infer<typeof SiteSchema>;
 export type BuildingModel = z.infer<typeof BuildingModelSchema>;

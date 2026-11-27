@@ -6,6 +6,7 @@ import {
   doorComponent,
   face,
   faceCrossing,
+  furnishing,
   m,
   mid,
   mm,
@@ -138,6 +139,38 @@ describe("model helpers", () => {
       endBase: 600,
     });
     expect(railing("railing-partial", a, b, { height: mm(900), endBase: mm(600) })).not.toHaveProperty("startBase");
+  });
+
+  it("furnishing() records the options it is given and omits the rest", () => {
+    const at = pt(mm(2000), mm(3000));
+    expect(furnishing("sofa-a", "sofa", at)).toEqual({ id: "sofa-a", kind: "sofa", at });
+    expect(
+      furnishing("shelf-a", "shelf", at, {
+        name: "Wall shelf",
+        rotation: deg(90),
+        elevationOffset: mm(900),
+        width: mm(600),
+        depth: mm(200),
+        height: mm(300),
+      }),
+    ).toEqual({
+      id: "shelf-a",
+      kind: "shelf",
+      at,
+      name: "Wall shelf",
+      rotation: 90,
+      elevationOffset: 900,
+      width: 600,
+      depth: 200,
+      height: 300,
+    });
+    expect(furnishing("bed-a", "bed", at, { width: mm(900) })).not.toHaveProperty("rotation");
+    expect(furnishing("bed-a", "bed", at, { name: undefined })).not.toHaveProperty("name");
+  });
+
+  it("furnishing() rejects an unknown kind at typecheck", () => {
+    // @ts-expect-error wardrobe is not in the catalogue
+    furnishing("wardrobe-a", "wardrobe", pt(mm(0), mm(0)));
   });
 
   it("centredOn() handles walls running in either direction", () => {

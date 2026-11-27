@@ -2,14 +2,14 @@
 
 ## 1. Schema, element-kind table and derived geometry
 
-- [ ] 1.1 Add `FURNISHING_KINDS` (`bed`, `chair`, `desk`, `file-cabinet`, `shelf`, `sofa`, `table`,
+- [x] 1.1 Add `FURNISHING_KINDS` (`bed`, `chair`, `desk`, `file-cabinet`, `shelf`, `sofa`, `table`,
       `bath`, `shower`, `sink`, `toilet`, `wash-basin`), `FurnishingSchema` (id, optional name, `kind`,
       `at`, optional `rotation` as `Deg`, optional non-negative `elevationOffset`, optional positive
       `width`/`depth`/`height`) and `furnishings: z.array(FurnishingSchema).optional()` on `StoreySchema`
       in `src/shared/schema/schema.ts`, with the `Furnishing` and `FurnishingKind` types. Add schema tests for a
       minimal furnishing, every kind, an unknown kind, zero size, negative elevation offset and an unknown
       field. Run `npm run schema` and verify the stale-schema test and every existing model still pass.
-- [ ] 1.2 Add the `furnishings` entry to `STOREY_KINDS` in `src/shared/schema/kinds.ts` (schema
+- [x] 1.2 Add the `furnishings` entry to `STOREY_KINDS` in `src/shared/schema/kinds.ts` (schema
       `FurnishingSchema`, kind `"furnishing"`) and the `furnishing` member of the `IdNode` union in
       `src/shared/schema/ids.ts`, so the id walk, `revise`, the diff and the viewer's storey ownership take it
       from the table. Add tests that `idNodes` yields furnishings after railings, `addTo` furnishes a
@@ -17,7 +17,7 @@
       constraint that names a furnishing id fails with "is a furnishing, not a wall". Verify
       `npm run typecheck` and `npx vitest run tests/ids.test.ts tests/revise.test.ts tests/constraints.test.ts`
       pass.
-- [ ] 1.3 Add `src/shared/geometry/furnishing.ts`: a table typed `Record<FurnishingKind, ...>` giving each
+- [x] 1.3 Add `src/shared/geometry/furnishing.ts`: a table typed `Record<FurnishingKind, ...>` giving each
       kind's default size and a function from an overall size to its parts (local-frame boxes, with
       thicknesses `min(fixed, fraction of the dimension)`), the effective size, the rotated footprint of
       each part and of the whole, and the part volumes. Add `tests/furnishing.test.ts` checking, for every kind at its default
@@ -25,14 +25,14 @@
       extent equal to the overall size; that a chair has seat, back and legs and a bath has no part
       filling its recess; and that rotation moves footprints but not volumes. Verify
       `npx vitest run tests/furnishing.test.ts` passes.
-- [ ] 1.4 Document the element in `docs/modelling.md`: add `Furnishing` to the element table with the
+- [x] 1.4 Document the element in `docs/modelling.md`: add `Furnishing` to the element table with the
       catalogue and default sizes, a "Furnishings" section with the plan-coordinate placement and rotation
       conventions and an example, and remove furnishings from the "Things the schema does not have yet"
       list. Verify the example type-checks against the schema.
 
 ## 2. Model helper and checks
 
-- [ ] 2.1 Add `furnishing(id, kind, at, { name?, rotation?, elevationOffset?, width?, depth?, height? })`
+- [x] 2.1 Add `furnishing(id, kind, at, { name?, rotation?, elevationOffset?, width?, depth?, height? })`
       to `src/backend/model/helpers.ts`, recording options as given and omitting the rest, and export it from
       `src/backend/model/index.ts`. Add tests for the minimal call, overrides and that an unknown kind fails
       `npm run typecheck`. Add the helper to the helpers table in `docs/modelling.md` and `furnishings` among
