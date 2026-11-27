@@ -10,7 +10,7 @@ import {
   replaceConstraint,
   reviseConstraints,
   roomCorner,
-} from "../../../../src/constraints/index.js";
+} from "../../../../src/backend/constraints/index.js";
 import base from "../constraints.js";
 
 export default reviseConstraints(base, [

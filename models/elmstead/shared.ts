@@ -17,7 +17,7 @@
  * see index.ts). Plan-axis arguments to the src helpers, such as face(wall, "north") or
  * roomCorner("south-west"), still name plan axes, and so do comments marked "plan".
  */
-import { add, m, mm, pt, scale, sub, wall, type Mm, type Point, type Wall } from "../../src/model/index.js";
+import { add, m, mm, pt, scale, sub, wall, type Mm, type Point, type Wall } from "../../src/backend/model/index.js";
 
 // ── Outline ──────────────────────────────────────────────────────────────────
 export const coreW = m(9.025); // living 4.2 m + bedroom 3.85 m (owner) plus the walls between and outside them

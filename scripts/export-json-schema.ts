@@ -1,5 +1,5 @@
 import { writeFileSync } from "node:fs";
-import { jsonSchemaText } from "../src/schema/json-schema.js";
+import { jsonSchemaText } from "../src/shared/schema/json-schema.js";
 
 const path = "schema/building.schema.json";
 writeFileSync(path, jsonSchemaText());

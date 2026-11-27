@@ -5,12 +5,12 @@ import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { describe, expect, it, vi } from "vitest";
-import { C } from "../src/render/style.js";
-import { group, line, polygon, polyline, text } from "../src/render/svg.js";
-import type { ResolvedConstraint } from "../src/constraints/check.js";
-import { constraintLabels } from "../viewer/constraints.js";
-import { disposeTree } from "../viewer/dispose.js";
-import { elementLabel } from "../viewer/identify.js";
+import { C } from "../src/shared/render/style.js";
+import { group, line, polygon, polyline, text } from "../src/shared/render/svg.js";
+import type { ResolvedConstraint } from "../src/shared/constraints/types.js";
+import { constraintLabels } from "../src/frontend/scene/constraints.js";
+import { disposeTree } from "../src/frontend/scene/dispose.js";
+import { elementLabel } from "../src/frontend/scene/identify.js";
 import {
   CLICK_SLOP_PX,
   SNAP_MAX_PX,
@@ -20,10 +20,17 @@ import {
   measurementSummary,
   measurementValues,
   nearestSnap,
-} from "../viewer/measure.js";
-import { M_PER_PX, dashOf, overlayGroup, placeText, toRuns, toScene } from "../viewer/overlay.js";
-import { confinedPath } from "../viewer/serve.js";
-import { cameraForView, cornerLabel, labelHeading, parseOrient, parseView, turnedTopFit } from "../viewer/view.js";
+} from "../src/frontend/lib/measure.js";
+import { M_PER_PX, dashOf, overlayGroup, placeText, toRuns, toScene } from "../src/frontend/scene/overlay.js";
+import { confinedPath } from "../src/frontend/vite/serve.js";
+import {
+  cameraForView,
+  cornerLabel,
+  labelHeading,
+  parseOrient,
+  parseView,
+  turnedTopFit,
+} from "../src/frontend/lib/view.js";
 
 const dir = "/tmp/elmstead-out";
 

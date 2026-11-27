@@ -6,9 +6,9 @@ import {
   openingOutline,
   openingProfile,
   revealSplay,
-} from "../src/geometry/opening.js";
-import { wallSegmentFootprint } from "../src/geometry/wall.js";
-import { deg, m, mm, pt, wall, window, type Reveal } from "../src/model/index.js";
+} from "../src/shared/geometry/opening.js";
+import { wallSegmentFootprint } from "../src/shared/geometry/wall.js";
+import { deg, m, mm, pt, wall, window, type Reveal } from "../src/backend/model/index.js";
 
 const size = { width: mm(1200), height: m(1), sillHeight: mm(900) };
 /** 4 m walls, 400 mm thick, running east, one for each justification. */

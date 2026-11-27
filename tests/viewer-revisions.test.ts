@@ -9,11 +9,11 @@ import { join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
 import { createServer, type ViteDevServer } from "vite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { formatJson } from "../src/cli/json-format.js";
-import { loadModel } from "../src/cli/load.js";
-import { writeIfc } from "../src/ifc/writer.js";
-import { mm, remove, replace, revise } from "../src/model/index.js";
-import type { BuildingModel, Wall } from "../src/schema/schema.js";
+import { formatJson } from "../src/backend/cli/json-format.js";
+import { loadModel } from "../src/backend/cli/load.js";
+import { writeIfc } from "../src/backend/ifc/writer.js";
+import { mm, remove, replace, revise } from "../src/backend/model/index.js";
+import type { BuildingModel, Wall } from "../src/shared/schema/schema.js";
 
 declare global {
   interface Window {
@@ -156,7 +156,11 @@ beforeAll(async () => {
   await publish(`${TWO}@moved`, revise(two, [replace({ ...moved, start: shift(moved.start), end: shift(moved.end) })]));
   await publish(`${ORPHAN}@only`, cottage);
   await publish(PLAIN, cottage);
-  server = await createServer({ configFile: "viewer/vite.config.ts", server: { port: 0 }, logLevel: "error" });
+  server = await createServer({
+    configFile: "src/frontend/vite/vite.config.ts",
+    server: { port: 0 },
+    logLevel: "error",
+  });
   await server.listen();
   baseUrl = server.resolvedUrls!.local[0]!;
   page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: 1 });

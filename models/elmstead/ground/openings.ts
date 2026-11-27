@@ -22,7 +22,7 @@ import {
   sub,
   window,
   type Opening,
-} from "../../../src/model/index.js";
+} from "../../../src/backend/model/index.js";
 import { fanlight, framedWindow, frontDoor, frontWindow, internalDoor, smallPaneWindow } from "../components/index.js";
 import { living } from "./rooms.js";
 import {

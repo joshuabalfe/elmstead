@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { add, deg, div, divRound, m, mm, neg, scale, sub, toMetres, type Mm } from "../src/schema/units.js";
+import { add, deg, div, divRound, m, mm, neg, scale, sub, toMetres, type Mm } from "../src/shared/schema/units.js";
 
 describe("unit helpers", () => {
   it("mm() accepts whole millimetres", () => {

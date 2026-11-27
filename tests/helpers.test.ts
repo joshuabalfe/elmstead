@@ -15,7 +15,7 @@ import {
   wall,
   window,
   windowComponent,
-} from "../src/model/index.js";
+} from "../src/backend/model/index.js";
 
 const opts = { thickness: mm(200), height: m(2.4) };
 

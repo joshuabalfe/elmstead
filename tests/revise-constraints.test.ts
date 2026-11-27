@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import cottageConstraints from "../models/examples/example-cottage/constraints.js";
-import { loadConstraints } from "../src/constraints/load.js";
-import { CONSTRAINT_EDITS } from "../src/constraints/revise.js";
+import { loadConstraints } from "../src/backend/constraints/load.js";
+import { CONSTRAINT_EDITS } from "../src/backend/constraints/revise.js";
 import {
   addGroups,
   inStorey,
@@ -12,8 +12,8 @@ import {
   wallEnd,
   type Constraint,
   type ConstraintGroup,
-} from "../src/constraints/index.js";
-import { RevisionError } from "../src/schema/ids.js";
+} from "../src/backend/constraints/index.js";
+import { RevisionError } from "../src/shared/schema/ids.js";
 
 const base = (): ConstraintGroup[] => structuredClone(cottageConstraints);
 const ids = (groups: ConstraintGroup[]) => groups.flatMap((g) => g.constraints.map((c) => c.id));

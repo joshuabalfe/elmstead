@@ -2,12 +2,18 @@ import { describe, expect, it } from "vitest";
 import cottage from "../models/examples/example-cottage/index.js";
 import elmstead from "../models/elmstead/index.js";
 import twoStorey from "./fixtures/two-storey/index.js";
-import { deg, door, m, mm, pt, railing, wall } from "../src/model/index.js";
-import { doorGeometry, renderFloor, renderPlan, renderPlanAnnotations, renderWallTops } from "../src/render/plan.js";
-import { svgToPng } from "../src/render/png.js";
-import { C } from "../src/render/style.js";
-import { el, group, line, polygon, polyline, serialise, text, type Node } from "../src/render/svg.js";
-import { BuildingModelSchema } from "../src/schema/schema.js";
+import { deg, door, m, mm, pt, railing, wall } from "../src/backend/model/index.js";
+import {
+  doorGeometry,
+  renderFloor,
+  renderPlan,
+  renderPlanAnnotations,
+  renderWallTops,
+} from "../src/shared/render/plan.js";
+import { svgToPng } from "../src/backend/render/png.js";
+import { C } from "../src/shared/render/style.js";
+import { el, group, line, polygon, polyline, serialise, text, type Node } from "../src/shared/render/svg.js";
+import { BuildingModelSchema } from "../src/shared/schema/schema.js";
 import { splayedCottage } from "./support/reveal.js";
 
 const model = BuildingModelSchema.parse(JSON.parse(JSON.stringify(cottage)));

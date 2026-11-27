@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultName, groupModels, joinName, splitName, stepRevision } from "../viewer/revisions.js";
+import { defaultName, groupModels, joinName, splitName, stepRevision } from "../src/frontend/lib/revisions.js";
 
 describe("viewer revision names", () => {
   it("splits and joins <model>@<revision>", () => {

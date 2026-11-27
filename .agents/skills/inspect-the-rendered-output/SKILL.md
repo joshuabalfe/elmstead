@@ -50,7 +50,7 @@ node --input-type=module -e '
 import { chromium } from "playwright";
 import { createServer } from "vite";
 const [query, file] = process.argv.slice(1);
-const server = await createServer({ configFile: "viewer/vite.config.ts", server: { port: 0 }, logLevel: "error" });
+const server = await createServer({ configFile: "src/frontend/vite/vite.config.ts", server: { port: 0 }, logLevel: "error" });
 await server.listen();
 const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 try {

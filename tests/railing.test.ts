@@ -7,8 +7,8 @@ import {
   railingPostFractions,
   railingPostPoints,
   railingRun,
-} from "../src/geometry/railing.js";
-import { m, mm, pt, railing } from "../src/model/index.js";
+} from "../src/shared/geometry/railing.js";
+import { m, mm, pt, railing } from "../src/backend/model/index.js";
 
 const level = railing("railing-level", pt(mm(0), mm(0)), pt(m(3), mm(0)), { height: mm(900) });
 const sloped = railing("railing-sloped", pt(mm(0), mm(0)), pt(mm(880), mm(0)), {

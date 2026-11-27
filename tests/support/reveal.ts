@@ -1,6 +1,6 @@
 import cottage from "../../models/examples/example-cottage/index.js";
-import { deg } from "../../src/model/index.js";
-import { BuildingModelSchema, type BuildingModel } from "../../src/schema/schema.js";
+import { deg } from "../../src/backend/model/index.js";
+import { BuildingModelSchema, type BuildingModel } from "../../src/shared/schema/schema.js";
 
 /**
  * The example cottage with its living-room window splayed 45° on the inside (the south wall's

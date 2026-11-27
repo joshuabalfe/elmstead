@@ -14,7 +14,7 @@ import {
   mm,
   roomCorner,
   wallEnd,
-} from "../../src/constraints/index.js";
+} from "../../src/backend/constraints/index.js";
 
 export default defineConstraints([
   inRoom("room-living", [

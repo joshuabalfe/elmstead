@@ -1,4 +1,4 @@
-import { defineConstraints, inRoom, jamb, mm } from "../../src/constraints/index.js";
+import { defineConstraints, inRoom, jamb, mm } from "../../src/backend/constraints/index.js";
 
 // window-living is 1200 mm wide.
 export default defineConstraints([

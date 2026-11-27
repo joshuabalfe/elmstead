@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { render3d } from "../src/render/index.js";
+import { render3d } from "../src/backend/render/index.js";
 
 describe("render3d", () => {
   it("reports a viewer failure as an ERROR and closes the server", async () => {

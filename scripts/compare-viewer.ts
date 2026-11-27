@@ -14,9 +14,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { chromium, type Browser } from "playwright";
 import { createServer } from "vite";
-import { faceOffsets, wallHeight, wallPoint } from "../src/geometry/wall.js";
-import { PROJECT_ROOT } from "../src/root.js";
-import type { BuildingModel } from "../src/schema/schema.js";
+import { faceOffsets, wallHeight, wallPoint } from "../src/shared/geometry/wall.js";
+import { PROJECT_ROOT } from "../src/backend/root.js";
+import type { BuildingModel } from "../src/shared/schema/schema.js";
 import { readFileSync } from "node:fs";
 
 const args = process.argv.slice(2);
@@ -84,7 +84,7 @@ async function capture(
   list: { name: string; query: string }[],
 ): Promise<Map<string, Buffer>> {
   const server = await createServer({
-    configFile: join(root, "viewer/vite.config.ts"),
+    configFile: join(root, "src/frontend/vite/vite.config.ts"),
     server: { port: 0 },
     logLevel: "error",
   });

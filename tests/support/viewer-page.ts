@@ -11,10 +11,10 @@ import { join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
 import { createServer, type ViteDevServer } from "vite";
 import { afterAll, beforeAll } from "vitest";
-import { formatJson } from "../../src/cli/json-format.js";
-import { loadModel } from "../../src/cli/load.js";
-import { writeIfc } from "../../src/ifc/writer.js";
-import type { BuildingModel } from "../../src/schema/schema.js";
+import { formatJson } from "../../src/backend/cli/json-format.js";
+import { loadModel } from "../../src/backend/cli/load.js";
+import { writeIfc } from "../../src/backend/ifc/writer.js";
+import type { BuildingModel } from "../../src/shared/schema/schema.js";
 import type { Raster } from "./plan-vs-3d.js";
 
 declare global {
@@ -121,7 +121,11 @@ export function useViewer() {
     }
     outDir = mkdtempSync(join(tmpdir(), "elmstead-plan-vs-3d-"));
     process.env.ELMSTEAD_OUT_DIR = outDir;
-    server = await createServer({ configFile: "viewer/vite.config.ts", server: { port: 0 }, logLevel: "error" });
+    server = await createServer({
+      configFile: "src/frontend/vite/vite.config.ts",
+      server: { port: 0 },
+      logLevel: "error",
+    });
     await server.listen();
     page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: 1 });
   }, 60_000);

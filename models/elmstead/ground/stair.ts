@@ -22,7 +22,7 @@ import {
   window,
   type Stair,
   type Storey,
-} from "../../../src/model/index.js";
+} from "../../../src/backend/model/index.js";
 import { crossBarWindow } from "../components/index.js";
 import { stairwellOutline } from "../first/index.js";
 import { stairArrivalX } from "../first/walls.js";

@@ -36,7 +36,7 @@ import {
   type Door,
   type Room,
   type Window,
-} from "../../../../src/model/index.js";
+} from "../../../../src/backend/model/index.js";
 import base from "../index.js";
 
 const ground = base.storeys[0]!;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { constraintsPath, entryPoint, modelName, revisionOf } from "../src/paths.js";
+import { constraintsPath, entryPoint, modelName, revisionOf } from "../src/backend/paths.js";
 
 describe("entryPoint", () => {
   it("is index.ts inside a folder model", () => {

@@ -3,10 +3,10 @@
  * One model per file keeps each file short enough for CI to run them side by side.
  */
 import { expect, it } from "vitest";
-import { renderPlan } from "../../src/render/plan.js";
-import { svgToPixels } from "../../src/render/png.js";
-import { MARGIN, PNG_ZOOM } from "../../src/render/style.js";
-import type { BuildingModel, Storey } from "../../src/schema/schema.js";
+import { renderPlan } from "../../src/shared/render/plan.js";
+import { svgToPixels } from "../../src/backend/render/png.js";
+import { MARGIN, PNG_ZOOM } from "../../src/shared/render/style.js";
+import type { BuildingModel, Storey } from "../../src/shared/schema/schema.js";
 import { comparePlanTo3d, type Raster } from "./plan-vs-3d.js";
 import { publish, topView } from "./viewer-page.js";
 

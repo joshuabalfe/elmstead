@@ -29,7 +29,7 @@ import {
   stairLanding,
   sub,
   type Storey,
-} from "../../../src/model/index.js";
+} from "../../../src/backend/model/index.js";
 
 const outerW = m(6);
 const outerD = m(4);

@@ -1,5 +1,5 @@
 /** Ground-floor rooms, outlined along the faces of the walls around them (./walls.ts). */
-import { face, faceCrossing, mm, pt, rectRoom, type Room } from "../../../src/model/index.js";
+import { face, faceCrossing, mm, pt, rectRoom, type Room } from "../../../src/backend/model/index.js";
 import { coreW } from "../shared.js";
 import {
   bathLeftY,

@@ -7,7 +7,7 @@
  * towards the front along the left flight to the landing. The stair well is left open; the flights
  * are in ../ground/stair.ts, and the attic stair above them in ./stair.ts.
  */
-import { add, face, mm, pt, sub, wall } from "../../../src/model/index.js";
+import { add, face, mm, pt, sub, wall } from "../../../src/backend/model/index.js";
 import {
   brickT,
   coreD,

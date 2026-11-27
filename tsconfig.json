@@ -13,5 +13,6 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src", "models", "tests", "scripts"]
+  "include": ["src", "models", "tests", "scripts"],
+  "exclude": ["src/frontend"]
 }

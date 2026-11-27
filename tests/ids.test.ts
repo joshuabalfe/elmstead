@@ -3,8 +3,13 @@ import { z } from "zod";
 import cottage from "../models/examples/example-cottage/index.js";
 import elmstead from "../models/elmstead/index.js";
 import twoStorey from "./fixtures/two-storey/index.js";
-import { COMPONENT_COLLECTIONS, idNodes, STOREY_COLLECTIONS } from "../src/schema/ids.js";
-import { BuildingModelSchema, ComponentsSchema, StoreySchema, type BuildingModel } from "../src/schema/schema.js";
+import { COMPONENT_COLLECTIONS, idNodes, STOREY_COLLECTIONS } from "../src/shared/schema/ids.js";
+import {
+  BuildingModelSchema,
+  ComponentsSchema,
+  StoreySchema,
+  type BuildingModel,
+} from "../src/shared/schema/schema.js";
 
 const model = (source: unknown): BuildingModel => BuildingModelSchema.parse(JSON.parse(JSON.stringify(source)));
 

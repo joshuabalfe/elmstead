@@ -42,7 +42,7 @@ it cannot add, remove or change a storey (a half-landing or external storey belo
 
 ```ts
 import base from "../index.js";
-import { addTo, remove, replace, revise } from "../../../../src/model/index.js";
+import { addTo, remove, replace, revise } from "../../../../src/backend/model/index.js";
 
 export default revise(base, [
   remove("window-kitchen", "wall-living-kitchen"),

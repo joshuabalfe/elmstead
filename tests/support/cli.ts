@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, vi } from "vitest";
 
 export const ROOT = fileURLToPath(new URL("../..", import.meta.url));
-export const CLI = join(ROOT, "src/cli/index.ts");
+export const CLI = join(ROOT, "src/backend/cli/index.ts");
 /** Temp directories to remove after each test. */
 export const dirs: string[] = [];
 

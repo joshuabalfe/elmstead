@@ -1,5 +1,5 @@
 /** Basement rooms, outlined along the faces of the walls around them (./walls.ts). */
-import { face, pt, rectRoom, type Room } from "../../../src/model/index.js";
+import { face, pt, rectRoom, type Room } from "../../../src/backend/model/index.js";
 import { coreW, extRightY } from "../shared.js";
 import {
   bedroomDivide,

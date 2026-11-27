@@ -2,12 +2,27 @@ import { describe, expect, it } from "vitest";
 import cottage from "../models/examples/example-cottage/index.js";
 import elmstead from "../models/elmstead/index.js";
 import { z } from "zod";
-import { checkComponents } from "../src/checks/components.js";
-import { schemaIssue } from "../src/checks/issue.js";
-import { checkIds, checkModel, checkOpenings, checkOutlines, checkRailings, checkWalls } from "../src/checks/model.js";
-import { wallHeight, wallLength } from "../src/geometry/wall.js";
-import { deg, m as metres, mm, pt, wall as makeWall, window as makeWindow, type Reveal } from "../src/model/index.js";
-import { BuildingModelSchema, type BuildingModel } from "../src/schema/schema.js";
+import { checkComponents } from "../src/backend/checks/components.js";
+import { schemaIssue } from "../src/backend/checks/issue.js";
+import {
+  checkIds,
+  checkModel,
+  checkOpenings,
+  checkOutlines,
+  checkRailings,
+  checkWalls,
+} from "../src/backend/checks/model.js";
+import { wallHeight, wallLength } from "../src/shared/geometry/wall.js";
+import {
+  deg,
+  m as metres,
+  mm,
+  pt,
+  wall as makeWall,
+  window as makeWindow,
+  type Reveal,
+} from "../src/backend/model/index.js";
+import { BuildingModelSchema, type BuildingModel } from "../src/shared/schema/schema.js";
 
 const model = (source: unknown = cottage): BuildingModel =>
   BuildingModelSchema.parse(JSON.parse(JSON.stringify(source)));

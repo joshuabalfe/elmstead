@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { BuildingModelSchema } from "../src/schema/schema.js";
-import { jsonSchemaText } from "../src/schema/json-schema.js";
+import { BuildingModelSchema } from "../src/shared/schema/schema.js";
+import { jsonSchemaText } from "../src/shared/schema/json-schema.js";
 
 /** Plain JSON, as the CLI would see it after JSON.parse. */
 function minimal() {

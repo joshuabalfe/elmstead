@@ -1,5 +1,5 @@
 /** Elmstead's window designs. Sizes are each window's own (../ground/openings.ts). */
-import { mm, windowComponent } from "../../../src/model/index.js";
+import { mm, windowComponent } from "../../../src/backend/model/index.js";
 
 /**
  * The large front window: a 100 mm frame all round, inside the window's size, then a horizontal bar

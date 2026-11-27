@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compressGuid, ifcGuid, uuidv5 } from "../src/ifc/guid.js";
+import { compressGuid, ifcGuid, uuidv5 } from "../src/backend/ifc/guid.js";
 
 describe("deterministic IFC GlobalIds", () => {
   it("uuidv5 matches the RFC 4122 reference (Python uuid.uuid5(NAMESPACE_DNS, 'python.org'))", () => {

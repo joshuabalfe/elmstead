@@ -1,5 +1,5 @@
 // Helpers shared by revisions: a folder under revisions/ without an index.ts is not a revision.
-import { mm, pt, wall } from "../../../../../src/model/index.js";
+import { mm, pt, wall } from "../../../../../src/backend/model/index.js";
 
 const leanTo = { thickness: mm(100), height: mm(2400) };
 export const leanToWalls = [

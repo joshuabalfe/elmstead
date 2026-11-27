@@ -6,7 +6,7 @@
  * runs out to the core's rear edge, and the left band stays under the gable. Rooms, partitions and
  * openings await the owner's attic plan. The stair up to this floor is in ../first/stair.ts.
  */
-import { mm, pt, type Storey } from "../../../src/model/index.js";
+import { mm, pt, type Storey } from "../../../src/backend/model/index.js";
 import { atticFloor, atticFloorStructure, coreD, coreW } from "../shared.js";
 import { stairArrivalX, stairLeftY, stairRightY } from "../first/walls.js";
 import { walls } from "./walls.js";

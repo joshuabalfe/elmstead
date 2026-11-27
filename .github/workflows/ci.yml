@@ -50,6 +50,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run format:check
       - run: npm run schema && git diff --exit-code schema/
+      - run: npm run viewer:build
       - run: npm run test:fast
 
   # The browser and CLI tests are the cost, and on one 4-core runner they fight over the cores

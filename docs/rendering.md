@@ -2,10 +2,10 @@
 
 `npm run render <model>` produces two kinds of image:
 
-| Output                                  | Drawn from       | Code                                  |
-| --------------------------------------- | ---------------- | ------------------------------------- |
-| `out/<name>.<storey>.plan.svg` / `.png` | the model (JSON) | `src/render/plan.ts`, `png.ts`        |
-| `out/<name>.3d-{sw,se,ne,nw,top}.png`   | the IFC file     | `src/render/snapshot3d.ts`, `viewer/` |
+| Output                                  | Drawn from       | Code                                                     |
+| --------------------------------------- | ---------------- | -------------------------------------------------------- |
+| `out/<name>.<storey>.plan.svg` / `.png` | the model (JSON) | `src/shared/render/plan.ts`, `src/backend/render/png.ts` |
+| `out/<name>.3d-{sw,se,ne,nw,top}.png`   | the IFC file     | `src/backend/render/snapshot3d.ts`, `src/frontend/`      |
 
 Look at the PNGs after every change. They are the quickest way to catch something the checks
 don't, such as a door swinging the wrong way.
@@ -21,7 +21,7 @@ north angle draws with plan +y up. The plan is drawn in this order:
 2. room fills (the same cream, on top of the slab)
 3. walls at their true thickness, split around the openings. Beside a window with a splayed
    reveal the wall ends square from one face to the middle, then at the reveal's angle to the
-   splayed face (`src/geometry/opening.ts`)
+   splayed face (`src/shared/geometry/opening.ts`)
 4. door leaves with swing arcs (inset by the door's frame), and window symbols (outline, two
    glazing lines, and a small block for each frame piece or glazing bar the cut passes through:
    jambs and vertical bars). A splayed window's outline, and the dashed outline of one the cut
@@ -49,9 +49,9 @@ their drawing extent stays clear of outlying railings. For readability the viewe
 stair solids in every viewer mode including snapshots — cream / darker-cream tread bands and an
 edge outline. The base IFC stair colour stays classifier-safe; the recolour is presentation only.
 Railings keep their IFC slate colour. Both colours stay clear of the wall, room and paper colours
-the plan-versus-3D comparison classifies (`src/render/style.ts`).
+the plan-versus-3D comparison classifies (`src/shared/render/style.ts`).
 
-Drawing style is all in one place: `src/render/style.ts` holds the scale, colours, font and
+Drawing style is all in one place: `src/shared/render/style.ts` holds the scale, colours, font and
 margins.
 
 ### Determinism
@@ -65,7 +65,7 @@ SVG in `tests/__snapshots__/`.
 
 ## Colours
 
-The plan's colours are `C` in `src/render/style.ts`. The viewer draws the same colours in plan
+The plan's colours are `C` in `src/shared/render/style.ts`. The viewer draws the same colours in plan
 style, so they have three jobs, and a new one must be chosen for all three:
 
 - **The plan-versus-3D comparison.** `tests/support/plan-vs-3d.ts` classifies each pixel as wall,
@@ -107,15 +107,19 @@ To see a viewer state from a script, headless, use the
 [inspect-the-rendered-output](../.agents/skills/inspect-the-rendered-output/SKILL.md) skill: it has a
 recipe and a table of the URL parameters below.
 
-`viewer/` is a small Vite app built on
-[@thatopen/components](https://github.com/ThatOpen/engine_components) and three.js.
+`src/frontend/` is a React 19 app built by Vite. React renders the toolbar, pickers, hints,
+measurement list, changes panel and compass from `src/frontend/state/store.ts`; the imperative
+engine in `src/frontend/scene/engine.ts` owns the three.js/ThatOpen scene and publishes discrete
+state to the store. `npm run view` serves the dev build, `npm run viewer:build` writes `dist/`, and
+`npm run viewer:preview` serves that build with the same `/models.json`, `/out/*` and `/wasm/*`
+routes.
 
-- `vite.config.ts` serves `/models.json` (the IFCs in `out/`), `/out/*` and the web-ifc WASM
+- `src/frontend/vite/vite.config.ts` serves `/models.json` (the IFCs in `out/`), `/out/*` and the web-ifc WASM
   from `node_modules`, so nothing comes from a CDN. `ELMSTEAD_OUT_DIR` serves another folder in
   place of `out/` (the tests use it). Requests are confined to those directories; traversal,
   sibling-directory prefixes and malformed percent-encoding return 404. It reloads on `change`
   and `add`, so an atomic IFC rename is noticed too.
-- `main.ts` loads the IFC through ThatOpen's IFC loader and sets up the camera views.
+- `scene/engine.ts` loads the IFC through ThatOpen's IFC loader and sets up the camera views.
   - In the scene Y is up and plan north is −Z.
   - The four corner buttons show true isometric views: an orthographic camera from a plan corner,
     45° round and 35.26° above the ground, so parallel edges stay parallel and the building reads
@@ -143,20 +147,20 @@ recipe and a table of the URL parameters below.
     frame is drawn, which is what the snapshot driver waits for.
 - Hover identification: the **Ids** button or `?ids=1` (off by default, ignored in snapshots)
   shows a constraint-style haloed label at the hovered point with the model id and name of the
-  element under it, drawn above everything like the measurement readout. `viewer/identify.ts` maps each fragments item's `Tag`/`Name`/`LongName` to
-  that label — the same ids the model code and checks use — and `main.ts` raycasts on
+  element under it, drawn above everything like the measurement readout. `src/frontend/scene/identify.ts` maps each fragments item's `Tag`/`Name`/`LongName` to
+  that label — the same ids the model code and checks use — and `scene/engine.ts` raycasts on
   pointermove, one pick in flight. It is passive: clicks still measure and drags still navigate.
   The label hides while dragging, while the camera moves and throughout walk mode, and follows
   the storey selector, since the raycast skips hidden items.
-- Room labels: `main.ts` also reads `out/<name>.building.json` and draws each storey's room
+- Room labels: `scene/engine.ts` also reads `out/<name>.building.json` and draws each storey's room
   labels at its ceiling, 10 mm above the top of its tallest wall (the schema has no ceiling
   height). Being above the walls, they read from every camera that can see that storey.
   - The plan's own room and overall dimension lines (`renderPlanAnnotations` in
-    `src/render/plan.ts`) lie flat at the ceiling, as if on a glass ceiling. Lying flat is what lets
+    `src/shared/render/plan.ts`) lie flat at the ceiling, as if on a glass ceiling. Lying flat is what lets
     a storey above occlude them; camera-facing billboards painted through floors.
   - Room names, areas and ids sit on small flat planes at the same ceiling, one per room, and each
     yaws about its room's centre to follow the camera (`updateLabelOrientation` in
-    `viewer/main.ts`), so the text reads left-to-right across the screen from any view while
+    `src/frontend/scene/engine.ts`), so the text reads left-to-right across the screen from any view while
     still lying flat enough to be occluded by an upper floor. The id line makes rooms
     referenceable even though their 2D outlines carry no pickable geometry.
   - All of it has a white halo so it reads over the model.
@@ -185,7 +189,7 @@ recipe and a table of the URL parameters below.
   - The measure layer is independent of **Labels** and **Constraints**; completed measurements
     stay visible when measure mode is off.
 - The plan overlays (floors, wall tops and dimensions) are drawn as scene geometry, not as images
-  of the plan (`viewer/overlay.ts`). `renderFloor`, `renderWallTops` and `renderPlanAnnotations`
+  of the plan (`src/frontend/scene/overlay.ts`). `renderFloor`, `renderWallTops` and `renderPlanAnnotations`
   return the drawing's primitives (polygons, polylines, lines and text, the same nodes their SVG
   is written from), and the viewer draws them in the SVG's order:
   - fills as flat, unlit meshes in the plan's colours;
@@ -198,8 +202,8 @@ recipe and a table of the URL parameters below.
   of text, not a storey's footprint. A browser test holds every uploaded texture to 1024 × 1024
   texels at most.
 
-- Plan colouring, the same in every view (`applyStyle` in `main.ts`):
-  - Floors are the plan's own floor fills and door swings (`renderFloor` in `src/render/plan.ts`),
+- Plan colouring, the same in every view (`applyStyle` in `scene/engine.ts`):
+  - Floors are the plan's own floor fills and door swings (`renderFloor` in `src/shared/render/plan.ts`),
     slab fills (cream, or the ground colour for a ground slab) and room fills, one layer per shown
     storey at that storey's level. The slab
     fill covers floor outside the room outlines too, such as bay windows and alcoves. Each floor
@@ -286,7 +290,7 @@ recipe and a table of the URL parameters below.
   hidden, with their labels and floor planes. An id that names no storey is noted in the status line
   and ignored; omitting the parameter shows every storey. With one storey shown, the Top view is
   that storey's plan view, whichever storey it is.
-- Navigation (`setNavigationInput` in `main.ts`), map-style in every view:
+- Navigation (`setNavigationInput` in `scene/engine.ts`), map-style in every view:
   - Left drag or one finger pans.
   - The wheel or a pinch zooms. A pinch tracks the fingers: spreading them 4× zooms about 4×. In
     the orthographic views it is a true zoom, since moving an orthographic camera closer changes
