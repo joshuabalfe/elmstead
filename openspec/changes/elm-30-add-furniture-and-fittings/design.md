@@ -204,9 +204,10 @@ The repo's add-support-for-new-element-types skill asks for each view's decision
   plan are unaffected) and amend the `ifc-export` spec.
 - [Fragments may merge or drop several solids per element] → railings already rely on a multi-solid
   body; eye-check each kind in the viewer early.
-- [A furnished house multiplies solids: about 6 per chair, about 300 for forty items] → measure with
-  the existing viewer benchmark script on the furnished cottage; parts are plain boxes, so the cost
-  is expected to be small.
+- [A furnished house multiplies solids: about 6 per chair] → measured with `scripts/bench-viewer.ts` on the example cottage
+  and its furnished revision (12 items, about 60 solids), software-rendered on one machine: load time
+  was about 2.0 s furnished against 2.3 s bare in the last two of three runs each, with the same
+  textures, so no cost is visible beyond run-to-run noise.
 - [Stylised shapes are still not a real chair] → accepted; they are recognisable on a plan and in 3D,
   and a richer shape is a change to one generator, not the schema.
 - [Default sizes are unmeasured] → documented as provisional and overridable per furnishing; changing

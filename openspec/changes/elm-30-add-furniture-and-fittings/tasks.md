@@ -80,7 +80,7 @@
 
 ## 4. Plan rendering and viewer presentation
 
-- [ ] 4.1 Add furniture and sanitary entries to the plan palette `C` in `src/shared/render/style.ts`
+- [x] 4.1 Add furniture and sanitary entries to the plan palette `C` in `src/shared/render/style.ts`
       matching the IFC colours. Draw each furnishing in `src/shared/render/plan.ts` as the outlines of its
       part footprints (leaving out parts wholly inside a higher part) in a `furnishing` group with its
       `data-id`, placed with `view.toPx`, after walls and openings and before railings and stairs, and its id
@@ -91,18 +91,18 @@
       `northAngle`, layer order, an outlying furnishing (plan extent grows, overlay bounds do not), no group
       on an unfurnished storey, and the id label with and without the flag. Verify
       `npx vitest run tests/render.test.ts` passes.
-- [ ] 4.2 Add a plan-versus-3D unit check that each furnishing plan colour is ignored by
+- [x] 4.2 Add a plan-versus-3D unit check that each furnishing plan colour is ignored by
       `isIgnoredColour` (`tests/support/plan-vs-3d.ts`) and classifies as neither wall, room nor paper,
       keeping fixture furnishings clear of walls, and confirm the comparison is unchanged for models
       without furnishings. Verify `npx vitest run tests/plan-vs-3d.test.ts -t "ignores"` passes.
-- [ ] 4.3 Viewer, in `src/frontend/scene/engine.ts`: add furnishing points to `computeShownBox` and the
+- [x] 4.3 Viewer, in `src/frontend/scene/engine.ts`: add furnishing points to `computeShownBox` and the
       height of a furnishing to `storeyTop`. Storey visibility, hover labels and the Diff ghosts come from
       the table and the `Tag`, so add no code for them. Add a browser test in
       `tests/viewer-presentation.test.ts` that shows the furniture and sanitary colours in 3D and plan
       style, hides furnishings with their storey, frames an outlying furnishing, labels a picked part with
       the furnishing's id, and shows a revision's added furnishing in Diff mode; verify the new tests pass
       and the plan overlay is unchanged.
-- [ ] 4.4 Document the plan symbol, drawing order, `furnishing` class and colours in
+- [x] 4.4 Document the plan symbol, drawing order, `furnishing` class and colours in
       `docs/rendering.md`. Verify the documented drawing order matches `src/shared/render/plan.ts`.
 
 ## 5. Furnished cottage
@@ -111,10 +111,10 @@
       `addTo` and `furnishing()`, with positions derived from the base's wall faces and room outlines so
       they follow wall thickness, covering all twelve kinds and a rotated item. Verify
       `npm run check models/examples/example-cottage/revisions/furnished.ts` and `npm run all` on it pass.
-- [ ] 5.2 Add cottage integration assertions: the furnished plan has a `furnishing` group per item,
+- [x] 5.2 Add cottage integration assertions: the furnished plan has a `furnishing` group per item,
       the IFC round-trips and validates, the base cottage's output is unchanged, and hiding a storey hides
       its furnishings. Verify `npm test` passes.
-- [ ] 5.3 Eye-check the furnished plan, a 3D view and close-ups of a chair, a bed, a bath and a
+- [x] 5.3 Eye-check the furnished plan, a 3D view and close-ups of a chair, a bed, a bath and a
       toilet in the viewer (`npm run view`, with the `inspect-the-rendered-output` skill): each reads as
       its kind from above and in 3D, nothing passes through a wall, hiding a storey hides its items, the
       Diff view shows the added furnishings, and the furniture and sanitary colours differ. Run the viewer
@@ -123,7 +123,7 @@
 
 ## 6. Integration
 
-- [ ] 6.1 Run `npm test`, `npm run typecheck` and `npm run format`; regenerate
+- [x] 6.1 Run `npm test`, `npm run typecheck` and `npm run format`; regenerate
       `schema/building.schema.json` and any snapshot that changed, review the diffs, and run
       `npx openspec validate --all` and `npx openspec validate elm-30-add-furniture-and-fittings --strict`.
       Verify all pass.

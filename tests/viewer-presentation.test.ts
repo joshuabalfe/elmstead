@@ -1,4 +1,4 @@
-/** How the viewer presents railings, stairs, the ground slab and overlay textures. See plan-vs-3d.test.ts. */
+/** How the viewer presents railings, furnishings, stairs, the ground slab and overlay textures. See plan-vs-3d.test.ts. */
 import { describe, expect, it } from "vitest";
 import {
   browser,
@@ -11,6 +11,7 @@ import {
   viewOf,
   VIEWPORT,
 } from "./support/viewer-page.js";
+import { furnishing, m, mm, pt } from "../src/backend/model/index.js";
 
 useViewer();
 
@@ -33,6 +34,60 @@ describe("railing presentation", () => {
     // All four railings are on the street storey; hiding it hides them with the rest of the street.
     const hidden = `${q}&snapshot=1&style=ifc&storeys=storey-basement,storey-ground,storey-first-floor`;
     expect(samePixels(await viewOf("test-railing-view", hidden), await viewOf("test-railing-none", hidden))).toBe(true);
+  }, 120_000);
+});
+
+describe("furnishing presentation", () => {
+  const furniture: [number, number, number] = [194, 158, 107]; // STYLES.furniture, the IFC colour
+  const sanitary: [number, number, number] = [158, 199, 219]; // STYLES.sanitary
+  const strip = (src: Awaited<ReturnType<typeof model>>) => {
+    const bare = structuredClone(src);
+    for (const s of bare.storeys) s.furnishings = [];
+    return bare;
+  };
+
+  it("shows furniture and sanitary fittings in their own colours, in plan style and IFC style", async () => {
+    const furnished = await model("models/examples/example-cottage/revisions/furnished");
+    await publish("test-furnished-view", furnished);
+    await publish("test-furnished-none", strip(furnished));
+    const q = "view=top&labels=0&snapshot=1";
+    for (const style of ["plan", "ifc"]) {
+      const withItems = await viewOf("test-furnished-view", `${q}&style=${style}`);
+      const without = await viewOf("test-furnished-none", `${q}&style=${style}`);
+      expect(near(withItems, furniture, 40), `${style} furniture`).toBeGreaterThan(near(without, furniture, 40) + 500);
+      expect(near(withItems, sanitary, 40), `${style} sanitary`).toBeGreaterThan(near(without, sanitary, 40) + 500);
+    }
+  }, 120_000);
+
+  it("hides furnishings with their storey and shows them with it", async () => {
+    const two = await model("tests/fixtures/two-storey");
+    const furnishedTwo = structuredClone(two);
+    furnishedTwo.storeys.find((s) => s.id === "storey-ground")!.furnishings = [
+      furnishing("table-ground", "table", pt(mm(2000), mm(2000))),
+    ];
+    await publish("test-furnished-two", furnishedTwo);
+    await publish("test-furnished-two-none", strip(furnishedTwo));
+    const q = "view=top&labels=0&snapshot=1&style=ifc";
+    const hidden = `${q}&storeys=storey-first`;
+    expect(
+      samePixels(await viewOf("test-furnished-two", hidden), await viewOf("test-furnished-two-none", hidden)),
+    ).toBe(true);
+    const shown = `${q}&storeys=storey-ground`;
+    const withTable = await viewOf("test-furnished-two", shown);
+    const without = await viewOf("test-furnished-two-none", shown);
+    expect(near(withTable, furniture, 40)).toBeGreaterThan(near(without, furniture, 40) + 500);
+  }, 120_000);
+
+  it("frames a furnishing outside the walls instead of cropping it", async () => {
+    const outlying = structuredClone(await model("models/examples/example-cottage"));
+    outlying.storeys[0]!.furnishings = [furnishing("sofa-out", "sofa", pt(m(20), m(20)))];
+    await publish("test-furnished-out", outlying);
+    await publish("test-furnished-out-none", strip(outlying));
+    const q = "view=top&labels=0&snapshot=1&style=ifc";
+    const withSofa = await viewOf("test-furnished-out", q);
+    const without = await viewOf("test-furnished-out-none", q);
+    expect(near(without, furniture, 40)).toBeLessThan(50);
+    expect(near(withSofa, furniture, 40)).toBeGreaterThan(500);
   }, 120_000);
 });
 

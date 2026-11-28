@@ -26,31 +26,39 @@ north angle draws with plan +y up. The plan is drawn in this order:
    glazing lines, and a small block for each frame piece or glazing bar the cut passes through:
    jambs and vertical bars). A splayed window's outline, and the dashed outline of one the cut
    misses, follow its reveal. A doorway has no leaf or swing: its wall pieces leave the opening.
-5. railings: a line from start to end with a tick at each derived post, in the railing colour
-6. stairs, drawn in full rather than cut: each flight's footprint, a tread line per tread and a
+5. furnishings: the outline of the footprint of each of the furnishing's parts, in the furniture
+   or sanitary colour, leaving out any part wholly under a higher one, so what shows is what is seen
+   from above: a table is its top alone, a chair its seat and back, a bath its base outline and
+   the four strips of its rim. The parts are the ones that make the IFC body
+   (`src/shared/geometry/furnishing.ts`), turned by the furnishing's rotation like the rest of the
+   sheet
+6. railings: a line from start to end with a tick at each derived post, in the railing colour
+7. stairs, drawn in full rather than cut: each flight's footprint, a tread line per tread and a
    walking-direction arrow, each landing's outline, and each winder's outline with a line on every
    interior fan line and a walking arrow that curves round the pivot to where the next flight starts.
    The cut height only decides which openings are cut, so a half landing above it is drawn like any
    other geometry
-7. room labels (name and area in m²) and room dimensions: the longest clear wall-to-wall span
+8. room labels (name and area in m²) and room dimensions: the longest clear wall-to-wall span
    along plan x and along plan y of the room's `dimensionOutline` when it has one (otherwise its
    `outline`), in mm, drawn as dimension lines inside the room and kept clear of the label where
    the room is wide enough
-8. element ids in red, only with `--ids`
-9. overall dimensions, along plan x and plan y
-10. title, north arrow and a 5 m scale bar
+9. element ids in red, only with `--ids`
+10. overall dimensions, along plan x and plan y
+11. title, north arrow and a 5 m scale bar
 
 Every element is an SVG group with `class` (`wall`, `door`, `window`, `room`, `room-dimensions`,
-`slab`, `railing`, `stair`, `stair-flight`, `stair-landing`, `stair-winder`) and `data-id` set to its
+`slab`, `furnishing`, `railing`, `stair`, `stair-flight`, `stair-landing`, `stair-winder`) and `data-id` set to its
 model id, so the SVG can be inspected or queried. A stair's flights, landings and winders are groups
 nested inside the stair's.
 
-Railings and stairs are drawn by `renderPlan` alone. `renderFloor`, `renderWallTops` and
-`renderPlanAnnotations`, which the viewer composites into its plan-style overlay, draw neither, and
-their drawing extent stays clear of outlying railings. For readability the viewer recolours the
+Furnishings, railings and stairs are drawn by `renderPlan` alone. `renderFloor`, `renderWallTops` and
+`renderPlanAnnotations`, which the viewer composites into its plan-style overlay, draw none of them,
+and their drawing extent stays clear of outlying furnishings and railings, while the plan sheet's
+grows to hold them. For readability the viewer recolours the
 stair solids in every viewer mode including snapshots — cream / darker-cream tread bands and an
 edge outline. The base IFC stair colour stays classifier-safe; the recolour is presentation only.
-Railings keep their IFC slate colour. Both colours stay clear of the wall, room and paper colours
+Railings keep their IFC slate colour, and furniture and sanitary fittings their own two colours
+(`C.furniture` and `C.sanitary` match `STYLES.furniture` and `STYLES.sanitary`). All of these stay clear of the wall, room and paper colours
 the plan-versus-3D comparison classifies (`src/shared/render/style.ts`).
 
 Drawing style is all in one place: `src/shared/render/style.ts` holds the scale, colours, font and
@@ -73,11 +81,11 @@ style, so they have three jobs, and a new one must be chosen for all three:
 - **The plan-versus-3D comparison.** `tests/support/plan-vs-3d.ts` classifies each pixel as wall,
   room or paper, within 5 per channel of `C.wall`, `C.room` or `C.paper`, and compares only those
   pixels. A colour that matches none of the three is ignored, as stair, ground and railing pixels
-  are (`isIgnoredColour`). So a new element's plan colour is either one of those three, because it
+  are, and furniture and sanitary fittings (`isIgnoredColour`). So a new element's plan colour is either one of those three, because it
   should be compared, or clear of all three. Never near one by accident: a pixel that is nearly
   wall colour is wrongly compared. Storeys with pitched walls, or walls under 2 m across, are
   skipped altogether (`comparable` in `tests/support/plan-compare.ts`).
-- **The viewer's own recolouring.** A stair and a railing keep their IFC colours for the viewer to
+- **The viewer's own recolouring.** A stair, a railing and a furnishing keep their IFC colours for the viewer to
   recognise ([IFC output](ifc.md#colours)), and only the stair is recoloured on top of it.
 - **Diff mode.** Added, changed and removed elements take the diff's greens, yellows and reds (see
   the table under [The viewer](#the-viewer)), so a colour near those reads as a change that is not
