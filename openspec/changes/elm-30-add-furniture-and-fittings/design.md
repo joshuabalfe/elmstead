@@ -14,11 +14,12 @@ per design and relate the instances with `IfcRelDefinesByType`, keeping the desi
 opening's size.
 
 IFC4 classifies furnishings, but does not say what they look like: it has `IfcFurniture`,
-`IfcSanitaryTerminal` and predefined type enums, and no standard catalogue of shapes. In IFC4
-`IfcFurniture` has no predefined type of its own, so a furniture type carries the classification
-(`IfcFurnitureTypeEnum`: `BED`, `CHAIR`, `DESK`, `FILECABINET`, `SHELF`, `SOFA`, `TABLE`), while
-`IfcSanitaryTerminalTypeEnum` has `BATH`, `SHOWER`, `SINK`, `TOILETPAN`, `WASHHANDBASIN` and others.
-The pinned web-ifc 0.0.80 exposes all of these classes and enums. Presentation is type-keyed:
+`IfcSanitaryTerminal` and predefined type enums, and no standard catalogue of shapes. Both
+elements and both types carry a `PredefinedType` in the IFC4 schema that IfcOpenShell validates
+against (checked against IfcOpenShell 0.9.0.post1): `IfcFurnitureTypeEnum` has `BED`, `CHAIR`,
+`DESK`, `FILECABINET`, `SHELF`, `SOFA`, `TABLE`, and `IfcSanitaryTerminalTypeEnum` has `BATH`,
+`SHOWER`, `SINK`, `TOILETPAN`, `WASHHANDBASIN` and others. The pinned web-ifc 0.0.80 exposes all of
+these classes and enums. Presentation is type-keyed:
 `STYLES` in `src/shared/ifc/styles.ts` is what the viewer recognises, and the plan palette `C` in
 `src/shared/render/style.ts` is what the plan-versus-3D comparison classifies.
 
@@ -195,9 +196,9 @@ The repo's add-support-for-new-element-types skill asks for each view's decision
 
 ## Risks / Trade-offs
 
-- [IFC4's `IfcFurniture` has no predefined type, so classification depends on the type] → the type is
-  always written and related; IfcOpenShell validation of a model with every kind is a task, and the
-  type's `PredefinedType` is asserted in the IFC tests.
+- [The element and its type each carry a `PredefinedType`, which must agree] → both come from one
+  table keyed by kind, and the IFC tests assert the pair for every kind; IfcOpenShell validation of
+  a model with every kind is a task.
 - [IfcOpenShell may reject a `FootPrint` representation or its context] → build the full model
   through the validator early; if it objects, drop the footprint representation (the body, types and
   plan are unaffected) and amend the `ifc-export` spec.

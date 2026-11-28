@@ -18,5 +18,10 @@ export const STYLES = {
   stair: { rgb: [0.36, 0.54, 0.33], transparency: 0 },
   // Railing posts and rails. Dark slate, clear of every other entry so styleOf recognises it.
   railing: { rgb: [0.2901960784, 0.3176470588, 0.3529411765], transparency: 0 },
+  // Furniture: warm timber. Sanitary fittings: pale porcelain blue. Two colours so a sofa and a bath
+  // read differently; each clear of every other entry (so styleOf recognises it, and never as a
+  // wall or a slab), and of the other, in linear RGB.
+  furniture: { rgb: [0.76, 0.62, 0.42], transparency: 0 },
+  sanitary: { rgb: [0.62, 0.78, 0.86], transparency: 0 },
 } as const;
 export type StyleName = keyof typeof STYLES;

@@ -7,6 +7,7 @@
  */
 import * as WebIFC from "web-ifc";
 import { doorDivision } from "../../shared/geometry/door.js";
+import { FURNISHING_IFC, furnishingAngle, furnishingGeometry } from "../../shared/geometry/furnishing.js";
 import { isSplayed, openingProfile } from "../../shared/geometry/opening.js";
 import { POST_SIZE, RAIL_DEPTH, RAIL_WIDTH, railingGeometry } from "../../shared/geometry/railing.js";
 import {
@@ -23,10 +24,13 @@ import {
 import { v, type Vec } from "../../shared/geometry/vec.js";
 import { faceOffsets, wallDirection, wallHeight, wallLength, wallSideProfile } from "../../shared/geometry/wall.js";
 import { GLAZING_BAR_DEPTH, PANEL_THICKNESS, windowDivision, type Rect } from "../../shared/geometry/window.js";
+import { FURNISHING_KINDS } from "../../shared/schema/schema.js";
 import type {
   BuildingModel,
   Door,
   DoorComponent,
+  Furnishing,
+  FurnishingKind,
   Opening,
   Railing,
   Room,
@@ -386,6 +390,7 @@ class Writer {
       contained.push(this.stair(stair, placement, to - s.elevation));
     }
     for (const railing of s.railings ?? []) contained.push(this.railing(railing, placement));
+    for (const furnishing of s.furnishings ?? []) contained.push(this.furnishing(furnishing, placement));
 
     if (contained.length) {
       this.write(
@@ -626,8 +631,49 @@ class Writer {
         ),
       );
     }
+    for (const kind of FURNISHING_KINDS) {
+      const key = furnishingTypeKey(kind);
+      if (!this.instances.has(key)) continue;
+      define(key, this.furnishingType(kind, key));
+    }
     if (types.length)
       this.write(new IFC4.IfcRelDeclares(guid(`${model.project.id}#types`), null, null, null, project, types));
+  }
+
+  /**
+   * One type per furnishing kind used, written as an IfcFurnitureType or IfcSanitaryTerminalType
+   * with the kind's predefined type. It holds no geometry because the size varies per instance, as
+   * a door or window type does.
+   */
+  private furnishingType(kind: FurnishingKind, key: string) {
+    const ifc = FURNISHING_IFC[kind];
+    const name = label(kind.charAt(0).toUpperCase() + kind.slice(1).replace("-", " "));
+    return ifc.class === "furniture"
+      ? new IFC4.IfcFurnitureType(
+          guid(key),
+          null,
+          name,
+          null,
+          null,
+          null,
+          null,
+          label(kind),
+          label(kind),
+          IFC4.IfcAssemblyPlaceEnum.NOTDEFINED,
+          IFC4.IfcFurnitureTypeEnum[ifc.predefined],
+        )
+      : new IFC4.IfcSanitaryTerminalType(
+          guid(key),
+          null,
+          name,
+          null,
+          null,
+          null,
+          null,
+          label(kind),
+          label(kind),
+          IFC4.IfcSanitaryTerminalTypeEnum[ifc.predefined],
+        );
   }
 
   /** Slab top is at storey + elevationOffset; it is swept upwards from (top − thickness). */
@@ -788,6 +834,58 @@ class Writer {
   }
 
   /**
+   * A furnishing: an IfcFurniture or IfcSanitaryTerminal in the storey, placed at the centre of its
+   * footprint with its local X turned by the rotation and its base at the storey floor plus
+   * `elevationOffset`. The body is one extruded rectangle per part, in the furniture or sanitary
+   * colour, with the overall outline as a FootPrint curve in the same placement. It is related to
+   * its kind's type by IfcRelDefinesByType (see components()).
+   */
+  private furnishing(f: Furnishing, parent: InstanceType<typeof IFC4.IfcLocalPlacement>) {
+    const g = furnishingGeometry(f);
+    const ifc = FURNISHING_IFC[f.kind];
+    const angle = furnishingAngle(f);
+    const placement = this.placement(
+      parent,
+      round9(f.at.x),
+      round9(f.at.y),
+      round9(g.base),
+      round9(Math.cos(angle)),
+      round9(Math.sin(angle)),
+    );
+    const style = ifc.class;
+    const solids = g.parts.map((p) => {
+      const solid = new IFC4.IfcExtrudedAreaSolid(
+        this.rectangle(round9(p.x + p.width / 2), round9(p.y + p.depth / 2), round9(p.width), round9(p.depth)),
+        p.z === 0 ? null : new IFC4.IfcAxis2Placement3D(this.pt3(0, 0, round9(p.z)), null, null),
+        this.zAxis,
+        posLen(round9(p.height)),
+      );
+      this.write(new IFC4.IfcStyledItem(solid, [this.surfaceStyle(style)], null));
+      return solid;
+    });
+    const body = new IFC4.IfcShapeRepresentation(this.bodyCtx, label("Body"), label("SweptSolid"), solids);
+    const { width, depth } = g.size;
+    const footprint = new IFC4.IfcShapeRepresentation(this.footprintCtx, label("FootPrint"), label("Curve2D"), [
+      this.closedPolyline([
+        v(round9(-width / 2), round9(-depth / 2)),
+        v(round9(width / 2), round9(-depth / 2)),
+        v(round9(width / 2), round9(depth / 2)),
+        v(round9(-width / 2), round9(depth / 2)),
+      ]),
+    ]);
+    const shape = new IFC4.IfcProductDefinitionShape(null, null, [body, footprint]);
+    const args = [guid(f.id), null, label(f.name ?? f.id), null, null, placement, shape, ident(f.id)] as const;
+    const element =
+      ifc.class === "furniture"
+        ? new IFC4.IfcFurniture(...args, IFC4.IfcFurnitureTypeEnum[ifc.predefined])
+        : new IFC4.IfcSanitaryTerminal(...args, IFC4.IfcSanitaryTerminalTypeEnum[ifc.predefined]);
+    this.write(element);
+    const key = furnishingTypeKey(f.kind);
+    this.instances.set(key, [...(this.instances.get(key) ?? []), element]);
+    return element;
+  }
+
+  /**
    * A winder: an IfcStairFlight of type WINDER with one solid per tread. Tread k's plan polygon is
    * extruded from the winder's base up to k risers, so each tread is a solid block and the treads
    * together fill the winder's outline. The attributes count its treads, which are its risers; a fan
@@ -876,6 +974,9 @@ class Writer {
     );
   }
 }
+
+/** The GlobalId key of a furnishing kind's type; the `#` keeps it clear of every model id. */
+const furnishingTypeKey = (kind: FurnishingKind): string => `furnishing-type#${kind}`;
 
 /** Trim float noise from unit vectors (cos 90° etc.) so output is stable and readable. */
 const round9 = (n: number): number => {

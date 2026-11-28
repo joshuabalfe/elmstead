@@ -50,8 +50,15 @@ export const FURNISHING_DEFAULT_SIZE: Record<FurnishingKind, FurnishingSize> = {
   "wash-basin": { width: 550, depth: 450, height: 850 },
 };
 
-/** The IFC class and predefined type each kind is written as. */
-export const FURNISHING_IFC: Record<FurnishingKind, { class: "furniture" | "sanitary"; predefined: string }> = {
+/** The `IfcFurnitureTypeEnum` and `IfcSanitaryTerminalTypeEnum` values the kinds map to. */
+type FurnitureEnum = "BED" | "CHAIR" | "DESK" | "FILECABINET" | "SHELF" | "SOFA" | "TABLE";
+type SanitaryEnum = "BATH" | "SHOWER" | "SINK" | "TOILETPAN" | "WASHHANDBASIN";
+
+/** The IFC class and predefined type each kind is written as, on its element and on its type. */
+export const FURNISHING_IFC: Record<
+  FurnishingKind,
+  { class: "furniture"; predefined: FurnitureEnum } | { class: "sanitary"; predefined: SanitaryEnum }
+> = {
   bed: { class: "furniture", predefined: "BED" },
   chair: { class: "furniture", predefined: "CHAIR" },
   desk: { class: "furniture", predefined: "DESK" },

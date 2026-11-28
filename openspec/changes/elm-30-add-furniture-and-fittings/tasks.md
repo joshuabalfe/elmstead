@@ -37,43 +37,43 @@
       `src/backend/model/index.ts`. Add tests for the minimal call, overrides and that an unknown kind fails
       `npm run typecheck`. Add the helper to the helpers table in `docs/modelling.md` and `furnishings` among
       the `addTo` collections. Verify `npx vitest run tests/helpers.test.ts` and `npm run typecheck` pass.
-- [ ] 2.2 In `src/backend/checks/model.ts` add `checkFurnishings`: an ERROR against a furnishing whose
+- [x] 2.2 In `src/backend/checks/model.ts` add `checkFurnishings`: an ERROR against a furnishing whose
       rotated footprint overlaps a wall's body on its storey, naming the wall, with touching allowed (extend
       `src/shared/geometry/polygon.ts` only if it has no interior-overlap test). Add fixture tests for a
       duplicate furnishing id, a furnishing sharing a room's id, a bed through a wall, a basin against a wall
       face, a rotated sofa with a corner in a wall and an overlap with a wall on another storey. Verify
       `npx vitest run tests/checks.test.ts` passes.
-- [ ] 2.3 Add diff tests that a revision's added, removed and changed furnishings are listed with kind
+- [x] 2.3 Add diff tests that a revision's added, removed and changed furnishings are listed with kind
       `furnishing` and their storey, and that a furnishing moved to another storey is changed. Verify
       `npx vitest run tests/diff.test.ts` passes without touching `src/shared/diff/index.ts`; if it does not,
       fix the table entry, not the diff.
 
 ## 3. IFC export and verification
 
-- [ ] 3.1 Add `furniture` and `sanitary` entries to `STYLES` in `src/shared/ifc/styles.ts`, each at least
+- [x] 3.1 Add `furniture` and `sanitary` entries to `STYLES` in `src/shared/ifc/styles.ts`, each at least
       0.02 in RGB distance from every other entry and from each other. Extend the style-distinctness test;
       verify `npx vitest run tests/ifc.test.ts` passes.
-- [ ] 3.2 Write each furnishing in `src/backend/ifc/writer.ts` as an `IfcFurniture` or
+- [x] 3.2 Write each furnishing in `src/backend/ifc/writer.ts` as an `IfcFurniture` or
       `IfcSanitaryTerminal` contained in its storey (`Tag` = id, `Name` = name or id, GlobalId from
-      `ifcGuid(id)`), placed at `at` with the rotation as the placement's x direction and its base at
+      `ifcGuid(id)`, `PredefinedType` the kind's value), placed at `at` with the rotation as the placement's x direction and its base at
       storey elevation plus `elevationOffset`, with a `Body` `SweptSolid` of one extruded rectangle per part
       in the kind's colour and a `FootPrint` / `Curve2D` representation of the overall outline. Add IFC
       tests for both classes, tag/name, one solid per part, the rotation axis and base height, the footprint,
       and that an unfurnished model has no furnishing entities. Verify they pass.
-- [ ] 3.3 Write one `IfcFurnitureType` or `IfcSanitaryTerminalType` per kind used, with the kind's
+- [x] 3.3 Write one `IfcFurnitureType` or `IfcSanitaryTerminalType` per kind used, with the kind's
       predefined type, declared by the project and related with `IfcRelDefinesByType`, with GlobalIds
       derived from the kind. Add IFC tests for one type per kind with all instances related, no type for an
       unused kind, `toilet` giving `TOILETPAN`, stable GlobalIds across two builds, and no
       `USERDEFINED`/`NOTDEFINED` predefined type. Verify they pass.
-- [ ] 3.4 Add each furnishing's part volumes to `expectedVolumes` in `src/backend/ifc/roundtrip.ts` using
+- [x] 3.4 Add each furnishing's part volumes to `expectedVolumes` in `src/backend/ifc/roundtrip.ts` using
       the shared geometry functions. Add round-trip tests for a chair at rotation 0 and 37, a hollow bath, an
       overridden bed width and a furnishing with an `elevationOffset`. Verify
       `npx vitest run tests/roundtrip.test.ts tests/ifc.test.ts` passes.
-- [ ] 3.5 Build a fixture with every kind through the IfcOpenShell validator (`npm test` includes
+- [x] 3.5 Build a fixture with every kind through the IfcOpenShell validator (`npm test` includes
       `tests/validate.test.ts`) and confirm it reports no errors. If the validator rejects the `FootPrint`
       representation, drop it from the writer, update `specs/ifc-export` in this change to match, and note
       it in design.md. Verify the validator test passes.
-- [ ] 3.6 Document the IFC mapping in `docs/ifc.md`: the class and predefined type per kind, the body
+- [x] 3.6 Document the IFC mapping in `docs/ifc.md`: the class and predefined type per kind, the body
       and footprint, the derived types and the colours. Build `models/examples/example-cottage` before and
       after the change and diff the IFC and JSON bytes to confirm a model without furnishings is
       byte-identical.
@@ -107,7 +107,7 @@
 
 ## 5. Furnished cottage
 
-- [ ] 5.1 Add `models/examples/example-cottage/revisions/furnished.ts`, a `revise` of the base using
+- [x] 5.1 Add `models/examples/example-cottage/revisions/furnished.ts`, a `revise` of the base using
       `addTo` and `furnishing()`, with positions derived from the base's wall faces and room outlines so
       they follow wall thickness, covering all twelve kinds and a rotated item. Verify
       `npm run check models/examples/example-cottage/revisions/furnished.ts` and `npm run all` on it pass.

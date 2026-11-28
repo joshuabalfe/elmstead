@@ -1,4 +1,4 @@
-import { cross, dot, len, vsub, vscale, vadd, type Vec } from "./vec.js";
+import { cross, dot, len, perpLeft, unit, vsub, vscale, vadd, type Vec } from "./vec.js";
 
 /** Signed area (mm²), positive for counter-clockwise outlines. The outline is implicitly closed. */
 export function signedArea(pts: readonly Vec[]): number {
@@ -46,6 +46,25 @@ export function bounds(pts: readonly Vec[]): Bounds {
     maxX: Math.max(...pts.map((p) => p.x)),
     maxY: Math.max(...pts.map((p) => p.y)),
   };
+}
+
+/**
+ * Whether two convex polygons share area, by the separating-axis test. Polygons that only touch,
+ * along an edge or at a corner, or overlap by no more than `tolerance` mm, do not overlap.
+ */
+export function convexOverlap(a: readonly Vec[], b: readonly Vec[], tolerance = 1e-6): boolean {
+  for (const poly of [a, b]) {
+    for (let i = 0; i < poly.length; i++) {
+      const edge = vsub(poly[(i + 1) % poly.length]!, poly[i]!);
+      if (len(edge) === 0) continue;
+      const axis = unit(perpLeft(edge));
+      const project = (pts: readonly Vec[]) => pts.map((p) => dot(p, axis));
+      const [pa, pb] = [project(a), project(b)];
+      const depth = Math.min(Math.max(...pa), Math.max(...pb)) - Math.max(Math.min(...pa), Math.min(...pb));
+      if (depth <= tolerance) return false;
+    }
+  }
+  return true;
 }
 
 /** Proper intersection of segments ab and cd (shared endpoints and collinear touching excluded). */

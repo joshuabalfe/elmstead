@@ -24,6 +24,11 @@ describe("plan colours", () => {
     expect(isIgnoredColour(C.ground)).toBe(true);
     expect(isIgnoredColour(C.railing)).toBe(true);
   });
+
+  it("ignores furnishing pixels in the plan-versus-3D comparison", () => {
+    expect(isIgnoredColour(C.furniture)).toBe(true);
+    expect(isIgnoredColour(C.sanitary)).toBe(true);
+  });
 });
 
 describe("3D Top view against the plan", () => {

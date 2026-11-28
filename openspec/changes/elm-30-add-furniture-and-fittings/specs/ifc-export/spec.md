@@ -96,15 +96,15 @@ kind no furnishing uses SHALL NOT be written.
 
 ### Requirement: Furnishing predefined types
 
-A furnishing type's `PredefinedType` SHALL be its kind's IFC value. `bed`, `chair`, `desk`,
+A furnishing's `PredefinedType` SHALL be its kind's IFC value, on its element and on its type. `bed`, `chair`, `desk`,
 `file-cabinet`, `shelf`, `sofa` and `table` SHALL map to `BED`, `CHAIR`, `DESK`, `FILECABINET`,
 `SHELF`, `SOFA` and `TABLE`; `bath`, `shower`, `sink`, `toilet` and `wash-basin` to `BATH`, `SHOWER`,
-`SINK`, `TOILETPAN` and `WASHHANDBASIN`. A sanitary element SHALL carry the same value.
+`SINK`, `TOILETPAN` and `WASHHANDBASIN`.
 
 #### Scenario: Furniture mapping
 
 - **WHEN** a model has a `file-cabinet` furnishing
-- **THEN** its `IfcFurnitureType` has `PredefinedType` `FILECABINET`
+- **THEN** its `IfcFurniture` and its `IfcFurnitureType` both have `PredefinedType` `FILECABINET`
 
 #### Scenario: Toilet maps to toilet pan
 

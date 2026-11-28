@@ -5,6 +5,7 @@ import { z } from "zod";
 import { checkComponents } from "../src/backend/checks/components.js";
 import { schemaIssue } from "../src/backend/checks/issue.js";
 import {
+  checkFurnishings,
   checkIds,
   checkModel,
   checkOpenings,
@@ -97,6 +98,81 @@ describe("checkRailings", () => {
       { id: "wall-south", start: { x: mm(0), y: mm(0) }, end: { x: mm(1000), y: mm(0) }, height: mm(900) },
     ];
     expect(checkIds(m)).toEqual([{ level: "ERROR", id: "wall-south", message: "id is used by a wall and a railing" }]);
+  });
+});
+
+describe("checkFurnishings", () => {
+  type Furnishings = NonNullable<BuildingModel["storeys"][number]["furnishings"]>;
+  const at = (x: number, y: number) => ({ x: mm(x), y: mm(y) });
+  /** The cottage with furnishings on its ground storey; the south wall's inner face is at y = 200 and the north's at y = 5800. */
+  const furnished = (...furnishings: Furnishings): BuildingModel => {
+    const m = model();
+    m.storeys[0]!.furnishings = furnishings;
+    return m;
+  };
+
+  it("accepts a table in the middle of a room", () => {
+    expect(checkFurnishings(furnished({ id: "table-a", kind: "table", at: at(2000, 1800) }))).toEqual([]);
+  });
+
+  it("reports a bed 100 mm into a wall, against the bed and naming the wall", () => {
+    const m = furnished({ id: "bed-a", kind: "bed", at: at(2000, 1100) });
+    expect(checkFurnishings(m)).toEqual([
+      { level: "ERROR", id: "bed-a", message: "bed overlaps the body of wall-south" },
+    ]);
+  });
+
+  it("allows a basin standing against a wall face", () => {
+    // 450 mm deep, so a centre 225 mm from the north wall's inner face at y = 5800 touches it.
+    expect(checkFurnishings(furnished({ id: "wash-basin-a", kind: "wash-basin", at: at(2000, 5575) }))).toEqual([]);
+    expect(checkFurnishings(furnished({ id: "wash-basin-a", kind: "wash-basin", at: at(2000, 5576) }))).toHaveLength(1);
+  });
+
+  it("reports a rotated sofa with a corner in a wall", () => {
+    const m = furnished({ id: "sofa-a", kind: "sofa", at: at(1500, 700), rotation: deg(30) });
+    expect(checkFurnishings(m)).toEqual([
+      { level: "ERROR", id: "sofa-a", message: "sofa overlaps the body of wall-south" },
+    ]);
+  });
+
+  it("names every wall a furnishing overlaps", () => {
+    const m = furnished({ id: "bed-a", kind: "bed", at: at(800, 1100) });
+    expect(checkFurnishings(m).map((i) => i.message)).toEqual([
+      "bed overlaps the body of wall-south",
+      "bed overlaps the body of wall-west",
+    ]);
+  });
+
+  it("ignores a wall on another storey", () => {
+    const m = model();
+    m.storeys.push({
+      id: "storey-first",
+      name: "First",
+      elevation: mm(2700),
+      walls: [],
+      openings: [],
+      slabs: [],
+      rooms: [],
+      furnishings: [{ id: "bed-a", kind: "bed", at: at(2000, 1100) }],
+    });
+    expect(checkFurnishings(m)).toEqual([]);
+  });
+
+  it("does not check furnishings against each other", () => {
+    const m = furnished(
+      { id: "table-a", kind: "table", at: at(2000, 1800) },
+      { id: "chair-a", kind: "chair", at: at(2000, 1800) },
+    );
+    expect(checkFurnishings(m)).toEqual([]);
+  });
+
+  it("joins the unique id space and the model checks", () => {
+    const m = furnished({ id: "room-living", kind: "sofa", at: at(2000, 1800) });
+    expect(checkIds(m)).toEqual([
+      { level: "ERROR", id: "room-living", message: "id is used by a room and a furnishing" },
+    ]);
+    const walled = furnished({ id: "bed-a", kind: "bed", at: at(2000, 1100) });
+    expect(checkModel(walled).map((i) => i.id)).toContain("bed-a");
   });
 });
 

@@ -4,6 +4,7 @@ import { join } from "node:path";
 import * as WebIFC from "web-ifc";
 import { describe, expect, it } from "vitest";
 import cottage from "../models/examples/example-cottage/index.js";
+import furnished from "../models/examples/example-cottage/revisions/furnished.js";
 import elmstead from "../models/elmstead/index.js";
 import twoStorey from "./fixtures/two-storey/index.js";
 import winderStair from "./fixtures/winder-stair/index.js";
@@ -50,6 +51,18 @@ describe("IFC writer", () => {
       if (name === "ground") continue;
       const d = Math.hypot(...rgb.map((c, i) => toLinear(c) - ground[i]!));
       expect(d, name).toBeGreaterThanOrEqual(0.02);
+    }
+  });
+
+  it("keeps the furniture and sanitary colours far enough from every other style and from each other", () => {
+    const toLinear = (c: number) => (c < 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+    for (const mine of ["furniture", "sanitary"] as const) {
+      const rgb = STYLES[mine].rgb.map(toLinear);
+      for (const [name, { rgb: other }] of Object.entries(STYLES)) {
+        if (name === mine) continue;
+        const d = Math.hypot(...other.map((c, i) => toLinear(c) - rgb[i]!));
+        expect(d, `${mine} against ${name}`).toBeGreaterThanOrEqual(0.02);
+      }
     }
   });
 
@@ -612,6 +625,17 @@ describe("IfcOpenShell validator", () => {
     const withRailings = structuredClone(elmstead);
     const path = join(dir, "railings.ifc");
     writeFileSync(path, await writeIfc(withRailings, { fileName: "railings.ifc" }));
+    const v = await validateIfc(path);
+    expect(v.issues).toEqual([]);
+    expect([v.errors, v.warnings]).toEqual([0, 0]);
+  }, 60_000);
+
+  it("passes every kind of furnishing, with its type and footprint, with no errors or warnings", async () => {
+    const path = join(dir, "furnished.ifc");
+    writeFileSync(
+      path,
+      await writeIfc(BuildingModelSchema.parse(JSON.parse(JSON.stringify(furnished))), { fileName: "furnished.ifc" }),
+    );
     const v = await validateIfc(path);
     expect(v.issues).toEqual([]);
     expect([v.errors, v.warnings]).toEqual([0, 0]);

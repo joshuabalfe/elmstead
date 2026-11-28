@@ -1,8 +1,9 @@
 import { openingExtent } from "../../shared/geometry/opening.js";
-import { centroid, distanceToOutline, polygonProblems } from "../../shared/geometry/polygon.js";
+import { centroid, convexOverlap, distanceToOutline, polygonProblems } from "../../shared/geometry/polygon.js";
+import { furnishingFootprint } from "../../shared/geometry/furnishing.js";
 import { railingRun } from "../../shared/geometry/railing.js";
 import { flightDirection, flightRun, winderFrame } from "../../shared/geometry/stair.js";
-import { wallLength, wallTopMin } from "../../shared/geometry/wall.js";
+import { wallLength, wallSegmentFootprint, wallTopMin } from "../../shared/geometry/wall.js";
 import { cross, dot, perpLeft, toVec, vadd, vscale, vsub, type Vec } from "../../shared/geometry/vec.js";
 import { idNodes } from "../../shared/schema/ids.js";
 import type {
@@ -50,6 +51,23 @@ export function checkRailings(model: BuildingModel): Issue[] {
     for (const r of storey.railings ?? []) {
       if (railingRun(r) === 0)
         issues.push({ level: "ERROR", id: r.id, message: "zero-length railing cannot be written to IFC" });
+    }
+  }
+  return issues;
+}
+
+/** A furnishing may touch a wall but not stand in it: its footprint must not overlap a wall body on its storey. */
+export function checkFurnishings(model: BuildingModel): Issue[] {
+  const issues: Issue[] = [];
+  for (const storey of model.storeys) {
+    const bodies = storey.walls
+      .filter((w) => wallLength(w) > 0)
+      .map((w) => ({ id: w.id, body: wallSegmentFootprint(w, 0, wallLength(w)) }));
+    for (const f of storey.furnishings ?? []) {
+      const footprint = furnishingFootprint(f);
+      for (const { id, body } of bodies)
+        if (convexOverlap(footprint, body))
+          issues.push({ level: "ERROR", id: f.id, message: `${f.kind} overlaps the body of ${id}` });
     }
   }
   return issues;
@@ -344,6 +362,7 @@ export const checkModel = (model: BuildingModel): Issue[] => [
   ...checkIds(model),
   ...checkWalls(model),
   ...checkRailings(model),
+  ...checkFurnishings(model),
   ...checkOpenings(model),
   ...checkOutlines(model),
   ...checkStairs(model),
