@@ -87,6 +87,22 @@ scripts/             one-off generators (JSON Schema export) and viewer measurem
 tests/               vitest suites, fixtures and the plan SVG snapshot
 ```
 
+### The viewer's scene
+
+`src/frontend/scene/engine.ts` owns the world and camera, the URL state, loading and residency,
+storey selection, view framing and the `ViewerApi`. Each tool or mode is a module beside it,
+created with the `SceneContext` (`context.ts`, types plus the shared `FADE` constant), which reads engine-owned state through
+accessors so a module never holds a stale load-time value:
+
+- `measure.ts` — the measurement tool, its layer, pick queue and pointer listeners.
+- `walk.ts` — first-person mode, pointer lock, keys and the walk loop.
+- `identify.ts` — the hover label, its pick queue and the per-item id map.
+- `dress.ts` — Diff highlights, outlines, ghosts and the plan fade.
+- `storey-motion.ts` — the section sweep, its plane and the retarget chain.
+- `labels.ts` — room and dimension labels, plan layers and constraint labels.
+- `diff-mode.ts` — the revision diff, its status map and the changes panel.
+- `style.ts` — plan-style shader patches, stair banding and the background and grid.
+
 ### Dependencies between modules
 
 ```mermaid
