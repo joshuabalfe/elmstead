@@ -4,12 +4,13 @@
  * canvas back and compares it with the plan's own pixels (tests/support/plan-vs-3d.ts).
  *
  * The viewer tests are split over several files so CI can run them on separate runners; they
- * share tests/support/viewer-page.ts. This one compares the example cottage and the two-storey and
- * winder-stair fixtures; plan-vs-3d-elmstead.test.ts compares Elmstead, and viewer-storey-selection.test.ts has
+ * share tests/support/viewer-page.ts. This one compares the example cottage (bare and furnished) and the
+ * two-storey and winder-stair fixtures; plan-vs-3d-elmstead.test.ts compares Elmstead, and viewer-storey-selection.test.ts has
  * the floor picker.
  */
 import { describe, expect, it } from "vitest";
 import cottage from "../models/examples/example-cottage/index.js";
+import furnished from "../models/examples/example-cottage/revisions/furnished.js";
 import twoStorey from "./fixtures/two-storey/index.js";
 import winderStair from "./fixtures/winder-stair/index.js";
 import { C } from "../src/shared/render/style.js";
@@ -24,11 +25,17 @@ describe("plan colours", () => {
     expect(isIgnoredColour(C.ground)).toBe(true);
     expect(isIgnoredColour(C.railing)).toBe(true);
   });
+
+  it("ignores furnishing pixels in the plan-versus-3D comparison", () => {
+    expect(isIgnoredColour(C.furniture)).toBe(true);
+    expect(isIgnoredColour(C.sanitary)).toBe(true);
+  });
 });
 
 describe("3D Top view against the plan", () => {
   compareEveryStorey([
     ["models/examples/example-cottage", cottage],
+    ["models/examples/example-cottage/revisions/furnished", furnished],
     ["tests/fixtures/two-storey", twoStorey],
     ["tests/fixtures/winder-stair", winderStair],
   ]);

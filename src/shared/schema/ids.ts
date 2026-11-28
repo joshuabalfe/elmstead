@@ -12,6 +12,7 @@ import type {
   BuildingModel,
   Door,
   DoorComponent,
+  Furnishing,
   Railing,
   Room,
   Site,
@@ -65,7 +66,8 @@ export type IdNode =
   | OnStorey<"stair flight", StairFlight>
   | OnStorey<"stair landing", StairLanding>
   | OnStorey<"stair winder", StairWinder>
-  | (OnStorey<"railing", Railing> & Placed);
+  | (OnStorey<"railing", Railing> & Placed)
+  | (OnStorey<"furnishing", Furnishing> & Placed);
 
 /** The kinds of node that live on a storey. */
 export type StoreyKind = Extract<IdNode, { storey: string }>["kind"];

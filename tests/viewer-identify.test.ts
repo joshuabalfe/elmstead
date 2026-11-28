@@ -12,6 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { formatJson } from "../src/backend/cli/json-format.js";
 import { loadModel } from "../src/backend/cli/load.js";
 import { writeIfc } from "../src/backend/ifc/writer.js";
+import { furnishing, mm, pt } from "../src/backend/model/index.js";
 import type { BuildingModel } from "../src/shared/schema/schema.js";
 
 declare global {
@@ -26,6 +27,7 @@ const VIEWPORT = { width: 1280, height: 900 };
 const MODEL_A = "test-identify-a";
 const MODEL_B = "test-identify-b";
 const MODEL_TWO = "test-identify-two";
+const MODEL_FURNISHED = "test-identify-furnished";
 
 let outDir: string;
 let server: ViteDevServer | undefined;
@@ -92,6 +94,12 @@ beforeAll(async () => {
   await publish(MODEL_A, cottageModel);
   await publish(MODEL_B, cottageModel);
   await publish(MODEL_TWO, twoModel);
+  const furnished = structuredClone(cottageModel);
+  // A chair 300 mm square at the middle of the house, so the screen centre is over its seat.
+  furnished.storeys[0]!.furnishings = [
+    furnishing("chair-hover", "chair", pt(mm(4000), mm(3000)), { width: mm(300), depth: mm(300) }),
+  ];
+  await publish(MODEL_FURNISHED, furnished);
   server = await createServer({
     configFile: "src/frontend/vite/vite.config.ts",
     server: { port: 0 },
@@ -133,6 +141,11 @@ describe("viewer hover identification", () => {
     expect(await hoverAt(page, centre.x, centre.y)).toEqual({ id: "slab-ground", name: "Ground floor slab" });
     await hoverOff(page);
     expect(await tipVisible(page)).toBe(false);
+  }, 120_000);
+
+  it("labels a furnishing's part with the furnishing's id, not a part name", async () => {
+    await open(page, MODEL_FURNISHED, "&ids=1");
+    expect(await hoverAt(page, centre.x, centre.y)).toEqual({ id: "chair-hover", name: null });
   }, 120_000);
 
   it("updates as the pointer moves between elements", async () => {

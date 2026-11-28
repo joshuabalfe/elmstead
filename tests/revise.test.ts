@@ -6,8 +6,10 @@ import {
   addComponents,
   addTo,
   door,
+  furnishing,
   mm,
   pt,
+  railing,
   remove,
   replace,
   revise,
@@ -64,6 +66,23 @@ describe("revise", () => {
     expect(openingOf(r, "doorway-lean-to")).toBeDefined();
     expect(ground(r).railings!.map((x) => x.id)).toEqual(["railing-lean-to"]);
     expect(ground(b).railings).toBeUndefined();
+  });
+
+  it("furnishes a storey, and replaces and removes a furnishing by id", () => {
+    const b = base();
+    const sofa = furnishing("sofa-living", "sofa", pt(mm(2000), mm(2000)));
+    const table = furnishing("table-kitchen", "table", pt(mm(5000), mm(2000)));
+    const furnished = revise(b, [addTo("storey-ground", { furnishings: [sofa, table] })]);
+    expect(ground(furnished).furnishings!.map((f) => f.id)).toEqual(["sofa-living", "table-kitchen"]);
+    expect(ground(b).furnishings).toBeUndefined();
+
+    const moved = revise(furnished, [replace({ ...sofa, at: pt(mm(2500), mm(2000)) })]);
+    expect(ground(moved).furnishings!.map((f) => f.id)).toEqual(["sofa-living", "table-kitchen"]);
+    expect(ground(moved).furnishings![0]!.at.x).toBe(2500);
+
+    const without = revise(furnished, [remove("table-kitchen")]);
+    expect(ground(without).furnishings!.map((f) => f.id)).toEqual(["sofa-living"]);
+    expect(ground(furnished).furnishings).toHaveLength(2);
   });
 
   it("adds components that new openings can use", () => {
@@ -142,6 +161,17 @@ describe("revise errors", () => {
     expect(
       error(() => revise(base(), [addComponents({ doors: [{ id: "door-type-external", name: "Again" }] })])).id,
     ).toBe("door-type-external");
+  });
+
+  it("rejects replacing a furnishing with a railing of the same id", () => {
+    const furnished = revise(base(), [
+      addTo("storey-ground", { furnishings: [furnishing("sofa-living", "sofa", pt(mm(2000), mm(2000)))] }),
+    ]);
+    const e = error(() =>
+      revise(furnished, [replace(railing("sofa-living", pt(mm(0), mm(0)), pt(mm(1000), mm(0)), { height: mm(900) }))]),
+    );
+    expect(e.id).toBe("sofa-living");
+    expect(e.message).toContain("not a valid furnishings entry");
   });
 
   it("rejects an unknown storey and any storey edit", () => {

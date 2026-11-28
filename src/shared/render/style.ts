@@ -22,6 +22,10 @@ export const C = {
   stair: "#5c8a55",
   // Railing lines and post ticks. Clear of wall, room and paper so the comparison skips them.
   railing: "#4a515a",
+  // Furnishing outlines, the same colours as STYLES.furniture and STYLES.sanitary. Clear of wall, room
+  // and paper so the comparison skips them.
+  furniture: "#c29e6b",
+  sanitary: "#9ec7db",
   constraint: "#c0392b",
   measure: "#00897b",
 };

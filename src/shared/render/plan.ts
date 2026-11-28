@@ -1,6 +1,13 @@
 import { faceOffsets, wallDirection, wallLength, wallPoint, wallSegmentFootprint } from "../geometry/wall.js";
 import { jambEdges, openingOutline, openingProfile } from "../geometry/opening.js";
 import { area, bounds, centroid, spans, type Bounds } from "../geometry/polygon.js";
+import {
+  FURNISHING_IFC,
+  furnishingFootprint,
+  furnishingGeometry,
+  partFootprint,
+  visibleParts,
+} from "../geometry/furnishing.js";
 import { POST_SIZE, railingPostPoints } from "../geometry/railing.js";
 import { flightFootprint, flightTreads, stairLevels, winderFan } from "../geometry/stair.js";
 import { GLAZING_BAR_DEPTH, windowDivision } from "../geometry/window.js";
@@ -42,7 +49,14 @@ interface View {
   height: number;
 }
 
-function makeView(storey: Storey, { railings = false, turn = 0 }: { railings?: boolean; turn?: number } = {}): View {
+function makeView(
+  storey: Storey,
+  {
+    railings = false,
+    furnishings = false,
+    turn = 0,
+  }: { railings?: boolean; furnishings?: boolean; turn?: number } = {},
+): View {
   const pts: Vec[] = [
     ...storey.walls.flatMap((w) => (wallLength(w) > 0 ? wallSegmentFootprint(w, 0, wallLength(w)) : [toVec(w.start)])),
     ...storey.slabs.flatMap((s) => s.outline.map(toVec)),
@@ -50,6 +64,8 @@ function makeView(storey: Storey, { railings = false, turn = 0 }: { railings?: b
     ...stairPoints(storey),
     // Only the plan sheet includes railings; the viewer's overlay keeps the extent it had.
     ...(railings ? (storey.railings ?? []).flatMap((r) => [toVec(r.start), toVec(r.end)]) : []),
+    // Likewise furnishing footprints: only the plan sheet is widened to hold an outlying one.
+    ...(furnishings ? (storey.furnishings ?? []).flatMap(furnishingFootprint) : []),
   ];
   const extent = pts.length ? bounds(pts) : { minX: 0, minY: 0, maxX: 1000, maxY: 1000 };
   // Turn plan mm clockwise about the origin, so a north angle of `turn` points up the sheet.
@@ -641,6 +657,25 @@ function drawRailings(storey: Storey, view: View, opts: PlanOptions): Node[] {
   return out;
 }
 
+/**
+ * Furnishings: the outline of each part's footprint, leaving out a part wholly under a higher one,
+ * so what shows is what is seen from above (a table is its top, a chair its seat and back, a bath
+ * its rim and recess). The same parts make the IFC body, so the plan and the 3D view cannot
+ * disagree. Drawn after the walls and before the railings and stairs. Only `renderPlan` draws them.
+ */
+function drawFurnishings(storey: Storey, view: View, opts: PlanOptions): Node[] {
+  const out: Node[] = [];
+  for (const f of storey.furnishings ?? []) {
+    const stroke = C[FURNISHING_IFC[f.kind].class];
+    const parts: Node[] = visibleParts(furnishingGeometry(f).parts).map((p) =>
+      polygon(partFootprint(f, p).map(view.toPx), { fill: "none", stroke, "stroke-width": 1 }),
+    );
+    if (opts.ids) parts.push(idLabel(view.toPx(toVec(f.at)), f.id));
+    out.push(group({ class: "furnishing", "data-id": f.id }, parts));
+  }
+  return out;
+}
+
 function drawStairs(model: BuildingModel, storey: Storey, view: View, opts: PlanOptions): Node[] {
   const out: Node[] = [];
   for (const s of storey.stairs ?? []) {
@@ -698,7 +733,11 @@ function drawStairs(model: BuildingModel, storey: Storey, view: View, opts: Plan
 
 export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptions): string {
   const northAngle = model.site.northAngle ?? 0;
-  const view = makeView(storey, { railings: true, turn: opts.orientation === "project" ? 0 : northAngle });
+  const view = makeView(storey, {
+    railings: true,
+    furnishings: true,
+    turn: opts.orientation === "project" ? 0 : northAngle,
+  });
   const walls = storey.walls.filter((w) => wallLength(w) > 0);
   const wallById = new Map(walls.map((w) => [w.id, w]));
   const out: Node[] = [];
@@ -738,6 +777,8 @@ export function renderPlan(model: BuildingModel, storey: Storey, opts: PlanOptio
   }
 
   out.push(...wallsAndOpenings(storey, view, model.components));
+
+  out.push(...drawFurnishings(storey, view, opts));
 
   out.push(...drawRailings(storey, view, opts));
 

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { BuildingModelSchema } from "../src/shared/schema/schema.js";
+import { BuildingModelSchema, FURNISHING_KINDS } from "../src/shared/schema/schema.js";
 import { jsonSchemaText } from "../src/shared/schema/json-schema.js";
 
 /** Plain JSON, as the CLI would see it after JSON.parse. */
@@ -170,6 +170,47 @@ describe("building schema", () => {
     const flat = minimal() as any;
     flat.storeys[0].railings = [{ id: "railing-a", start: { x: 0, y: 0 }, end: { x: 1000, y: 0 }, height: 0 }];
     expect(issues(flat).join()).toMatch(/railings\.0\.height/);
+  });
+
+  it("accepts a minimal furnishing and every kind", () => {
+    const d = minimal() as any;
+    d.storeys[0].furnishings = [{ id: "sofa-a", kind: "sofa", at: { x: 1000, y: 1000 } }];
+    expect(issues(d)).toEqual([]);
+    d.storeys[0].furnishings = FURNISHING_KINDS.map((kind) => ({ id: `${kind}-a`, kind, at: { x: 1000, y: 1000 } }));
+    expect(issues(d)).toEqual([]);
+  });
+
+  it("accepts a furnishing with every optional field", () => {
+    const d = minimal() as any;
+    d.storeys[0].furnishings = [
+      {
+        id: "shelf-a",
+        name: "Wall shelf",
+        kind: "shelf",
+        at: { x: 1000, y: 1000 },
+        rotation: 37.5,
+        elevationOffset: 900,
+        width: 600,
+        depth: 200,
+        height: 300,
+      },
+    ];
+    expect(issues(d)).toEqual([]);
+  });
+
+  it("rejects an unknown furnishing kind, a zero size and a negative elevation offset", () => {
+    const at = { x: 1000, y: 1000 };
+    const bad = (extra: object, kind = "table") => {
+      const d = minimal() as any;
+      d.storeys[0].furnishings = [{ id: "table-a", kind, at, ...extra }];
+      return issues(d).join();
+    };
+    expect(bad({}, "wardrobe")).toMatch(/furnishings\.0\.kind/);
+    expect(bad({ width: 0 })).toMatch(/furnishings\.0\.width/);
+    expect(bad({ depth: -1 })).toMatch(/furnishings\.0\.depth/);
+    expect(bad({ height: 0 })).toMatch(/furnishings\.0\.height/);
+    expect(bad({ elevationOffset: -100 })).toMatch(/furnishings\.0\.elevationOffset/);
+    expect(bad({ colour: "red" })).toMatch(/furnishings\.0/);
   });
 
   it("rejects polygons with fewer than 3 points", () => {

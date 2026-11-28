@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import cottage from "../models/examples/example-cottage/index.js";
 import elmstead from "../models/elmstead/index.js";
 import twoStorey from "./fixtures/two-storey/index.js";
-import { deg, door, m, mm, pt, railing, wall } from "../src/backend/model/index.js";
+import { deg, door, furnishing, m, mm, pt, railing, wall } from "../src/backend/model/index.js";
 import {
   doorGeometry,
   renderFloor,
@@ -11,7 +11,7 @@ import {
   renderWallTops,
 } from "../src/shared/render/plan.js";
 import { svgToPng } from "../src/backend/render/png.js";
-import { C } from "../src/shared/render/style.js";
+import { C, MARGIN, PX_PER_MM } from "../src/shared/render/style.js";
 import { el, group, line, polygon, polyline, serialise, text, type Node } from "../src/shared/render/svg.js";
 import { BuildingModelSchema } from "../src/shared/schema/schema.js";
 import { splayedCottage } from "./support/reveal.js";
@@ -309,6 +309,143 @@ describe("railings on the plan", () => {
     const railingAt = plan.indexOf('class="railing"');
     expect(railingAt).toBeGreaterThan(-1);
     expect(plan.indexOf('class="stair"')).toBeGreaterThan(railingAt);
+  });
+});
+
+describe("furnishings on the plan", () => {
+  const withFurnishings = (...list: ReturnType<typeof furnishing>[]) => {
+    const m = structuredClone(model);
+    m.storeys[0]!.furnishings = list;
+    return m;
+  };
+  const project = { ids: false, orientation: "project" as const };
+  /** The polygons of one furnishing's group, as plan millimetres: the cottage's extent is x 0 and y 6000 at its top left. */
+  const outlines = (plan: string, id: string) => {
+    const body = plan.match(new RegExp(`<g class="furnishing" data-id="${id}">([\\s\\S]*?)</g>`))![1]!;
+    return [...body.matchAll(/<polygon points="([^"]+)"[^>]*stroke="([^"]+)"/g)].map((poly) => ({
+      stroke: poly[2],
+      points: poly[1]!.split(" ").map((p) => {
+        const [x, y] = p.split(",").map(Number) as [number, number];
+        return { x: (x - MARGIN.left) / PX_PER_MM, y: 6000 - (y - MARGIN.top) / PX_PER_MM };
+      }),
+    }));
+  };
+  const extent = (polys: { points: { x: number; y: number }[] }[]) => {
+    const pts = polys.flatMap((p) => p.points);
+    return {
+      minX: Math.min(...pts.map((p) => p.x)),
+      maxX: Math.max(...pts.map((p) => p.x)),
+      minY: Math.min(...pts.map((p) => p.y)),
+      maxY: Math.max(...pts.map((p) => p.y)),
+    };
+  };
+  const near = (a: ReturnType<typeof extent>, b: ReturnType<typeof extent>) => {
+    for (const k of ["minX", "maxX", "minY", "maxY"] as const) expect(a[k], k).toBeCloseTo(b[k], -1);
+  };
+  const furnished = (f: ReturnType<typeof furnishing>) => {
+    const m = withFurnishings(f);
+    return renderPlan(m, m.storeys[0]!, project);
+  };
+
+  it("draws a table as its top alone, the full size, in the furniture colour", () => {
+    const polys = outlines(furnished(furnishing("table-a", "table", pt(mm(2000), mm(1500)))), "table-a");
+    expect(polys).toHaveLength(1);
+    expect(polys[0]!.stroke).toBe(C.furniture);
+    near(extent(polys), { minX: 1250, maxX: 2750, minY: 1100, maxY: 1900 });
+  });
+
+  it("draws a chair as a seat and a back, with no legs", () => {
+    const polys = outlines(furnished(furnishing("chair-a", "chair", pt(mm(2000), mm(1500)))), "chair-a");
+    expect(polys).toHaveLength(2);
+    near(extent(polys), { minX: 1775, maxX: 2225, minY: 1275, maxY: 1725 });
+  });
+
+  it("draws a bath's base outline with its four rim strips, in the sanitary colour", () => {
+    const polys = outlines(furnished(furnishing("bath-a", "bath", pt(mm(2000), mm(1500)))), "bath-a");
+    expect(polys).toHaveLength(5);
+    expect(new Set(polys.map((p) => p.stroke))).toEqual(new Set([C.sanitary]));
+    near(extent(polys), { minX: 1150, maxX: 2850, minY: 1150, maxY: 1850 });
+  });
+
+  it("turns a sofa a quarter turn counter-clockwise about its centre", () => {
+    const plain = outlines(furnished(furnishing("sofa-a", "sofa", pt(mm(2000), mm(2000)))), "sofa-a");
+    const turned = outlines(
+      furnished(furnishing("sofa-a", "sofa", pt(mm(2000), mm(2000)), { rotation: deg(90) })),
+      "sofa-a",
+    );
+    near(extent(plain), { minX: 1000, maxX: 3000, minY: 1550, maxY: 2450 });
+    near(extent(turned), { minX: 1550, maxX: 2450, minY: 1000, maxY: 3000 });
+    expect(turned).toHaveLength(plain.length);
+  });
+
+  it("turns with the sheet, so a furnishing keeps its place against the walls", () => {
+    const m = withFurnishings(furnishing("sofa-a", "sofa", pt(mm(2000), mm(2000))));
+    m.site.northAngle = deg(90);
+    const centreOf = (points: string) => {
+      const pts = points.split(" ").map((p) => p.split(",").map(Number) as [number, number]);
+      return { x: pts.reduce((n, p) => n + p[0], 0) / pts.length, y: pts.reduce((n, p) => n + p[1], 0) / pts.length };
+    };
+    const room = (plan: string) =>
+      centreOf(plan.match(/<polygon points="([^"]+)" class="room" data-id="room-living"/)![1]!);
+    const sofa = (plan: string) => {
+      const body = plan.match(/<g class="furnishing" data-id="sofa-a">([\s\S]*?)<\/g>/)![1]!;
+      return centreOf([...body.matchAll(/points="([^"]+)"/g)].map((poly) => poly[1]).join(" "));
+    };
+    const gap = (orientation: "project" | "north") => {
+      const plan = renderPlan(m, m.storeys[0]!, { ids: false, orientation });
+      const [r, f] = [room(plan), sofa(plan)];
+      return { x: f.x - r.x, y: f.y - r.y };
+    };
+    const [flat, turned] = [gap("project"), gap("north")];
+    expect(Math.hypot(turned.x, turned.y)).toBeCloseTo(Math.hypot(flat.x, flat.y), 0);
+    expect(Math.hypot(turned.x - flat.x, turned.y - flat.y)).toBeGreaterThan(10);
+  });
+
+  it("has no furnishing group on an unfurnished storey", () => {
+    expect(svg).not.toContain("furnishing");
+  });
+
+  it("draws furnishings after the walls and before the railings and stairs", () => {
+    const street = structuredClone(elmstead);
+    const storey = street.storeys.find((s) => s.id === "storey-street")!;
+    storey.furnishings = [furnishing("table-a", "table", pt(m(1), m(1)))];
+    const plan = renderPlan(street, storey, { ids: false });
+    const at = plan.indexOf('class="furnishing"');
+    expect(at).toBeGreaterThan(-1);
+    expect(plan.indexOf('class="railing"')).toBeGreaterThan(at);
+    expect(plan.indexOf('class="stair"')).toBeGreaterThan(at);
+    const ground = structuredClone(elmstead);
+    const gs = ground.storeys.find((s) => s.id === "storey-ground")!;
+    gs.furnishings = [furnishing("table-a", "table", pt(m(1), m(1)))];
+    const gp = renderPlan(ground, gs, { ids: false });
+    expect(gp.lastIndexOf('class="wall"')).toBeLessThan(gp.indexOf('class="furnishing"'));
+  });
+
+  it("includes an outlying furnishing in the plan extent but not in the shared overlay bounds", () => {
+    const outlying = withFurnishings(furnishing("sofa-out", "sofa", pt(m(20), m(20))));
+    const plain = structuredClone(outlying);
+    plain.storeys[0]!.furnishings = [];
+    const width = (svg: string) => Number(svg.match(/width="(\d+)"/)![1]);
+    expect(width(renderPlan(outlying, outlying.storeys[0]!, { ids: false }))).toBeGreaterThan(
+      width(renderPlan(plain, plain.storeys[0]!, { ids: false })),
+    );
+    for (const render of [renderFloor, renderWallTops, renderPlanAnnotations]) {
+      expect(render(outlying.storeys[0]!).bounds).toEqual(render(plain.storeys[0]!).bounds);
+      expect(render(outlying.storeys[0]!).svg).not.toContain("furnishing");
+    }
+  });
+
+  it("draws the id only with the flag", () => {
+    const m = withFurnishings(furnishing("sofa-a", "sofa", pt(mm(2000), mm(2000))));
+    expect(renderPlan(m, m.storeys[0]!, { ids: false })).not.toContain(">sofa-a<");
+    const labelled = renderPlan(m, m.storeys[0]!, { ids: true });
+    expect(labelled).toContain(">sofa-a<");
+    expect(labelled).toMatch(new RegExp(`<text[^>]*fill="${C.id}"[^>]*>sofa-a<`));
+  });
+
+  it("is deterministic", () => {
+    const m = withFurnishings(furnishing("bed-a", "bed", pt(mm(2000), mm(2000)), { rotation: deg(37) }));
+    expect(renderPlan(m, m.storeys[0]!, { ids: true })).toBe(renderPlan(m, m.storeys[0]!, { ids: true }));
   });
 });
 

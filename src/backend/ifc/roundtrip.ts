@@ -8,6 +8,7 @@ import { ifcApi } from "./api.js";
 import { doorDivision } from "../../shared/geometry/door.js";
 import { revealSplay } from "../../shared/geometry/opening.js";
 import { area as polygonArea } from "../../shared/geometry/polygon.js";
+import { furnishingGeometry } from "../../shared/geometry/furnishing.js";
 import { railingGeometry } from "../../shared/geometry/railing.js";
 import { flightProfileArea, stairLevels, winderFan } from "../../shared/geometry/stair.js";
 import { wallSideArea } from "../../shared/geometry/wall.js";
@@ -180,6 +181,7 @@ export function expectedVolumes(model: BuildingModel): ExpectedVolume[] {
     ...openingVolumes(model, s),
     ...stairVolumes(model, s),
     ...(s.railings ?? []).map((r) => ({ id: r.id, volume: railingGeometry(r).volume, what: "railing" })),
+    ...(s.furnishings ?? []).map((f) => ({ id: f.id, volume: furnishingGeometry(f).volume, what: "furnishing" })),
   ]);
 }
 

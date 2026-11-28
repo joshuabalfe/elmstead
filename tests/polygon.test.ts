@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { polygonProblems, spans } from "../src/shared/geometry/polygon.js";
+import { convexOverlap, polygonProblems, spans } from "../src/shared/geometry/polygon.js";
 
 const P = (x: number, y: number) => ({ x, y });
 // L shape: 0..4000 wide at the bottom, 0..1000 wide above y = 2000.
@@ -87,5 +87,58 @@ describe("polygonProblems", () => {
 
   it("allows a straight continuation at an intermediate vertex", () => {
     expect(polygonProblems([P(0, 0), P(500, 0), P(1000, 0), P(1000, 1000), P(0, 1000)])).toEqual([]);
+  });
+});
+
+describe("convexOverlap", () => {
+  const square = (x: number, y: number, size = 1000) => [
+    P(x, y),
+    P(x + size, y),
+    P(x + size, y + size),
+    P(x, y + size),
+  ];
+
+  it("finds two squares that share area", () => {
+    expect(convexOverlap(square(0, 0), square(500, 500))).toBe(true);
+    expect(convexOverlap(square(0, 0), square(100, 100, 100))).toBe(true);
+  });
+
+  it("does not count squares that only touch along an edge or at a corner", () => {
+    expect(convexOverlap(square(0, 0), square(1000, 0))).toBe(false);
+    expect(convexOverlap(square(0, 0), square(1000, 1000))).toBe(false);
+    expect(convexOverlap(square(0, 0), square(1000, 500))).toBe(false);
+  });
+
+  it("does not count squares apart", () => {
+    expect(convexOverlap(square(0, 0), square(1500, 0))).toBe(false);
+  });
+
+  it("treats a 1 mm overlap as an overlap", () => {
+    expect(convexOverlap(square(0, 0), square(999, 0))).toBe(true);
+  });
+
+  it("works for a turned rectangle", () => {
+    const diamond = [P(1500, 1000), P(2000, 1500), P(1500, 2000), P(1000, 1500)];
+    expect(convexOverlap(square(0, 0), diamond)).toBe(false);
+    expect(
+      convexOverlap(
+        square(0, 0),
+        diamond.map((p) => P(p.x - 400, p.y - 400)),
+      ),
+    ).toBe(true);
+    // a corner of the diamond touches the square's edge
+    expect(
+      convexOverlap(
+        square(0, 0),
+        diamond.map((p) => P(p.x, p.y - 1000)),
+      ),
+    ).toBe(false);
+  });
+
+  it("is the same whichever polygon comes first, and either winding", () => {
+    const a = square(0, 0);
+    const b = square(500, 500);
+    expect(convexOverlap(b, a)).toBe(true);
+    expect(convexOverlap([...a].reverse(), b)).toBe(true);
   });
 });

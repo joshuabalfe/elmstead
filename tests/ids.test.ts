@@ -81,6 +81,31 @@ describe("idNodes places", () => {
   });
 });
 
+describe("furnishings in the id walk", () => {
+  const furnished = () => {
+    const m = model(cottage);
+    m.storeys[0]!.furnishings = [
+      { id: "sofa-a", kind: "sofa", at: { x: 1000, y: 1000 } },
+      { id: "bath-a", kind: "bath", at: { x: 2000, y: 2000 } },
+    ] as BuildingModel["storeys"][number]["furnishings"];
+    return m;
+  };
+
+  it("yields each furnishing after the storey's railings, with its place", () => {
+    const nodes = idNodes(furnished()).filter((n) => n.kind === "furnishing");
+    expect(nodes.map((n) => n.element.id)).toEqual(["sofa-a", "bath-a"]);
+    expect(nodes[1]).toMatchObject({
+      storey: "storey-ground",
+      place: { storey: "storey-ground", collection: "furnishings", index: 1 },
+    });
+    const all = idNodes(furnished());
+    const lastOfStorey = all.findLastIndex(
+      (n) => "storey" in n && n.storey === "storey-ground" && n.kind !== "furnishing",
+    );
+    expect(all.findIndex((n) => n.kind === "furnishing")).toBeGreaterThan(lastOfStorey);
+  });
+});
+
 describe("element-kind table", () => {
   it("covers every storey and component array in the schema", () => {
     // The `satisfies` in kinds.ts catches this at typecheck; this is its runtime mirror.

@@ -26,6 +26,7 @@ import { Line2 } from "three/addons/lines/Line2.js";
 import { LineGeometry } from "three/addons/lines/LineGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 import { STYLES } from "../../shared/ifc/styles.js";
+import { furnishingFootprint, furnishingGeometry } from "../../shared/geometry/furnishing.js";
 import { wallHeight } from "../../shared/geometry/wall.js";
 import {
   renderFloor,
@@ -785,7 +786,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
 
   /**
    * The height (scene m) any of a storey's elements reaches. A storey with no walls, such as the
-   * street level, is topped by its railings; a stair climbs to the storey above.
+   * street level, is topped by its railings and furnishings; a stair climbs to the storey above.
    */
   function storeyTop(storey: Storey, byId: Map<string, Storey>): number {
     let top = storey.elevation + Math.max(0, ...storey.walls.map((w) => wallHeight(w)));
@@ -793,6 +794,10 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     for (const slab of storey.slabs) top = Math.max(top, storey.elevation + slab.elevationOffset);
     for (const r of storey.railings ?? [])
       top = Math.max(top, storey.elevation + Math.max(r.startBase ?? 0, r.endBase ?? 0) + r.height);
+    for (const f of storey.furnishings ?? []) {
+      const g = furnishingGeometry(f);
+      top = Math.max(top, storey.elevation + g.base + g.size.height);
+    }
     for (const st of storey.stairs ?? []) top = Math.max(top, byId.get(st.toStoreyId)?.elevation ?? storey.elevation);
     return top / 1000;
   }
@@ -1102,6 +1107,7 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
         ...s.slabs.flatMap((sl) => sl.outline),
         ...s.rooms.flatMap((r) => r.outline),
         ...(s.railings ?? []).flatMap((r) => [r.start, r.end]),
+        ...(s.furnishings ?? []).flatMap(furnishingFootprint),
       ]);
     if (!pts.length) return box;
     const xs = pts.map((p) => p.x);
