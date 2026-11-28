@@ -1,5 +1,6 @@
 /**
- * The engine state and services the scene modules share. Types only: a module imports this without
+ * The engine state and services the scene modules share: types plus the one shared constant (FADE).
+ * A module imports this without
  * importing the engine, so there are no cycles. Mutable state is read through accessors, because a
  * value captured at construction would go stale, the bug class the load epochs guard against.
  */
@@ -103,7 +104,6 @@ export interface SceneContext {
   /** Refresh the changes panel from the current diff and storey selection. */
   publishChanges(): void;
   hideHover(): void;
-  repickHover(): void;
   isWalking(): boolean;
   setMeasuring(on: boolean): void;
   clearMeasurements(): void;

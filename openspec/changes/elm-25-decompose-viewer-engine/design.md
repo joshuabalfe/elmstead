@@ -7,7 +7,7 @@ The engine closure's subsystems, with their state (line ranges approximate on cu
 | Subsystem        | State it owns                                                                                                     | Rough lines |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------- | ----------- |
 | Measurement tool | measurements, pendingPoint, measureEpoch, pick queue, pointer set, measureLayer + materials                       | 1498–1730   |
-| Walk mode        | savedView, pointerLockControls, walkKeys, walkRaf, eye height                                                     | 1335–1497   |
+| Walk mode        | walkActive, pointerLockControls, walkKeys, walkRaf (free-fly)                                                     | 1335–1497   |
 | Hover identify   | elementLabels, hoverSprite, hover queue/epoch, lastPointer                                                        | 1731–1832   |
 | Diff dressing    | shownDiff usage, diffOutlines, ghostModel/items/labels, outlineMaterials, fadePlan                                | 1999–2342   |
 | Storey sweep     | storeyMotion, storeyChain, settledStoreys, sweepPlane, storeyItemCache, layer fades                               | 712–1078    |
@@ -45,7 +45,7 @@ Each module exports a factory taking `(ctx: SceneContext, …narrow deps)` and r
 
 - `createMeasureTool(ctx)` → `{ requested, setMeasuring, toggle, clear }`; owns its layer,
   materials, pick queue and pointer listeners; calls `ctx.exitWalk()` on toggle-on as today.
-- `createWalkMode(ctx)` → `{ requested, enter, exit, toggle, isWalking }`; owns savedView,
+- `createWalkMode(ctx)` → `{ requested, enter, exit, toggle, isWalking }`; owns the free-fly pose,
   pointer lock, keys and rAF; reads `ctx.shownBox()` and `ctx.lowestElevation()`; calls
   `ctx.onWalkExit()` for the compass/label/repick refresh the engine does today.
 - `createIdentify(ctx)` → `{ requested, setIdentifying, isIdentifying, repick, hide, reset,
@@ -70,10 +70,11 @@ applyStairPresentation }`; owns the plan shader patches, the stair banding and e
 
 `scene/context.ts` defines the interface (types only, no engine import → no cycles). The engine
 implements it with **getter functions** for mutable shared state (`currentModel()`, `modelJson()`,
-`shownStoreys()`, `viewState()`, `loadEpoch()`, `shownDiff()`, `storeyLayers()`, `storeyIndex()`,
-`lowestElevation()`, `loadResident()`), the stable scene services (`snapshot`, `store`, `scene`,
-`camera`, `renderer`, `fragments`, `canvas`, `params`) and the late-bound cross-module actions
-(`exitWalk()`, `hideHover()`, `repickHover()`, `onWalkExit()`, `publishChanges()`). Passing values
+`viewState()`, `isShown()`, `shownDiff()`, `storeyLayers()`, `storeyIndex()`, `lowestElevation()`,
+`loadResident()`), the stable scene services (`snapshot`, `store`, `scene`, `camera`, `renderer`,
+`fragments`, `canvas`, `params`) and the late-bound cross-module actions (`exitWalk()`,
+`hideHover()`, `onWalkExit()`, `publishChanges()`). The load, measure and hover epochs stay internal
+to the engine and their modules. Passing values
 would capture stale closures — the exact bug class the engine's epoch guards exist to prevent.
 Tool-local epochs (measure, hover) move into their modules; `loadEpoch` stays with the engine and
 is read through the accessor. The `window.__elmstead*` declarations live here too, so every module
@@ -87,7 +88,7 @@ settles there. Modules keep their own single-flight queues (pick, hover) and rAF
 never starts a second loop for the same animation. The sweep's retarget semantics move verbatim —
 they are the most timing-sensitive code and are covered by the storey-keys/selection suites.
 
-### D4: Staged commits
+### D4: Staged extraction
 
 1. `context.ts` + extract **measure** (largest clean boundary, ~300 lines out).
 2. Extract **walk** (~200).
@@ -100,11 +101,13 @@ they are the most timing-sensitive code and are covered by the storey-keys/selec
 9. Tidy: engine doc comment, dead imports, `docs/architecture.md`.
 
 Each stage: `npm run typecheck`, the full viewer suites, `npm test`. If a stage reveals a boundary
-is wrong, fix the boundary in that stage rather than carrying a half-move forward.
+is wrong, fix the boundary in that stage rather than carrying a half-move forward. The stages were
+implementation steps, not separate commits: the work landed as one implementation commit (4f2728d)
+plus the two sibling merge commits (75fca1a for #82, bd139f5 for #83).
 
 ### D5: Test strategy
 
-The Chromium suites are the regression net and stay unchanged. Where extraction exposes pure
+The Chromium suites are the regression net and their assertions are unchanged. Where extraction exposes pure
 logic (e.g. a fade-state reducer), add fast unit tests beside `lib/`. No new heavy test file — the
 CI groups (ELM-26's subject) are untouched.
 
@@ -112,16 +115,18 @@ CI groups (ELM-26's subject) are untouched.
 
 - **Closure-state subtleties** (epochs, held frames, ghost lifecycle) — mitigated by D2 accessors,
   verbatim moves, and per-stage suites; the byte-identical PNG check catches visual drift.
-- **Circular imports** — context.ts is types-only; modules import it and three.js, never the engine.
-- **Review size** — large but mechanical; the staged commits make each step reviewable, per the
+- **Circular imports** — context.ts imports no engine (types plus the shared `FADE` constant); modules import it and three.js, never the engine.
+- **Review size** — large but mechanical; the module-per-file split makes each step reviewable, per the
   repo's full-coherent-split preference.
 - **Residual coupling** with ELM-23 (`chooseView` hook) and ELM-24 (owner map): both landed before
   this change, and the extraction re-cut around their settled-view hook and deleted owner map.
+  #82 (free-fly camera) and #83 (winder stairs) landed during implementation and were merged in,
+  their semantics moved into `scene/walk.ts` and `scene/style.ts`.
 
 ## Acceptance / Migration
 
 1. Full suite green at every stage; `npm test` (all viewer files) green at the end.
 2. Render `models/elmstead` and the cottage before/after: snapshot PNGs byte-identical.
 3. `engine.ts` ≈1,050 lines (814 code lines), within ~5% of the ~1,000 target and down from
-   2,681; each module owns its state (no tool state left in the engine).
+   2,649; each module owns its state (no tool state left in the engine).
 4. Every `window.__elmstead*` hook still declared and behaving identically (the suites assert them).

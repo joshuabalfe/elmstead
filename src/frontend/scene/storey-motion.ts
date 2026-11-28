@@ -6,9 +6,8 @@
  */
 import type { FragmentsModel } from "@thatopen/fragments";
 import * as THREE from "three";
-import { wallHeight } from "../../shared/geometry/wall.js";
 import type { Storey } from "../../shared/schema/schema.js";
-import { storeysLowestFirst } from "../lib/storeys.js";
+import { storeysLowestFirst, storeyTop } from "../lib/storeys.js";
 import { FADE, type SceneContext } from "./context.js";
 import { LABEL_LIFT } from "./lifts.js";
 
@@ -69,20 +68,6 @@ interface Motion {
   targetPlane: number;
   running: boolean;
   waiters: (() => void)[];
-}
-
-/**
- * The height (scene m) any of a storey's elements reaches. A storey with no walls, such as the
- * street level, is topped by its railings; a stair climbs to the storey above.
- */
-export function storeyTop(storey: Storey, byId: Map<string, Storey>): number {
-  let top = storey.elevation + Math.max(0, ...storey.walls.map((w) => wallHeight(w)));
-  for (const o of storey.openings) top = Math.max(top, storey.elevation + o.sillHeight + o.height);
-  for (const slab of storey.slabs) top = Math.max(top, storey.elevation + slab.elevationOffset);
-  for (const r of storey.railings ?? [])
-    top = Math.max(top, storey.elevation + Math.max(r.startBase ?? 0, r.endBase ?? 0) + r.height);
-  for (const st of storey.stairs ?? []) top = Math.max(top, byId.get(st.toStoreyId)?.elevation ?? storey.elevation);
-  return top / 1000;
 }
 
 export function createStoreyMotion(ctx: SceneContext): StoreyMotion {

@@ -2,7 +2,7 @@
 
 ## Why
 
-`src/frontend/scene/engine.ts` is one 2,658-line closure holding 54 mutable `let`s and at least
+`src/frontend/scene/engine.ts` is one 2,649-line closure holding 52 mutable `let`s and at least
 eight subsystems: model loading/residency, the storey section sweep, shader style patches, walk
 mode, the measurement tool, hover identification, Diff dressing and ghosts, and view crossfades.
 ELM-21 moved the UI to React but left the scene monolithic. Every viewer feature diffs against the
@@ -23,9 +23,9 @@ that compounds with every viewer feature.
   state the engine owns (current model, model JSON, storey selection, view state, epochs) — no
   stale closure snapshots.
 - The engine keeps world/camera setup, URL params, loading/residency, storey selection, view
-  framing, the serialisation chains and the `ViewerApi`; ≈1,050 lines, down from 2,681. The five
+  framing, the serialisation chains and the `ViewerApi`; ≈1,050 lines, down from 2,649. The five
   planned tool modules left it at ~1,270, so labels, Diff state and style followed.
-- Staged as runnable commits, one module per stage, the full viewer suite green at every stage.
+- Extracted in stages with the full viewer suite green at each; landed as one implementation commit plus the two sibling merge commits (#82, #83).
 - **No behaviour change:** every `window.__elmstead*` hook, URL param, pixel output and UI
   interaction is preserved. Acceptance includes byte-identical snapshot PNGs.
 
@@ -45,8 +45,10 @@ preserves every ifc-viewer requirement, test hook and output byte. No spec contr
 - `src/frontend/scene/` — new `context.ts`, `measure.ts`, `walk.ts`, `identify.ts`, `dress.ts`,
   `storey-motion.ts`, `labels.ts`, `diff-mode.ts` and `style.ts`; `engine.ts` shrinks to
   orchestration.
-- Tests: the existing viewer suites are the safety net and stay unchanged; fast unit tests are
-  added where extraction exposes pure logic (`lib/storeys.ts`).
+- Tests: the existing viewer suites are the safety net and their assertions are unchanged (one import moved); fast unit tests are
+  added where extraction exposes pure logic (`lib/storeys.ts`: ordering, prefix check and `storeyTop`).
 - `docs/architecture.md` — the viewer's scene module layout.
 - No new dependencies. ELM-23's settled-view hook and ELM-24's owner-map deletion both landed
-  before the moves, so the extraction re-cut around them.
+  before the moves, so the extraction re-cut around them. Main then moved twice more: #82
+  (free-fly camera) and #83 (winder stairs) were merged in, their semantics moved into
+  `scene/walk.ts` and `scene/style.ts` rather than dropped.

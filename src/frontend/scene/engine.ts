@@ -116,6 +116,9 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   const grid = components.get(OBC.Grids).create(world);
   grid.config.color = new THREE.Color(0xd8d8d4);
 
+  // Declared before the material listener below so the callback never reads it in its temporal dead
+  // zone; it is assigned before any model loads, and the guard covers the loader-setup window.
+  let style: Style;
   const fragments = components.get(OBC.FragmentsManager);
   fragments.init(workerUrl);
   world.camera.controls.addEventListener("update", () => fragments.core.update());
@@ -155,7 +158,6 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
   let dresser: Dresser;
   let storeyMotion: StoreyMotion;
   let diffMode: DiffMode;
-  let style: Style;
 
   /** True north, degrees counter-clockwise from plan +y (site.northAngle); null when there is no model JSON. */
   let northAngle: number | null = null;
@@ -202,7 +204,6 @@ export async function createViewer(container: HTMLElement, store: ViewerStore): 
     setDressingStoreyVisibility: () => dresser.setStoreyVisibility(),
     publishChanges: () => diffMode.publish(),
     hideHover: () => identify.hide(),
-    repickHover: () => identify.repick(),
     isWalking: () => walk.isWalking(),
     setMeasuring: (on) => measure.setMeasuring(on),
     clearMeasurements: () => measure.clear(),

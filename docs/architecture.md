@@ -91,7 +91,7 @@ tests/               vitest suites, fixtures and the plan SVG snapshot
 
 `src/frontend/scene/engine.ts` owns the world and camera, the URL state, loading and residency,
 storey selection, view framing and the `ViewerApi`. Each tool or mode is a module beside it,
-created with the types-only `SceneContext` (`context.ts`), which reads engine-owned state through
+created with the `SceneContext` (`context.ts`, types plus the shared `FADE` constant), which reads engine-owned state through
 accessors so a module never holds a stale load-time value:
 
 - `measure.ts` — the measurement tool, its layer, pick queue and pointer listeners.
